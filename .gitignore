@@ -1,16 +1,1 @@
-# Build outputs
-build/
-*.bin
-*.elf
-*.hex
-*.map
-*.o
-*.d
-*.lst
-
-# System and IDE
 .DS_Store
-.vscode/
-.idea/
-*.swp
-*~

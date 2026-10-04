@@ -1,0 +1,151 @@
+{
+    "pattrstorage": {
+        "name": "granulator",
+        "slots": {
+            "1": {
+                "id": 1,
+                "data": {
+                    "mappings::pos": [ 0.043452901720618255 ],
+                    "mappings::randpos": [ 0.019265445153233227 ],
+                    "mappings::speed": [ 37 ],
+                    "mappings::pitch": [ 1.0 ],
+                    "mappings::randpitch": [ 0.003905519622062866 ],
+                    "mappings::spread": [ 0.5 ],
+                    "mappings::mode": [ 0 ],
+                    "mappings::grainsize": [ 21.877335642292476 ],
+                    "mappings::start": [ 0.45669291338582674 ],
+                    "mappings::buflength": [ 0.031496062992125984 ],
+                    "mappings::chance[1]": [ 10 ]
+                }
+            },
+            "2": {
+                "id": 2,
+                "data": {
+                    "mappings::pos": [ 0.8772366522709125 ],
+                    "mappings::randpos": [ 0.20066000513921795 ],
+                    "mappings::speed": [ 6 ],
+                    "mappings::pitch": [ 0.1732283464566929 ],
+                    "mappings::randpitch": [ 0.0019996260464961876 ],
+                    "mappings::spread": [ 0.5039370078740157 ],
+                    "mappings::mode": [ 0 ],
+                    "mappings::grainsize": [ 35.65271775096839 ],
+                    "mappings::start": [ 0.04724341751746373 ],
+                    "mappings::buflength": [ 0.37795271359484145 ],
+                    "mappings::chance[1]": []
+                }
+            },
+            "3": {
+                "id": 3,
+                "data": {
+                    "mappings::pos": [ 0.7620471919681868 ],
+                    "mappings::randpos": [ 0.03268587800738129 ],
+                    "mappings::speed": [ 4 ],
+                    "mappings::pitch": [ 0.7716535433070866 ],
+                    "mappings::randpitch": [ 0.08573396674352403 ],
+                    "mappings::spread": [ 0.801242087776309 ],
+                    "mappings::mode": [ 0 ],
+                    "mappings::grainsize": [ 328.7143705643061 ],
+                    "mappings::start": [ 0.28346456692913385 ],
+                    "mappings::buflength": [ 0.14960629921259844 ],
+                    "mappings::chance[1]": []
+                }
+            },
+            "4": {
+                "id": 4,
+                "data": {
+                    "mappings::pos": [ 0.8772366522709125 ],
+                    "mappings::randpos": [ 0.0 ],
+                    "mappings::speed": [ 0 ],
+                    "mappings::pitch": [ 1.0 ],
+                    "mappings::randpitch": [ 0.0 ],
+                    "mappings::spread": [ 1.0 ],
+                    "mappings::mode": [ 1 ],
+                    "mappings::grainsize": [ 4000.0 ],
+                    "mappings::start": [ 0.5486945710733526 ],
+                    "mappings::buflength": [ 0.06299212598425197 ],
+                    "mappings::chance[1]": []
+                }
+            },
+            "5": {
+                "id": 5,
+                "data": {
+                    "mappings::pos": [ 0.8772366522709125 ],
+                    "mappings::randpos": [ 0.00048818995275785827 ],
+                    "mappings::speed": [ 204 ],
+                    "mappings::pitch": [ 1.4173228346456692 ],
+                    "mappings::randpitch": [ 0.010716745842940504 ],
+                    "mappings::spread": [ 1.0 ],
+                    "mappings::mode": [ 0 ],
+                    "mappings::grainsize": [ 100.0 ],
+                    "mappings::start": [ 0.09512485222998386 ],
+                    "mappings::buflength": [ 0.37276217087587316 ],
+                    "mappings::chance[1]": []
+                }
+            },
+            "6": {
+                "id": 6,
+                "data": {
+                    "mappings::pos": [ 0.005726951965451659 ],
+                    "mappings::randpos": [ 9.840679362678087e-07 ],
+                    "mappings::speed": [ 278 ],
+                    "mappings::pitch": [ 0.5984251968503937 ],
+                    "mappings::randpitch": [ 0.0415859729357254 ],
+                    "mappings::spread": [ 1.0 ],
+                    "mappings::mode": [ 0 ],
+                    "mappings::grainsize": [ 100.0 ],
+                    "mappings::start": [ 0.4645669291338583 ],
+                    "mappings::buflength": [ 0.2204724409448819 ],
+                    "mappings::chance[1]": []
+                }
+            },
+            "7": {
+                "id": 7,
+                "data": {
+                    "mappings::pos": [ 0.005726951965451659 ],
+                    "mappings::randpos": [ 0.0686180769720334 ],
+                    "mappings::speed": [ 67 ],
+                    "mappings::pitch": [ 0.5354330708661417 ],
+                    "mappings::randpitch": [ 0.11080984366693142 ],
+                    "mappings::spread": [ 0.5 ],
+                    "mappings::mode": [ 0 ],
+                    "mappings::grainsize": [ 35.142025034706236 ],
+                    "mappings::start": [ 0.4251968503937008 ],
+                    "mappings::buflength": [ 0.2440944881889764 ],
+                    "mappings::chance[1]": []
+                }
+            },
+            "8": {
+                "id": 8,
+                "data": {
+                    "mappings::pos": [ 0.495414967911321 ],
+                    "mappings::randpos": [ 0.1422864444092085 ],
+                    "mappings::speed": [ 0 ],
+                    "mappings::pitch": [ 1.7480314960629921 ],
+                    "mappings::randpitch": [ 0.019187817903194855 ],
+                    "mappings::spread": [ 0.5 ],
+                    "mappings::mode": [ 1 ],
+                    "mappings::grainsize": [ 35.142025034706236 ],
+                    "mappings::start": [ 0.4251968503937008 ],
+                    "mappings::buflength": [ 0.2440944881889764 ],
+                    "mappings::chance[1]": []
+                }
+            },
+            "17": {
+                "id": 17,
+                "data": {
+                    "mappings::pos": [ 0.0 ],
+                    "mappings::randpos": [ 0.0 ],
+                    "mappings::speed": [ 100 ],
+                    "mappings::pitch": [ 1.0 ],
+                    "mappings::randpitch": [ 0.0 ],
+                    "mappings::spread": [ 0.5 ],
+                    "mappings::mode": [ 0 ],
+                    "mappings::grainsize": [ 30.0 ],
+                    "mappings::start": [ 0.0 ],
+                    "mappings::buflength": [ 1.0 ],
+                    "mappings::chance[1]": []
+                }
+            }
+        }
+    }
+}

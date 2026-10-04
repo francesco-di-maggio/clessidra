@@ -1,35 +1,20 @@
 # Clessidra
 
-A Simple Touch (Daisy Seed) instrument inspired by the hourglass, in progress.
+A Simple Touch instrument inspired by the hourglass, in progress.
 
----
+## Setup
 
-## 1. Hardware Layout
+1. Flash the Touch with [TouchMIDI](https://github.com/francesco-di-maggio/TouchMIDI).
+2. Open `max/patchers/granulator/granulator.maxpat` and `max/patchers/granulator/TouchGrain.maxpat` in Max.
 
-<img src="touch.jpeg" width="350"/>
+## Max Patches
 
+- `patchers/granulator/granulator.maxpat`: granular synth, with `p_grain` as the per-voice abstraction. Presets in `granulator.json`.
+- `patchers/granulator/TouchGrain.maxpat`: reads TouchMIDI and drives the granulator.
+- `examples/pickupmodes.maxpat`: demo of the soft-takeover modes (pickup, scale, glide) in `javascript/`.
 
----
+The granulator started from Nobuyasu Sakonda's [sugarSynth](http://formantbros.jp/sako/download.html).
 
-## 2. Quickstart
-
-```bash
-# Clone with submodules
-git clone --recurse-submodules -b dev https://github.com/francesco-di-maggio/clessidra.git
-cd clessidra
-
-# Build libraries, then TouchMIDI (the root Makefile's build target)
-make libs -j4
-make -j4
-
-# Flash to Daisy Seed (hold BOOT, press RESET, release BOOT)
-make program-dfu
-
-# Open TouchMIDI/TouchMIDI.maxpat in Max to test against it
-```
-
----
-
-## 3. License
+## License
 
 MIT
