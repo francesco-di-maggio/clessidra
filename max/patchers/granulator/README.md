@@ -30,7 +30,7 @@ The default sample is `rainstick.aif`, which ships with Max.
 | S36 (left fader) | playback speed (reverse, forward); playback position (freeze) |
 | S37 (right fader) | gain |
 | S07 (right switch) | mute / unmute / fuzz |
-| P01 | load default preset |
+| P01 | load default sample |
 | P10 | record |
 | P11 | randomize |
 | P00, P02-P09 | first press stores the current sound as preset 1; pressure interpolates through presets 1-8 |
