@@ -2,18 +2,21 @@
 
 A Simple Touch instrument inspired by the hourglass, in progress.
 
-## Setup
+## Current Status
 
-1. Flash the Touch with [TouchMIDI](https://github.com/francesco-di-maggio/TouchMIDI).
-2. Open `max/patchers/granulator/granulator.maxpat` and `max/patchers/granulator/TouchGrain.maxpat` in Max.
+Sound and mappings are explored in Max, with the Touch running [TouchMIDI](https://github.com/francesco-di-maggio/TouchMIDI) as a USB-MIDI controller. Once the instrument starts to feel right, it moves to C++ firmware running on the Touch itself.
 
-## Max Patches
+## Instruments
 
-- `patchers/granulator/granulator.maxpat`: granular synth, with `p_grain` as the per-voice abstraction. Presets in `granulator.json`.
-- `patchers/granulator/TouchGrain.maxpat`: reads TouchMIDI and drives the granulator.
-- `examples/pickupmodes.maxpat`: demo of the soft-takeover modes (pickup, scale, glide) in `javascript/`.
+| Instrument | Platform | Status | Folder |
+|---|---|---|---|
+| Granulator | Max | In Progress | [`max/patchers/granulator`](max/patchers/granulator) |
 
-The granulator started from Nobuyasu Sakonda's [sugarSynth](http://formantbros.jp/sako/download.html).
+## Max
+
+- `max/patchers/`: one folder per instrument, each with its own README.
+- `max/javascript/`: soft-takeover modes (pickup, scale, glide) shared by the patches.
+- `max/examples/pickupmodes.maxpat`: demo of the soft-takeover modes.
 
 ## License
 
