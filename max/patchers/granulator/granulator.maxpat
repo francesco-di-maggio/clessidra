@@ -5080,7 +5080,7 @@
                                     "numoutlets": 1,
                                     "outlettype": [ "" ],
                                     "patching_rect": [ 2025.0, 549.0, 45.0, 22.0 ],
-                                    "text": "r TOUCH"
+                                    "text": "r PRESS"
                                 }
                             },
                             {
