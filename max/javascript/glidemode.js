@@ -1,6 +1,5 @@
-// Glide-then-lock: converges toward the physical value from any distance,
-// in any direction, then snaps to exact 1:1 tracking once close enough -
-// so touch and output are perfectly in sync afterward, not just close.
+// Glide-then-lock: moves toward the physical value, then switches to
+// 1:1 tracking once the gap is below threshold.
 //
 // Inlet 0 (left)  = touch, the continuously-moving physical value
 // Inlet 1 (right) = external, any non-physical value-setting event

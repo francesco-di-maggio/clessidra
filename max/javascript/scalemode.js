@@ -1,4 +1,4 @@
-// Max's official "Scale" mode, reimplemented from the documented mechanics:
+// Max's Scale mode, as documented:
 // "Incoming MIDI values will scale the parameter value between its current
 // value and the minimum or maximum value, until the object reaches its
 // minimum or maximum." (docs.cycling74.com/userguide/mapping)
@@ -6,7 +6,7 @@
 // Inlet 0 (left)  = touch, the continuously-moving physical value
 // Inlet 1 (right) = external, any non-physical value-setting event
 //
-// Needs the real range of both sides - set these to match your setup:
+// Physical and parameter ranges:
 var phys_min = 0.0;
 var phys_max = 127.0;
 var param_min = 0.0;

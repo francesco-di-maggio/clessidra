@@ -1,14 +1,12 @@
-// Max's official "Pickup" mode, from the documented mechanics:
+// Max's Pickup mode, as documented:
 // "The object will ignore incoming MIDI values until they cross over the
 // current value of the object." (docs.cycling74.com/userguide/mapping)
 //
 // Inlet 0 (left)  = touch, the continuously-moving physical value
 // Inlet 1 (right) = external, any non-physical value-setting event
 //
-// Uses true crossing detection (sign change between consecutive physical
-// samples), not a nearness threshold - so a coarse controller that jumps
-// past the target between two messages (e.g. 49 -> 51 skipping 50) still
-// correctly counts as having crossed it.
+// Crossing is detected by a sign change between consecutive physical
+// values, so a jump past the target (49 -> 51) still counts.
 
 inlets = 2;
 outlets = 1;
@@ -53,5 +51,5 @@ function msg_float(v) {
         target = v;
         outlet(0, target);
     }
-    // else: ignored, no outlet - output holds at its last sent value
+    // else: no output
 }
