@@ -11,7 +11,7 @@ Current mapping, for testing the engine.
 | Control | Function |
 |---|---|
 | S30 / S35 | Playback start / end, 0–100 % of the recording |
-| S31 | Grain size, 10 ms to half the recording. Centre detent. |
+| S31 | Grain size, 5 ms – 2 s. Centre detent: 100 ms. |
 | S32 | Random position |
 | S33 | Pitch, 0.01–2. Centre detent: 1. |
 | S34 | Random pitch |

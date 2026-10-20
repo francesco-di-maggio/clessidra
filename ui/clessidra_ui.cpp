@@ -23,8 +23,8 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     p.start = std::min(a, b);
     p.length = std::fabs(b - a);
 
-    const float size = Detent(k.Value(Knobs::S31), 0.05f);
-    p.grain_ms = std::max(0.5f * size * size * size * _engine.RecordedSeconds() * 1000.0f, 10.0f);
+    // 5 ms .. 2 s, exponential: centre = 100 ms
+    p.grain_ms = 5.0f * std::pow(400.0f, Detent(k.Value(Knobs::S31), 0.05f));
 
     const float rand_pos = k.Value(Knobs::S32);
     p.rand_pos = rand_pos * rand_pos * rand_pos * rand_pos;

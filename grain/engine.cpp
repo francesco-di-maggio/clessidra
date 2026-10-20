@@ -27,7 +27,8 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     const double sel_start = p.start * len;
     const double sel_len = std::max(p.length * len, 1.0);
     const double play_inc = p.speed / sel_len;
-    const double grain_samples = std::max(p.grain_ms * 0.001 * _sample_rate, 1.0);
+    // A grain reads about grain_samples: no longer than the recording
+    const double grain_samples = std::clamp(p.grain_ms * 0.001 * _sample_rate, 1.0, std::max(len, 1.0));
     const double grain_inc = p.pitch / grain_samples;
     // One start every 1 / kOverlap of a grain
     const double sched_inc = grain_inc * kOverlap;
