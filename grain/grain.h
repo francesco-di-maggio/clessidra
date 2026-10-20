@@ -5,39 +5,35 @@
 
 namespace clessidra {
 
-// One grain voice: a phasor drives a half-sine window and a buffer read. Position,
-// read span, pan and play are latched at each window start.
+// One grain: a half-sine window over a buffer read. Position, read rate and pan are
+// latched at Start(). The window advances at the rate passed to Process().
 class Grain {
 public:
     struct Latch {
-        float position = 0.0f; // samples
-        float span = 0.0f;     // samples read over one window
+        double position = 0.0; // samples
+        float rate = 1.0f;     // samples read per output sample
         float pan = 0.5f;      // 0 left .. 1 right
-        bool play = false;
     };
 
     // Once, before any Grain is used.
     static void InitWindow();
 
-    // phase: 0..1 start offset, spreads the voices evenly
-    void Init(float phase) { _phase = phase; }
-
-    // Advances the phasor. Returns true when a new window starts: call Start() then.
-    bool Advance(float inc);
+    bool IsActive() const { return _active; }
     void Start(const Latch& latch);
 
-    // gate_inc: per-sample step of the play gate ramp
-    void Process(const Buffer& buffer, float gate_inc, float& left, float& right);
+    // Adds the grain to left and right while active. inc: window phase per sample.
+    void Process(const Buffer& buffer, double inc, float& left, float& right);
 
 private:
     static constexpr size_t kWindowSize = 512;
     static float _window[kWindowSize + 1];
 
-    float _phase = 0.0f;
-    float _gate = 0.0f;
     Latch _latch;
+    double _phase = 0.0;
+    double _read = 0.0; // samples read since Start()
     float _gain_l = 0.0f;
     float _gain_r = 0.0f;
+    bool _active = false;
 };
 
 } // namespace clessidra

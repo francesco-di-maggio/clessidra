@@ -52,15 +52,15 @@ void Buffer::Write(float x) {
     _mem[_write_pos++] = x * gain;
 }
 
-float Buffer::Read(float pos) const {
+float Buffer::Read(double pos) const {
     if (_length == 0) return 0.0f;
-    const float len = float(_length);
+    const double len = double(_length);
     pos = std::fmod(pos, len);
-    if (pos < 0.0f) pos += len;
+    if (pos < 0.0) pos += len;
 
     const size_t i0 = static_cast<size_t>(pos);
     const size_t i1 = (i0 + 1 < _length) ? i0 + 1 : 0;
-    const float frac = pos - float(i0);
+    const float frac = float(pos - double(i0));
     return _mem[i0] + frac * (_mem[i1] - _mem[i0]);
 }
 

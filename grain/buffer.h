@@ -21,7 +21,7 @@ public:
     void Write(float x);
 
     // Linear interpolation. pos wraps within Length().
-    float Read(float pos) const;
+    float Read(double pos) const;
 
     // Recorded samples. Updated when a recording finishes.
     size_t Length() const { return _length; }

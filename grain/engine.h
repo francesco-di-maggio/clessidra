@@ -11,7 +11,8 @@ namespace clessidra {
 // The instrument's signal path. No hardware code here.
 class Engine {
 public:
-    static constexpr size_t kNumGrains = 8;
+    static constexpr size_t kOverlap = 8;    // grains sounding at once, steady state
+    static constexpr size_t kNumVoices = 16; // above kOverlap: random starts (flow) can cluster
 
     struct Params {
         float start = 0.0f;      // selection start, 0..1 of the recording
@@ -39,18 +40,19 @@ public:
     float RecordedSeconds() const { return float(_buffer.Length()) / _sample_rate; }
 
 private:
-    static constexpr float kGateRampMs = 100.0f;
-
-    Grain::Latch _latch(float sel_start, float sel_len, float span);
+    // Starts a grain on a free voice. All voices busy: the grain is dropped.
+    void _trigger(double sel_start, double sel_len);
     float _random(); // uniform -1..1
 
     Buffer _buffer;
-    std::array<Grain, kNumGrains> _grains;
+    std::array<Grain, kNumVoices> _grains;
     Params _params;
     float _sample_rate = 48000.0f;
-    float _gate_inc = 0.0f;
     float _out_gain = 0.0f;
-    float _play_phase = 0.0f; // playhead through the selection, 0..1
+    float _gain = 0.0f;       // output gain at the end of the last block
+    // Running positions in double: float steps reach 1/8 sample at 30 s
+    double _play_phase = 0.0;  // playhead through the selection, 0..1
+    double _sched_phase = 0.0; // one grain start per cycle
     uint32_t _seed = 1;
     volatile bool _record = false;
     bool _was_record = false;
