@@ -4,6 +4,8 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass. In 
 
 ## Controls
 
+<img src="touch.jpeg" width="300"/>
+
 Current mapping, for testing the engine.
 
 | Control | Function |
