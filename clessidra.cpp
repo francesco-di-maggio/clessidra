@@ -18,6 +18,8 @@ static Engine       engine;
 static ClessidraUI  ui(touch, engine);
 static CpuLoadMeter cpu;
 
+static float DSY_SDRAM_BSS buffer[kBufferSamples];
+
 static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) {
     cpu.OnBlockStart();
     touch.ProcessControls();
@@ -42,6 +44,9 @@ static void LogState() {
     for (size_t p = 0; p < Pads::kNumPads; p++) {
         hw.Print(" %3d", Percent(touch.pads().Pressure(p)));
     }
+    hw.Print(" | rec %d len %d.%d s", engine.IsRecording(),
+             static_cast<int>(engine.RecordedSeconds()),
+             static_cast<int>(engine.RecordedSeconds() * 10.0f) % 10);
     hw.PrintLine(" | cpu avg %d max %d", Percent(cpu.GetAvgCpuLoad()), Percent(cpu.GetMaxCpuLoad()));
 }
 #endif
@@ -52,7 +57,7 @@ int main(void) {
     hw.SetAudioBlockSize(kBlockSize);
 
     touch.Init(hw);
-    engine.Init(hw.AudioSampleRate());
+    engine.Init(hw.AudioSampleRate(), buffer, kBufferSamples);
     cpu.Init(hw.AudioSampleRate(), hw.AudioBlockSize());
 
 #ifdef CLESSIDRA_LOG
