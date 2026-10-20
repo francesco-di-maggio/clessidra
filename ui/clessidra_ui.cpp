@@ -15,7 +15,6 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     _engine.SetRecording(_touch.pads().IsTouched(kRecordPad));
     hw.SetLed(_engine.IsRecording());
 
-    // Curves and detents from p mappings in max/patchers/granulator/granulator.maxpat.
     // S09, S07 and pad pressure are unmapped.
     const Knobs& k = _touch.knobs();
     Engine::Params p;

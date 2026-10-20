@@ -7,7 +7,7 @@ namespace clessidra {
 float Grain::_window[Grain::kWindowSize + 1];
 
 void Grain::InitWindow() {
-    // sin(pi * phase): cycle~ at phase 0.5 * phase + 0.75 in p_grain
+    // sin(pi * phase), 0 at both ends
     for (size_t i = 0; i <= kWindowSize; i++) {
         _window[i] = std::sin(float(M_PI) * float(i) / float(kWindowSize));
     }
@@ -22,14 +22,14 @@ bool Grain::Advance(float inc) {
 
 void Grain::Start(const Latch& latch) {
     _latch = latch;
-    // Equal-power pan, as p equal_pan
+    // Equal-power pan
     const float angle = 0.5f * float(M_PI) * latch.pan;
     _gain_l = std::cos(angle);
     _gain_r = std::sin(angle);
 }
 
 void Grain::Process(const Buffer& buffer, float gate_inc, float& left, float& right) {
-    // Play gate ramps instead of switching, as selector~ @ramptime
+    // Ramped play gate: a skipped grain fades instead of cutting
     if (_latch.play) {
         _gate = std::fmin(_gate + gate_inc, 1.0f);
     } else {

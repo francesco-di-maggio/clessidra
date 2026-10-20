@@ -5,9 +5,8 @@
 
 namespace clessidra {
 
-// One voice of max/patchers/granulator/p_grain.maxpat: a phasor drives a half-sine
-// window and a buffer read. Position, read span, pan and play are latched at each
-// window start (sah~ in p_grain).
+// One grain voice: a phasor drives a half-sine window and a buffer read. Position,
+// read span, pan and play are latched at each window start.
 class Grain {
 public:
     struct Latch {

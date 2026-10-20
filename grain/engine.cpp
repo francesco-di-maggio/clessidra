@@ -14,7 +14,8 @@ void Engine::Init(float sample_rate, float* buffer, size_t buffer_size) {
         _grains[i].Init(float(i) / float(kNumGrains));
     }
     _gate_inc = 1000.0f / (kGateRampMs * sample_rate);
-    // gain * 0.9 in granulator, * 1.414 / sqrt(voices) in p_grain
+    // 0.9 headroom; sqrt(2) offsets the equal-power pan at centre;
+    // 1 / sqrt(voices) keeps the sum of uncorrelated grains near unity
     _out_gain = 0.9f * std::sqrt(2.0f) / std::sqrt(float(kNumGrains));
 }
 
@@ -58,7 +59,7 @@ Grain::Latch Engine::_latch(float sel_start, float sel_len, float span) {
     latch.position = sel_start + _play_phase * sel_len + _random() * p.rand_pos * sel_len * 0.5f;
     latch.span = span * (1.0f + _random() * p.rand_pitch);
     latch.pan = 0.5f + _random() * p.spread * 0.5f;
-    // chance 0..100 % scaled to a 1..-1 threshold in granulator
+    // Uniform -1..1 above 1 - 2 * chance: probability chance
     latch.play = _random() > 1.0f - 2.0f * p.chance;
     return latch;
 }

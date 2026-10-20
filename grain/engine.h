@@ -11,7 +11,7 @@ namespace clessidra {
 // The instrument's signal path. No hardware code here.
 class Engine {
 public:
-    static constexpr size_t kNumGrains = 8; // poly~ p_grain 8
+    static constexpr size_t kNumGrains = 8;
 
     struct Params {
         float start = 0.0f;      // selection start, 0..1 of the recording
@@ -39,10 +39,10 @@ public:
     float RecordedSeconds() const { return float(_buffer.Length()) / _sample_rate; }
 
 private:
-    static constexpr float kGateRampMs = 100.0f; // pattr ramptime @initial 100 in granulator.maxpat
+    static constexpr float kGateRampMs = 100.0f;
 
     Grain::Latch _latch(float sel_start, float sel_len, float span);
-    float _random(); // -1..1, as noise~
+    float _random(); // uniform -1..1
 
     Buffer _buffer;
     std::array<Grain, kNumGrains> _grains;
