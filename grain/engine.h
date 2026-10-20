@@ -18,6 +18,8 @@ public:
         float start = 0.0f;      // selection start, 0..1 of the recording
         float length = 1.0f;     // selection length, 0..1 of the recording
         float speed = 1.0f;      // playhead speed, 1 = real time, negative = reverse
+        bool freeze = false;     // playhead held at position, speed ignored
+        float position = 0.0f;   // 0..1 of the selection, used while frozen
         float grain_ms = 100.0f; // grain size
         float pitch = 1.0f;      // grain playback rate
         float rand_pos = 0.0f;   // 0..1, position spread as a fraction of the selection

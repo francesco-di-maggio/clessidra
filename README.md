@@ -15,8 +15,9 @@ Current mapping, for testing the engine.
 | S32 | Random position |
 | S33 | Pitch, 0.01–2. Centre detent: 1. |
 | S34 | Random pitch |
-| S36 | Playback speed, 0–4. Centre detent: 1. |
+| S36 | Playback speed, 0–4. Centre detent: 1. Position while frozen. |
 | S37 | Gain |
+| S09 | Playback: forward / freeze / reverse |
 | P10 | Hold to record, up to 30 s |
 | LED | On while recording |
 

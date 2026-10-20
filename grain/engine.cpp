@@ -36,8 +36,12 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     for (size_t i = 0; i < size; i++) {
         _buffer.Write(0.5f * (in[0][i] + in[1][i]));
 
-        _play_phase += play_inc;
-        _play_phase -= std::floor(_play_phase);
+        if (p.freeze) {
+            _play_phase = p.position;
+        } else {
+            _play_phase += play_inc;
+            _play_phase -= std::floor(_play_phase);
+        }
 
         _sched_phase += sched_inc;
         if (_sched_phase >= 1.0) {
@@ -72,6 +76,8 @@ void Engine::_trigger(double sel_start, double sel_len) {
     Grain::Latch latch;
     latch.position = sel_start + _play_phase * sel_len + _random() * p.rand_pos * sel_len * 0.5;
     latch.rate = p.pitch * (1.0f + _random() * p.rand_pitch);
+    // Grains read in the playhead's direction
+    if (!p.freeze && p.speed < 0.0f) latch.rate = -latch.rate;
     latch.pan = 0.5f + _random() * p.spread * 0.5f;
     grain->Start(latch);
 }

@@ -15,7 +15,6 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     _engine.SetRecording(_touch.pads().IsTouched(kRecordPad));
     hw.SetLed(_engine.IsRecording());
 
-    // S09, S07 and pad pressure are unmapped.
     const Knobs& k = _touch.knobs();
     Engine::Params p;
 
@@ -35,8 +34,12 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     const float rand_pitch = k.Value(Knobs::S34);
     p.rand_pitch = rand_pitch * rand_pitch * rand_pitch;
 
+    // S09: up forward, centre freeze (S36 = position), down reverse
+    const int mode = _touch.switches().Position(Switches::S09);
     const float speed = Detent(k.Value(Knobs::S36), 0.05f);
-    p.speed = 4.0f * speed * speed;
+    p.speed = (mode == daisy::Switch3::POS_DOWN ? -4.0f : 4.0f) * speed * speed;
+    p.freeze = mode == daisy::Switch3::POS_CENTER;
+    p.position = k.Value(Knobs::S36);
 
     const float gain = k.Value(Knobs::S37);
     p.gain = gain * gain;
