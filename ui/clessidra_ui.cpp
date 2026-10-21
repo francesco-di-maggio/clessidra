@@ -101,15 +101,14 @@ void ClessidraUI::Process() {
     }
     const bool shifted = _touch.pads().IsTouched(kShiftPad);
     if (shifted != _shifted) (shifted ? _shift : _main).Engage(k);
-    if (shifted && !_shifted) _show_value = 0.0f; // nothing turned yet
     _shifted = shifted;
     (shifted ? _shift : _main).Process(k);
 
-    // While P11 is held, the LED shows the second-layer value last turned
+    // While P11 is held, the LED shows the value of the second-layer knob last turned
     for (size_t i : kSecondLayer) {
         if (std::fabs(_shift[i] - _shown[i]) < kShowStep) continue;
         _shown[i] = _shift[i];
-        _show_value = _shift[i];
+        _shown_knob = i;
     }
 
     Engine::Params p;
@@ -209,7 +208,7 @@ void ClessidraUI::_led() {
     } else if (now < _pulse_until) {
         brightness = 1.0f;
     } else if (_shifted) {
-        brightness = kShowFloor + (1.0f - kShowFloor) * _show_value;
+        brightness = kShowFloor + (1.0f - kShowFloor) * _shift[_shown_knob];
     } else {
         brightness = now < _blink_until ? 1.0f : 0.0f;
     }

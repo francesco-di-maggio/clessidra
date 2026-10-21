@@ -62,7 +62,7 @@ private:
     uint32_t _grain_starts = 0;
     uint32_t _blink_until = 0;
     uint32_t _pulse_until = 0;
-    float _show_value = 0.0f; // second-layer value last turned while P11 is held
+    size_t _shown_knob = Knobs::S36; // second-layer knob last turned. At power-up: dry/wet
     std::array<float, Knobs::kNumKnobs> _shown{}; // second-layer values at their last move
     uint8_t _detents = 0xff; // bits: pitch interval, speed 1, grain size 100 ms. All set: no pulse at power-up
 };
