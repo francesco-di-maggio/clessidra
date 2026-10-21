@@ -13,8 +13,8 @@ namespace clessidra {
 // The instrument's signal path. No hardware code here.
 class Engine {
 public:
-    static constexpr float kMaxOverlap = 8.0f;
-    static constexpr size_t kNumVoices = 16; // above kMaxOverlap: random starts can cluster
+    static constexpr float kMaxOverlap = 16.0f;
+    static constexpr size_t kNumVoices = 32; // above kMaxOverlap: random starts can cluster
     static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
 
     struct Params {

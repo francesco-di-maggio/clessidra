@@ -48,6 +48,8 @@ static void LogState() {
              static_cast<int>(engine.RecordedSeconds()),
              static_cast<int>(engine.RecordedSeconds() * 10.0f) % 10);
     hw.PrintLine(" | cpu avg %d max %d", Percent(cpu.GetAvgCpuLoad()), Percent(cpu.GetMaxCpuLoad()));
+    // Readings per log line
+    cpu.Reset();
 }
 #endif
 

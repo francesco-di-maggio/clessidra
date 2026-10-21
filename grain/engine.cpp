@@ -88,8 +88,8 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
     const float overlap_gain = std::sqrt(2.0f / std::max(_window_power, 1.0f));
 
     // Uncorrelated grains: the sum has the power of the grains, 1. Correlated grains
-    // add in amplitude: up to 8 dB above that power at overlap 8. Never above 1:
-    // grains that cancel stay quiet. Silence: hold the last value.
+    // add in amplitude: up to 8 dB above that power at overlap 8, 11 dB at 16.
+    // Never above 1: grains that cancel stay quiet. Silence: hold the last value.
     if (_power_sum >= 1e-10f) _coherence_gain = std::min(1.0f, std::sqrt(_power_grains / _power_sum));
 
     // 0.9 headroom

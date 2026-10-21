@@ -11,14 +11,15 @@ Current mapping, for testing the engine.
 | Control | Function |
 |---|---|
 | S30 / S35 | Playback start / end, 0–100 % of the recording |
-| S31 | Grain size, 5 ms – 2 s. Centre detent: 100 ms. |
+| S31 | Grain size, 20 ms – 2 s. Centre detent: 100 ms. |
 | S32 | Random position |
-| S33 | Pitch, 0.01–2. Centre detent: 1. |
+| S33 | Pitch, ±2 octaves. Flat at unison, fifths and octaves. |
 | S34 | Random pitch |
 | S36 | Playback speed, 0–4. Centre detent: 1. Position while frozen. |
-| S37 | Overlap, 0.1–8 grains at once |
+| S37 | Flow with no pad touched, 0.1–16 grains at once |
 | S09 | Playback: forward / freeze / reverse |
 | S07 | Grain starts: periodic / half random / random |
+| P00, P02–P09 | Pressure raises flow to 16 grains at once |
 | P10 | Hold to record, up to 30 s |
 | LED | On while recording |
 
