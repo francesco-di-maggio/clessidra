@@ -48,6 +48,7 @@ void ClessidraUI::Takeover::Process(float knob) {
 }
 
 void ClessidraUI::Layer::Engage(const Knobs& k) {
+    s30.Engage(k.Value(Knobs::S30));
     s31.Engage(k.Value(Knobs::S31));
     s32.Engage(k.Value(Knobs::S32));
     s34.Engage(k.Value(Knobs::S34));
@@ -55,6 +56,7 @@ void ClessidraUI::Layer::Engage(const Knobs& k) {
 }
 
 void ClessidraUI::Layer::Process(const Knobs& k) {
+    s30.Process(k.Value(Knobs::S30));
     s31.Process(k.Value(Knobs::S31));
     s32.Process(k.Value(Knobs::S32));
     s34.Process(k.Value(Knobs::S34));
@@ -68,8 +70,9 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     const Knobs& k = _touch.knobs();
     if (!_started) {
         // The main layer starts where its knobs are, and follows them exactly
-        _main = Layer{ Takeover(k.Value(Knobs::S31)), Takeover(k.Value(Knobs::S32)),
-                       Takeover(k.Value(Knobs::S34)), Takeover(k.Value(Knobs::S37)) };
+        _main = Layer{ Takeover(k.Value(Knobs::S30)), Takeover(k.Value(Knobs::S31)),
+                       Takeover(k.Value(Knobs::S32)), Takeover(k.Value(Knobs::S34)),
+                       Takeover(k.Value(Knobs::S37)) };
         _started = true;
     }
     const bool shifted = _touch.pads().IsTouched(kShiftPad);
@@ -79,7 +82,7 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
 
     Engine::Params p;
 
-    const float a = k.Value(Knobs::S30);
+    const float a = _main.s30.Value();
     const float b = k.Value(Knobs::S35);
     p.start = std::min(a, b);
     p.length = std::fabs(b - a);
@@ -118,6 +121,7 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     p.jitter = flow == daisy::Switch3::POS_UP ? 0.0f : flow == daisy::Switch3::POS_CENTER ? 0.5f : 1.0f;
 
     // P11 layer
+    p.mix = _shift.s30.Value();
     p.window_shape = _shift.s31.Value();
     p.spread = _shift.s32.Value();
     p.chance = _shift.s34.Value();
@@ -127,13 +131,18 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     _engine.SetParams(p);
 }
 
-// On while recording, otherwise a blink per grain start
+// Recording: a steady flash, which grain starts cannot make. Otherwise a blink per
+// grain start.
 void ClessidraUI::_led(daisy::DaisySeed& hw) {
     const uint32_t now = daisy::System::GetNow();
     const uint32_t starts = _engine.GrainStarts();
     if (starts != _grain_starts) _blink_start = now;
     _grain_starts = starts;
-    hw.SetLed(_engine.IsRecording() || now - _blink_start < kBlinkMs);
+    if (_engine.IsRecording()) {
+        hw.SetLed((now / kRecordFlashMs) % 2 == 0);
+        return;
+    }
+    hw.SetLed(now - _blink_start < kBlinkMs);
 }
 
 } // namespace clessidra

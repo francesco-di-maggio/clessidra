@@ -20,12 +20,13 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 | P03, P00, P04, P08, P05, P02, P06, P09, P07 | Places: each pours grains from its ninth of the selection, first to last in this order. Pressure sets the flow, 1–16 grains at once. |
 | P10 | Hold to record, up to 30 s. Silent until the first recording. |
 | P11 | Hold for the second layer, below |
-| LED | On while recording, otherwise a blink per grain start |
+| LED | Flashes at 4 Hz while recording, otherwise blinks per grain start |
 
 Second layer, while P11 is held. After a layer change, a knob moves its value from where it is, and both reach the end stops together.
 
 | Control | Function |
 |---|---|
+| S30 | Dry / wet, equal power. Default: wet. |
 | S31 | Window shape: near-rectangle / sine (centre, default) / Hann |
 | S32 | Stereo spread, mono – full width. Default: half. |
 | S34 | Chance that a grain plays, 0–100 %. Default: 100 %. |

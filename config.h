@@ -28,4 +28,7 @@ static constexpr size_t   kPlacePads[] = { 3, 0, 4, 8, 5, 2, 6, 9, 7 };
 // MAIN LOOP ///////////////////////////////////////////////////////////////
 static constexpr uint32_t kLoopMs = 3;   // pad scan interval
 static constexpr uint32_t kLogMs  = 250; // serial log interval (LOG=1)
-static constexpr uint32_t kBlinkMs = 10; // LED on per grain start
+
+// LED /////////////////////////////////////////////////////////////////////
+static constexpr uint32_t kBlinkMs       = 10;  // on per grain start
+static constexpr uint32_t kRecordFlashMs = 125; // on and off while recording: 4 Hz

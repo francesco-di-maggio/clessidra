@@ -35,6 +35,7 @@ public:
         float spread = 0.5f;       // 0..1, stereo spread
         float chance = 1.0f;       // 0..1, probability that a grain plays
         float window_shape = 0.5f; // 0 near-rectangle, 0.5 sine, 1 Hann
+        float mix = 1.0f;          // 0 input only .. 1 grains only, equal power
         float gain = 1.0f;
     };
 
@@ -76,7 +77,9 @@ private:
     std::array<Grain, kNumVoices> _grains;
     Params _params;
     float _sample_rate = 48000.0f;
-    float _gain = 0.0f;       // output gain at the end of the last block
+    // Output gains at the end of the last block
+    float _wet_gain = 0.0f;
+    float _dry_gain = 0.0f;
     // Mean powers, smoothed: grains taken separately, their stereo sum, their windows
     float _power_grains = 0.0f;
     float _power_sum = 0.0f;

@@ -92,11 +92,14 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     const float n = float(size);
     _normalise(sums.power / n, power_sum / n, sums.window_power / n, size);
 
-    const float gain_step = (p.gain * _norm - _gain) / n;
+    const float angle = 0.5f * float(M_PI) * std::clamp(p.mix, 0.0f, 1.0f);
+    const float wet_step = (p.gain * _norm * std::sin(angle) - _wet_gain) / n;
+    const float dry_step = (p.gain * std::cos(angle) - _dry_gain) / n;
     for (size_t i = 0; i < size; i++) {
-        _gain += gain_step;
-        out[0][i] *= _gain;
-        out[1][i] *= _gain;
+        _wet_gain += wet_step;
+        _dry_gain += dry_step;
+        out[0][i] = out[0][i] * _wet_gain + in[0][i] * _dry_gain;
+        out[1][i] = out[1][i] * _wet_gain + in[1][i] * _dry_gain;
         _limiter.Process(out[0][i], out[1][i]);
     }
 }
