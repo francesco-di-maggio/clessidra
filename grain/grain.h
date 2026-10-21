@@ -20,18 +20,17 @@ public:
     static void InitWindow();
 
     bool IsActive() const { return _active; }
-    void Start(const Latch& latch);
+    // offset: first sample of the grain in the next Render()
+    void Start(const Latch& latch, size_t offset);
 
-    // Sums over all grains for one output sample
-    struct Mix {
-        float left = 0.0f;
-        float right = 0.0f;
+    // Sums over all grains and samples of a block
+    struct Sums {
         float power = 0.0f;        // squared windowed samples, before panning
         float window_power = 0.0f; // squared windows
     };
 
-    // Adds the grain to mix while active. inc: window phase per sample.
-    void Process(const Buffer& buffer, double inc, Mix& mix);
+    // Adds the grain to left and right while active. inc: window phase per sample.
+    void Render(const Buffer& buffer, double inc, float* left, float* right, size_t size, Sums& sums);
 
 private:
     static constexpr size_t kWindowSize = 512;
@@ -40,6 +39,7 @@ private:
     Latch _latch;
     double _phase = 0.0;
     double _read = 0.0; // samples read since Start()
+    size_t _offset = 0;
     float _gain_l = 0.0f;
     float _gain_r = 0.0f;
     float _clip = 1.0f; // sine scaled by this, clipped at 1

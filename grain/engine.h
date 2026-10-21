@@ -16,6 +16,8 @@ public:
     static constexpr float kMaxOverlap = 16.0f;
     static constexpr size_t kNumVoices = 32; // above kMaxOverlap: random starts can cluster
     static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
+    // The selection divided into equal places, each a grain source of its own
+    static constexpr size_t kNumPlaces = 9;
 
     struct Params {
         float start = 0.0f;        // selection start, 0..1 of the recording
@@ -25,7 +27,8 @@ public:
         float position = 0.0f;     // 0..1 of the selection, used while frozen
         float grain_ms = 100.0f;   // grain size
         float pitch = 1.0f;        // grain playback rate
-        float overlap = 8.0f;      // grains sounding at once on average, up to kMaxOverlap
+        float overlap = 8.0f;      // playhead: grains sounding at once on average, up to kMaxOverlap
+        std::array<float, kNumPlaces> place_overlap{}; // the same per place, 0 = off
         float jitter = 0.0f;       // 0 periodic .. 1 random (Poisson) grain starts
         float rand_pos = 0.0f;     // 0..1, position spread as a fraction of the selection
         float rand_pitch = 0.0f;   // 0..1, read span spread
@@ -50,8 +53,18 @@ public:
     uint32_t GrainStarts() const { return _grain_starts; }
 
 private:
-    // Starts a grain on a free voice. All voices busy: the grain is dropped.
-    void _trigger(double sel_start, double sel_len);
+    // A source of grains: the playhead over the selection, or a place
+    struct Stream {
+        double phase = 0.0;       // through its span, 0..1
+        double sched_phase = 0.0; // grain starts, 1 = mean interval
+        float sched_next = 1.0f;  // phase of the next start
+        bool on = false;
+    };
+    static constexpr size_t kNumStreams = 1 + kNumPlaces; // playhead first
+
+    // Starts a grain on a free voice at sample offset of the block, reading the span at
+    // phase. All voices busy: dropped.
+    void _trigger(double start, double length, double phase, size_t offset);
     // Updates _norm from the mean powers of the last block
     void _normalise(float power_grains, float power_sum, float window_power, size_t size);
     float _interval(float jitter); // to the next start, 1 = mean
@@ -71,9 +84,7 @@ private:
     float _coherence_gain = 1.0f; // brings a correlated sum down to the power of its grains
     float _norm = 0.0f;           // output gain before Params.gain
     // Running positions in double: float steps reach 1/8 sample at 30 s
-    double _play_phase = 0.0;  // playhead through the selection, 0..1
-    double _sched_phase = 0.0; // grain starts, 1 = mean interval
-    float _sched_next = 1.0f;  // phase of the next start
+    std::array<Stream, kNumStreams> _streams;
     uint32_t _seed = 1;
     volatile uint32_t _grain_starts = 0;
     volatile bool _record = false;

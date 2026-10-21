@@ -14,8 +14,9 @@ void Grain::InitWindow() {
     }
 }
 
-void Grain::Start(const Latch& latch) {
+void Grain::Start(const Latch& latch, size_t offset) {
     _latch = latch;
+    _offset = offset;
     _phase = 0.0;
     _read = 0.0;
     _active = true;
@@ -31,24 +32,39 @@ void Grain::Start(const Latch& latch) {
     _hann = shape > 0.5f ? 2.0f * shape - 1.0f : 0.0f;
 }
 
-void Grain::Process(const Buffer& buffer, double inc, Mix& mix) {
+void Grain::Render(const Buffer& buffer, double inc, float* left, float* right, size_t size, Sums& sums) {
     if (!_active) return;
 
-    const float w = float(_phase) * float(kWindowSize);
-    const size_t i = static_cast<size_t>(w);
-    float window = _window[i] + (w - float(i)) * (_window[i + 1] - _window[i]);
-    window = std::min(1.0f, window * _clip);
-    window += _hann * (window * window - window);
+    // Locals: the compiler keeps them in registers through the loop
+    double phase = _phase;
+    double read = _read;
+    float power = 0.0f;
+    float window_power = 0.0f;
+    for (size_t n = _offset; n < size; n++) {
+        const float w = float(phase) * float(kWindowSize);
+        const size_t i = static_cast<size_t>(w);
+        float window = _window[i] + (w - float(i)) * (_window[i + 1] - _window[i]);
+        window = std::min(1.0f, window * _clip);
+        window += _hann * (window * window - window);
 
-    const float s = buffer.Read(_latch.position + _read) * window;
-    mix.left += s * _gain_l;
-    mix.right += s * _gain_r;
-    mix.power += s * s;
-    mix.window_power += window * window;
+        const float s = buffer.Read(_latch.position + read) * window;
+        left[n] += s * _gain_l;
+        right[n] += s * _gain_r;
+        power += s * s;
+        window_power += window * window;
 
-    _read += _latch.rate;
-    _phase += inc;
-    if (_phase >= 1.0) _active = false;
+        read += _latch.rate;
+        phase += inc;
+        if (phase >= 1.0) {
+            _active = false;
+            break;
+        }
+    }
+    _offset = 0;
+    _phase = phase;
+    _read = read;
+    sums.power += power;
+    sums.window_power += window_power;
 }
 
 } // namespace clessidra

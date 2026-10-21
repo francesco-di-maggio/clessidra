@@ -16,10 +16,10 @@ Current mapping, for testing the engine.
 | S33 | Pitch, ±2 octaves. Flat at unison, fifths and octaves. |
 | S34 | Random pitch |
 | S36 | Playback speed, 0–4. Centre detent: 1. Position while frozen. |
-| S37 | Flow with no pad touched, 0.1–16 grains at once |
+| S37 | Playhead flow, 0.1–16 grains at once |
 | S09 | Playback: forward / freeze / reverse |
 | S07 | Grain starts: periodic / half random / random |
-| P00, P02–P09 | Pressure raises flow to 16 grains at once |
+| P03, P00, P04, P08, P05, P02, P06, P09, P07 | Places: each pours grains from its ninth of the selection, first to last in this order. Pressure sets the flow, 1–16 grains at once. |
 | P10 | Hold to record, up to 30 s |
 | P11 | Hold for the second layer, below |
 | LED | On while recording, otherwise a blink per grain start |

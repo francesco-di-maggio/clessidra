@@ -25,47 +25,72 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     const double len = double(_buffer.Length());
     const double sel_start = p.start * len;
     const double sel_len = std::max(p.length * len, 1.0);
-    const double play_inc = p.speed / sel_len;
+    const double place_len = std::max(sel_len / kNumPlaces, 1.0);
     // A grain reads about grain_samples: no longer than the recording
     const double grain_samples = std::clamp(p.grain_ms * 0.001 * _sample_rate, 1.0, std::max(len, 1.0));
     const double grain_inc = p.pitch / grain_samples;
-    const float overlap = std::clamp(p.overlap, 0.0f, kMaxOverlap);
-    // overlap starts per grain duration
-    const double sched_inc = grain_inc * overlap;
 
-    float power_grains = 0.0f;
-    float power_sum = 0.0f;
-    float window_power = 0.0f;
-    for (size_t i = 0; i < size; i++) {
-        _buffer.Write(_dc_block.Process(0.5f * (in[0][i] + in[1][i])));
+    struct Span {
+        double start, length;
+        double play_inc;  // phase per sample
+        double sched_inc; // overlap starts per grain duration
+    };
+    std::array<Span, kNumStreams> spans;
+    for (size_t s = 0; s < kNumStreams; s++) {
+        const bool playhead = s == 0;
+        const float overlap = std::clamp(playhead ? p.overlap : p.place_overlap[s - 1], 0.0f, kMaxOverlap);
+        const double length = playhead ? sel_len : place_len;
+        spans[s] = { playhead ? sel_start : sel_start + double(s - 1) * sel_len / kNumPlaces, length,
+                     p.speed / length, grain_inc * overlap };
 
-        if (p.freeze) {
-            _play_phase = p.position;
-        } else {
-            _play_phase += play_inc;
-            _play_phase -= std::floor(_play_phase);
+        Stream& stream = _streams[s];
+        const bool on = overlap > 0.0f;
+        // A place starts at its edge in the playing direction, with a grain at once.
+        // The playhead keeps running.
+        if (on && !stream.on && !playhead) {
+            stream.phase = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
+            stream.sched_phase = stream.sched_next;
         }
-
-        _sched_phase += sched_inc;
-        if (_sched_phase >= _sched_next) {
-            _sched_phase -= _sched_next;
-            _trigger(sel_start, sel_len);
-            _sched_next = _interval(p.jitter);
-            // At most one start per sample
-            _sched_phase = std::min(_sched_phase, double(_sched_next));
-        }
-
-        Grain::Mix mix;
-        for (auto& grain : _grains) grain.Process(_buffer, grain_inc, mix);
-        power_grains += mix.power;
-        power_sum += mix.left * mix.left + mix.right * mix.right;
-        window_power += mix.window_power;
-        out[0][i] = mix.left;
-        out[1][i] = mix.right;
+        stream.on = on || playhead;
     }
 
+    for (size_t i = 0; i < size; i++) _buffer.Write(_dc_block.Process(0.5f * (in[0][i] + in[1][i])));
+
+    // Grain starts in this block, at the sample they fall on. A voice that ends in this
+    // block is free from the next.
+    for (size_t i = 0; i < size; i++) {
+        for (size_t s = 0; s < kNumStreams; s++) {
+            Stream& stream = _streams[s];
+            const Span& span = spans[s];
+            if (!stream.on) continue;
+            if (p.freeze) {
+                stream.phase = p.position;
+            } else {
+                stream.phase += span.play_inc;
+                stream.phase -= std::floor(stream.phase);
+            }
+
+            stream.sched_phase += span.sched_inc;
+            if (stream.sched_phase >= stream.sched_next) {
+                stream.sched_phase -= stream.sched_next;
+                _trigger(span.start, span.length, stream.phase, i);
+                stream.sched_next = _interval(p.jitter);
+                // At most one start per sample
+                stream.sched_phase = std::min(stream.sched_phase, double(stream.sched_next));
+            }
+        }
+    }
+
+    // Each grain through the block: its state stays in registers
+    std::fill(out[0], out[0] + size, 0.0f);
+    std::fill(out[1], out[1] + size, 0.0f);
+    Grain::Sums sums;
+    for (auto& grain : _grains) grain.Render(_buffer, grain_inc, out[0], out[1], size, sums);
+    float power_sum = 0.0f;
+    for (size_t i = 0; i < size; i++) power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
+
     const float n = float(size);
-    _normalise(power_grains / n, power_sum / n, window_power / n, size);
+    _normalise(sums.power / n, power_sum / n, sums.window_power / n, size);
 
     const float gain_step = (p.gain * _norm - _gain) / n;
     for (size_t i = 0; i < size; i++) {
@@ -96,7 +121,7 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
     _norm = 0.9f * overlap_gain * _coherence_gain;
 }
 
-void Engine::_trigger(double sel_start, double sel_len) {
+void Engine::_trigger(double start, double length, double phase, size_t offset) {
     const Params& p = _params;
     // Uniform -1..1 above 1 - 2 * chance: probability chance
     if (_random() <= 1.0f - 2.0f * p.chance) return;
@@ -111,13 +136,13 @@ void Engine::_trigger(double sel_start, double sel_len) {
     if (!grain) return;
 
     Grain::Latch latch;
-    latch.position = sel_start + _play_phase * sel_len + _random() * p.rand_pos * sel_len * 0.5;
+    latch.position = start + phase * length + _random() * p.rand_pos * length * 0.5;
     latch.rate = p.pitch * (1.0f + _random() * p.rand_pitch);
     // Grains read in the playhead's direction
     if (!p.freeze && p.speed < 0.0f) latch.rate = -latch.rate;
     latch.pan = 0.5f + _random() * p.spread * 0.5f;
     latch.shape = p.window_shape;
-    grain->Start(latch);
+    grain->Start(latch, offset);
     _grain_starts = _grain_starts + 1;
 }
 

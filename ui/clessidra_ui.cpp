@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 
 namespace clessidra {
 
@@ -100,12 +101,17 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     p.freeze = mode == daisy::Switch3::POS_CENTER;
     p.position = k.Value(Knobs::S36);
 
-    // S37 sets the flow with no pad touched: 0.1 .. 16 grains at once, exponential.
-    // The hardest pressed pad raises it towards 16, exponentially.
-    const float flow_floor = 0.1f * std::pow(Engine::kMaxOverlap / 0.1f, _main.s37.Value());
-    float pressure = 0.0f;
-    for (size_t pad : kPourPads) pressure = std::max(pressure, _touch.pads().Pressure(pad));
-    p.overlap = flow_floor * std::pow(Engine::kMaxOverlap / flow_floor, pressure);
+    // S37: playhead flow, 0.1 .. 16 grains at once, exponential
+    p.overlap = 0.1f * std::pow(Engine::kMaxOverlap / 0.1f, _main.s37.Value());
+
+    // A touched place pours 1 .. 16 grains at once, exponential in pressure
+    static_assert(std::size(kPlacePads) == Engine::kNumPlaces);
+    for (size_t i = 0; i < Engine::kNumPlaces; i++) {
+        const size_t pad = kPlacePads[i];
+        p.place_overlap[i] = _touch.pads().IsTouched(pad)
+                                 ? std::pow(Engine::kMaxOverlap, _touch.pads().Pressure(pad))
+                                 : 0.0f;
+    }
 
     // S07: up periodic, centre half random, down random grain starts
     const int flow = _touch.switches().Position(Switches::S07);
