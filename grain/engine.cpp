@@ -12,7 +12,6 @@ void Engine::Init(float sample_rate, float* buffer, size_t buffer_size) {
     _buffer.Init(buffer, buffer_size, sample_rate);
     _dc_block.Init(sample_rate);
     _reverb.Init(sample_rate);
-    _reverb.SetLpFreq(kReverbLowpassHz);
     _limiter.Init(sample_rate);
 
     Grain::InitWindow();
@@ -39,6 +38,14 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
         double play_inc;  // phase per sample
         double sched_inc; // overlap starts per grain duration
     };
+    // Freeze holds every source where it is; position moves them from there
+    if (p.freeze && !_was_freeze) {
+        for (auto& stream : _streams) stream.frozen = stream.phase;
+        _freeze_position = p.position;
+    }
+    _was_freeze = p.freeze;
+    const double scrub = double(p.position) - double(_freeze_position);
+
     std::array<Span, kNumStreams> spans;
     for (size_t s = 0; s < kNumStreams; s++) {
         const bool playhead = s == 0;
@@ -53,9 +60,14 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
         // The playhead keeps running.
         if (on && !stream.on && !playhead) {
             stream.phase = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
+            stream.frozen = stream.phase - scrub;
             stream.sched_phase = stream.sched_next;
         }
         stream.on = on || playhead;
+        if (p.freeze) {
+            stream.phase = stream.frozen + scrub;
+            stream.phase -= std::floor(stream.phase);
+        }
     }
 
     for (size_t i = 0; i < size; i++) _buffer.Write(_dc_block.Process(0.5f * (in[0][i] + in[1][i])));
@@ -67,9 +79,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
             Stream& stream = _streams[s];
             const Span& span = spans[s];
             if (!stream.on) continue;
-            if (p.freeze) {
-                stream.phase = p.position;
-            } else {
+            if (!p.freeze) {
                 stream.phase += span.play_inc;
                 stream.phase -= std::floor(stream.phase);
             }
@@ -96,7 +106,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     const float n = float(size);
     _normalise(sums.power / n, power_sum / n, sums.window_power / n, size);
 
-    // ReverbSc, measured at kReverbLowpassHz: T60 = 3 * kLoop / -log10(feedback) within
+    // ReverbSc, measured with a 10 kHz lowpass: T60 = 3 * kLoop / -log10(feedback) within
     // 20 %, output gain kGain / sqrt(1 - feedback^2) within 1.3 dB from feedback 0.5 to
     // 0.98. The inverse gain keeps the reverb at the level of the grains.
     static constexpr float kLoop = 0.06f; // seconds
@@ -105,6 +115,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     const float decay = kReverbDecayMin * std::pow(kReverbDecayMax / kReverbDecayMin, reverb);
     const float feedback = std::pow(10.0f, -3.0f * kLoop / decay);
     _reverb.SetFeedback(feedback);
+    _reverb.SetLpFreq(p.reverb_lowpass_hz);
     const float reverb_gain = std::sqrt(1.0f - feedback * feedback) / kGain;
     const float reverb_angle = 0.5f * float(M_PI) * reverb * kReverbMaxAmount;
     const float reverb_dry_step = (std::cos(reverb_angle) - _reverb_dry) / n;
@@ -150,8 +161,6 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
 
 void Engine::_trigger(double start, double length, double phase, size_t offset) {
     const Params& p = _params;
-    // Uniform -1..1 above 1 - 2 * chance: probability chance
-    if (_random() <= 1.0f - 2.0f * p.chance) return;
 
     Grain* grain = nullptr;
     for (auto& g : _grains) {

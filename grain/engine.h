@@ -24,26 +24,25 @@ public:
     static constexpr float kReverbMaxAmount = 0.5f; // equal parts
     static constexpr float kReverbDecayMin = 0.5f;  // seconds
     static constexpr float kReverbDecayMax = 16.0f; // seconds
-    static constexpr float kReverbLowpassHz = 10000.0f;
 
     struct Params {
         float start = 0.0f;        // selection start, 0..1 of the recording
         float length = 1.0f;       // selection length, 0..1 of the recording
-        float speed = 1.0f;        // playhead speed, 1 = real time, negative = reverse
-        bool freeze = false;       // playhead held at position, speed ignored
-        float position = 0.0f;     // 0..1 of the selection, used while frozen
+        float speed = 1.0f;        // every source, 1 = real time, negative = reverse
+        bool freeze = false;       // every source held where it was, speed ignored
+        float position = 0.0f;     // while frozen, moves every source through its span by its change
         float grain_ms = 100.0f;   // grain size
         float pitch = 1.0f;        // grain playback rate
         float overlap = 8.0f;      // playhead: grains sounding at once on average, up to kMaxOverlap
         std::array<float, kNumPlaces> place_overlap{}; // the same per place, 0 = off
         float jitter = 0.0f;       // 0 periodic .. 1 random (Poisson) grain starts
-        float rand_pos = 0.0f;     // 0..1, position spread as a fraction of the selection
+        float rand_pos = 0.0f;     // 0..1, position spread: up to half the source's span
         float rand_pitch = 0.0f;   // 0..1, read span spread
         float spread = 0.5f;       // 0..1, stereo spread
-        float chance = 1.0f;       // 0..1, probability that a grain plays
         float window_shape = 0.5f; // 0 near-rectangle, 0.5 sine, 1 Hann
         float reverb = 0.0f;       // 0 none .. 1 most and longest, on the grains
-        float mix = 1.0f;          // 0 input only .. 1 grains only, equal power
+        float reverb_lowpass_hz = 10000.0f; // damping in the reverb's loop
+        float mix = 0.5f;          // 0 input only .. 1 grains only, equal power
         float gain = 1.0f;
     };
 
@@ -65,6 +64,7 @@ private:
     // A source of grains: the playhead over the selection, or a place
     struct Stream {
         double phase = 0.0;       // through its span, 0..1
+        double frozen = 0.0;      // phase at the freeze, or at a place's start while frozen
         double sched_phase = 0.0; // grain starts, 1 = mean interval
         float sched_next = 1.0f;  // phase of the next start
         bool on = false;
@@ -101,8 +101,10 @@ private:
     std::array<Stream, kNumStreams> _streams;
     uint32_t _seed = 1;
     volatile uint32_t _grain_starts = 0;
+    float _freeze_position = 0.0f; // Params.position at the freeze
     volatile bool _record = false;
     bool _was_record = false;
+    bool _was_freeze = false;
 };
 
 } // namespace clessidra

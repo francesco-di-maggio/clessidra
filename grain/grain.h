@@ -6,7 +6,7 @@
 namespace clessidra {
 
 // One grain: a window over a buffer read. Position, read rate, pan and window shape
-// are latched at Start(). The window advances at the rate passed to Process().
+// are latched at Start(). The window advances at the rate passed to Render().
 class Grain {
 public:
     struct Latch {

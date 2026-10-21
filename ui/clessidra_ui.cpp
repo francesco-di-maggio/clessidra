@@ -32,6 +32,29 @@ static float Semitones(float x) {
     return kIntervals[i] + t * (kIntervals[i + 1] - kIntervals[i]);
 }
 
+// Reverb damping, 2 - 18 kHz, exponential
+static constexpr float kLowpassMinHz = 2000.0f;
+static constexpr float kLowpassMaxHz = 18000.0f;
+
+static float LowpassHz(float x) {
+    return kLowpassMinHz * std::pow(kLowpassMaxHz / kLowpassMinHz, x);
+}
+
+static float LowpassKnob(float hz) {
+    return std::log(hz / kLowpassMinHz) / std::log(kLowpassMaxHz / kLowpassMinHz);
+}
+
+ClessidraUI::ClessidraUI(Touch& touch, Engine& engine) : _touch{ touch }, _engine{ engine } {
+    // Second layer at the engine defaults. S30 and S33 have no second layer.
+    const Engine::Params defaults;
+    _shift.values[Knobs::S31] = Takeover(defaults.window_shape);
+    _shift.values[Knobs::S32] = Takeover(defaults.spread);
+    _shift.values[Knobs::S34] = Takeover(defaults.reverb);
+    _shift.values[Knobs::S35] = Takeover(LowpassKnob(defaults.reverb_lowpass_hz));
+    _shift.values[Knobs::S36] = Takeover(defaults.mix);
+    _shift.values[Knobs::S37] = Takeover(std::sqrt(defaults.gain));
+}
+
 void ClessidraUI::Takeover::Process(float knob) {
     float delta = knob - _previous;
     _previous = knob;
@@ -48,21 +71,11 @@ void ClessidraUI::Takeover::Process(float knob) {
 }
 
 void ClessidraUI::Layer::Engage(const Knobs& k) {
-    s30.Engage(k.Value(Knobs::S30));
-    s31.Engage(k.Value(Knobs::S31));
-    s32.Engage(k.Value(Knobs::S32));
-    s33.Engage(k.Value(Knobs::S33));
-    s34.Engage(k.Value(Knobs::S34));
-    s37.Engage(k.Value(Knobs::S37));
+    for (size_t i = 0; i < Knobs::kNumKnobs; i++) values[i].Engage(k.Value(i));
 }
 
 void ClessidraUI::Layer::Process(const Knobs& k) {
-    s30.Process(k.Value(Knobs::S30));
-    s31.Process(k.Value(Knobs::S31));
-    s32.Process(k.Value(Knobs::S32));
-    s33.Process(k.Value(Knobs::S33));
-    s34.Process(k.Value(Knobs::S34));
-    s37.Process(k.Value(Knobs::S37));
+    for (size_t i = 0; i < Knobs::kNumKnobs; i++) values[i].Process(k.Value(i));
 }
 
 void ClessidraUI::Process(daisy::DaisySeed& hw) {
@@ -72,9 +85,7 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     const Knobs& k = _touch.knobs();
     if (!_started) {
         // The main layer starts where its knobs are, and follows them exactly
-        _main = Layer{ Takeover(k.Value(Knobs::S30)), Takeover(k.Value(Knobs::S31)),
-                       Takeover(k.Value(Knobs::S32)), Takeover(k.Value(Knobs::S33)),
-                       Takeover(k.Value(Knobs::S34)), Takeover(k.Value(Knobs::S37)) };
+        for (size_t i = 0; i < Knobs::kNumKnobs; i++) _main.values[i] = Takeover(k.Value(i));
         _started = true;
     }
     const bool shifted = _touch.pads().IsTouched(kShiftPad);
@@ -84,30 +95,39 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
 
     Engine::Params p;
 
-    const float a = _main.s30.Value();
-    const float b = k.Value(Knobs::S35);
+    // S30 and S33 have no second layer: always live
+    const float a = k.Value(Knobs::S30);
+    const float b = _main[Knobs::S35];
     p.start = std::min(a, b);
     p.length = std::fabs(b - a);
 
-    p.grain_ms = GrainMs(_main.s31.Value());
+    p.grain_ms = GrainMs(_main[Knobs::S31]);
 
-    const float rand_pos = _main.s32.Value();
+    const float rand_pos = _main[Knobs::S32];
     p.rand_pos = rand_pos * rand_pos * rand_pos * rand_pos;
 
-    p.pitch = std::exp2(Semitones(_main.s33.Value()) / 12.0f);
+    p.pitch = std::exp2(Semitones(k.Value(Knobs::S33)) / 12.0f);
 
-    const float rand_pitch = _main.s34.Value();
+    const float rand_pitch = _main[Knobs::S34];
     p.rand_pitch = rand_pitch * rand_pitch * rand_pitch;
 
-    // S09: up forward, centre freeze (S36 = position), down reverse
+    // S09: up forward, centre freeze, down reverse. S36 sets the speed; while frozen it
+    // scrubs, and the speed resumes after the freeze with a takeover.
     const int mode = _touch.switches().Position(Switches::S09);
-    const float speed = Detent(k.Value(Knobs::S36), 0.05f);
+    const bool frozen = mode == daisy::Switch3::POS_CENTER;
+    if (frozen && !_frozen) _speed = _main[Knobs::S36];
+    if (!frozen && _frozen) {
+        _main.values[Knobs::S36] = Takeover(_speed);
+        _main.values[Knobs::S36].Engage(k.Value(Knobs::S36));
+    }
+    _frozen = frozen;
+    const float speed = Detent(frozen ? _speed : _main[Knobs::S36], 0.05f);
     p.speed = (mode == daisy::Switch3::POS_DOWN ? -4.0f : 4.0f) * speed * speed;
-    p.freeze = mode == daisy::Switch3::POS_CENTER;
-    p.position = k.Value(Knobs::S36);
+    p.freeze = frozen;
+    p.position = _main[Knobs::S36];
 
     // S37: playhead flow, 0.1 .. 16 grains at once, exponential
-    p.overlap = 0.1f * std::pow(Engine::kMaxOverlap / 0.1f, _main.s37.Value());
+    p.overlap = 0.1f * std::pow(Engine::kMaxOverlap / 0.1f, _main[Knobs::S37]);
 
     // A touched place pours 1 .. 16 grains at once, exponential in pressure
     static_assert(std::size(kPlacePads) == Engine::kNumPlaces);
@@ -129,19 +149,18 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     }
 
     // P11 layer
-    p.mix = _shift.s30.Value();
-    p.window_shape = _shift.s31.Value();
-    p.spread = _shift.s32.Value();
-    p.reverb = _shift.s33.Value();
-    p.chance = _shift.s34.Value();
-    const float gain = _shift.s37.Value();
+    p.window_shape = _shift[Knobs::S31];
+    p.spread = _shift[Knobs::S32];
+    p.reverb = _shift[Knobs::S34];
+    p.reverb_lowpass_hz = LowpassHz(_shift[Knobs::S35]);
+    p.mix = _shift[Knobs::S36];
+    const float gain = _shift[Knobs::S37];
     p.gain = gain * gain;
 
     _engine.SetParams(p);
 }
 
-// Recording: a steady flash, which grain starts cannot make. Otherwise a blink per
-// grain start.
+// Recording: 4 Hz flash. Otherwise a blink per grain start.
 void ClessidraUI::_led(daisy::DaisySeed& hw) {
     const uint32_t now = daisy::System::GetNow();
     const uint32_t starts = _engine.GrainStarts();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include "daisy_seed.h"
 #include "../touch/touch.h"
 #include "../grain/engine.h"
@@ -7,10 +8,10 @@
 namespace clessidra {
 
 // Maps the Touch controls to the engine and drives the LED. Holding P11 switches
-// S30-S34 and S37 to a second layer.
+// the knobs to a second layer.
 class ClessidraUI {
 public:
-    ClessidraUI(Touch& touch, Engine& engine) : _touch{ touch }, _engine{ engine } {}
+    ClessidraUI(Touch& touch, Engine& engine);
 
     // Main loop, after the pads are read.
     void Process(daisy::DaisySeed& hw);
@@ -21,7 +22,7 @@ private:
     // no jump, no dead zone.
     class Takeover {
     public:
-        explicit Takeover(float value) : _value{ value }, _previous{ value } {}
+        explicit Takeover(float value = 0.0f) : _value{ value }, _previous{ value } {}
 
         void Engage(float knob) { _previous = _origin = knob; }
         void Process(float knob);
@@ -35,9 +36,11 @@ private:
         float _origin = -1.0f; // knob at Engage() until it moves past the deadband
     };
 
+    // A value per knob
     struct Layer {
-        Takeover s30, s31, s32, s33, s34, s37;
+        std::array<Takeover, Knobs::kNumKnobs> values;
 
+        float operator[](size_t knob) const { return values[knob].Value(); }
         void Engage(const Knobs& k);
         void Process(const Knobs& k);
     };
@@ -46,11 +49,12 @@ private:
 
     Touch& _touch;
     Engine& _engine;
-    Layer _main{ Takeover(0.0f), Takeover(0.0f), Takeover(0.0f), Takeover(0.0f), Takeover(0.0f), Takeover(0.0f) };
-    // Mix, window shape, spread, reverb, chance, gain: the engine defaults
-    Layer _shift{ Takeover(1.0f), Takeover(0.5f), Takeover(0.5f), Takeover(0.0f), Takeover(1.0f), Takeover(1.0f) };
+    Layer _main;
+    Layer _shift;
     bool _started = false;
     bool _shifted = false;
+    bool _frozen = false;
+    float _speed = 0.5f; // S36 at the freeze
     uint32_t _grain_starts = 0;
     uint32_t _blink_start = 0;
 };
