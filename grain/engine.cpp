@@ -161,6 +161,7 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
 
 void Engine::_trigger(double start, double length, double phase, size_t offset) {
     const Params& p = _params;
+    if (_buffer.Length() == 0) return; // nothing recorded: no grains
 
     Grain* grain = nullptr;
     for (auto& g : _grains) {
