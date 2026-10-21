@@ -21,16 +21,21 @@ static float GrainMs(float x) {
 }
 
 // -24 .. +24 semitones over equal knob segments between musical intervals, flat
-// near each interval
-static float Semitones(float x) {
+// near each interval. on_interval: x is in a flat part.
+static float Semitones(float x, bool& on_interval) {
     static constexpr float kIntervals[] = { -24.0f, -12.0f, -7.0f, 0.0f, 7.0f, 12.0f, 24.0f };
     static constexpr size_t kSegments = 6;
     static constexpr float kFlat = 0.15f; // of a segment, on each side
     const float pos = std::clamp(x, 0.0f, 1.0f) * float(kSegments);
     const size_t i = std::min(size_t(pos), kSegments - 1);
     const float t = std::clamp((pos - float(i) - kFlat) / (1.0f - 2.0f * kFlat), 0.0f, 1.0f);
+    on_interval = t == 0.0f || t == 1.0f;
     return kIntervals[i] + t * (kIntervals[i + 1] - kIntervals[i]);
 }
+
+// Knobs with a second-layer function
+static constexpr Knobs::Knob kSecondLayer[] = { Knobs::S31, Knobs::S32, Knobs::S34,
+                                                Knobs::S35, Knobs::S36, Knobs::S37 };
 
 // Reverb damping, 2 - 18 kHz, exponential
 static constexpr float kLowpassMinHz = 2000.0f;
@@ -45,7 +50,7 @@ static float LowpassKnob(float hz) {
 }
 
 ClessidraUI::ClessidraUI(Touch& touch, Engine& engine) : _touch{ touch }, _engine{ engine } {
-    // Second layer at the engine defaults. S30 and S33 have no second layer.
+    // Second layer at the engine defaults
     const Engine::Params defaults;
     _shift.values[Knobs::S31] = Takeover(defaults.window_shape);
     _shift.values[Knobs::S32] = Takeover(defaults.spread);
@@ -53,6 +58,13 @@ ClessidraUI::ClessidraUI(Touch& touch, Engine& engine) : _touch{ touch }, _engin
     _shift.values[Knobs::S35] = Takeover(LowpassKnob(defaults.reverb_lowpass_hz));
     _shift.values[Knobs::S36] = Takeover(defaults.mix);
     _shift.values[Knobs::S37] = Takeover(std::sqrt(defaults.gain));
+    for (size_t i = 0; i < Knobs::kNumKnobs; i++) _shown[i] = _shift[i];
+}
+
+void ClessidraUI::Init() {
+    // TIM3 channel 2 drives PC7, the Seed's LED. 16-bit period: about 3.7 kHz.
+    _pwm.Init(daisy::PWMHandle::Config(daisy::PWMHandle::Config::Peripheral::TIM_3));
+    _pwm.Channel2().Init();
 }
 
 void ClessidraUI::Takeover::Process(float knob) {
@@ -78,9 +90,8 @@ void ClessidraUI::Layer::Process(const Knobs& k) {
     for (size_t i = 0; i < Knobs::kNumKnobs; i++) values[i].Process(k.Value(i));
 }
 
-void ClessidraUI::Process(daisy::DaisySeed& hw) {
+void ClessidraUI::Process() {
     _engine.SetRecording(_touch.pads().IsTouched(kRecordPad));
-    _led(hw);
 
     const Knobs& k = _touch.knobs();
     if (!_started) {
@@ -90,8 +101,16 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     }
     const bool shifted = _touch.pads().IsTouched(kShiftPad);
     if (shifted != _shifted) (shifted ? _shift : _main).Engage(k);
+    if (shifted && !_shifted) _show_value = 0.0f; // nothing turned yet
     _shifted = shifted;
     (shifted ? _shift : _main).Process(k);
+
+    // While P11 is held, the LED shows the second-layer value last turned
+    for (size_t i : kSecondLayer) {
+        if (std::fabs(_shift[i] - _shown[i]) < kShowStep) continue;
+        _shown[i] = _shift[i];
+        _show_value = _shift[i];
+    }
 
     Engine::Params p;
 
@@ -102,11 +121,13 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     p.length = std::fabs(b - a);
 
     p.grain_ms = GrainMs(_main[Knobs::S31]);
+    const bool size_centre = Detent(_main[Knobs::S31], 0.05f) == 0.5f;
 
     const float rand_pos = _main[Knobs::S32];
     p.rand_pos = rand_pos * rand_pos * rand_pos * rand_pos;
 
-    p.pitch = std::exp2(Semitones(k.Value(Knobs::S33)) / 12.0f);
+    bool on_interval;
+    p.pitch = std::exp2(Semitones(k.Value(Knobs::S33), on_interval) / 12.0f);
 
     const float rand_pitch = _main[Knobs::S34];
     p.rand_pitch = rand_pitch * rand_pitch * rand_pitch;
@@ -122,6 +143,7 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     }
     _frozen = frozen;
     const float speed = Detent(frozen ? _speed : _main[Knobs::S36], 0.05f);
+    const bool speed_centre = !frozen && speed == 0.5f;
     p.speed = (mode == daisy::Switch3::POS_DOWN ? -4.0f : 4.0f) * speed * speed;
     p.freeze = frozen;
     p.position = _main[Knobs::S36];
@@ -163,19 +185,36 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     p.gain = gain * gain;
 
     _engine.SetParams(p);
+
+    // Reaching a detent: a pulse
+    const uint32_t now = daisy::System::GetNow();
+    const uint8_t detents = (on_interval ? 1 : 0) | (speed_centre ? 2 : 0) | (size_centre ? 4 : 0);
+    if (detents & ~_detents) _pulse_until = now + kPulseMs;
+    _detents = detents;
+
+    _led();
 }
 
-// Recording: 4 Hz flash. Otherwise a blink per grain start.
-void ClessidraUI::_led(daisy::DaisySeed& hw) {
+// First that applies: recording flash, detent pulse, second layer (steady, brightness =
+// value last turned), grain blink
+void ClessidraUI::_led() {
     const uint32_t now = daisy::System::GetNow();
     const uint32_t starts = _engine.GrainStarts();
-    if (starts != _grain_starts) _blink_start = now;
+    if (starts != _grain_starts) _blink_until = now + kBlinkMs;
     _grain_starts = starts;
+
+    float brightness;
     if (_engine.IsRecording()) {
-        hw.SetLed((now / kRecordFlashMs) % 2 == 0);
-        return;
+        brightness = (now / kRecordFlashMs) % 2 == 0 ? 1.0f : 0.0f;
+    } else if (now < _pulse_until) {
+        brightness = 1.0f;
+    } else if (_shifted) {
+        brightness = kShowFloor + (1.0f - kShowFloor) * _show_value;
+    } else {
+        brightness = now < _blink_until ? 1.0f : 0.0f;
     }
-    hw.SetLed(now - _blink_start < kBlinkMs);
+    // Cubed: even steps to the eye
+    _pwm.Channel2().Set(brightness * brightness * brightness);
 }
 
 } // namespace clessidra

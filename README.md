@@ -21,7 +21,7 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 | P01 | Hold to stop the flow |
 | P10 | Hold to record |
 | P11 | Hold for the second layer, below |
-| LED | Flashes at 4 Hz while recording, otherwise blinks per grain start |
+| LED | Flashes at 4 Hz while recording. Pulses at each detent: pitch intervals, speed 1, grain size 100 ms. Steady while P11 is held: brightness shows the second-layer value last turned. Otherwise blinks per grain start. |
 
 Second layer, while P11 is held. After a layer change, a knob moves its value from where it is, and both reach the end stops together.
 

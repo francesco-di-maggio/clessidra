@@ -13,8 +13,10 @@ class ClessidraUI {
 public:
     ClessidraUI(Touch& touch, Engine& engine);
 
+    // After DaisySeed::Init(): the LED pin becomes a PWM output.
+    void Init();
     // Main loop, after the pads are read.
-    void Process(daisy::DaisySeed& hw);
+    void Process();
 
 private:
     // A value set by a knob shared between layers. After a layer change the knob
@@ -45,7 +47,7 @@ private:
         void Process(const Knobs& k);
     };
 
-    void _led(daisy::DaisySeed& hw);
+    void _led();
 
     Touch& _touch;
     Engine& _engine;
@@ -55,8 +57,14 @@ private:
     bool _shifted = false;
     bool _frozen = false;
     float _speed = 0.5f; // S36 at the freeze
+    // LED: brightness by hardware PWM. Times in ms, shown until they pass.
+    daisy::PWMHandle _pwm;
     uint32_t _grain_starts = 0;
-    uint32_t _blink_start = 0;
+    uint32_t _blink_until = 0;
+    uint32_t _pulse_until = 0;
+    float _show_value = 0.0f; // second-layer value last turned while P11 is held
+    std::array<float, Knobs::kNumKnobs> _shown{}; // second-layer values at their last move
+    uint8_t _detents = 0xff; // bits: pitch interval, speed 1, grain size 100 ms. All set: no pulse at power-up
 };
 
 } // namespace clessidra

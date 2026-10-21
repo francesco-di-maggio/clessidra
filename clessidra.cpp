@@ -59,6 +59,7 @@ int main(void) {
     hw.SetAudioBlockSize(kBlockSize);
 
     touch.Init(hw);
+    ui.Init();
     engine.Init(hw.AudioSampleRate(), buffer, kBufferSamples);
     cpu.Init(hw.AudioSampleRate(), hw.AudioBlockSize());
 
@@ -71,7 +72,7 @@ int main(void) {
 
     while (1) {
         touch.ProcessPads();
-        ui.Process(hw);
+        ui.Process();
 
 #ifdef CLESSIDRA_LOG
         if (System::GetNow() - last_log >= kLogMs) {
