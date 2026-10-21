@@ -126,8 +126,13 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     p.freeze = frozen;
     p.position = _main[Knobs::S36];
 
-    // S37: playhead flow, 0.1 .. 16 grains at once, exponential
-    p.overlap = 0.1f * std::pow(Engine::kMaxOverlap / 0.1f, _main[Knobs::S37]);
+    // S37: playhead flow. Off at the bottom of travel, then 0.1 .. 16 grains at once,
+    // exponential.
+    static constexpr float kFlowOff = 0.02f;
+    const float flow_knob = _main[Knobs::S37];
+    p.overlap = flow_knob < kFlowOff
+                    ? 0.0f
+                    : 0.1f * std::pow(Engine::kMaxOverlap / 0.1f, (flow_knob - kFlowOff) / (1.0f - kFlowOff));
 
     // A touched place pours 1 .. 16 grains at once, exponential in pressure
     static_assert(std::size(kPlacePads) == Engine::kNumPlaces);

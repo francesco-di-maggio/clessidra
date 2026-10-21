@@ -33,11 +33,6 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     const double grain_samples = std::clamp(p.grain_ms * 0.001 * _sample_rate, 1.0, std::max(len, 1.0));
     const double grain_inc = p.pitch / grain_samples;
 
-    struct Span {
-        double start, length;
-        double play_inc;  // phase per sample
-        double sched_inc; // overlap starts per grain duration
-    };
     // Freeze holds every source where it is; position moves them from there
     if (p.freeze && !_was_freeze) {
         for (auto& stream : _streams) stream.frozen = stream.phase;
@@ -46,6 +41,11 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     _was_freeze = p.freeze;
     const double scrub = double(p.position) - double(_freeze_position);
 
+    struct Span {
+        double start, length;
+        double play_inc;  // phase per sample
+        double sched_inc; // overlap starts per grain duration
+    };
     std::array<Span, kNumStreams> spans;
     for (size_t s = 0; s < kNumStreams; s++) {
         const bool playhead = s == 0;

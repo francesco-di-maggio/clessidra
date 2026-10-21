@@ -14,7 +14,7 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 | S33 | Pitch, ±2 octaves. Flat at unison, fifths and octaves. |
 | S34 | Random pitch |
 | S36 | Playback speed, 0–4. Centre detent: 1. Scrubs while frozen. |
-| S37 | Playhead flow, 0.1–16 grains at once |
+| S37 | Playhead flow: off, then 0.1–16 grains at once |
 | S09 | Playback: forward / freeze / reverse |
 | S07 | Grain starts: periodic / half random / random |
 | P03, P00, P04, P08, P05, P02, P06, P09, P07 | Places: ninths of the selection, first to last in this order. Pressure sets the flow, 1–16 grains at once. |
