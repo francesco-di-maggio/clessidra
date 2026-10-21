@@ -18,19 +18,20 @@ public:
     static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
 
     struct Params {
-        float start = 0.0f;      // selection start, 0..1 of the recording
-        float length = 1.0f;     // selection length, 0..1 of the recording
-        float speed = 1.0f;      // playhead speed, 1 = real time, negative = reverse
-        bool freeze = false;     // playhead held at position, speed ignored
-        float position = 0.0f;   // 0..1 of the selection, used while frozen
-        float grain_ms = 100.0f; // grain size
-        float pitch = 1.0f;      // grain playback rate
-        float overlap = 8.0f;    // grains sounding at once on average, up to kMaxOverlap
-        float jitter = 0.0f;     // 0 periodic .. 1 random (Poisson) grain starts
-        float rand_pos = 0.0f;   // 0..1, position spread as a fraction of the selection
-        float rand_pitch = 0.0f; // 0..1, read span spread
-        float spread = 0.5f;     // 0..1, stereo spread
-        float chance = 1.0f;     // 0..1, probability that a grain plays
+        float start = 0.0f;        // selection start, 0..1 of the recording
+        float length = 1.0f;       // selection length, 0..1 of the recording
+        float speed = 1.0f;        // playhead speed, 1 = real time, negative = reverse
+        bool freeze = false;       // playhead held at position, speed ignored
+        float position = 0.0f;     // 0..1 of the selection, used while frozen
+        float grain_ms = 100.0f;   // grain size
+        float pitch = 1.0f;        // grain playback rate
+        float overlap = 8.0f;      // grains sounding at once on average, up to kMaxOverlap
+        float jitter = 0.0f;       // 0 periodic .. 1 random (Poisson) grain starts
+        float rand_pos = 0.0f;     // 0..1, position spread as a fraction of the selection
+        float rand_pitch = 0.0f;   // 0..1, read span spread
+        float spread = 0.5f;       // 0..1, stereo spread
+        float chance = 1.0f;       // 0..1, probability that a grain plays
+        float window_shape = 0.5f; // 0 near-rectangle, 0.5 sine, 1 Hann
         float gain = 1.0f;
     };
 
@@ -45,6 +46,8 @@ public:
 
     bool IsRecording() const { return _buffer.IsRecording(); }
     float RecordedSeconds() const { return float(_buffer.Length()) / _sample_rate; }
+    // Grains started since Init(), wrapping
+    uint32_t GrainStarts() const { return _grain_starts; }
 
 private:
     // Starts a grain on a free voice. All voices busy: the grain is dropped.
@@ -72,6 +75,7 @@ private:
     double _sched_phase = 0.0; // grain starts, 1 = mean interval
     float _sched_next = 1.0f;  // phase of the next start
     uint32_t _seed = 1;
+    volatile uint32_t _grain_starts = 0;
     volatile bool _record = false;
     bool _was_record = false;
 };

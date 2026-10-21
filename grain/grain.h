@@ -5,14 +5,15 @@
 
 namespace clessidra {
 
-// One grain: a half-sine window over a buffer read. Position, read rate and pan are
-// latched at Start(). The window advances at the rate passed to Process().
+// One grain: a window over a buffer read. Position, read rate, pan and window shape
+// are latched at Start(). The window advances at the rate passed to Process().
 class Grain {
 public:
     struct Latch {
         double position = 0.0; // samples
         float rate = 1.0f;     // samples read per output sample
         float pan = 0.5f;      // 0 left .. 1 right
+        float shape = 0.5f;    // window: 0 near-rectangle, 0.5 sine, 1 Hann
     };
 
     // Once, before any Grain is used.
@@ -41,6 +42,8 @@ private:
     double _read = 0.0; // samples read since Start()
     float _gain_l = 0.0f;
     float _gain_r = 0.0f;
+    float _clip = 1.0f; // sine scaled by this, clipped at 1
+    float _hann = 0.0f; // blend from sine to sine squared (Hann)
     bool _active = false;
 };
 

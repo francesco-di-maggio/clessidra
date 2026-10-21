@@ -116,7 +116,9 @@ void Engine::_trigger(double sel_start, double sel_len) {
     // Grains read in the playhead's direction
     if (!p.freeze && p.speed < 0.0f) latch.rate = -latch.rate;
     latch.pan = 0.5f + _random() * p.spread * 0.5f;
+    latch.shape = p.window_shape;
     grain->Start(latch);
+    _grain_starts = _grain_starts + 1;
 }
 
 float Engine::_interval(float jitter) {

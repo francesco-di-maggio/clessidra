@@ -31,11 +31,51 @@ static float Semitones(float x) {
     return kIntervals[i] + t * (kIntervals[i + 1] - kIntervals[i]);
 }
 
+void ClessidraUI::Takeover::Process(float knob) {
+    float delta = knob - _previous;
+    _previous = knob;
+    if (_origin >= 0.0f) {
+        if (std::fabs(knob - _origin) < kDeadband) return;
+        // The motion inside the deadband counts
+        delta = knob - _origin;
+        _origin = -1.0f;
+    }
+    // Towards an end stop, the value covers its remaining range while the knob covers its own
+    const float scale = delta > 0.0f ? (1.001f - _value) / (1.001f - (knob - delta))
+                                     : (0.001f + _value) / (0.001f + (knob - delta));
+    _value = std::clamp(_value + std::clamp(scale, 0.1f, 10.0f) * delta, 0.0f, 1.0f);
+}
+
+void ClessidraUI::Layer::Engage(const Knobs& k) {
+    s31.Engage(k.Value(Knobs::S31));
+    s32.Engage(k.Value(Knobs::S32));
+    s34.Engage(k.Value(Knobs::S34));
+    s37.Engage(k.Value(Knobs::S37));
+}
+
+void ClessidraUI::Layer::Process(const Knobs& k) {
+    s31.Process(k.Value(Knobs::S31));
+    s32.Process(k.Value(Knobs::S32));
+    s34.Process(k.Value(Knobs::S34));
+    s37.Process(k.Value(Knobs::S37));
+}
+
 void ClessidraUI::Process(daisy::DaisySeed& hw) {
     _engine.SetRecording(_touch.pads().IsTouched(kRecordPad));
-    hw.SetLed(_engine.IsRecording());
+    _led(hw);
 
     const Knobs& k = _touch.knobs();
+    if (!_started) {
+        // The main layer starts where its knobs are, and follows them exactly
+        _main = Layer{ Takeover(k.Value(Knobs::S31)), Takeover(k.Value(Knobs::S32)),
+                       Takeover(k.Value(Knobs::S34)), Takeover(k.Value(Knobs::S37)) };
+        _started = true;
+    }
+    const bool shifted = _touch.pads().IsTouched(kShiftPad);
+    if (shifted != _shifted) (shifted ? _shift : _main).Engage(k);
+    _shifted = shifted;
+    (shifted ? _shift : _main).Process(k);
+
     Engine::Params p;
 
     const float a = k.Value(Knobs::S30);
@@ -43,14 +83,14 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     p.start = std::min(a, b);
     p.length = std::fabs(b - a);
 
-    p.grain_ms = GrainMs(k.Value(Knobs::S31));
+    p.grain_ms = GrainMs(_main.s31.Value());
 
-    const float rand_pos = k.Value(Knobs::S32);
+    const float rand_pos = _main.s32.Value();
     p.rand_pos = rand_pos * rand_pos * rand_pos * rand_pos;
 
     p.pitch = std::exp2(Semitones(k.Value(Knobs::S33)) / 12.0f);
 
-    const float rand_pitch = k.Value(Knobs::S34);
+    const float rand_pitch = _main.s34.Value();
     p.rand_pitch = rand_pitch * rand_pitch * rand_pitch;
 
     // S09: up forward, centre freeze (S36 = position), down reverse
@@ -62,7 +102,7 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
 
     // S37 sets the flow with no pad touched: 0.1 .. 16 grains at once, exponential.
     // The hardest pressed pad raises it towards 16, exponentially.
-    const float flow_floor = 0.1f * std::pow(Engine::kMaxOverlap / 0.1f, k.Value(Knobs::S37));
+    const float flow_floor = 0.1f * std::pow(Engine::kMaxOverlap / 0.1f, _main.s37.Value());
     float pressure = 0.0f;
     for (size_t pad : kPourPads) pressure = std::max(pressure, _touch.pads().Pressure(pad));
     p.overlap = flow_floor * std::pow(Engine::kMaxOverlap / flow_floor, pressure);
@@ -71,7 +111,23 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     const int flow = _touch.switches().Position(Switches::S07);
     p.jitter = flow == daisy::Switch3::POS_UP ? 0.0f : flow == daisy::Switch3::POS_CENTER ? 0.5f : 1.0f;
 
+    // P11 layer
+    p.window_shape = _shift.s31.Value();
+    p.spread = _shift.s32.Value();
+    p.chance = _shift.s34.Value();
+    const float gain = _shift.s37.Value();
+    p.gain = gain * gain;
+
     _engine.SetParams(p);
+}
+
+// On while recording, otherwise a blink per grain start
+void ClessidraUI::_led(daisy::DaisySeed& hw) {
+    const uint32_t now = daisy::System::GetNow();
+    const uint32_t starts = _engine.GrainStarts();
+    if (starts != _grain_starts) _blink_start = now;
+    _grain_starts = starts;
+    hw.SetLed(_engine.IsRecording() || now - _blink_start < kBlinkMs);
 }
 
 } // namespace clessidra

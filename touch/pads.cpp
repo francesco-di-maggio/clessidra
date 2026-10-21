@@ -14,8 +14,8 @@ void Pads::Init() {
     _configure();
 }
 
-// Register values from NXP AN3889 (auto-configuration), AN3890 (analog front end)
-// and AN3891 (baseline filters), as tuned for the Touch in TouchMIDI.
+// Registers: NXP AN3889 (auto-configuration), AN3890 (analog front end), AN3891
+// (baseline filters)
 void Pads::_configure() {
     struct Setting {
         uint8_t reg;

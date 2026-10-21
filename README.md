@@ -21,7 +21,17 @@ Current mapping, for testing the engine.
 | S07 | Grain starts: periodic / half random / random |
 | P00, P02–P09 | Pressure raises flow to 16 grains at once |
 | P10 | Hold to record, up to 30 s |
-| LED | On while recording |
+| P11 | Hold for the second layer, below |
+| LED | On while recording, otherwise a blink per grain start |
+
+Second layer, while P11 is held. After a layer change, a knob moves its value from where it is, and both reach the end stops together.
+
+| Control | Function |
+|---|---|
+| S31 | Window shape: near-rectangle / sine (centre, default) / Hann |
+| S32 | Stereo spread, mono – full width. Default: half. |
+| S34 | Chance that a grain plays, 0–100 %. Default: 100 %. |
+| S37 | Output gain, silent – unity. Default: unity. |
 
 ## Prerequisites
 
