@@ -1,7 +1,6 @@
 #include "buffer.h"
 
 #include <algorithm>
-#include <cmath>
 
 namespace clessidra {
 
