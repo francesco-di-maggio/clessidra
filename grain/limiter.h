@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include "Utility/delayline.h"
 
 namespace clessidra {
 
@@ -60,10 +61,9 @@ private:
     float _release = 1.0f;
     float _release_coeff = 0.0f;
 
-    std::array<float, 2 * kMaxBox> _delay_l;
-    std::array<float, 2 * kMaxBox> _delay_r;
-    size_t _delay = 0;
-    size_t _delay_pos = 0;
+    // DelayLine::SetDelay(n) after Write() returns the input n - 1 samples late
+    daisysp::DelayLine<float, 2 * kMaxBox> _delay_l;
+    daisysp::DelayLine<float, 2 * kMaxBox> _delay_r;
 };
 
 } // namespace clessidra

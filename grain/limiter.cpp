@@ -12,13 +12,14 @@ void Limiter::Init(float sample_rate) {
     _box2.Init(box);
     // The two boxes average over 2 * box - 1 samples: the audio is delayed to the
     // newest of them, the minimum window covers them all plus the hold.
-    _delay = 2 * box - 2;
+    const size_t delay = 2 * box - 2;
     _min.Init(2 * box - 1 + size_t(sample_rate * kHoldSeconds));
     _release = 1.0f;
     _release_coeff = 1.0f - std::exp(-1.0f / (kReleaseSeconds * sample_rate));
-    _delay_l.fill(0.0f);
-    _delay_r.fill(0.0f);
-    _delay_pos = 0;
+    _delay_l.Init();
+    _delay_r.Init();
+    _delay_l.SetDelay(delay + 1);
+    _delay_r.SetDelay(delay + 1);
 }
 
 void Limiter::Process(float& left, float& right) {
@@ -30,17 +31,10 @@ void Limiter::Process(float& left, float& right) {
     _release = std::min(hold, _release + _release_coeff * (hold - _release));
     const float gain = _box2.Process(_box1.Process(_release));
 
-    if (_delay > 0) {
-        const float l = _delay_l[_delay_pos];
-        const float r = _delay_r[_delay_pos];
-        _delay_l[_delay_pos] = left;
-        _delay_r[_delay_pos] = right;
-        _delay_pos = (_delay_pos + 1) % _delay;
-        left = l;
-        right = r;
-    }
-    left *= gain;
-    right *= gain;
+    _delay_l.Write(left);
+    _delay_r.Write(right);
+    left = _delay_l.Read() * gain;
+    right = _delay_r.Read() * gain;
 }
 
 void Limiter::MovingMin::Init(size_t length) {
