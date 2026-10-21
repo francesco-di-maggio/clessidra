@@ -41,8 +41,12 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     p.freeze = mode == daisy::Switch3::POS_CENTER;
     p.position = k.Value(Knobs::S36);
 
-    const float gain = k.Value(Knobs::S37);
-    p.gain = gain * gain;
+    // 0.1 .. 8 grains at once, exponential
+    p.overlap = 0.1f * std::pow(80.0f, k.Value(Knobs::S37));
+
+    // S07: up periodic, centre half random, down random grain starts
+    const int flow = _touch.switches().Position(Switches::S07);
+    p.jitter = flow == daisy::Switch3::POS_UP ? 0.0f : flow == daisy::Switch3::POS_CENTER ? 0.5f : 1.0f;
 
     _engine.SetParams(p);
 }

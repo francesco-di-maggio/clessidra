@@ -24,7 +24,7 @@ void Grain::Start(const Latch& latch) {
     _gain_r = std::sin(angle);
 }
 
-void Grain::Process(const Buffer& buffer, double inc, float& left, float& right) {
+void Grain::Process(const Buffer& buffer, double inc, Mix& mix) {
     if (!_active) return;
 
     const float w = float(_phase) * float(kWindowSize);
@@ -32,8 +32,10 @@ void Grain::Process(const Buffer& buffer, double inc, float& left, float& right)
     const float window = _window[i] + (w - float(i)) * (_window[i + 1] - _window[i]);
 
     const float s = buffer.Read(_latch.position + _read) * window;
-    left += s * _gain_l;
-    right += s * _gain_r;
+    mix.left += s * _gain_l;
+    mix.right += s * _gain_r;
+    mix.power += s * s;
+    mix.window_power += window * window;
 
     _read += _latch.rate;
     _phase += inc;

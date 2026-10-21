@@ -21,8 +21,16 @@ public:
     bool IsActive() const { return _active; }
     void Start(const Latch& latch);
 
-    // Adds the grain to left and right while active. inc: window phase per sample.
-    void Process(const Buffer& buffer, double inc, float& left, float& right);
+    // Sums over all grains for one output sample
+    struct Mix {
+        float left = 0.0f;
+        float right = 0.0f;
+        float power = 0.0f;        // squared windowed samples, before panning
+        float window_power = 0.0f; // squared windows
+    };
+
+    // Adds the grain to mix while active. inc: window phase per sample.
+    void Process(const Buffer& buffer, double inc, Mix& mix);
 
 private:
     static constexpr size_t kWindowSize = 512;

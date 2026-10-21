@@ -16,8 +16,9 @@ Current mapping, for testing the engine.
 | S33 | Pitch, 0.01–2. Centre detent: 1. |
 | S34 | Random pitch |
 | S36 | Playback speed, 0–4. Centre detent: 1. Position while frozen. |
-| S37 | Gain |
+| S37 | Overlap, 0.1–8 grains at once |
 | S09 | Playback: forward / freeze / reverse |
+| S07 | Grain starts: periodic / half random / random |
 | P10 | Hold to record, up to 30 s |
 | LED | On while recording |
 

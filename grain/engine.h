@@ -11,8 +11,9 @@ namespace clessidra {
 // The instrument's signal path. No hardware code here.
 class Engine {
 public:
-    static constexpr size_t kOverlap = 8;    // grains sounding at once, steady state
-    static constexpr size_t kNumVoices = 16; // above kOverlap: random starts (flow) can cluster
+    static constexpr float kMaxOverlap = 8.0f;
+    static constexpr size_t kNumVoices = 16; // above kMaxOverlap: random starts can cluster
+    static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
 
     struct Params {
         float start = 0.0f;      // selection start, 0..1 of the recording
@@ -22,6 +23,8 @@ public:
         float position = 0.0f;   // 0..1 of the selection, used while frozen
         float grain_ms = 100.0f; // grain size
         float pitch = 1.0f;      // grain playback rate
+        float overlap = 8.0f;    // grains sounding at once on average, up to kMaxOverlap
+        float jitter = 0.0f;     // 0 periodic .. 1 random (Poisson) grain starts
         float rand_pos = 0.0f;   // 0..1, position spread as a fraction of the selection
         float rand_pitch = 0.0f; // 0..1, read span spread
         float spread = 0.5f;     // 0..1, stereo spread
@@ -44,17 +47,26 @@ public:
 private:
     // Starts a grain on a free voice. All voices busy: the grain is dropped.
     void _trigger(double sel_start, double sel_len);
+    // Updates _norm from the mean powers of the last block
+    void _normalise(float power_grains, float power_sum, float window_power, size_t size);
+    float _interval(float jitter); // to the next start, 1 = mean
     float _random(); // uniform -1..1
 
     Buffer _buffer;
     std::array<Grain, kNumVoices> _grains;
     Params _params;
     float _sample_rate = 48000.0f;
-    float _out_gain = 0.0f;
     float _gain = 0.0f;       // output gain at the end of the last block
+    // Mean powers, smoothed: grains taken separately, their stereo sum, their windows
+    float _power_grains = 0.0f;
+    float _power_sum = 0.0f;
+    float _window_power = 0.0f;
+    float _coherence_gain = 1.0f; // brings a correlated sum down to the power of its grains
+    float _norm = 0.0f;           // output gain before Params.gain
     // Running positions in double: float steps reach 1/8 sample at 30 s
     double _play_phase = 0.0;  // playhead through the selection, 0..1
-    double _sched_phase = 0.0; // one grain start per cycle
+    double _sched_phase = 0.0; // grain starts, 1 = mean interval
+    float _sched_next = 1.0f;  // phase of the next start
     uint32_t _seed = 1;
     volatile bool _record = false;
     bool _was_record = false;
