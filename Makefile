@@ -8,6 +8,9 @@ CPP_SOURCES = clessidra.cpp $(wildcard touch/*.cpp) $(wildcard grain/*.cpp) $(wi
 LIBDAISY_DIR = lib/libDaisy
 DAISYSP_DIR = lib/DaisySP
 
+# ReverbSc
+USE_DAISYSP_LGPL = 1
+
 # Serial log over USB: make clean; make LOG=1
 ifeq ($(LOG), 1)
 C_DEFS += -DCLESSIDRA_LOG

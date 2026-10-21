@@ -1,5 +1,7 @@
 #include "engine.h"
 
+#include "Utility/dsp.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -9,6 +11,8 @@ void Engine::Init(float sample_rate, float* buffer, size_t buffer_size) {
     _sample_rate = sample_rate;
     _buffer.Init(buffer, buffer_size, sample_rate);
     _dc_block.Init(sample_rate);
+    _reverb.Init(sample_rate);
+    _reverb.SetLpFreq(kReverbLowpassHz);
     _limiter.Init(sample_rate);
 
     Grain::InitWindow();
@@ -92,23 +96,43 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     const float n = float(size);
     _normalise(sums.power / n, power_sum / n, sums.window_power / n, size);
 
+    // ReverbSc, measured at kReverbLowpassHz: T60 = 3 * kLoop / -log10(feedback) within
+    // 20 %, output gain kGain / sqrt(1 - feedback^2) within 1.3 dB from feedback 0.5 to
+    // 0.98. The inverse gain keeps the reverb at the level of the grains.
+    static constexpr float kLoop = 0.06f; // seconds
+    static constexpr float kGain = 0.29f;
+    const float reverb = std::clamp(p.reverb, 0.0f, 1.0f);
+    const float decay = kReverbDecayMin * std::pow(kReverbDecayMax / kReverbDecayMin, reverb);
+    const float feedback = std::pow(10.0f, -3.0f * kLoop / decay);
+    _reverb.SetFeedback(feedback);
+    const float reverb_gain = std::sqrt(1.0f - feedback * feedback) / kGain;
+    const float reverb_angle = 0.5f * float(M_PI) * reverb * kReverbMaxAmount;
+    const float reverb_dry_step = (std::cos(reverb_angle) - _reverb_dry) / n;
+    const float reverb_wet_step = (reverb_gain * std::sin(reverb_angle) - _reverb_wet) / n;
+
     const float angle = 0.5f * float(M_PI) * std::clamp(p.mix, 0.0f, 1.0f);
     const float wet_step = (p.gain * _norm * std::sin(angle) - _wet_gain) / n;
     const float dry_step = (p.gain * std::cos(angle) - _dry_gain) / n;
     for (size_t i = 0; i < size; i++) {
+        _reverb_dry += reverb_dry_step;
+        _reverb_wet += reverb_wet_step;
         _wet_gain += wet_step;
         _dry_gain += dry_step;
-        out[0][i] = out[0][i] * _wet_gain + in[0][i] * _dry_gain;
-        out[1][i] = out[1][i] * _wet_gain + in[1][i] * _dry_gain;
+        const float l = out[0][i] * _wet_gain;
+        const float r = out[1][i] * _wet_gain;
+        float reverb_l, reverb_r;
+        _reverb.Process(l, r, &reverb_l, &reverb_r);
+        out[0][i] = l * _reverb_dry + reverb_l * _reverb_wet + in[0][i] * _dry_gain;
+        out[1][i] = r * _reverb_dry + reverb_r * _reverb_wet + in[1][i] * _dry_gain;
         _limiter.Process(out[0][i], out[1][i]);
     }
 }
 
 void Engine::_normalise(float power_grains, float power_sum, float window_power, size_t size) {
     const float coeff = 1.0f - std::exp(-float(size) / (kNormSeconds * _sample_rate));
-    _power_grains += coeff * (power_grains - _power_grains);
-    _power_sum += coeff * (power_sum - _power_sum);
-    _window_power += coeff * (window_power - _window_power);
+    daisysp::fonepole(_power_grains, power_grains, coeff);
+    daisysp::fonepole(_power_sum, power_sum, coeff);
+    daisysp::fonepole(_window_power, window_power, coeff);
 
     // Uncorrelated grains each carry the input's power times their squared window,
     // split over two channels by the equal-power pan: sqrt(2 / window power) gives

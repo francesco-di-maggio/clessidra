@@ -7,7 +7,7 @@
 namespace clessidra {
 
 // Maps the Touch controls to the engine and drives the LED. Holding P11 switches
-// S30, S31, S32, S34 and S37 to a second layer.
+// S30-S34 and S37 to a second layer.
 class ClessidraUI {
 public:
     ClessidraUI(Touch& touch, Engine& engine) : _touch{ touch }, _engine{ engine } {}
@@ -36,7 +36,7 @@ private:
     };
 
     struct Layer {
-        Takeover s30, s31, s32, s34, s37;
+        Takeover s30, s31, s32, s33, s34, s37;
 
         void Engage(const Knobs& k);
         void Process(const Knobs& k);
@@ -46,9 +46,9 @@ private:
 
     Touch& _touch;
     Engine& _engine;
-    Layer _main{ Takeover(0.0f), Takeover(0.0f), Takeover(0.0f), Takeover(0.0f), Takeover(0.0f) };
-    // Mix, window shape, spread, chance, gain: the engine defaults
-    Layer _shift{ Takeover(1.0f), Takeover(0.5f), Takeover(0.5f), Takeover(1.0f), Takeover(1.0f) };
+    Layer _main{ Takeover(0.0f), Takeover(0.0f), Takeover(0.0f), Takeover(0.0f), Takeover(0.0f), Takeover(0.0f) };
+    // Mix, window shape, spread, reverb, chance, gain: the engine defaults
+    Layer _shift{ Takeover(1.0f), Takeover(0.5f), Takeover(0.5f), Takeover(0.0f), Takeover(1.0f), Takeover(1.0f) };
     bool _started = false;
     bool _shifted = false;
     uint32_t _grain_starts = 0;

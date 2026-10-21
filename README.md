@@ -29,6 +29,7 @@ Second layer, while P11 is held. After a layer change, a knob moves its value fr
 | S30 | Dry / wet, equal power. Default: wet. |
 | S31 | Window shape: near-rectangle / sine (centre, default) / Hann |
 | S32 | Stereo spread, mono – full width. Default: half. |
+| S33 | Reverb on the grains: amount up to equal parts, decay 0.5 s to about 10 s. Default: none. |
 | S34 | Chance that a grain plays, 0–100 %. Default: 100 %. |
 | S37 | Output gain, silent – unity. Default: unity. |
 

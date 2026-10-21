@@ -51,6 +51,7 @@ void ClessidraUI::Layer::Engage(const Knobs& k) {
     s30.Engage(k.Value(Knobs::S30));
     s31.Engage(k.Value(Knobs::S31));
     s32.Engage(k.Value(Knobs::S32));
+    s33.Engage(k.Value(Knobs::S33));
     s34.Engage(k.Value(Knobs::S34));
     s37.Engage(k.Value(Knobs::S37));
 }
@@ -59,6 +60,7 @@ void ClessidraUI::Layer::Process(const Knobs& k) {
     s30.Process(k.Value(Knobs::S30));
     s31.Process(k.Value(Knobs::S31));
     s32.Process(k.Value(Knobs::S32));
+    s33.Process(k.Value(Knobs::S33));
     s34.Process(k.Value(Knobs::S34));
     s37.Process(k.Value(Knobs::S37));
 }
@@ -71,8 +73,8 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     if (!_started) {
         // The main layer starts where its knobs are, and follows them exactly
         _main = Layer{ Takeover(k.Value(Knobs::S30)), Takeover(k.Value(Knobs::S31)),
-                       Takeover(k.Value(Knobs::S32)), Takeover(k.Value(Knobs::S34)),
-                       Takeover(k.Value(Knobs::S37)) };
+                       Takeover(k.Value(Knobs::S32)), Takeover(k.Value(Knobs::S33)),
+                       Takeover(k.Value(Knobs::S34)), Takeover(k.Value(Knobs::S37)) };
         _started = true;
     }
     const bool shifted = _touch.pads().IsTouched(kShiftPad);
@@ -92,7 +94,7 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     const float rand_pos = _main.s32.Value();
     p.rand_pos = rand_pos * rand_pos * rand_pos * rand_pos;
 
-    p.pitch = std::exp2(Semitones(k.Value(Knobs::S33)) / 12.0f);
+    p.pitch = std::exp2(Semitones(_main.s33.Value()) / 12.0f);
 
     const float rand_pitch = _main.s34.Value();
     p.rand_pitch = rand_pitch * rand_pitch * rand_pitch;
@@ -124,6 +126,7 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     p.mix = _shift.s30.Value();
     p.window_shape = _shift.s31.Value();
     p.spread = _shift.s32.Value();
+    p.reverb = _shift.s33.Value();
     p.chance = _shift.s34.Value();
     const float gain = _shift.s37.Value();
     p.gain = gain * gain;

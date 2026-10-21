@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include "Effects/reverbsc.h"
 #include "Utility/dcblock.h"
 #include "buffer.h"
 #include "grain.h"
@@ -18,6 +19,12 @@ public:
     static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
     // The selection divided into equal places, each a grain source of its own
     static constexpr size_t kNumPlaces = 9;
+    // Reverb on the grains: equal-power crossfade up to kReverbMaxAmount, decay (T60)
+    // rising with it, exponentially
+    static constexpr float kReverbMaxAmount = 0.5f; // equal parts
+    static constexpr float kReverbDecayMin = 0.5f;  // seconds
+    static constexpr float kReverbDecayMax = 16.0f; // seconds
+    static constexpr float kReverbLowpassHz = 10000.0f;
 
     struct Params {
         float start = 0.0f;        // selection start, 0..1 of the recording
@@ -35,6 +42,7 @@ public:
         float spread = 0.5f;       // 0..1, stereo spread
         float chance = 1.0f;       // 0..1, probability that a grain plays
         float window_shape = 0.5f; // 0 near-rectangle, 0.5 sine, 1 Hann
+        float reverb = 0.0f;       // 0 none .. 1 most and longest, on the grains
         float mix = 1.0f;          // 0 input only .. 1 grains only, equal power
         float gain = 1.0f;
     };
@@ -73,6 +81,7 @@ private:
 
     daisysp::DcBlock _dc_block; // input: DC in a recording would sound as thumps at the grain rate
     Buffer _buffer;
+    daisysp::ReverbSc _reverb;
     Limiter _limiter;
     std::array<Grain, kNumVoices> _grains;
     Params _params;
@@ -80,6 +89,8 @@ private:
     // Output gains at the end of the last block
     float _wet_gain = 0.0f;
     float _dry_gain = 0.0f;
+    float _reverb_dry = 1.0f;
+    float _reverb_wet = 0.0f;
     // Mean powers, smoothed: grains taken separately, their stereo sum, their windows
     float _power_grains = 0.0f;
     float _power_sum = 0.0f;
