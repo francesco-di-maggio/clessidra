@@ -8,6 +8,8 @@ namespace clessidra {
 void Engine::Init(float sample_rate, float* buffer, size_t buffer_size) {
     _sample_rate = sample_rate;
     _buffer.Init(buffer, buffer_size, sample_rate);
+    _dc_block.Init(sample_rate);
+    _limiter.Init(sample_rate);
 
     Grain::InitWindow();
 }
@@ -35,7 +37,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     float power_sum = 0.0f;
     float window_power = 0.0f;
     for (size_t i = 0; i < size; i++) {
-        _buffer.Write(0.5f * (in[0][i] + in[1][i]));
+        _buffer.Write(_dc_block.Process(0.5f * (in[0][i] + in[1][i])));
 
         if (p.freeze) {
             _play_phase = p.position;
@@ -70,6 +72,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
         _gain += gain_step;
         out[0][i] *= _gain;
         out[1][i] *= _gain;
+        _limiter.Process(out[0][i], out[1][i]);
     }
 }
 

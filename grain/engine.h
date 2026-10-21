@@ -3,8 +3,10 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include "Utility/dcblock.h"
 #include "buffer.h"
 #include "grain.h"
+#include "limiter.h"
 
 namespace clessidra {
 
@@ -52,7 +54,9 @@ private:
     float _interval(float jitter); // to the next start, 1 = mean
     float _random(); // uniform -1..1
 
+    daisysp::DcBlock _dc_block; // input: DC in a recording would sound as thumps at the grain rate
     Buffer _buffer;
+    Limiter _limiter;
     std::array<Grain, kNumVoices> _grains;
     Params _params;
     float _sample_rate = 48000.0f;
