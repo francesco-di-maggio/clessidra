@@ -122,6 +122,12 @@ void ClessidraUI::Process(daisy::DaisySeed& hw) {
     const int flow = _touch.switches().Position(Switches::S07);
     p.jitter = flow == daisy::Switch3::POS_UP ? 0.0f : flow == daisy::Switch3::POS_CENTER ? 0.5f : 1.0f;
 
+    // P01 held: no new grains. Those playing and the reverb ring out; time keeps running.
+    if (_touch.pads().IsTouched(kStopPad)) {
+        p.overlap = 0.0f;
+        p.place_overlap.fill(0.0f);
+    }
+
     // P11 layer
     p.mix = _shift.s30.Value();
     p.window_shape = _shift.s31.Value();
