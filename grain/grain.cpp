@@ -42,7 +42,8 @@ void Grain::Render(const Buffer& buffer, double inc, float* left, float* right, 
     float window_power = 0.0f;
     for (size_t n = _offset; n < size; n++) {
         const float w = float(phase) * float(kWindowSize);
-        const size_t i = static_cast<size_t>(w);
+        // float(phase) can round up to 1
+        const size_t i = std::min(static_cast<size_t>(w), kWindowSize - 1);
         float window = _window[i] + (w - float(i)) * (_window[i + 1] - _window[i]);
         window = std::min(1.0f, window * _clip);
         window += _hann * (window * window - window);
