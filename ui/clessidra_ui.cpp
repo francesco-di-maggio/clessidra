@@ -44,7 +44,7 @@ ClessidraUI::ClessidraUI(Touch& touch, Engine& engine) : _touch{ touch }, _engin
     _shift.values[Knobs::S34] = Takeover(defaults.reverb);
     _shift.values[Knobs::S35] = Takeover(0.5f + 0.5f * defaults.tone);
     _shift.values[Knobs::S36] = Takeover(defaults.mix);
-    _shift.values[Knobs::S37] = Takeover(std::sqrt(defaults.gain));
+    _shift.values[Knobs::S37] = Takeover(defaults.resample);
     for (size_t i = 0; i < Knobs::kNumKnobs; i++) _shown[i] = _shift[i];
 }
 
@@ -174,8 +174,7 @@ void ClessidraUI::Process() {
     const bool tone_centre = tone == 0.5f;
     p.tone = 2.0f * tone - 1.0f;
     p.mix = _shift[Knobs::S36];
-    const float gain = _shift[Knobs::S37];
-    p.gain = gain * gain;
+    p.resample = _shift[Knobs::S37];
 
     _engine.SetParams(p);
 

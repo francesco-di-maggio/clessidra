@@ -21,8 +21,6 @@ void Engine::Init(float sample_rate, float* ring, size_t ring_size, float* const
 }
 
 void Engine::Process(const float* const* in, float** out, size_t size) {
-    _record_input(in, size);
-
     const Params p = _params;
     const double len = double(_buffers[_playing].Length());
     const double sel_start = p.start * len;
@@ -128,31 +126,48 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     const float tone_mix = std::min(1.0f, tone / kToneFade);
     for (auto& filter : _tone_filter) filter.Set(tone_hz, tone_q, _sample_rate);
 
+    // Dry/wet and what the ring records, equal power. The wet signal is recorded
+    // whatever the dry/wet.
     const float angle = 0.5f * float(M_PI) * std::clamp(p.mix, 0.0f, 1.0f);
-    const float wet_step = (p.gain * _norm * std::sin(angle) - _wet_gain) / n;
-    const float dry_step = (p.gain * std::cos(angle) - _dry_gain) / n;
+    const float record_angle = 0.5f * float(M_PI) * std::clamp(p.resample, 0.0f, 1.0f);
+    const float norm_step = (_norm - _norm_gain) / n;
+    const float wet_step = (std::sin(angle) - _wet_gain) / n;
+    const float dry_step = (std::cos(angle) - _dry_gain) / n;
+    const float record_wet_step = (std::sin(record_angle) - _record_wet) / n;
+    const float record_input_step = (std::cos(record_angle) - _record_input) / n;
     for (size_t i = 0; i < size; i++) {
         _reverb_dry += reverb_dry_step;
         _reverb_wet += reverb_wet_step;
+        _norm_gain += norm_step;
         _wet_gain += wet_step;
         _dry_gain += dry_step;
-        float l = out[0][i] * _wet_gain;
-        float r = out[1][i] * _wet_gain;
+        _record_wet += record_wet_step;
+        _record_input += record_input_step;
+        float l = out[0][i] * _norm_gain;
+        float r = out[1][i] * _norm_gain;
         _tone_filter[0].Process(l);
         _tone_filter[1].Process(r);
         l += tone_mix * ((lowpass ? _tone_filter[0].Low() : _tone_filter[0].High()) - l);
         r += tone_mix * ((lowpass ? _tone_filter[1].Low() : _tone_filter[1].High()) - r);
         float reverb_l, reverb_r;
         _reverb.Process(l, r, &reverb_l, &reverb_r);
-        out[0][i] = l * _reverb_dry + reverb_l * _reverb_wet + in[0][i] * _dry_gain;
-        out[1][i] = r * _reverb_dry + reverb_r * _reverb_wet + in[1][i] * _dry_gain;
+        l = l * _reverb_dry + reverb_l * _reverb_wet;
+        r = r * _reverb_dry + reverb_r * _reverb_wet;
+
+        // Input as before; the wet signal in mono at the level of the input, undoing the
+        // equal-power pan
+        const float input = _dc_block.Process(0.5f * (in[0][i] + in[1][i]));
+        _ring.Write(_record_input * input + _record_wet * float(M_SQRT1_2) * (l + r));
+
+        out[0][i] = l * _wet_gain + in[0][i] * _dry_gain;
+        out[1][i] = r * _wet_gain + in[1][i] * _dry_gain;
         _limiter.Process(out[0][i], out[1][i]);
     }
+
+    _update_capture(size);
 }
 
-void Engine::_record_input(const float* const* in, size_t size) {
-    for (size_t i = 0; i < size; i++) _ring.Write(_dc_block.Process(0.5f * (in[0][i] + in[1][i])));
-
+void Engine::_update_capture(size_t size) {
     const bool record = _record;
     if (record && !_was_record) _held = 0;
     if (record) _held += size;

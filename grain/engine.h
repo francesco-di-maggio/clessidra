@@ -63,7 +63,7 @@ public:
         float reverb = 0.0f;       // 0 none .. 1 most and longest, on the grains
         float tone = 0.0f;         // -1 lowpass .. 0 off .. 1 highpass, on the grains
         float mix = 0.5f;          // 0 input only .. 1 grains only, equal power
-        float gain = 1.0f;
+        float resample = 0.0f;     // recorded: 0 input .. 1 wet (after tone and reverb), equal power
     };
 
     // ring: ring_size floats; buffers: kNumBuffers of buffer_size floats, the longest
@@ -103,9 +103,9 @@ private:
     float _random(); // uniform -1..1
 
     daisysp::DcBlock _dc_block; // input: DC in a recording would sound as thumps at the grain rate
-    // Process() only: writes the input to the ring; on release, copies the recording to
+    // End of Process(), after the ring is written: on release, copies the recording to
     // the buffer not playing once its grains have ended, then plays it.
-    void _record_input(const float* const* in, size_t size);
+    void _update_capture(size_t size);
 
     enum class Capture { Idle, Waiting, Copying };
 
@@ -123,9 +123,12 @@ private:
     std::array<Grain, kNumVoices> _grains;
     Params _params;
     float _sample_rate = 48000.0f;
-    // Output gains at the end of the last block
+    // Gains at the end of the last block
+    float _norm_gain = 0.0f;
     float _wet_gain = 0.0f;
     float _dry_gain = 0.0f;
+    float _record_input = 1.0f;
+    float _record_wet = 0.0f;
     float _reverb_dry = 1.0f;
     float _reverb_wet = 0.0f;
     float _tone = 0.0f; // Params.tone, smoothed
@@ -134,7 +137,7 @@ private:
     float _power_sum = 0.0f;
     float _window_power = 0.0f;
     float _coherence_gain = 1.0f; // brings a correlated sum down to the power of its grains
-    float _norm = 0.0f;           // output gain before Params.gain
+    float _norm = 0.0f;           // grain gain
     // Running positions in double: float steps reach 1/8 sample at 30 s
     std::array<Stream, kNumStreams> _streams;
     uint32_t _seed = 1;

@@ -32,7 +32,7 @@ Second layer, while P11 is held. After a layer change, a knob moves its value fr
 | S34 | Reverb amount and decay. Default: none. |
 | S35 | Tone, on the grains before the reverb: lowpass down to 500 Hz / off (centre detent, default) / highpass up to 2 kHz |
 | S36 | Dry / wet, equal power. Default: half. |
-| S37 | Output gain, silent – unity. Default: unity. |
+| S37 | Resample: what P10 records, input – wet (grains after tone and reverb), equal power. Default: input. |
 
 ## Audio
 
