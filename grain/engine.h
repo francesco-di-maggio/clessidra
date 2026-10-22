@@ -42,8 +42,24 @@ public:
     static constexpr size_t kNumBuffers = 2;
     static constexpr float kTapSeconds = 0.3f;
     static constexpr float kPreRollSeconds = 0.05f;
-    static constexpr size_t kCopyPerBlock = 2048;    // samples: 42 times real time
+    static constexpr size_t kCopyPerBlock = 1024;    // samples: 21 times real time
     static constexpr float kCopyMarginSeconds = 0.5f; // ring written on during the copy
+    // Alignment (WSOLA, Verhelst and Roelands 1993): each grain starts within
+    // kAlignSearchSeconds of its position, where its next kAlignCompareSeconds best match
+    // what the stream's previous grain would read next. Normalised cross-correlation,
+    // every kAlignDecimation-th sample, coarse search then refined. Operations are
+    // budgeted per block, and grains align only while at most kAlignMaxVoices play:
+    // denser clouds blur alignment and leave no CPU for it. Otherwise a grain starts
+    // unaligned.
+    static constexpr float kAlignSearchSeconds = 0.012f;  // +-: periods down to 42 Hz
+    static constexpr float kAlignCompareSeconds = 0.010f;
+    static constexpr size_t kAlignDecimation = 4;
+    static constexpr size_t kAlignCoarse = 4;             // coarse search: every 4th point
+    static constexpr int kAlignCoarseStep = 8;            // coarse search: samples between starts
+    static constexpr size_t kAlignRegion = 4096;          // samples copied per search, at most
+    static constexpr size_t kAlignOpsPerBlock = 6000;     // budget: about one grain per 2 blocks
+    static constexpr size_t kAlignOpsMax = 13000;         // budget saved up: one grain per block at most
+    static constexpr size_t kAlignMaxVoices = 12;         // measured: 23 % of a block per alignment
 
     struct Params {
         float start = 0.0f;        // selection start, 0..1 of the recording
@@ -91,12 +107,20 @@ private:
         double sched_phase = 0.0; // grain starts, 1 = mean interval
         float sched_next = 1.0f;  // phase of the next start
         bool on = false;
+        // Previous grain, for alignment
+        double last_position = 0.0;
+        float last_rate = 1.0f;
+        uint64_t last_time = 0;
+        bool has_last = false;
     };
     static constexpr size_t kNumStreams = 1 + kNumPlaces; // playhead first
 
     // Starts a grain on a free voice at sample offset of the block, reading the span at
     // phase. All voices busy: dropped.
-    void _trigger(double start, double length, double phase, size_t offset);
+    void _trigger(double start, double length, double phase, size_t offset, Stream& stream);
+    // The start near target best continuing a grain that reads at cont, both at rate.
+    // target if over budget.
+    double _align(const Buffer& buffer, double target, double cont, float rate);
     // Updates _norm from the mean powers of the last block
     void _normalise(float power_grains, float power_sum, float window_power, size_t size);
     float _interval(float jitter); // to the next start, 1 = mean
@@ -141,6 +165,12 @@ private:
     // Running positions in double: float steps reach 1/8 sample at 30 s
     std::array<Stream, kNumStreams> _streams;
     uint32_t _seed = 1;
+    uint64_t _time = 0; // samples since Init()
+    size_t _align_search = 0;  // samples
+    size_t _align_compare = 0; // samples
+    size_t _align_budget = 0;  // operations
+    size_t _voices = 0;        // grains playing at the end of the last block
+    std::array<float, kAlignRegion> _align_region; // search area in internal memory
     volatile float _grain_level = 0.0f;
     float _freeze_position = 0.0f; // Params.position at the freeze
     volatile bool _record = false;

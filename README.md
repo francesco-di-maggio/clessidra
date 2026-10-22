@@ -42,6 +42,7 @@ Second layer, while P11 is held. After a layer change, a knob moves its value fr
 | Output | Stereo, peak-limited at −0.5 dBFS |
 | Sample rate | 48 kHz |
 | Recording | Up to 10 s, from an input ring always listening |
+| Grains | Each starts within 12 ms of its position, where it best continues the previous grain (WSOLA): smooth stretching and pitch shifting |
 
 ## Quick Install
 

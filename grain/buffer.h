@@ -22,6 +22,8 @@ public:
 
     // Linear interpolation. pos wraps within Length().
     float Read(double pos) const;
+    // count samples from the one at or below pos, wrapping within Length()
+    void CopyOut(double pos, float* dst, size_t count) const;
 
     size_t Length() const { return _length; }
 

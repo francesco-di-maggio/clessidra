@@ -22,6 +22,20 @@ void Buffer::Finish(size_t length) {
     }
 }
 
+void Buffer::CopyOut(double pos, float* dst, size_t count) const {
+    if (_length == 0) {
+        std::fill(dst, dst + count, 0.0f);
+        return;
+    }
+    const double len = double(_length);
+    pos -= len * std::floor(pos / len);
+    size_t i = std::min(static_cast<size_t>(pos), _length - 1);
+    for (size_t j = 0; j < count; j++) {
+        dst[j] = _mem[i];
+        if (++i == _length) i = 0;
+    }
+}
+
 void Ring::Init(float* mem, size_t capacity, float sample_rate) {
     _mem = mem;
     _capacity = capacity;
@@ -49,17 +63,19 @@ Ring::Step Ring::Copy(Buffer& dst, size_t max_samples) {
     const size_t end = std::min(_done + max_samples, _length);
     float* data = dst.Data();
     size_t i = _index(_done);
+    // Leading silence, then from the margin before the first sound
+    for (; _copied == 0 && _done < end; _done++) {
+        if (std::fabs(_mem[i]) > kSilence) {
+            for (size_t k = _done > _margin ? _done - _margin : 0; k < _done; k++) data[_copied++] = _mem[_index(k)];
+            break;
+        }
+        if (++i == _capacity) i = 0;
+    }
     for (; _done < end; _done++) {
         const float x = _mem[i];
         if (++i == _capacity) i = 0;
-        const bool sound = std::fabs(x) > kSilence;
-        if (_copied == 0 && !sound) continue;
-        // First sound: the margin before it
-        if (_copied == 0) {
-            for (size_t k = _done > _margin ? _done - _margin : 0; k < _done; k++) data[_copied++] = _mem[_index(k)];
-        }
         data[_copied++] = x;
-        if (sound) _last = _copied;
+        if (std::fabs(x) > kSilence) _last = _copied;
     }
     if (_done < _length) return Step::Pending;
     if (_copied == 0) return Step::Silent;
