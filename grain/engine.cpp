@@ -18,12 +18,9 @@ void Engine::Init(float sample_rate, float* ring, size_t ring_size, float* const
     _limiter.Init(sample_rate);
 
     Grain::InitWindow();
-    _align_search = size_t(kAlignSearchSeconds * sample_rate);
-    _align_compare = size_t(kAlignCompareSeconds * sample_rate);
 }
 
 void Engine::Process(const float* const* in, float** out, size_t size) {
-    _align_budget = std::min(_align_budget + kAlignOpsPerBlock, kAlignOpsMax);
     const Params p = _params;
     const double len = double(_buffers[_playing].Length());
     const double sel_start = p.start * len;
@@ -62,7 +59,6 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
             stream.phase = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
             stream.frozen = stream.phase - scrub;
             stream.sched_phase = stream.sched_next;
-            stream.has_last = false;
         }
         stream.on = on || playhead;
         if (p.freeze) {
@@ -86,7 +82,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
             stream.sched_phase += span.sched_inc;
             if (stream.sched_phase >= stream.sched_next) {
                 stream.sched_phase -= stream.sched_next;
-                _trigger(span.start, span.length, stream.phase, i, stream);
+                _trigger(span.start, span.length, stream.phase, i);
                 stream.sched_next = _interval(p.jitter);
                 // At most one start per sample
                 stream.sched_phase = std::min(stream.sched_phase, double(stream.sched_next));
@@ -98,11 +94,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     std::fill(out[0], out[0] + size, 0.0f);
     std::fill(out[1], out[1] + size, 0.0f);
     Grain::Sums sums;
-    _voices = 0;
-    for (auto& grain : _grains) {
-        grain.Render(grain_inc, out[0], out[1], size, sums);
-        if (grain.IsActive()) _voices++;
-    }
+    for (auto& grain : _grains) grain.Render(grain_inc, out[0], out[1], size, sums);
     float power_sum = 0.0f;
     for (size_t i = 0; i < size; i++) power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
 
@@ -173,7 +165,6 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     }
 
     _update_capture(size);
-    _time += size;
 }
 
 void Engine::_update_capture(size_t size) {
@@ -210,9 +201,7 @@ void Engine::_update_capture(size_t size) {
         const Ring::Step step = _ring.Copy(target, kCopyPerBlock);
         if (step == Ring::Step::Pending) return;
         _capture = Capture::Idle;
-        if (step != Ring::Step::Done) return;
-        _playing = 1 - _playing;
-        for (auto& stream : _streams) stream.has_last = false; // nothing to continue
+        if (step == Ring::Step::Done) _playing = 1 - _playing;
     }
 }
 
@@ -236,7 +225,7 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
     _norm = 0.9f * overlap_gain * _coherence_gain;
 }
 
-void Engine::_trigger(double start, double length, double phase, size_t offset, Stream& stream) {
+void Engine::_trigger(double start, double length, double phase, size_t offset) {
     const Params& p = _params;
     const Buffer& buffer = _buffers[_playing];
     if (buffer.Length() == 0) return; // nothing recorded: no grains
@@ -256,83 +245,9 @@ void Engine::_trigger(double start, double length, double phase, size_t offset, 
     latch.rate = p.pitch * (1.0f + _random() * p.rand_pitch);
     // Grains read in the playhead's direction
     if (!p.freeze && p.speed < 0.0f) latch.rate = -latch.rate;
-    // Continues the stream's previous grain where it would read now
-    const uint64_t now = _time + offset;
-    if (stream.has_last && _voices <= kAlignMaxVoices) {
-        const double cont = stream.last_position + double(now - stream.last_time) * stream.last_rate;
-        latch.position = _align(buffer, latch.position, cont, latch.rate);
-    }
-    stream.last_position = latch.position;
-    stream.last_rate = latch.rate;
-    stream.last_time = now;
-    stream.has_last = true;
     latch.pan = 0.5f + _random() * p.spread * 0.5f;
     latch.shape = p.window_shape;
     grain->Start(latch, offset);
-}
-
-double Engine::_align(const Buffer& buffer, double target, double cont, float rate) {
-    const int search = int(_align_search);
-    const int step = int(kAlignDecimation);
-    const int coarse_step = kAlignCoarseStep;
-    const int points = int(_align_compare / kAlignDecimation);
-    const int fine = coarse_step - 1; // refined around the coarse best: +-
-    // The search area, read once from external memory: target - search .. + search plus
-    // the compared span, in the reading direction
-    const double span = double(_align_compare) * rate;
-    const double low = std::floor(target - search + std::min(0.0, span));
-    const size_t count = size_t(2 * search + std::fabs(span)) + 2;
-    if (count > kAlignRegion) return target;
-    // Operations: samples copied, then products
-    const size_t cost = count + size_t(points) +
-                        size_t((2 * search / coarse_step + 1) * points / kAlignCoarse + (2 * fine + 1) * points);
-    if (cost > _align_budget) return target;
-    _align_budget -= cost;
-    buffer.CopyOut(low, _align_region.data(), count);
-
-    // What the previous grain would read next, and where the grain would read in the
-    // region at offset 0
-    float next[kAlignRegion / kAlignDecimation];
-    size_t at[kAlignRegion / kAlignDecimation];
-    const double origin = target - low;
-    float energy = 0.0f, energy_coarse = 0.0f;
-    for (int k = 0; k < points; k++) {
-        next[k] = buffer.Read(cont + double(k * step) * rate);
-        at[k] = size_t(origin + double(k * step) * rate);
-        energy += next[k] * next[k];
-        if (k % int(kAlignCoarse) == 0) energy_coarse += next[k] * next[k];
-    }
-    if (energy < 1e-9f) return target; // silence: nothing to match
-
-    auto score = [&](int d, int every, float energy_next) {
-        float cross = 0.0f, energy_here = 0.0f;
-        for (int k = 0; k < points; k += every) {
-            const float x = _align_region[at[k] + d];
-            cross += next[k] * x;
-            energy_here += x * x;
-        }
-        return energy_here < 1e-9f ? -1.0f : cross / std::sqrt(energy_next * energy_here);
-    };
-
-    int best = 0;
-    float best_score = -2.0f;
-    for (int d = -search; d <= search; d += coarse_step) {
-        const float s = score(d, int(kAlignCoarse), energy_coarse);
-        if (s > best_score) {
-            best_score = s;
-            best = d;
-        }
-    }
-    const int coarse_best = best;
-    best_score = -2.0f;
-    for (int d = std::max(-search, coarse_best - fine); d <= std::min(search, coarse_best + fine); d++) {
-        const float s = score(d, 1, energy);
-        if (s > best_score) {
-            best_score = s;
-            best = d;
-        }
-    }
-    return target + best;
 }
 
 float Engine::_interval(float jitter) {

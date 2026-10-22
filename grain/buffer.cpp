@@ -22,20 +22,6 @@ void Buffer::Finish(size_t length) {
     }
 }
 
-void Buffer::CopyOut(double pos, float* dst, size_t count) const {
-    if (_length == 0) {
-        std::fill(dst, dst + count, 0.0f);
-        return;
-    }
-    const double len = double(_length);
-    pos -= len * std::floor(pos / len);
-    size_t i = std::min(static_cast<size_t>(pos), _length - 1);
-    for (size_t j = 0; j < count; j++) {
-        dst[j] = _mem[i];
-        if (++i == _length) i = 0;
-    }
-}
-
 void Ring::Init(float* mem, size_t capacity, float sample_rate) {
     _mem = mem;
     _capacity = capacity;
