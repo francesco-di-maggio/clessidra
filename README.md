@@ -10,7 +10,7 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 |---|---|
 | S30 / S35 | Selection start / end, 0–100 % of the recording, either order |
 | S31 | Grain size, 20 ms – 2 s. Centre detent: 100 ms. |
-| S32 | Random position |
+| S32 | Random position, up to half the source's length either way (the selection, or a place) |
 | S33 | Pitch, ±2 octaves. Flat at unison, fifths and octaves. |
 | S34 | Random pitch, up to ±2 octaves, equal up and down |
 | S36 | Playback speed, 0–4. Centre detent: 1. Scrubs while frozen. |
@@ -29,7 +29,7 @@ Second layer, while P11 is held. After a layer change, a knob moves its value fr
 |---|---|
 | S31 | Window shape: near-rectangle / sine (centre, default) / Hann |
 | S32 | Stereo spread, mono – full width. Default: half. |
-| S34 | Reverb amount and decay. Default: none. |
+| S34 | Reverb: amount up to equal parts, decay 0.5–16 s, on the grains. Default: none. |
 | S35 | Tone, on the grains before the reverb: lowpass down to 500 Hz / off (centre detent, default) / highpass up to 2 kHz |
 | S36 | Dry / wet, equal power. Default: half. |
 | S37 | Resample: what P10 records, input – wet (grains after tone and reverb), equal power. Default: input. |
@@ -42,6 +42,8 @@ Second layer, while P11 is held. After a layer change, a knob moves its value fr
 | Output | Stereo, peak-limited at −0.5 dBFS |
 | Sample rate | 48 kHz |
 | Recording | Up to 10 s, taken from an 11 s input ring that records all the time |
+| Grains | Up to 32 at once, shared by the playhead and the places. Level kept steady at any flow. |
+| Latency | 5 ms (the limiter's look-ahead) |
 
 ## Quick Install
 
