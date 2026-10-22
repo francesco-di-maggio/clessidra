@@ -242,7 +242,7 @@ void Engine::_trigger(double start, double length, double phase, size_t offset) 
     Grain::Latch latch;
     latch.buffer = &buffer;
     latch.position = start + phase * length + _random() * p.rand_pos * length * 0.5;
-    latch.rate = p.pitch * (1.0f + _random() * p.rand_pitch);
+    latch.rate = p.pitch * std::exp2(_random() * p.rand_pitch / 12.0f);
     // Grains read in the playhead's direction
     if (!p.freeze && p.speed < 0.0f) latch.rate = -latch.rate;
     latch.pan = 0.5f + _random() * p.spread * 0.5f;

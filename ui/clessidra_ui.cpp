@@ -119,8 +119,9 @@ void ClessidraUI::Process() {
     const bool unison = semitones == 0.0f;
     p.pitch = std::exp2(semitones / 12.0f);
 
+    // S34: random pitch, 0 .. +-24 semitones, cubic: fine near 0
     const float rand_pitch = _main[Knobs::S34];
-    p.rand_pitch = rand_pitch * rand_pitch * rand_pitch;
+    p.rand_pitch = 24.0f * rand_pitch * rand_pitch * rand_pitch;
 
     // S09: up forward, centre freeze, down reverse. S36 sets the speed; while frozen it
     // scrubs, and the speed resumes after the freeze with a takeover.

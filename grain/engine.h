@@ -57,7 +57,7 @@ public:
         std::array<float, kNumPlaces> place_overlap{}; // the same per place, 0 = off
         float jitter = 0.0f;       // 0 periodic .. 1 random (Poisson) grain starts
         float rand_pos = 0.0f;     // 0..1, position spread: up to half the source's span
-        float rand_pitch = 0.0f;   // 0..1, read span spread
+        float rand_pitch = 0.0f;   // semitones: each grain's pitch up to this far up or down
         float spread = 0.5f;       // 0..1, stereo spread
         float window_shape = 0.5f; // 0 near-rectangle, 0.5 sine, 1 Hann
         float reverb = 0.0f;       // 0 none .. 1 most and longest, on the grains
