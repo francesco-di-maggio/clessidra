@@ -77,6 +77,8 @@ export class Controls {
     this.held.set(who, pad)
     if (!this.since.has(pad)) this.since.set(pad, performance.now())
     if (pen !== null) this.pen.set(pad, pen)
+    // At once: the frame loop only updates pressure, and pauses in a hidden page
+    this.send({ type: 'pad', index: pad, touched: true, pressure: this.pressure(pad) })
     this.changed()
   }
 
