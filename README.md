@@ -2,6 +2,8 @@
 
 Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 
+[Play it in the browser](https://francesco-di-maggio.github.io/clessidra/)
+
 ## Controls
 
 <img src="touch.jpeg" width="300"/>
