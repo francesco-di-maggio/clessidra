@@ -12,6 +12,7 @@ void Engine::Init(float sample_rate, float* buffer, size_t buffer_size) {
     _buffer.Init(buffer, buffer_size, sample_rate);
     _dc_block.Init(sample_rate);
     _reverb.Init(sample_rate);
+    _reverb.SetLpFreq(kReverbLowpassHz);
     _limiter.Init(sample_rate);
 
     Grain::InitWindow();
@@ -116,11 +117,20 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     const float decay = kReverbDecayMin * std::pow(kReverbDecayMax / kReverbDecayMin, reverb);
     const float feedback = std::pow(10.0f, -3.0f * kLoop / decay);
     _reverb.SetFeedback(feedback);
-    _reverb.SetLpFreq(p.reverb_lowpass_hz);
     const float reverb_gain = std::sqrt(1.0f - feedback * feedback) / kGain;
     const float reverb_angle = 0.5f * float(M_PI) * reverb * kReverbMaxAmount;
     const float reverb_dry_step = (std::cos(reverb_angle) - _reverb_dry) / n;
     const float reverb_wet_step = (reverb_gain * std::sin(reverb_angle) - _reverb_wet) / n;
+
+    const float tone_coeff = 1.0f - std::exp(-n / (kToneSeconds * _sample_rate));
+    daisysp::fonepole(_tone, std::clamp(p.tone, -1.0f, 1.0f), tone_coeff);
+    const float tone = std::fabs(_tone);
+    const bool lowpass = _tone < 0.0f;
+    const float tone_hz = lowpass ? kLowpassOffHz * std::pow(kLowpassMinHz / kLowpassOffHz, tone)
+                                  : kHighpassOffHz * std::pow(kHighpassMaxHz / kHighpassOffHz, tone);
+    const float tone_q = kToneQMin + tone * (kToneQMax - kToneQMin);
+    const float tone_mix = std::min(1.0f, tone / kToneFade);
+    for (auto& filter : _tone_filter) filter.Set(tone_hz, tone_q, _sample_rate);
 
     const float angle = 0.5f * float(M_PI) * std::clamp(p.mix, 0.0f, 1.0f);
     const float wet_step = (p.gain * _norm * std::sin(angle) - _wet_gain) / n;
@@ -130,8 +140,12 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
         _reverb_wet += reverb_wet_step;
         _wet_gain += wet_step;
         _dry_gain += dry_step;
-        const float l = out[0][i] * _wet_gain;
-        const float r = out[1][i] * _wet_gain;
+        float l = out[0][i] * _wet_gain;
+        float r = out[1][i] * _wet_gain;
+        _tone_filter[0].Process(l);
+        _tone_filter[1].Process(r);
+        l += tone_mix * ((lowpass ? _tone_filter[0].Low() : _tone_filter[0].High()) - l);
+        r += tone_mix * ((lowpass ? _tone_filter[1].Low() : _tone_filter[1].High()) - r);
         float reverb_l, reverb_r;
         _reverb.Process(l, r, &reverb_l, &reverb_r);
         out[0][i] = l * _reverb_dry + reverb_l * _reverb_wet + in[0][i] * _dry_gain;

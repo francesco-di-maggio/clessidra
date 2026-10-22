@@ -21,7 +21,7 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 | P01 | Hold to stop the flow |
 | P10 | Hold to record |
 | P11 | Hold for the second layer, below |
-| LED | Flashes at 4 Hz while recording. Pulses at each centre: pitch unison, speed 1, grain size 100 ms. Steady while P11 is held: brightness shows the value of the second-layer knob last turned (at power-up: dry/wet). Otherwise glows dimly with the grains: each fades in and out with its window, overlapping grains glow steady. |
+| LED | Flashes at 4 Hz while recording. Pulses at each centre: pitch unison, speed 1, grain size 100 ms, tone off. Steady while P11 is held: brightness shows the value of the second-layer knob last turned (at power-up: dry/wet). Otherwise glows dimly with the grains: each fades in and out with its window, overlapping grains glow steady. |
 
 Second layer, while P11 is held. After a layer change, a knob moves its value from where it is, and both reach the end stops together.
 
@@ -30,7 +30,7 @@ Second layer, while P11 is held. After a layer change, a knob moves its value fr
 | S31 | Window shape: near-rectangle / sine (centre, default) / Hann |
 | S32 | Stereo spread, mono – full width. Default: half. |
 | S34 | Reverb amount and decay. Default: none. |
-| S35 | Reverb brightness, 2–18 kHz. Default: 10 kHz. |
+| S35 | Tone, on the grains before the reverb: lowpass down to 500 Hz / off (centre detent, default) / highpass up to 2 kHz |
 | S36 | Dry / wet, equal power. Default: half. |
 | S37 | Output gain, silent – unity. Default: unity. |
 

@@ -8,6 +8,7 @@
 #include "buffer.h"
 #include "grain.h"
 #include "limiter.h"
+#include "svf.h"
 
 namespace clessidra {
 
@@ -24,6 +25,17 @@ public:
     static constexpr float kReverbMaxAmount = 0.5f; // equal parts
     static constexpr float kReverbDecayMin = 0.5f;  // seconds
     static constexpr float kReverbDecayMax = 16.0f; // seconds
+    static constexpr float kReverbLowpassHz = 10000.0f; // damping in the reverb's loop
+    // Tone on the grains, before the reverb. From off, exponential to the ends; resonance
+    // rising with it from flat (Butterworth). Fades in over the first kToneFade of each side.
+    static constexpr float kLowpassOffHz = 20000.0f;
+    static constexpr float kLowpassMinHz = 500.0f;
+    static constexpr float kHighpassOffHz = 20.0f;
+    static constexpr float kHighpassMaxHz = 2000.0f;
+    static constexpr float kToneQMin = 0.707f;
+    static constexpr float kToneQMax = 1.5f;
+    static constexpr float kToneFade = 0.1f;
+    static constexpr float kToneSeconds = 0.01f; // smoothing of Params.tone
 
     struct Params {
         float start = 0.0f;        // selection start, 0..1 of the recording
@@ -41,7 +53,7 @@ public:
         float spread = 0.5f;       // 0..1, stereo spread
         float window_shape = 0.5f; // 0 near-rectangle, 0.5 sine, 1 Hann
         float reverb = 0.0f;       // 0 none .. 1 most and longest, on the grains
-        float reverb_lowpass_hz = 10000.0f; // damping in the reverb's loop
+        float tone = 0.0f;         // -1 lowpass .. 0 off .. 1 highpass, on the grains
         float mix = 0.5f;          // 0 input only .. 1 grains only, equal power
         float gain = 1.0f;
     };
@@ -82,6 +94,7 @@ private:
     daisysp::DcBlock _dc_block; // input: DC in a recording would sound as thumps at the grain rate
     Buffer _buffer;
     daisysp::ReverbSc _reverb;
+    std::array<Svf, 2> _tone_filter;
     Limiter _limiter;
     std::array<Grain, kNumVoices> _grains;
     Params _params;
@@ -91,6 +104,7 @@ private:
     float _dry_gain = 0.0f;
     float _reverb_dry = 1.0f;
     float _reverb_wet = 0.0f;
+    float _tone = 0.0f; // Params.tone, smoothed
     // Mean powers, smoothed: grains taken separately, their stereo sum, their windows
     float _power_grains = 0.0f;
     float _power_sum = 0.0f;

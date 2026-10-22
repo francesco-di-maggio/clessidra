@@ -36,25 +36,13 @@ static float Semitones(float x) {
 static constexpr Knobs::Knob kSecondLayer[] = { Knobs::S31, Knobs::S32, Knobs::S34,
                                                 Knobs::S35, Knobs::S36, Knobs::S37 };
 
-// Reverb damping, 2 - 18 kHz, exponential
-static constexpr float kLowpassMinHz = 2000.0f;
-static constexpr float kLowpassMaxHz = 18000.0f;
-
-static float LowpassHz(float x) {
-    return kLowpassMinHz * std::pow(kLowpassMaxHz / kLowpassMinHz, x);
-}
-
-static float LowpassKnob(float hz) {
-    return std::log(hz / kLowpassMinHz) / std::log(kLowpassMaxHz / kLowpassMinHz);
-}
-
 ClessidraUI::ClessidraUI(Touch& touch, Engine& engine) : _touch{ touch }, _engine{ engine } {
     // Second layer at the engine defaults
     const Engine::Params defaults;
     _shift.values[Knobs::S31] = Takeover(defaults.window_shape);
     _shift.values[Knobs::S32] = Takeover(defaults.spread);
     _shift.values[Knobs::S34] = Takeover(defaults.reverb);
-    _shift.values[Knobs::S35] = Takeover(LowpassKnob(defaults.reverb_lowpass_hz));
+    _shift.values[Knobs::S35] = Takeover(0.5f + 0.5f * defaults.tone);
     _shift.values[Knobs::S36] = Takeover(defaults.mix);
     _shift.values[Knobs::S37] = Takeover(std::sqrt(defaults.gain));
     for (size_t i = 0; i < Knobs::kNumKnobs; i++) _shown[i] = _shift[i];
@@ -178,7 +166,10 @@ void ClessidraUI::Process() {
     p.window_shape = _shift[Knobs::S31];
     p.spread = _shift[Knobs::S32];
     p.reverb = _shift[Knobs::S34];
-    p.reverb_lowpass_hz = LowpassHz(_shift[Knobs::S35]);
+    // Tone: centre detent off
+    const float tone = Detent(_shift[Knobs::S35], 0.05f);
+    const bool tone_centre = tone == 0.5f;
+    p.tone = 2.0f * tone - 1.0f;
     p.mix = _shift[Knobs::S36];
     const float gain = _shift[Knobs::S37];
     p.gain = gain * gain;
@@ -187,7 +178,8 @@ void ClessidraUI::Process() {
 
     // Reaching a detent: a pulse
     const uint32_t now = daisy::System::GetNow();
-    const uint8_t detents = (unison ? 1 : 0) | (speed_centre ? 2 : 0) | (size_centre ? 4 : 0);
+    const uint8_t detents =
+        (unison ? 1 : 0) | (speed_centre ? 2 : 0) | (size_centre ? 4 : 0) | (tone_centre ? 8 : 0);
     if (detents & ~_detents) _pulse_until = now + kPulseMs;
     _detents = detents;
 
