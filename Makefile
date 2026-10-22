@@ -30,3 +30,9 @@ libs:
 	$(MAKE) -C $(DAISYSP_DIR)
 
 .PHONY: libs
+
+# Host tests, no board: the engine, the mapping and the web page's worklet
+test:
+	@sh tests/run.sh
+
+.PHONY: test
