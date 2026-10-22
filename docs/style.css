@@ -1,0 +1,153 @@
+:root {
+  --bg: #f4f3f0;
+  --fg: #1c1c1a;
+  --muted: #8a8984;
+  --line: #cfcdc7;
+  --surface: #ffffff;
+  --accent: #e8572a; /* only for "on" */
+  --radius: 10px;
+  --row: 36px;
+  --gap: 12px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121211;
+    --fg: #ecebe7;
+    --line: #3a3936;
+    --surface: #1a1a19;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #121211;
+  --fg: #ecebe7;
+  --line: #3a3936;
+  --surface: #1a1a19;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  padding: var(--gap) 16px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--gap);
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  overflow: hidden;
+}
+
+button {
+  height: var(--row);
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+  touch-action: none;
+}
+
+/* Header */
+.top { display: flex; align-items: center; gap: var(--gap); }
+.top h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: 0.04em; }
+.led { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: 0; }
+.top .views { margin-left: auto; }
+.source { color: var(--muted); text-decoration: none; }
+
+/* Segmented: one row, the chosen one marked */
+.segmented { display: flex; }
+.segmented button { border-radius: 0; margin-left: -1px; }
+.segmented button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+.segmented button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.segmented button[aria-checked="true"] { color: var(--accent); border-color: var(--accent); position: relative; z-index: 1; }
+
+/* Footer */
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap); }
+.start { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.start[disabled] { background: var(--surface); color: var(--muted); border-color: var(--line); cursor: default; }
+.readout { margin: 0; color: var(--muted); flex: 1; min-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Stage */
+.stage { min-height: 0; }
+.stage > section { height: 100%; }
+.stage > section[hidden] { display: none; }
+
+/* Hourglass view */
+.glass {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 96px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--gap);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.glass .column { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.glass h3 { margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.glass .centre { position: relative; min-height: 0; }
+.glass canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+.glass .below {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--gap) 28px;
+}
+.glass .group { display: flex; align-items: center; gap: var(--gap); }
+
+.dial { display: flex; flex-direction: column; align-items: center; cursor: ns-resize; touch-action: none; outline: none; }
+.dial svg { width: 44px; height: 44px; }
+.dial span { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.dial .track { fill: none; stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
+.dial .value { fill: none; stroke: var(--fg); stroke-width: 3; stroke-linecap: round; }
+.dial .mark { stroke: var(--fg); stroke-width: 2; stroke-linecap: round; }
+.dial:focus-visible span { color: var(--fg); }
+
+.slider { display: flex; align-items: center; gap: 10px; cursor: ew-resize; touch-action: none; outline: none; }
+.slider .name { width: 44px; color: var(--muted); font-size: 12px; }
+.slider .track { position: relative; width: 160px; height: 3px; background: var(--line); border-radius: 2px; }
+.slider .track b { position: absolute; left: 0; top: 0; bottom: 0; background: var(--fg); border-radius: 2px; }
+.slider .track i { position: absolute; left: 50%; top: -5px; width: 1px; height: 13px; background: var(--muted); }
+.slider .track em { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--fg); }
+
+.hold.on { color: var(--accent); border-color: var(--accent); }
+
+/* Panel view */
+.panel { display: flex; justify-content: center; }
+.board { height: 100%; max-width: 100%; touch-action: none; user-select: none; }
+.board text { fill: var(--muted); font-size: 13px; text-anchor: middle; pointer-events: none; }
+.board .code { fill: var(--fg); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+.board .shape { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.board .mark { stroke: var(--fg); stroke-width: 3; stroke-linecap: round; }
+.board .slot { stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
+.board .cap { fill: var(--fg); }
+.board .control { cursor: grab; outline: none; }
+.board .pad.on .shape { stroke: var(--accent); }
+.board .pad .fill { fill: var(--accent); }
+.board .led { fill: var(--accent); }
+.board .ledring { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.board .switch .pos { fill: var(--line); }
+.board .switch .pos.on { fill: var(--accent); }
+
+/* Phones: the columns go above and below the glass */
+@media (max-width: 700px) {
+  body { overflow: auto; height: auto; }
+  .stage > section { height: auto; }
+  .glass { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 60vh auto auto; }
+  .glass .column { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .glass h3 { width: 100%; }
+  .glass .centre { order: 0; }
+  .board { height: auto; width: 100%; }
+  .readout { white-space: normal; }
+}
+
+html[data-embed] .top h1, html[data-embed] .source { display: none; }

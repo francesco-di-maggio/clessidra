@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clessidra</title>
+    <meta name="description" content="Clessidra, a granular instrument inspired by the hourglass, running in the browser." />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <header class="top">
+      <h1>Clessidra</h1>
+      <span class="led" data-led aria-hidden="true"></span>
+      <div class="segmented views" role="radiogroup" aria-label="View">
+        <button type="button" role="radio" data-show="glass">Hourglass</button>
+        <button type="button" role="radio" data-show="panel">Panel</button>
+      </div>
+      <a class="source" href="https://github.com/francesco-di-maggio/clessidra">GitHub</a>
+    </header>
+
+    <main class="stage">
+      <section class="glass" data-view="glass" aria-label="Hourglass"></section>
+      <section class="panel" data-view="panel" aria-label="Simple Touch panel" hidden>
+        <svg class="board" data-board viewBox="0 0 600 860" role="group" aria-label="Controls"></svg>
+      </section>
+    </main>
+
+    <footer class="bar">
+      <button type="button" class="start" data-start>Start</button>
+      <div class="segmented" role="radiogroup" aria-label="Input">
+        <button type="button" role="radio" aria-checked="true" data-input="demo">Demo</button>
+        <button type="button" role="radio" aria-checked="false" data-input="mic">Microphone</button>
+        <button type="button" role="radio" aria-checked="false" data-input="file">File</button>
+      </div>
+      <input type="file" accept="audio/*" hidden data-file />
+      <p class="readout" data-readout aria-live="polite">Keys: Space record · Shift second layer · 1–9 places · 0 stop</p>
+    </footer>
+  </body>
+</html>
