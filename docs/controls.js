@@ -4,6 +4,7 @@
 
 const PAD_START = 0.2 // pressure at the touch
 const PAD_SWELL_S = 1.5 // a held pad reaches full pressure
+const MIN_TOUCH_MS = 20 // a shorter touch is released this late, so the engine sees it
 
 // Knob and fader index = Controls::Knob (ui/clessidra_ui.h)
 export const KNOB = { S30: 0, S31: 1, S32: 2, S33: 3, S34: 4, S35: 5, S36: 6, S37: 7 }
@@ -87,9 +88,12 @@ export class Controls {
     if (pad === undefined) return
     this.held.delete(who)
     if (this.isHeld(pad)) return
+    const late = MIN_TOUCH_MS - (performance.now() - this.since.get(pad))
     this.since.delete(pad)
     this.pen.delete(pad)
-    this.send({ type: 'pad', index: pad, touched: false, pressure: 0 })
+    const off = () => !this.isHeld(pad) && this.send({ type: 'pad', index: pad, touched: false, pressure: 0 })
+    if (late > 0) setTimeout(off, late)
+    else off()
     this.changed()
   }
 

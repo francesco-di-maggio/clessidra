@@ -2,36 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Clessidra</title>
     <meta name="description" content="Clessidra, a granular instrument inspired by the hourglass, running in the browser." />
     <link rel="icon" href="data:," />
+    <!-- The family's colours, fonts and radii, then this page's own parts -->
+    <link rel="stylesheet" href="https://francescodimaggio.nl/style/v1/tokens.css" />
     <link rel="stylesheet" href="style.css" />
     <script type="module" src="app.js"></script>
   </head>
   <body>
-    <header class="top">
-      <h1>Clessidra</h1>
-      <span class="led" data-led aria-hidden="true"></span>
-      <div class="segmented views" role="radiogroup" aria-label="View">
-        <button type="button" role="radio" data-show="glass">Hourglass</button>
-        <button type="button" role="radio" data-show="panel">Panel</button>
+    <header>
+      <h1 class="mark">
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <circle class="ring" cx="9" cy="9" r="7.5" />
+          <circle class="core" cx="9" cy="9" r="3.5" data-led />
+        </svg>
+        Clessidra
+      </h1>
+      <div class="end">
+        <div class="pills" role="radiogroup" aria-label="View">
+          <button type="button" role="radio" data-show="glass">Hourglass</button>
+          <button type="button" role="radio" data-show="panel">Panel</button>
+        </div>
+        <a class="icon" href="https://github.com/francesco-di-maggio/clessidra" aria-label="Source on GitHub" title="Source on GitHub">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7 3 12l5 5M16 7l5 5-5 5"/></svg>
+        </a>
       </div>
-      <a class="source" href="https://github.com/francesco-di-maggio/clessidra">GitHub</a>
     </header>
 
-    <main class="stage">
+    <main>
       <section class="glass" data-view="glass" aria-label="Hourglass"></section>
       <section class="panel" data-view="panel" aria-label="Simple Touch panel" hidden>
         <svg class="board" data-board viewBox="0 0 600 860" role="group" aria-label="Controls"></svg>
       </section>
     </main>
 
-    <footer class="bar">
-      <button type="button" class="start" data-start>Start</button>
+    <footer>
+      <button type="button" class="primary" data-start>Start</button>
       <div class="segmented" role="radiogroup" aria-label="Input">
         <button type="button" role="radio" aria-checked="true" data-input="demo">Demo</button>
-        <button type="button" role="radio" aria-checked="false" data-input="mic">Microphone</button>
+        <button type="button" role="radio" aria-checked="false" data-input="mic">Mic</button>
         <button type="button" role="radio" aria-checked="false" data-input="file">File</button>
       </div>
       <input type="file" accept="audio/*" hidden data-file />

@@ -32,13 +32,13 @@ export function buildGlass(root, controls, readout) {
       reset: () => controls.setSecond(k, controls.secondDefaults[k]),
       help: () => KNOB_HELP[k][1],
     }))
-  html('h3', {}, left).textContent = 'Grain'
+  html('div', { class: 'label' }, left).textContent = 'Grain'
   main('Size', KNOB.S31)
   second(left, 'Window', KNOB.S31)
   main('Pitch', KNOB.S33)
   main('Random pitch', KNOB.S34)
   main('Scatter', KNOB.S32)
-  html('h3', {}, right).textContent = 'Space'
+  html('div', { class: 'label' }, right).textContent = 'Space'
   second(right, 'Spread', KNOB.S32)
   second(right, 'Tone', KNOB.S35)
   second(right, 'Reverb', KNOB.S34)
@@ -148,31 +148,9 @@ export function buildGlass(root, controls, readout) {
   }
 }
 
-function drawGlass(canvas, view, controls, c) {
-  const dpr = devicePixelRatio || 1
-  const w = canvas.clientWidth
-  const h = canvas.clientHeight
-  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-    canvas.width = Math.round(w * dpr)
-    canvas.height = Math.round(h * dpr)
-  }
-  const g = canvas.getContext('2d')
-  g.setTransform(dpr, 0, 0, dpr, 0, 0)
-  g.clearRect(0, 0, w, h)
-
-  // The glass: no wider than its height allows, straight walls rounding into the neck
-  const gw = Math.min(w, h * 1.1)
-  const m = (w - gw) / 2 + 10
-  const cx = w / 2
-  const neckY = h * 0.52
-  const neck = 5
-  const left = m + 14
-  const right = w - m - 14
-  const top = 10
-  const bottom = h - 10
-  const shoulder = (neckY - top) * 0.55 // where the walls start to round
-  g.strokeStyle = c.line
-  g.lineWidth = 1.5
+// The glass's outline, as a path: straight walls rounding into the neck
+function glassPath(g, m, w, top, bottom, cx, neckY, neck) {
+  const shoulder = (neckY - top) * 0.55
   g.beginPath()
   g.moveTo(m, top)
   g.lineTo(w - m, top)
@@ -185,105 +163,238 @@ function drawGlass(canvas, view, controls, c) {
   g.bezierCurveTo(m, bottom - shoulder * 1.4, cx - neck, neckY + (bottom - neckY) * 0.2, cx - neck, neckY)
   g.bezierCurveTo(cx - neck, neckY - (neckY - top) * 0.2, m, top + shoulder * 1.4, m, top + shoulder * 0.5)
   g.closePath()
-  g.stroke()
+}
+
+const PILE_BINS = 72
+const PILE_FADE_S = 6 // the pile halves in about this long
+const sand = { pile: new Float32Array(PILE_BINS), last: 0 }
+
+function drawGlass(canvas, view, controls, c) {
+  const dpr = devicePixelRatio || 1
+  const w = canvas.clientWidth
+  const h = canvas.clientHeight
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr)
+    canvas.height = Math.round(h * dpr)
+  }
+  const g = canvas.getContext('2d')
+  g.setTransform(dpr, 0, 0, dpr, 0, 0)
+  g.clearRect(0, 0, w, h)
+  const now = performance.now()
+  const dt = Math.min(0.1, (now - (sand.last || now)) / 1000)
+  sand.last = now
+
+  const gw = Math.min(w, h * 1.1)
+  const m = (w - gw) / 2 + 10
+  const cx = w / 2
+  const neckY = h * 0.52
+  const neck = 5
+  const left = m + 16
+  const right = w - m - 16
+  const top = 10
+  const bottom = h - 10
+
+  // The glass: a faint body, a soft highlight down its left side, the outline
+  glassPath(g, m, w, top, bottom, cx, neckY, neck)
+  const body = g.createLinearGradient(m, 0, w - m, 0)
+  body.addColorStop(0, c.glassEdge)
+  body.addColorStop(0.5, c.glass)
+  body.addColorStop(1, c.glassEdge)
+  g.fillStyle = body
+  g.fill()
+  g.save()
+  g.clip()
+  const shine = g.createLinearGradient(m, 0, m + gw * 0.18, 0)
+  shine.addColorStop(0, c.shine)
+  shine.addColorStop(1, 'transparent')
+  g.fillStyle = shine
+  g.fillRect(m, top, gw * 0.18, bottom - top)
 
   const toX = (pos) => left + pos * (right - left)
   const toPos = (x) => Math.min(1, Math.max(0, (x - left) / (right - left)))
-  const wave = { y0: top + 14, y1: top + 14 + Math.min(70, h * 0.13) }
-  const band = { y0: wave.y1 + 14, y1: wave.y1 + 14 + 26 }
+  const wave = { y0: top + 16, y1: top + 16 + Math.min(72, h * 0.13) }
+  const band = { y0: wave.y1 + 12, y1: wave.y1 + 12 + 24 }
   const mid = (wave.y0 + wave.y1) / 2
-
-  // The recording; the selection darker
   const s0 = view.start
   const s1 = view.start + view.length
+
+  // The recording as sand: the selection gold, the rest faint
   const outline = view.outline
   const cols = outline.length
   if (cols) {
     const colW = (right - left) / cols
     for (let i = 0; i < cols; i++) {
       const pos = (i + 0.5) / cols
-      const amp = Math.min(1, outline[i] * 1.5) * ((wave.y1 - wave.y0) / 2)
-      g.fillStyle = pos >= s0 && pos <= s1 ? c.fg : c.line
-      g.fillRect(left + i * colW, mid - amp, Math.max(1, colW - 0.5), 2 * amp + 0.5)
+      const amp = Math.min(1, outline[i] * 1.6) * ((wave.y1 - wave.y0) / 2)
+      g.fillStyle = pos >= s0 && pos <= s1 ? c.sand : c.line
+      g.fillRect(left + i * colW, mid - amp, Math.max(1, colW - 0.6), 2 * amp + 0.6)
     }
+    // Outside the selection, veiled
+    g.fillStyle = c.veil
+    g.fillRect(left, wave.y0 - 4, toX(s0) - left, wave.y1 - wave.y0 + 8)
+    g.fillRect(toX(s1), wave.y0 - 4, right - toX(s1), wave.y1 - wave.y0 + 8)
   } else {
-    g.fillStyle = c.muted
-    g.font = '13px -apple-system, sans-serif'
+    g.fillStyle = c.dim
+    g.font = `500 11px ${c.mono}`
     g.textAlign = 'center'
-    g.fillText(view.running ? 'Nothing recorded yet: press Record' : 'Press Start', cx, mid + 4)
+    g.fillText(view.running ? 'NOTHING RECORDED YET · PRESS RECORD' : 'PRESS START', cx, mid + 4)
   }
 
-  // Selection edges
-  g.strokeStyle = c.fg
+  // Selection edges, with grips
+  g.strokeStyle = c.ink
+  g.fillStyle = c.ink
   g.lineWidth = 1.5
   for (const k of [KNOB.S30, KNOB.S35]) {
     const x = toX(controls.knobs[k])
     g.beginPath()
-    g.moveTo(x, wave.y0 - 6)
-    g.lineTo(x, wave.y1 + 6)
+    g.moveTo(x, wave.y0 - 8)
+    g.lineTo(x, wave.y1 + 8)
     g.stroke()
+    g.beginPath()
+    g.arc(x, wave.y0 - 8, 3, 0, 2 * Math.PI)
+    g.fill()
   }
 
-  // The nine places: held ones lit, with their part of the recording
+  // The nine places: a row of pills; a held one lit, with its part of the recording
   const cellW = (right - left) / 9
   for (let p = 0; p < 9; p++) {
     const pad = PLACE_PADS[p]
     const on = controls.isHeld(pad)
-    g.strokeStyle = on ? c.accent : c.line
-    g.lineWidth = 1
-    g.strokeRect(left + p * cellW + 2, band.y0, cellW - 4, band.y1 - band.y0)
+    const x = left + p * cellW + 3
+    const r = (band.y1 - band.y0) / 2
+    g.beginPath()
+    g.roundRect(x, band.y0, cellW - 6, band.y1 - band.y0, r)
     if (on) {
-      g.globalAlpha = 0.15 + 0.5 * controls.pressure(pad)
+      const k = controls.pressure(pad)
       g.fillStyle = c.accent
-      g.fillRect(left + p * cellW + 2, band.y0, cellW - 4, band.y1 - band.y0)
+      g.globalAlpha = 0.25 + 0.6 * k
+      g.fill()
+      g.globalAlpha = 0.12 + 0.25 * k
       g.fillRect(toX(s0 + (view.length * p) / 9), wave.y0, ((right - left) * view.length) / 9, wave.y1 - wave.y0)
       g.globalAlpha = 1
+    } else {
+      g.strokeStyle = c.line
+      g.lineWidth = 1
+      g.stroke()
     }
-    g.fillStyle = c.muted
-    g.font = '11px -apple-system, sans-serif'
+    g.fillStyle = on ? c.ink : c.dim
+    g.font = `500 10px ${c.mono}`
     g.textAlign = 'center'
-    g.fillText(String(p + 1), left + (p + 0.5) * cellW, band.y1 - 9)
+    g.fillText(String(p + 1), x + (cellW - 6) / 2, band.y1 - 8)
   }
 
-  // Where each source is reading: the playhead, and the places pouring
+  // Where each source reads: the playhead, and the places pouring
   if (cols) {
     for (let s = 0; s < 10; s++) {
       if (!view.sources[s * 2 + 1]) continue
       const span = s === 0 ? [s0, view.length] : [s0 + (view.length * (s - 1)) / 9, view.length / 9]
       const x = toX(span[0] + view.sources[s * 2] * span[1])
-      g.strokeStyle = s === 0 ? c.fg : c.accent
+      g.strokeStyle = s === 0 ? c.ink : c.accent
       g.lineWidth = s === 0 ? 1 : 2
       g.beginPath()
-      g.moveTo(x, wave.y0 - 6)
-      g.lineTo(x, wave.y1 + 6)
+      g.moveTo(x, wave.y0 - 4)
+      g.lineTo(x, wave.y1 + 4)
       g.stroke()
     }
   }
 
-  // The grains: from where each reads, through the neck, to the bottom by its pan
-  const from = band.y1 + 8
-  const base = bottom - 10
-  const spreadW = (right - left) * 0.42
-  g.fillStyle = c.fg
-  const grains = view.grains
-  for (let i = 0; i < grains.length; i += 3) {
-    const p = grains[i + 1]
-    let x, y
-    if (p < 0.5) {
-      const t = p / 0.5
-      x = toX(grains[i]) + (cx - toX(grains[i])) * t * t
-      y = from + (neckY - from) * t
-    } else {
-      const t = (p - 0.5) / 0.5
-      x = cx + (grains[i + 2] - 0.5) * 2 * spreadW * Math.sqrt(t)
-      y = neckY + (base - neckY) * t
+  // The grains. Forward: from where each reads, down through the neck, landing by its
+  // pan. Reverse: the glass flipped, they rise from the pile. Frozen: on its side,
+  // they hover where they read.
+  const mode = controls.switches[0] // 1 forward, 0 freeze, 2 reverse
+  const from = band.y1 + 10
+  const pileTop = bottom - 6
+  const spreadW = (right - left) * 0.44
+  const at = (pos, p, pan) => {
+    if (mode === 0) {
+      const x0 = toX(pos)
+      return [x0 + (pan - 0.5) * 14 * Math.sin(Math.PI * p), from + 18 + 26 * Math.sin(Math.PI * p) * (0.5 + pan)]
     }
-    g.globalAlpha = 0.3 + 0.7 * Math.sin(Math.PI * p)
-    g.beginPath()
-    g.arc(x, y, 2.2, 0, 2 * Math.PI)
-    g.fill()
+    const t = mode === 2 ? 1 - p : p
+    if (t < 0.5) {
+      const u = t / 0.5
+      return [toX(pos) + (cx - toX(pos)) * u * u, from + (neckY - from) * u]
+    }
+    const u = (t - 0.5) / 0.5
+    return [cx + (pan - 0.5) * 2 * spreadW * Math.sqrt(u), neckY + (pileTop - neckY) * u]
   }
+  const grains = view.grains
+  const count = grains.length / 3
+  // The stream through the neck, as dense as the flow
+  if (mode !== 0 && count) {
+    const stream = g.createLinearGradient(0, neckY - 40, 0, neckY + 40)
+    stream.addColorStop(0, 'transparent')
+    stream.addColorStop(0.5, c.sand)
+    stream.addColorStop(1, 'transparent')
+    g.fillStyle = stream
+    g.globalAlpha = Math.min(0.6, count / 40)
+    g.fillRect(cx - 1.5, neckY - 40, 3, 80)
+    g.globalAlpha = 1
+  }
+  g.globalCompositeOperation = c.dark ? 'lighter' : 'source-over'
+  for (let i = 0; i < grains.length; i += 3) {
+    const pos = grains[i], p = grains[i + 1], pan = grains[i + 2]
+    const window = Math.sin(Math.PI * p)
+    const [x, y] = at(pos, p, pan)
+    const [tx, ty] = at(pos, Math.max(0, p - 0.06), pan)
+    g.strokeStyle = c.sand
+    g.globalAlpha = 0.25 * window
+    g.lineWidth = 1.5
+    g.beginPath()
+    g.moveTo(tx, ty)
+    g.lineTo(x, y)
+    g.stroke()
+    const r = 1.4 + 2.2 * window
+    const glow = g.createRadialGradient(x, y, 0, x, y, r * 3)
+    glow.addColorStop(0, c.sand)
+    glow.addColorStop(1, 'transparent')
+    g.globalAlpha = 0.35 * window
+    g.fillStyle = glow
+    g.fillRect(x - r * 3, y - r * 3, r * 6, r * 6)
+    g.globalAlpha = 0.5 + 0.5 * window
+    g.fillStyle = c.sand
+    g.beginPath()
+    g.arc(x, y, r, 0, 2 * Math.PI)
+    g.fill()
+    // Landing: the grain adds to the pile where it falls
+    if (mode === 1 && p > 0.85) {
+      const bin = Math.max(0, Math.min(PILE_BINS - 1, Math.floor(((x - left) / (right - left)) * PILE_BINS)))
+      sand.pile[bin] += dt * 1.2
+    }
+  }
+  g.globalCompositeOperation = 'source-over'
   g.globalAlpha = 1
+
+  // The pile: a soft dune that fades unless fed
+  const fade = Math.pow(0.5, dt / PILE_FADE_S)
+  const heights = Array.from(sand.pile, (v, i) => {
+    sand.pile[i] = v * fade
+    const l = sand.pile[Math.max(0, i - 1)], r = sand.pile[Math.min(PILE_BINS - 1, i + 1)]
+    return (l + 2 * v + r) / 4
+  })
+  const maxH = (bottom - neckY) * 0.35
+  g.beginPath()
+  g.moveTo(m, bottom)
+  heights.forEach((v, i) => {
+    const x = left + ((i + 0.5) / PILE_BINS) * (right - left)
+    g.lineTo(x, bottom - Math.min(maxH, v * maxH))
+  })
+  g.lineTo(w - m, bottom)
+  g.closePath()
+  const dune = g.createLinearGradient(0, bottom - maxH, 0, bottom)
+  dune.addColorStop(0, c.sand)
+  dune.addColorStop(1, c.sandDeep)
+  g.fillStyle = dune
+  g.globalAlpha = 0.85
+  g.fill()
+  g.globalAlpha = 1
+  g.restore()
+
+  // The outline over everything
+  glassPath(g, m, w, top, bottom, cx, neckY, neck)
+  g.strokeStyle = c.dim
+  g.lineWidth = 1.5
+  g.stroke()
 
   return { left, right, wave, band, toX, toPos }
 }

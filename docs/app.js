@@ -28,6 +28,8 @@ const audio = new Audio((m) => {
 })
 const controls = new Controls((m) => audio.send(m))
 controls.sync()
+// ?debug: the page's state, for inspecting in the console
+if (params.has('debug')) window.clessidra = { audio, controls, view: () => view }
 
 const drawGlass = buildGlass(document.querySelector('[data-view="glass"]'), controls, readout)
 const drawPanel = buildPanel(document.querySelector('[data-board]'), controls, readout)
@@ -91,7 +93,11 @@ const css = getComputedStyle(document.documentElement)
 const colour = (name) => css.getPropertyValue(name).trim()
 function frame() {
   controls.tick()
-  const colours = { fg: colour('--fg'), line: colour('--line'), muted: colour('--muted'), accent: colour('--accent') }
+  const colours = {
+    ink: colour('--ink'), line: colour('--line'), dim: colour('--dim'), accent: colour('--accent'), mono: colour('--mono'),
+    sand: colour('--sand'), sandDeep: colour('--sand-deep'), glass: colour('--glass'), glassEdge: colour('--glass-edge'),
+    shine: colour('--shine'), veil: colour('--veil'), dark: colour('--dark') === '1',
+  }
   if (current === 'glass') drawGlass(view, colours)
   else drawPanel(view)
   led.style.opacity = view.led

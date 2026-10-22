@@ -2,7 +2,7 @@
 // (web/build.sh), runs here block by block. The page sends the controls and gets
 // back what the display shows.
 
-const VIEW_EVERY = 1 / 30 // seconds between display updates
+const VIEW_EVERY = 1 / 60 // seconds between display updates: the screen's rate
 
 class ClessidraProcessor extends AudioWorkletProcessor {
   constructor(options) {
@@ -94,7 +94,7 @@ class ClessidraProcessor extends AudioWorkletProcessor {
     const key = `${w.cl_recording()}:${length}`
     if (key !== this.recordingKey) {
       this.recordingKey = key
-      view.outline = outline(this.f32(w.cl_recording(), length), 600)
+      view.outline = length ? outline(this.f32(w.cl_recording(), length), 600) : new Float32Array(0)
       view.seconds = length / sampleRate
     }
     this.port.postMessage(view, [grains.buffer, sources.buffer])
