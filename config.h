@@ -32,7 +32,7 @@ static constexpr uint32_t kLogMs  = 250; // serial log interval (LOG=1)
 
 // LED /////////////////////////////////////////////////////////////////////
 static constexpr uint32_t kBlinkMs       = 10;   // on per grain start
+static constexpr float    kGlow          = 0.6f; // brightness while grains play, below the blink
 static constexpr uint32_t kRecordFlashMs = 125;  // on and off while recording: 4 Hz
 static constexpr uint32_t kPulseMs       = 150;  // on when pitch, speed or grain size reaches a detent
 static constexpr float    kShowStep      = 0.01f; // second-layer change that counts as turning
-static constexpr float    kShowFloor     = 0.1f;  // P11 held: brightness at value 0

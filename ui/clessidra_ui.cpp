@@ -195,7 +195,7 @@ void ClessidraUI::Process() {
 }
 
 // First that applies: recording flash, detent pulse, second layer (steady, brightness =
-// value last turned), grain blink
+// value last turned), grains (blink per start over a glow that follows their windows)
 void ClessidraUI::_led() {
     const uint32_t now = daisy::System::GetNow();
     const uint32_t starts = _engine.GrainStarts();
@@ -208,9 +208,9 @@ void ClessidraUI::_led() {
     } else if (now < _pulse_until) {
         brightness = 1.0f;
     } else if (_shifted) {
-        brightness = kShowFloor + (1.0f - kShowFloor) * _shift[_shown_knob];
+        brightness = _shift[_shown_knob];
     } else {
-        brightness = now < _blink_until ? 1.0f : 0.0f;
+        brightness = now < _blink_until ? 1.0f : kGlow * std::min(1.0f, _engine.GrainLevel());
     }
     // Cubed: even steps to the eye
     _pwm.Channel2().Set(brightness * brightness * brightness);

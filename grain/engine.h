@@ -59,6 +59,8 @@ public:
     float RecordedSeconds() const { return float(_buffer.Length()) / _sample_rate; }
     // Grains started since Init(), wrapping
     uint32_t GrainStarts() const { return _grain_starts; }
+    // Grain windows summed, mean over the last block: 1 = one grain at its peak
+    float GrainLevel() const { return _grain_level; }
 
 private:
     // A source of grains: the playhead over the selection, or a place
@@ -101,6 +103,7 @@ private:
     std::array<Stream, kNumStreams> _streams;
     uint32_t _seed = 1;
     volatile uint32_t _grain_starts = 0;
+    volatile float _grain_level = 0.0f;
     float _freeze_position = 0.0f; // Params.position at the freeze
     volatile bool _record = false;
     bool _was_record = false;

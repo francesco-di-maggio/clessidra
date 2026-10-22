@@ -26,6 +26,7 @@ public:
     // Sums over all grains and samples of a block
     struct Sums {
         float power = 0.0f;        // squared windowed samples, before panning
+        float window = 0.0f;       // windows
         float window_power = 0.0f; // squared windows
     };
 

@@ -104,6 +104,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     for (size_t i = 0; i < size; i++) power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
 
     const float n = float(size);
+    _grain_level = sums.window / n;
     _normalise(sums.power / n, power_sum / n, sums.window_power / n, size);
 
     // ReverbSc, measured with a 10 kHz lowpass: T60 = 3 * kLoop / -log10(feedback) within

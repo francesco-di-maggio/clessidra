@@ -39,6 +39,7 @@ void Grain::Render(const Buffer& buffer, double inc, float* left, float* right, 
     double phase = _phase;
     double read = _read;
     float power = 0.0f;
+    float window_sum = 0.0f;
     float window_power = 0.0f;
     for (size_t n = _offset; n < size; n++) {
         const float w = float(phase) * float(kWindowSize);
@@ -52,6 +53,7 @@ void Grain::Render(const Buffer& buffer, double inc, float* left, float* right, 
         left[n] += s * _gain_l;
         right[n] += s * _gain_r;
         power += s * s;
+        window_sum += window;
         window_power += window * window;
 
         read += _latch.rate;
@@ -65,6 +67,7 @@ void Grain::Render(const Buffer& buffer, double inc, float* left, float* right, 
     _phase = phase;
     _read = read;
     sums.power += power;
+    sums.window += window_sum;
     sums.window_power += window_power;
 }
 
