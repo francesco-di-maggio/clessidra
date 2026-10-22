@@ -181,7 +181,6 @@ void Engine::_trigger(double start, double length, double phase, size_t offset) 
     latch.pan = 0.5f + _random() * p.spread * 0.5f;
     latch.shape = p.window_shape;
     grain->Start(latch, offset);
-    _grain_starts = _grain_starts + 1;
 }
 
 float Engine::_interval(float jitter) {

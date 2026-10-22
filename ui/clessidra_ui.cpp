@@ -21,15 +21,14 @@ static float GrainMs(float x) {
 }
 
 // -24 .. +24 semitones over equal knob segments between musical intervals, flat
-// near each interval. on_interval: x is in a flat part.
-static float Semitones(float x, bool& on_interval) {
+// near each interval
+static float Semitones(float x) {
     static constexpr float kIntervals[] = { -24.0f, -12.0f, -7.0f, 0.0f, 7.0f, 12.0f, 24.0f };
     static constexpr size_t kSegments = 6;
     static constexpr float kFlat = 0.15f; // of a segment, on each side
     const float pos = std::clamp(x, 0.0f, 1.0f) * float(kSegments);
     const size_t i = std::min(size_t(pos), kSegments - 1);
     const float t = std::clamp((pos - float(i) - kFlat) / (1.0f - 2.0f * kFlat), 0.0f, 1.0f);
-    on_interval = t == 0.0f || t == 1.0f;
     return kIntervals[i] + t * (kIntervals[i + 1] - kIntervals[i]);
 }
 
@@ -125,8 +124,9 @@ void ClessidraUI::Process() {
     const float rand_pos = _main[Knobs::S32];
     p.rand_pos = rand_pos * rand_pos * rand_pos * rand_pos;
 
-    bool on_interval;
-    p.pitch = std::exp2(Semitones(k.Value(Knobs::S33), on_interval) / 12.0f);
+    const float semitones = Semitones(k.Value(Knobs::S33));
+    const bool unison = semitones == 0.0f;
+    p.pitch = std::exp2(semitones / 12.0f);
 
     const float rand_pitch = _main[Knobs::S34];
     p.rand_pitch = rand_pitch * rand_pitch * rand_pitch;
@@ -187,7 +187,7 @@ void ClessidraUI::Process() {
 
     // Reaching a detent: a pulse
     const uint32_t now = daisy::System::GetNow();
-    const uint8_t detents = (on_interval ? 1 : 0) | (speed_centre ? 2 : 0) | (size_centre ? 4 : 0);
+    const uint8_t detents = (unison ? 1 : 0) | (speed_centre ? 2 : 0) | (size_centre ? 4 : 0);
     if (detents & ~_detents) _pulse_until = now + kPulseMs;
     _detents = detents;
 
@@ -195,12 +195,9 @@ void ClessidraUI::Process() {
 }
 
 // First that applies: recording flash, detent pulse, second layer (steady, brightness =
-// value last turned), grains (blink per start over a glow that follows their windows)
+// value last turned), grains (dim glow that follows their windows)
 void ClessidraUI::_led() {
     const uint32_t now = daisy::System::GetNow();
-    const uint32_t starts = _engine.GrainStarts();
-    if (starts != _grain_starts) _blink_until = now + kBlinkMs;
-    _grain_starts = starts;
 
     float brightness;
     if (_engine.IsRecording()) {
@@ -210,7 +207,7 @@ void ClessidraUI::_led() {
     } else if (_shifted) {
         brightness = _shift[_shown_knob];
     } else {
-        brightness = now < _blink_until ? 1.0f : kGlow * std::min(1.0f, _engine.GrainLevel());
+        brightness = kGlow * std::min(1.0f, _engine.GrainLevel());
     }
     // Cubed: even steps to the eye
     _pwm.Channel2().Set(brightness * brightness * brightness);
