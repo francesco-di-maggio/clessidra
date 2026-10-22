@@ -32,10 +32,11 @@ void Grain::Start(const Latch& latch, size_t offset) {
     _hann = shape > 0.5f ? 2.0f * shape - 1.0f : 0.0f;
 }
 
-void Grain::Render(const Buffer& buffer, double inc, float* left, float* right, size_t size, Sums& sums) {
+void Grain::Render(double inc, float* left, float* right, size_t size, Sums& sums) {
     if (!_active) return;
 
     // Locals: the compiler keeps them in registers through the loop
+    const Buffer& buffer = *_latch.buffer;
     double phase = _phase;
     double read = _read;
     float power = 0.0f;

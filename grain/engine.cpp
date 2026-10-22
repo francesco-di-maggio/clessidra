@@ -7,9 +7,11 @@
 
 namespace clessidra {
 
-void Engine::Init(float sample_rate, float* buffer, size_t buffer_size) {
+void Engine::Init(float sample_rate, float* ring, size_t ring_size, float* const* buffers, size_t buffer_size) {
     _sample_rate = sample_rate;
-    _buffer.Init(buffer, buffer_size, sample_rate);
+    _ring.Init(ring, ring_size, sample_rate);
+    _ring_size = ring_size;
+    for (size_t b = 0; b < kNumBuffers; b++) _buffers[b].Init(buffers[b], buffer_size, sample_rate);
     _dc_block.Init(sample_rate);
     _reverb.Init(sample_rate);
     _reverb.SetLpFreq(kReverbLowpassHz);
@@ -19,14 +21,10 @@ void Engine::Init(float sample_rate, float* buffer, size_t buffer_size) {
 }
 
 void Engine::Process(const float* const* in, float** out, size_t size) {
-    // Edges only: a recording that fills the buffer stays stopped while P10 is held.
-    const bool record = _record;
-    if (record && !_was_record) _buffer.StartRecording();
-    if (!record && _was_record) _buffer.StopRecording();
-    _was_record = record;
+    _record_input(in, size);
 
     const Params p = _params;
-    const double len = double(_buffer.Length());
+    const double len = double(_buffers[_playing].Length());
     const double sel_start = p.start * len;
     const double sel_len = std::max(p.length * len, 1.0);
     const double place_len = std::max(sel_len / kNumPlaces, 1.0);
@@ -71,8 +69,6 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
         }
     }
 
-    for (size_t i = 0; i < size; i++) _buffer.Write(_dc_block.Process(0.5f * (in[0][i] + in[1][i])));
-
     // Grain starts in this block, at the sample they fall on. A voice that ends in this
     // block is free from the next.
     for (size_t i = 0; i < size; i++) {
@@ -100,7 +96,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     std::fill(out[0], out[0] + size, 0.0f);
     std::fill(out[1], out[1] + size, 0.0f);
     Grain::Sums sums;
-    for (auto& grain : _grains) grain.Render(_buffer, grain_inc, out[0], out[1], size, sums);
+    for (auto& grain : _grains) grain.Render(grain_inc, out[0], out[1], size, sums);
     float power_sum = 0.0f;
     for (size_t i = 0; i < size; i++) power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
 
@@ -154,6 +150,46 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     }
 }
 
+void Engine::_record_input(const float* const* in, size_t size) {
+    for (size_t i = 0; i < size; i++) _ring.Write(_dc_block.Process(0.5f * (in[0][i] + in[1][i])));
+
+    const bool record = _record;
+    if (record && !_was_record) _held = 0;
+    if (record) _held += size;
+    // Release: a new capture replaces one in progress
+    if (!record && _was_record) {
+        const size_t tap = size_t(kTapSeconds * _sample_rate);
+        const size_t pre_roll = size_t(kPreRollSeconds * _sample_rate);
+        _capture_back = _held < tap ? _held : 0;
+        _capture_length = _held < tap ? _buffers[0].Capacity() : _held + pre_roll;
+        _capture = Capture::Waiting;
+    }
+    _was_record = record;
+
+    Buffer& target = _buffers[1 - _playing];
+    if (_capture == Capture::Waiting) {
+        // Grains started before the last swap can still read it. Only with swaps closer
+        // than the longest grain.
+        for (const auto& grain : _grains) {
+            if (grain.IsActive() && grain.Source() == &target) {
+                _capture_back += size;
+                return;
+            }
+        }
+        // Waited long: the oldest part is lost to the writing on
+        const size_t margin = size_t(kCopyMarginSeconds * _sample_rate);
+        const size_t room = _ring_size > _capture_back + margin ? _ring_size - _capture_back - margin : 0;
+        _ring.Select(_capture_back, std::min({ _capture_length, room, target.Capacity() }));
+        _capture = Capture::Copying;
+    }
+    if (_capture == Capture::Copying) {
+        const Ring::Step step = _ring.Copy(target, kCopyPerBlock);
+        if (step == Ring::Step::Pending) return;
+        _capture = Capture::Idle;
+        if (step == Ring::Step::Done) _playing = 1 - _playing;
+    }
+}
+
 void Engine::_normalise(float power_grains, float power_sum, float window_power, size_t size) {
     const float coeff = 1.0f - std::exp(-float(size) / (kNormSeconds * _sample_rate));
     daisysp::fonepole(_power_grains, power_grains, coeff);
@@ -176,7 +212,8 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
 
 void Engine::_trigger(double start, double length, double phase, size_t offset) {
     const Params& p = _params;
-    if (_buffer.Length() == 0) return; // nothing recorded: no grains
+    const Buffer& buffer = _buffers[_playing];
+    if (buffer.Length() == 0) return; // nothing recorded: no grains
 
     Grain* grain = nullptr;
     for (auto& g : _grains) {
@@ -188,6 +225,7 @@ void Engine::_trigger(double start, double length, double phase, size_t offset) 
     if (!grain) return;
 
     Grain::Latch latch;
+    latch.buffer = &buffer;
     latch.position = start + phase * length + _random() * p.rand_pos * length * 0.5;
     latch.rate = p.pitch * (1.0f + _random() * p.rand_pitch);
     // Grains read in the playhead's direction

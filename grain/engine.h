@@ -36,6 +36,14 @@ public:
     static constexpr float kToneQMax = 1.5f;
     static constexpr float kToneFade = 0.1f;
     static constexpr float kToneSeconds = 0.01f; // smoothing of Params.tone
+    // Recording. The input goes to a ring all the time. On release, a touch shorter than
+    // kTapSeconds takes what came before it, a longer one the touch from kPreRollSeconds
+    // before it; copied to the buffer not playing, which then plays.
+    static constexpr size_t kNumBuffers = 2;
+    static constexpr float kTapSeconds = 0.3f;
+    static constexpr float kPreRollSeconds = 0.05f;
+    static constexpr size_t kCopyPerBlock = 2048;    // samples: 42 times real time
+    static constexpr float kCopyMarginSeconds = 0.5f; // ring written on during the copy
 
     struct Params {
         float start = 0.0f;        // selection start, 0..1 of the recording
@@ -58,17 +66,20 @@ public:
         float gain = 1.0f;
     };
 
-    // buffer: buffer_size floats for the recording, allocated by the caller
-    void Init(float sample_rate, float* buffer, size_t buffer_size);
+    // ring: ring_size floats; buffers: kNumBuffers of buffer_size floats, the longest
+    // recording. All allocated by the caller. The ring holds the tap, pre-roll and
+    // copy margin beyond buffer_size.
+    void Init(float sample_rate, float* ring, size_t ring_size, float* const* buffers, size_t buffer_size);
     void Process(const float* const* in, float** out, size_t size);
 
-    // Main loop. Applied at the next audio block.
+    // Main loop. Applied at the next audio block: on release, the recording replaces
+    // the playing one unless it is silent. Silence at both ends is cut.
     void SetRecording(bool on) { _record = on; }
     // Main loop. Fields are copied one by one: a block may see a mix of old and new.
     void SetParams(const Params& p) { _params = p; }
 
-    bool IsRecording() const { return _buffer.IsRecording(); }
-    float RecordedSeconds() const { return float(_buffer.Length()) / _sample_rate; }
+    bool IsRecording() const { return _record; }
+    float RecordedSeconds() const { return float(_buffers[_playing].Length()) / _sample_rate; }
     // Grain windows summed, mean over the last block: 1 = one grain at its peak
     float GrainLevel() const { return _grain_level; }
 
@@ -92,7 +103,20 @@ private:
     float _random(); // uniform -1..1
 
     daisysp::DcBlock _dc_block; // input: DC in a recording would sound as thumps at the grain rate
-    Buffer _buffer;
+    // Process() only: writes the input to the ring; on release, copies the recording to
+    // the buffer not playing once its grains have ended, then plays it.
+    void _record_input(const float* const* in, size_t size);
+
+    enum class Capture { Idle, Waiting, Copying };
+
+    Ring _ring;
+    size_t _ring_size = 0;
+    std::array<Buffer, kNumBuffers> _buffers;
+    size_t _playing = 0;
+    Capture _capture = Capture::Idle;
+    size_t _held = 0;            // samples since the touch
+    size_t _capture_back = 0;    // samples from the recording's end to the next write
+    size_t _capture_length = 0;
     daisysp::ReverbSc _reverb;
     std::array<Svf, 2> _tone_filter;
     Limiter _limiter;

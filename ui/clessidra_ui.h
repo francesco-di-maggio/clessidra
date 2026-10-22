@@ -60,6 +60,8 @@ private:
     // LED: brightness by hardware PWM. Times in ms, shown until they pass.
     daisy::PWMHandle _pwm;
     uint32_t _pulse_until = 0;
+    uint32_t _record_since = 0; // P10 touched
+    bool _recording = false;
     size_t _shown_knob = Knobs::S36; // second-layer knob last turned. At power-up: dry/wet
     std::array<float, Knobs::kNumKnobs> _shown{}; // second-layer values at their last move
     uint8_t _detents = 0xff; // bits: pitch unison, speed 1, grain size 100 ms, tone off. All set: no pulse at power-up

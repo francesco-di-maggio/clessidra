@@ -78,7 +78,10 @@ void ClessidraUI::Layer::Process(const Knobs& k) {
 }
 
 void ClessidraUI::Process() {
-    _engine.SetRecording(_touch.pads().IsTouched(kRecordPad));
+    const bool recording = _touch.pads().IsTouched(kRecordPad);
+    if (recording && !_recording) _record_since = daisy::System::GetNow();
+    _recording = recording;
+    _engine.SetRecording(recording);
 
     const Knobs& k = _touch.knobs();
     if (!_started) {
@@ -192,8 +195,9 @@ void ClessidraUI::_led() {
     const uint32_t now = daisy::System::GetNow();
 
     float brightness;
-    if (_engine.IsRecording()) {
-        brightness = (now / kRecordFlashMs) % 2 == 0 ? 1.0f : 0.0f;
+    if (_recording) {
+        // From the touch: a tap shows one flash
+        brightness = ((now - _record_since) / kRecordFlashMs) % 2 == 0 ? 1.0f : 0.0f;
     } else if (now < _pulse_until) {
         brightness = 1.0f;
     } else if (_shifted) {

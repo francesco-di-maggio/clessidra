@@ -18,7 +18,8 @@ static Engine       engine;
 static ClessidraUI  ui(touch, engine);
 static CpuLoadMeter cpu;
 
-static float DSY_SDRAM_BSS buffer[kBufferSamples];
+static float DSY_SDRAM_BSS ring[kRingSamples];
+static float DSY_SDRAM_BSS buffers[Engine::kNumBuffers][kRecordSamples];
 
 static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) {
     cpu.OnBlockStart();
@@ -60,7 +61,9 @@ int main(void) {
 
     touch.Init(hw);
     ui.Init();
-    engine.Init(hw.AudioSampleRate(), buffer, kBufferSamples);
+    float* buffer_ptrs[Engine::kNumBuffers];
+    for (size_t b = 0; b < Engine::kNumBuffers; b++) buffer_ptrs[b] = buffers[b];
+    engine.Init(hw.AudioSampleRate(), ring, kRingSamples, buffer_ptrs, kRecordSamples);
     cpu.Init(hw.AudioSampleRate(), hw.AudioBlockSize());
 
 #ifdef CLESSIDRA_LOG

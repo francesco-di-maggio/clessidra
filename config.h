@@ -14,12 +14,14 @@ static constexpr size_t   kSampleRateHz = 48000; // matches kSampleRate
 static constexpr size_t   kBlockSize    = 48;    // 1 ms at 48 kHz
 
 // BUFFER //////////////////////////////////////////////////////////////////
-// Mono float in SDRAM: 30 s = 5.5 MB of 64 MB.
-static constexpr size_t   kBufferSeconds = 30;
-static constexpr size_t   kBufferSamples = kBufferSeconds * kSampleRateHz;
+// Mono float in SDRAM: two recordings and an input ring 1 s longer, which holds the
+// tap, pre-roll and copy margin (Engine constants). About 80 s fit in 64 MB.
+static constexpr size_t   kRecordSeconds = 10;
+static constexpr size_t   kRecordSamples = kRecordSeconds * kSampleRateHz;
+static constexpr size_t   kRingSamples   = (kRecordSeconds + 1) * kSampleRateHz;
 
 // PADS ////////////////////////////////////////////////////////////////////
-static constexpr size_t   kRecordPad = 10; // P10, hold to record
+static constexpr size_t   kRecordPad = 10; // P10, tap or hold to record
 static constexpr size_t   kShiftPad  = 11; // P11, hold for the second knob layer
 static constexpr size_t   kStopPad   = 1;  // P01, hold to stop the flow
 // The engine's places, first to last in the selection: pads left to right on the
