@@ -22,6 +22,10 @@ public:
 
     bool IsActive() const { return _active; }
     const Buffer* Source() const { return _latch.buffer; }
+    // For displays: the sample being read (not wrapped), the window's progress 0..1, the pan
+    double Position() const { return _latch.position + _read; }
+    float Progress() const { return float(_phase); }
+    float Pan() const { return _latch.pan; }
     // offset: first sample of the grain in the next Render()
     void Start(const Latch& latch, size_t offset);
 

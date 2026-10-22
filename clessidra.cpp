@@ -15,11 +15,26 @@ using namespace clessidra;
 static DaisySeed    hw;
 static Touch        touch;
 static Engine       engine;
-static ClessidraUI  ui(touch, engine);
+static ClessidraUI  ui;
+static PWMHandle    led;
 static CpuLoadMeter cpu;
 
 static float DSY_SDRAM_BSS ring[kRingSamples];
 static float DSY_SDRAM_BSS buffers[Engine::kNumBuffers][kRecordSamples];
+
+// The panel as the UI reads it
+static Controls ReadControls() {
+    Controls c;
+    for (size_t k = 0; k < Controls::kNumKnobs; k++) c.knobs[k] = touch.knobs().Value(k);
+    c.switches[Controls::S09] = Controls::Position(touch.switches().Position(Switches::S09));
+    c.switches[Controls::S07] = Controls::Position(touch.switches().Position(Switches::S07));
+    for (size_t p = 0; p < Controls::kNumPads; p++) {
+        c.touched[p] = touch.pads().IsTouched(p);
+        c.pressure[p] = touch.pads().Pressure(p);
+    }
+    c.now_ms = System::GetNow();
+    return c;
+}
 
 static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) {
     cpu.OnBlockStart();
@@ -60,7 +75,9 @@ int main(void) {
     hw.SetAudioBlockSize(kBlockSize);
 
     touch.Init(hw);
-    ui.Init();
+    // TIM3 channel 2 drives PC7, the Seed's LED. 16-bit period: about 3.7 kHz.
+    led.Init(PWMHandle::Config(PWMHandle::Config::Peripheral::TIM_3));
+    led.Channel2().Init();
     float* buffer_ptrs[Engine::kNumBuffers];
     for (size_t b = 0; b < Engine::kNumBuffers; b++) buffer_ptrs[b] = buffers[b];
     engine.Init(hw.AudioSampleRate(), ring, kRingSamples, buffer_ptrs, kRecordSamples);
@@ -75,7 +92,9 @@ int main(void) {
 
     while (1) {
         touch.ProcessPads();
-        ui.Process();
+        const Controls c = ReadControls();
+        ui.Process(c, engine);
+        led.Channel2().Set(ui.Led(c.now_ms, engine));
 
 #ifdef CLESSIDRA_LOG
         if (System::GetNow() - last_log >= kLogMs) {

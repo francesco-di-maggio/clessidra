@@ -20,6 +20,7 @@ public:
     static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
     // The selection divided into equal places, each a grain source of its own
     static constexpr size_t kNumPlaces = 9;
+    static constexpr size_t kNumSources = 1 + kNumPlaces; // the playhead, then the places
     // Reverb on the grains: equal-power crossfade up to kReverbMaxAmount, decay (T60)
     // rising with it, exponentially
     static constexpr float kReverbMaxAmount = 0.5f; // equal parts
@@ -83,6 +84,14 @@ public:
     // Grain windows summed, mean over the last block: 1 = one grain at its peak
     float GrainLevel() const { return _grain_level; }
 
+    // For displays, between blocks: the recording playing, the grains, each source's
+    // place in its span (0 = playhead, 1.. = places) and the parameters in use
+    const Buffer& Recording() const { return _buffers[_playing]; }
+    const std::array<Grain, kNumVoices>& Grains() const { return _grains; }
+    double SourcePhase(size_t source) const { return _streams[source].phase; }
+    bool SourceOn(size_t source) const { return _streams[source].on; }
+    const Params& CurrentParams() const { return _params; }
+
 private:
     // A source of grains: the playhead over the selection, or a place
     struct Stream {
@@ -93,6 +102,7 @@ private:
         bool on = false;
     };
     static constexpr size_t kNumStreams = 1 + kNumPlaces; // playhead first
+    static_assert(kNumStreams == kNumSources);
 
     enum class Capture { Idle, Waiting, Copying };
 

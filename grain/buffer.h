@@ -18,6 +18,7 @@ public:
     // After writing length samples to Data(): sets the length and fades the ends
     void Finish(size_t length);
     float* Data() { return _mem; }
+    const float* Data() const { return _mem; }
     size_t Capacity() const { return _capacity; }
 
     // Linear interpolation. pos wraps within Length().
