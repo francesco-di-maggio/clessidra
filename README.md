@@ -19,7 +19,7 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 | S07 | Grain starts: periodic / half random / random |
 | P03, P00, P04, P08, P05, P02, P06, P09, P07 | Places: ninths of the selection, first to last in this order. Pressure sets the flow, 1–16 grains at once. |
 | P01 | Hold to stop the flow |
-| P10 | Record. Tap: the last 10 s. Hold: from just before the touch to the release, up to the last 10 s. Silence at both ends is cut; a silent recording changes nothing. Grains playing finish on the previous recording. |
+| P10 | Record. Tap (under 0.3 s): the last 10 s. Hold: from 50 ms before the touch to the release, up to the last 10 s. Silence below −60 dBFS at both ends is cut; a silent recording changes nothing. Grains playing finish on the previous recording. |
 | P11 | Hold for the second layer, below |
 | LED | Flashes at 4 Hz while P10 is touched. Pulses at each centre: pitch unison, speed 1, grain size 100 ms, tone off. Steady while P11 is held: brightness shows the value of the second-layer knob last turned (at power-up: dry/wet). Otherwise glows dimly with the grains: each fades in and out with its window, overlapping grains glow steady. |
 
@@ -41,7 +41,7 @@ Second layer, while P11 is held. After a layer change, a knob moves its value fr
 | Input | Stereo, recorded as mono (left + right) |
 | Output | Stereo, peak-limited at −0.5 dBFS |
 | Sample rate | 48 kHz |
-| Recording | Up to 10 s, from an input ring always listening |
+| Recording | Up to 10 s, taken from an 11 s input ring that records all the time |
 
 ## Quick Install
 
