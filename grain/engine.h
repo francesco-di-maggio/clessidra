@@ -15,8 +15,8 @@ namespace clessidra {
 // The instrument's signal path. No hardware code here.
 class Engine {
 public:
-    static constexpr float kMaxOverlap = 16.0f;
-    static constexpr size_t kNumVoices = 32; // above kMaxOverlap: random starts can cluster
+    static constexpr float kMaxFlow = 16.0f;   // grains sounding at once, per source
+    static constexpr size_t kNumVoices = 32; // above kMaxFlow: random starts can cluster
     static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
     // The selection divided into equal places, each a grain source of its own
     static constexpr size_t kNumPlaces = 9;
@@ -53,8 +53,8 @@ public:
         float position = 0.0f;     // while frozen, moves every source through its span by its change
         float grain_ms = 100.0f;   // grain size
         float pitch = 1.0f;        // grain playback rate
-        float overlap = 8.0f;      // playhead: grains sounding at once on average, up to kMaxOverlap
-        std::array<float, kNumPlaces> place_overlap{}; // the same per place, 0 = off
+        float flow = 8.0f;         // playhead: grains sounding at once on average, up to kMaxFlow
+        std::array<float, kNumPlaces> place_flow{}; // the same per place, 0 = off
         float jitter = 0.0f;       // 0 periodic .. 1 random (Poisson) grain starts
         float rand_pos = 0.0f;     // 0..1, position spread: up to half the source's span
         float rand_pitch = 0.0f;   // semitones: each grain's pitch up to this far up or down
@@ -94,21 +94,24 @@ private:
     };
     static constexpr size_t kNumStreams = 1 + kNumPlaces; // playhead first
 
+    enum class Capture { Idle, Waiting, Copying };
+
     // Starts a grain on a free voice at sample offset of the block, reading the span at
     // phase. All voices busy: dropped.
-    void _trigger(double start, double length, double phase, size_t offset);
+    void _trigger(const Params& p, double start, double length, double phase, size_t offset);
     // Updates _norm from the mean powers of the last block
     void _normalise(float power_grains, float power_sum, float window_power, size_t size);
-    float _interval(float jitter); // to the next start, 1 = mean
-    float _random(); // uniform -1..1
-
-    daisysp::DcBlock _dc_block; // input: DC in a recording would sound as thumps at the grain rate
     // End of Process(), after the ring is written: on release, copies the recording to
     // the buffer not playing once its grains have ended, then plays it.
     void _update_capture(size_t size);
+    float _interval(float jitter); // to the next start, 1 = mean
+    float _random(); // uniform -1..1
 
-    enum class Capture { Idle, Waiting, Copying };
+    Params _params;
+    float _sample_rate = 48000.0f;
 
+    // Recording
+    daisysp::DcBlock _dc_block; // input: DC in a recording would sound as thumps at the grain rate
     Ring _ring;
     size_t _ring_size = 0;
     std::array<Buffer, kNumBuffers> _buffers;
@@ -117,12 +120,29 @@ private:
     size_t _held = 0;            // samples since the touch
     size_t _capture_back = 0;    // samples from the recording's end to the next write
     size_t _capture_length = 0;
-    daisysp::ReverbSc _reverb;
-    std::array<Svf, 2> _tone_filter;
-    Limiter _limiter;
+    volatile bool _record = false;
+    bool _was_record = false;
+
+    // Grains. Running positions in double: float steps reach 1/32 sample at 10 s.
     std::array<Grain, kNumVoices> _grains;
-    Params _params;
-    float _sample_rate = 48000.0f;
+    std::array<Stream, kNumStreams> _streams;
+    uint32_t _seed = 1;
+    float _freeze_position = 0.0f; // Params.position at the freeze
+    bool _was_freeze = false;
+    volatile float _grain_level = 0.0f;
+
+    // Level. Mean powers, smoothed: grains taken separately, their stereo sum, their windows.
+    float _power_grains = 0.0f;
+    float _power_sum = 0.0f;
+    float _window_power = 0.0f;
+    float _coherence_gain = 1.0f; // brings a correlated sum down to the power of its grains
+    float _norm = 0.0f;           // grain gain
+
+    // Tone, reverb, output
+    std::array<Svf, 2> _tone_filter;
+    float _tone = 0.0f; // Params.tone, smoothed
+    daisysp::ReverbSc _reverb;
+    Limiter _limiter;
     // Gains at the end of the last block
     float _norm_gain = 0.0f;
     float _wet_gain = 0.0f;
@@ -131,21 +151,6 @@ private:
     float _record_wet = 0.0f;
     float _reverb_dry = 1.0f;
     float _reverb_wet = 0.0f;
-    float _tone = 0.0f; // Params.tone, smoothed
-    // Mean powers, smoothed: grains taken separately, their stereo sum, their windows
-    float _power_grains = 0.0f;
-    float _power_sum = 0.0f;
-    float _window_power = 0.0f;
-    float _coherence_gain = 1.0f; // brings a correlated sum down to the power of its grains
-    float _norm = 0.0f;           // grain gain
-    // Running positions in double: float steps reach 1/8 sample at 30 s
-    std::array<Stream, kNumStreams> _streams;
-    uint32_t _seed = 1;
-    volatile float _grain_level = 0.0f;
-    float _freeze_position = 0.0f; // Params.position at the freeze
-    volatile bool _record = false;
-    bool _was_record = false;
-    bool _was_freeze = false;
 };
 
 } // namespace clessidra

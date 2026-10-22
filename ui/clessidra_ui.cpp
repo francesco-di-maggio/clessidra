@@ -143,16 +143,16 @@ void ClessidraUI::Process() {
     // exponential.
     static constexpr float kFlowOff = 0.02f;
     const float flow_knob = _main[Knobs::S37];
-    p.overlap = flow_knob < kFlowOff
+    p.flow = flow_knob < kFlowOff
                     ? 0.0f
-                    : 0.1f * std::pow(Engine::kMaxOverlap / 0.1f, (flow_knob - kFlowOff) / (1.0f - kFlowOff));
+                    : 0.1f * std::pow(Engine::kMaxFlow / 0.1f, (flow_knob - kFlowOff) / (1.0f - kFlowOff));
 
     // A touched place pours 1 .. 16 grains at once, exponential in pressure
     static_assert(std::size(kPlacePads) == Engine::kNumPlaces);
     for (size_t i = 0; i < Engine::kNumPlaces; i++) {
         const size_t pad = kPlacePads[i];
-        p.place_overlap[i] = _touch.pads().IsTouched(pad)
-                                 ? std::pow(Engine::kMaxOverlap, _touch.pads().Pressure(pad))
+        p.place_flow[i] = _touch.pads().IsTouched(pad)
+                                 ? std::pow(Engine::kMaxFlow, _touch.pads().Pressure(pad))
                                  : 0.0f;
     }
 
@@ -162,8 +162,8 @@ void ClessidraUI::Process() {
 
     // P01 held: no new grains. Those playing and the reverb ring out; time keeps running.
     if (_touch.pads().IsTouched(kStopPad)) {
-        p.overlap = 0.0f;
-        p.place_overlap.fill(0.0f);
+        p.flow = 0.0f;
+        p.place_flow.fill(0.0f);
     }
 
     // P11 layer

@@ -27,7 +27,6 @@ public:
     void Process();
 
     bool IsTouched(size_t p) const { return (_touched & (1 << p)) != 0; }
-    bool AnyTouched() const { return _touched != 0; }
     float Pressure(size_t p) const { return _pressure[p]; }
 
 private:

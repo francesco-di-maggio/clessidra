@@ -41,18 +41,18 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     struct Span {
         double start, length;
         double play_inc;  // phase per sample
-        double sched_inc; // overlap starts per grain duration
+        double sched_inc; // flow starts per grain duration
     };
     std::array<Span, kNumStreams> spans;
     for (size_t s = 0; s < kNumStreams; s++) {
         const bool playhead = s == 0;
-        const float overlap = std::clamp(playhead ? p.overlap : p.place_overlap[s - 1], 0.0f, kMaxOverlap);
+        const float flow = std::clamp(playhead ? p.flow : p.place_flow[s - 1], 0.0f, kMaxFlow);
         const double length = playhead ? sel_len : place_len;
         spans[s] = { playhead ? sel_start : sel_start + double(s - 1) * sel_len / kNumPlaces, length,
-                     p.speed / length, grain_inc * overlap };
+                     p.speed / length, grain_inc * flow };
 
         Stream& stream = _streams[s];
-        const bool on = overlap > 0.0f;
+        const bool on = flow > 0.0f;
         // A place starts at its edge in the playing direction, with a grain at once.
         // The playhead keeps running.
         if (on && !stream.on && !playhead) {
@@ -82,7 +82,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
             stream.sched_phase += span.sched_inc;
             if (stream.sched_phase >= stream.sched_next) {
                 stream.sched_phase -= stream.sched_next;
-                _trigger(span.start, span.length, stream.phase, i);
+                _trigger(p, span.start, span.length, stream.phase, i);
                 stream.sched_next = _interval(p.jitter);
                 // At most one start per sample
                 stream.sched_phase = std::min(stream.sched_phase, double(stream.sched_next));
@@ -217,7 +217,7 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
     const float overlap_gain = std::sqrt(2.0f / std::max(_window_power, 1.0f));
 
     // Uncorrelated grains: the sum has the power of the grains, 1. Correlated grains
-    // add in amplitude: up to 8 dB above that power at overlap 8, 11 dB at 16.
+    // add in amplitude: up to 8 dB above that power at flow 8, 11 dB at 16.
     // Never above 1: grains that cancel stay quiet. Silence: hold the last value.
     if (_power_sum >= 1e-10f) _coherence_gain = std::min(1.0f, std::sqrt(_power_grains / _power_sum));
 
@@ -225,8 +225,7 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
     _norm = 0.9f * overlap_gain * _coherence_gain;
 }
 
-void Engine::_trigger(double start, double length, double phase, size_t offset) {
-    const Params& p = _params;
+void Engine::_trigger(const Params& p, double start, double length, double phase, size_t offset) {
     const Buffer& buffer = _buffers[_playing];
     if (buffer.Length() == 0) return; // nothing recorded: no grains
 
