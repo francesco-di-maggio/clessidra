@@ -5,8 +5,9 @@
 
 namespace clessidra {
 
-// One grain: a window over a buffer read. Buffer, position, read rate, pan and window
-// shape are latched at Start(). The window advances at the rate passed to Render().
+// One grain: a window over a buffer read. Buffer, position, read rate, pan, window
+// shape and size are latched at Start(). The window advances at the rate passed to
+// Render(), divided by the size.
 class Grain {
 public:
     struct Latch {
@@ -15,6 +16,8 @@ public:
         float rate = 1.0f;     // samples read per output sample
         float pan = 0.5f;      // 0 left .. 1 right
         float shape = 0.5f;    // window: 0 reverse percussive, 0.5 Hann, 1 percussive
+        float gain = 1.0f;
+        float size = 1.0f;     // of the grain size passed to Render()
     };
 
     // Once, before any Grain is used.

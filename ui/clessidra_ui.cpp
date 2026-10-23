@@ -13,10 +13,23 @@ static float Detent(float x, float width) {
     return 0.5f;
 }
 
-// 10 ms .. 4 s, exponential in each half: centre = 100 ms
-static float GrainMs(float x) {
+// S37: off at the bottom of travel, then 0.1 .. 16 grains at once, exponential
+static constexpr float kDensityOff = 0.02f;
+static constexpr float kDensityMin = 0.1f;
+
+static float Density(float x) {
+    if (x < kDensityOff) return 0.0f;
+    return kDensityMin * std::pow(Engine::kMaxDensity / kDensityMin, (x - kDensityOff) / (1.0f - kDensityOff));
+}
+
+static float DensityKnob(float density) {
+    return kDensityOff + (1.0f - kDensityOff) * std::log(density / kDensityMin) / std::log(Engine::kMaxDensity / kDensityMin);
+}
+
+// 10 ms .. top_ms, exponential in each half: centre = 100 ms
+static float GrainMs(float x, float top_ms) {
     x = Detent(x, 0.05f);
-    return x < 0.5f ? 10.0f * std::pow(10.0f, 2.0f * x) : 100.0f * std::pow(40.0f, 2.0f * x - 1.0f);
+    return x < 0.5f ? 10.0f * std::pow(10.0f, 2.0f * x) : 100.0f * std::pow(top_ms / 100.0f, 2.0f * x - 1.0f);
 }
 
 // -24 .. +24 semitones over equal knob segments between musical intervals, flat
@@ -31,20 +44,43 @@ static float Semitones(float x) {
     return kIntervals[i] + t * (kIntervals[i + 1] - kIntervals[i]);
 }
 
-// Knobs with a second-layer function
-static constexpr Controls::Knob kSecondLayer[] = { Controls::S31, Controls::S33, Controls::S34,
-                                                   Controls::S35, Controls::S36, Controls::S37 };
-
 ClessidraUI::ClessidraUI() {
-    // Second layer at the engine defaults
-    const Engine::Params defaults;
-    _shift.values[Controls::S31] = Takeover(defaults.window_shape);
-    _shift.values[Controls::S33] = Takeover(defaults.harmonic);
-    _shift.values[Controls::S34] = Takeover(defaults.reverb);
-    _shift.values[Controls::S35] = Takeover(0.5f + 0.5f * defaults.tone);
-    _shift.values[Controls::S36] = Takeover(defaults.mix);
-    _shift.values[Controls::S37] = Takeover(defaults.resample);
-    for (size_t i = 0; i < Controls::kNumKnobs; i++) _shown[i] = _shift[i];
+    Controls c;
+    _reset(c);
+    // Levels at unity
+    _third.values[Controls::S36] = Takeover(0.5f);
+    _third.values[Controls::S37] = Takeover(1.0f);
+    _shift_shown.Update(_shift);
+    _shift_shown.knob = Controls::S36;
+    _third_shown.Update(_third);
+    _third_shown.knob = Controls::S37;
+}
+
+void ClessidraUI::_reset(const Controls& c) {
+    // At the engine defaults: the recording played as it is
+    const Engine::Params d;
+    const std::array<float, Controls::kNumKnobs> main = {
+        d.start, 0.5f /* 100 ms */, 0.0f /* rand_pos */, 0.5f /* unison */, 0.0f /* rand_pitch */,
+        d.start + d.length, 0.5f /* speed 1 */, DensityKnob(d.density)
+    };
+    const std::array<float, Controls::kNumKnobs> shift = {
+        d.reverse, d.window_shape, d.size_variation, d.reverb, d.harmonic, 0.5f + 0.5f * d.tone, d.mix, d.resample
+    };
+    for (size_t i = 0; i < Controls::kNumKnobs; i++) {
+        // While frozen S36 scrubs: the speed resumes at 1 instead
+        if (!(_frozen && i == Controls::S36)) _main.values[i] = Takeover(main[i]);
+        _shift.values[i] = Takeover(shift[i]);
+    }
+    _speed = 0.5f;
+    _layer->Engage(c);
+}
+
+void ClessidraUI::Shown::Update(const Layer& layer) {
+    for (size_t i = 0; i < Controls::kNumKnobs; i++) {
+        if (std::fabs(layer[i] - values[i]) < kShowStep) continue;
+        values[i] = layer[i];
+        knob = i;
+    }
 }
 
 void ClessidraUI::Takeover::Process(float knob) {
@@ -81,30 +117,40 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
         for (size_t i = 0; i < Controls::kNumKnobs; i++) _main.values[i] = Takeover(c.knobs[i]);
         _started = true;
     }
+    // P11 held: second layer. P00 held: third.
     const bool shifted = c.touched[kShiftPad];
-    if (shifted != _shifted) (shifted ? _shift : _main).Engage(c);
+    const bool third = !shifted && c.touched[kThirdPad];
+    Layer* layer = shifted ? &_shift : third ? &_third : &_main;
+    if (layer != _layer) layer->Engage(c);
+    _layer = layer;
     _shifted = shifted;
-    (shifted ? _shift : _main).Process(c);
+    _third_on = third;
+    layer->Process(c);
 
-    // While P11 is held, the LED shows the value of the second-layer knob last turned
-    for (size_t i : kSecondLayer) {
-        if (std::fabs(_shift[i] - _shown[i]) < kShowStep) continue;
-        _shown[i] = _shift[i];
-        _shown_knob = i;
+    // P01 tapped: defaults, the knobs taking over from there
+    const bool reset = c.touched[kResetPad];
+    if (reset && !_reset_touched) {
+        _reset(c);
+        _pulse_until = c.now_ms + kPulseMs;
     }
+    _reset_touched = reset;
+
+    _shift_shown.Update(_shift);
+    _third_shown.Update(_third);
 
     Engine::Params p;
 
-    // S30 and S32 have no second layer: always live
-    const float a = c.knobs[Controls::S30];
+    const float a = _main[Controls::S30];
     const float b = _main[Controls::S35];
     p.start = std::min(a, b);
     p.length = std::fabs(b - a);
 
-    p.grain_ms = GrainMs(_main[Controls::S31]);
+    // Grain size: up to half the recording
+    const float top_ms = std::max(100.0f, 500.0f * engine.RecordedSeconds());
+    p.grain_ms = GrainMs(_main[Controls::S31], top_ms);
     const bool size_centre = Detent(_main[Controls::S31], 0.05f) == 0.5f;
 
-    const float rand_pos = c.knobs[Controls::S32];
+    const float rand_pos = _main[Controls::S32];
     p.rand_pos = rand_pos * rand_pos * rand_pos * rand_pos;
 
     const float semitones = Semitones(_main[Controls::S33]);
@@ -131,46 +177,47 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     p.freeze = frozen;
     p.position = _main[Controls::S36];
 
-    // S37: playhead flow. Off at the bottom of travel, then 0.1 .. 16 grains at once,
-    // exponential.
-    static constexpr float kFlowOff = 0.02f;
-    const float flow_knob = _main[Controls::S37];
-    p.flow = flow_knob < kFlowOff
-                    ? 0.0f
-                    : 0.1f * std::pow(Engine::kMaxFlow / 0.1f, (flow_knob - kFlowOff) / (1.0f - kFlowOff));
+    // S37: playhead density
+    p.density = Density(_main[Controls::S37]);
 
-    // A touched place pours 1 .. 16 grains at once, exponential in pressure. The
-    // playhead gives way to the strongest press.
+    // A touched place pours at the playhead's density, or the default with the playhead
+    // off. Pressure crossfades, equal power: the place up, the playhead down under the
+    // strongest press.
     static_assert(std::size(kPlacePads) == Engine::kNumPlaces);
+    const float place_density = p.density > 0.0f ? p.density : Engine::Params{}.density;
     float press = 0.0f;
     for (size_t i = 0; i < Engine::kNumPlaces; i++) {
         const size_t pad = kPlacePads[i];
         if (!c.touched[pad]) {
-            p.place_flow[i] = 0.0f;
+            p.place_density[i] = 0.0f;
             continue;
         }
-        p.place_flow[i] = std::pow(Engine::kMaxFlow, c.pressure[pad]);
-        press = std::max(press, c.pressure[pad]);
+        const float pressure = std::clamp(c.pressure[pad], 0.0f, 1.0f);
+        p.place_density[i] = place_density;
+        p.place_level[i] = std::sin(0.5f * float(M_PI) * pressure);
+        press = std::max(press, pressure);
     }
-    p.flow *= 1.0f - std::clamp(press, 0.0f, 1.0f);
+    p.level = std::cos(0.5f * float(M_PI) * press);
 
     // S07: up periodic, centre half random, down random grain starts
     const Controls::Position starts = c.switches[Controls::S07];
     p.jitter = starts == Controls::Up ? 0.0f : starts == Controls::Centre ? 0.5f : 1.0f;
 
-    // P01 held: no new grains. Those playing and the reverb ring out; time keeps running.
+    // P02 held: no new grains. Those playing and the reverb ring out; time keeps running.
     if (c.touched[kStopPad]) {
-        p.flow = 0.0f;
-        p.place_flow.fill(0.0f);
+        p.density = 0.0f;
+        p.place_density.fill(0.0f);
     }
 
     // P11 layer
+    p.reverse = _shift[Controls::S30];
     // Window shape: centre detent Hann
     const float shape = Detent(_shift[Controls::S31], 0.05f);
     const bool shape_centre = shape == 0.5f;
     p.window_shape = shape;
-    p.harmonic = _shift[Controls::S33];
-    p.reverb = _shift[Controls::S34];
+    p.size_variation = _shift[Controls::S32];
+    p.reverb = _shift[Controls::S33];
+    p.harmonic = _shift[Controls::S34];
     // Tone: centre detent off
     const float tone = Detent(_shift[Controls::S35], 0.05f);
     const bool tone_centre = tone == 0.5f;
@@ -178,12 +225,19 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     p.mix = _shift[Controls::S36];
     p.resample = _shift[Controls::S37];
 
+    // P00 layer, levels: input, centre detent unity; output. Fader law.
+    const float input = Detent(_third[Controls::S36], 0.05f);
+    const bool input_centre = input == 0.5f;
+    p.input = kMaxInput * input * input;
+    const float output = _third[Controls::S37];
+    p.output = output * output;
+
     engine.SetParams(p);
 
     // Reaching a detent, or turning within it: a pulse
-    const std::array<bool, kNumDetents> at = { unison, speed_centre, size_centre, tone_centre, shape_centre };
+    const std::array<bool, kNumDetents> at = { unison, speed_centre, size_centre, tone_centre, shape_centre, input_centre };
     const std::array<float, kNumDetents> knobs = { _main[Controls::S33], _main[Controls::S36], _main[Controls::S31],
-                                                   _shift[Controls::S35], _shift[Controls::S31] };
+                                                   _shift[Controls::S35], _shift[Controls::S31], _third[Controls::S36] };
     if (!_detents_ready) {
         // Power-up: no pulse
         _at_detent = at;
@@ -208,7 +262,9 @@ float ClessidraUI::Led(uint32_t now, const Engine& engine) const {
     } else if (now < _pulse_until) {
         brightness = 1.0f;
     } else if (_shifted) {
-        brightness = _shift[_shown_knob];
+        brightness = _shift[_shift_shown.knob];
+    } else if (_third_on) {
+        brightness = _third[_third_shown.knob];
     } else {
         brightness = kGlow * std::min(1.0f, engine.GrainLevel());
     }

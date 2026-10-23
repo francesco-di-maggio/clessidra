@@ -29,6 +29,10 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     // A grain reads about grain_samples: no longer than the recording
     const double grain_samples = std::clamp(p.grain_ms * 0.001 * _sample_rate, 1.0, std::max(len, 1.0));
     const double grain_inc = p.pitch / grain_samples;
+    // Sizes log-uniform within +-octaves: their mean, which the starts divide by so the
+    // density stays the grains at once
+    const float octaves = std::clamp(p.size_variation, 0.0f, 1.0f) * kSizeVariationOctaves;
+    const float mean_size = octaves > 0.0f ? (std::exp2(octaves) - std::exp2(-octaves)) / (2.0f * octaves * float(M_LN2)) : 1.0f;
 
     // Freeze holds every source where it is; position moves them from there
     if (p.freeze && !_was_freeze) {
@@ -41,18 +45,18 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     struct Span {
         double start, length;
         double play_inc;  // phase per sample
-        double sched_inc; // flow starts per grain duration
+        double sched_inc; // density starts per grain duration
     };
     std::array<Span, kNumStreams> spans;
     for (size_t s = 0; s < kNumStreams; s++) {
         const bool playhead = s == 0;
-        const float flow = std::clamp(playhead ? p.flow : p.place_flow[s - 1], 0.0f, kMaxFlow);
+        const float density = std::clamp(playhead ? p.density : p.place_density[s - 1], 0.0f, kMaxDensity);
         const double length = playhead ? sel_len : place_len;
         spans[s] = { playhead ? sel_start : sel_start + double(s - 1) * sel_len / kNumPlaces, length,
-                     p.speed / length, grain_inc * flow };
+                     p.speed / length, grain_inc * density / mean_size };
 
         Stream& stream = _streams[s];
-        const bool on = flow > 0.0f;
+        const bool on = density > 0.0f;
         // A place starts at its edge in the playing direction, with a grain at once.
         // The playhead keeps running.
         if (on && !stream.on && !playhead) {
@@ -82,7 +86,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
             stream.sched_phase += span.sched_inc;
             if (stream.sched_phase >= stream.sched_next) {
                 stream.sched_phase -= stream.sched_next;
-                _trigger(p, span.start, span.length, stream.phase, i);
+                _trigger(p, span.start, span.length, stream.phase, s == 0 ? p.level : p.place_level[s - 1], i);
                 stream.sched_next = _interval(p.jitter);
                 // At most one start per sample
                 stream.sched_phase = std::min(stream.sched_phase, double(stream.sched_next));
@@ -135,6 +139,8 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     const float dry_step = (std::cos(angle) - _dry_gain) / n;
     const float record_wet_step = (std::sin(record_angle) - _record_wet) / n;
     const float record_input_step = (std::cos(record_angle) - _record_input) / n;
+    const float input_step = (std::max(p.input, 0.0f) - _input_gain) / n;
+    const float output_step = (std::clamp(p.output, 0.0f, 1.0f) - _output_gain) / n;
     for (size_t i = 0; i < size; i++) {
         _reverb_dry += reverb_dry_step;
         _reverb_wet += reverb_wet_step;
@@ -156,12 +162,18 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
 
         // Input as before; the wet signal in mono at the level of the input, undoing the
         // equal-power pan
-        const float input = _dc_block.Process(0.5f * (in[0][i] + in[1][i]));
+        _input_gain += input_step;
+        const float in_l = in[0][i] * _input_gain;
+        const float in_r = in[1][i] * _input_gain;
+        const float input = _dc_block.Process(0.5f * (in_l + in_r));
         _ring.Write(_record_input * input + _record_wet * float(M_SQRT1_2) * (l + r));
 
-        out[0][i] = l * _wet_gain + in[0][i] * _dry_gain;
-        out[1][i] = r * _wet_gain + in[1][i] * _dry_gain;
+        out[0][i] = l * _wet_gain + in_l * _dry_gain;
+        out[1][i] = r * _wet_gain + in_r * _dry_gain;
         _limiter.Process(out[0][i], out[1][i]);
+        _output_gain += output_step;
+        out[0][i] *= _output_gain;
+        out[1][i] *= _output_gain;
     }
 
     _update_capture(size);
@@ -217,7 +229,7 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
     const float overlap_gain = std::sqrt(2.0f / std::max(_window_power, 1.0f));
 
     // Uncorrelated grains: the sum has the power of the grains, 1. Correlated grains
-    // add in amplitude: up to 8 dB above that power at flow 8, 11 dB at 16.
+    // add in amplitude: up to 8 dB above that power at density 8, 11 dB at 16.
     // Never above 1: grains that cancel stay quiet. Silence: hold the last value.
     if (_power_sum >= 1e-10f) _coherence_gain = std::min(1.0f, std::sqrt(_power_grains / _power_sum));
 
@@ -225,7 +237,7 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
     _norm = 0.9f * overlap_gain * _coherence_gain;
 }
 
-void Engine::_trigger(const Params& p, double start, double length, double phase, size_t offset) {
+void Engine::_trigger(const Params& p, double start, double length, double phase, float level, size_t offset) {
     const Buffer& buffer = _buffers[_playing];
     if (buffer.Length() == 0) return; // nothing recorded: no grains
 
@@ -247,10 +259,14 @@ void Engine::_trigger(const Params& p, double start, double length, double phase
     if (p.harmonic > 0.0f && 0.5f - 0.5f * _random() <= p.harmonic) {
         ratio = std::max(1.0f, std::round(4.0f * ratio)) / 4.0f;
     }
-    latch.rate = p.pitch * ratio;
-    // Grains read in the playhead's direction
-    if (!p.freeze && p.speed < 0.0f) latch.rate = -latch.rate;
     latch.pan = 0.5f + _random() * p.spread * 0.5f;
+    latch.rate = p.pitch * ratio;
+    // Grains read in the playhead's direction, a share of them the other way
+    bool backwards = !p.freeze && p.speed < 0.0f;
+    if (p.reverse > 0.0f && 0.5f - 0.5f * _random() <= p.reverse) backwards = !backwards;
+    if (backwards) latch.rate = -latch.rate;
+    latch.gain = level;
+    if (p.size_variation > 0.0f) latch.size = std::exp2(_random() * p.size_variation * kSizeVariationOctaves);
     latch.shape = p.window_shape;
     grain->Start(latch, offset);
 }

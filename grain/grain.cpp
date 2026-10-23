@@ -52,6 +52,8 @@ void Grain::Render(double inc, float* left, float* right, size_t size, Sums& sum
     const Buffer& buffer = *_latch.buffer;
     double phase = _phase;
     double read = _read;
+    const float gain = _latch.gain;
+    inc /= double(_latch.size);
     float power = 0.0f;
     float window_sum = 0.0f;
     float window_power = 0.0f;
@@ -66,7 +68,7 @@ void Grain::Render(double inc, float* left, float* right, size_t size, Sums& sum
             window = hann + _percussive * (_lookup(_decay, fall) - hann);
         }
 
-        const float s = buffer.Read(_latch.position + read) * window;
+        const float s = buffer.Read(_latch.position + read) * window * gain;
         left[n] += s * _gain_l;
         right[n] += s * _gain_r;
         power += s * s;

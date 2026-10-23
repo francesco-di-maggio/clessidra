@@ -113,7 +113,7 @@ void Capture() {
 }
 
 void Level() {
-    // Noise recorded, then played at flow 8: the normaliser keeps the input's level
+    // Noise recorded, then played at density 8: the normaliser keeps the input's level
     Rig r;
     uint32_t seed = 1;
     auto noise = [&seed](double) {
@@ -123,7 +123,7 @@ void Level() {
     r.Hold(2.0, noise);
     Engine::Params p;
     p.mix = 1.0f;
-    p.flow = 8.0f;
+    p.density = 8.0f;
     r.engine.SetParams(p);
     double in = 0.0, out = 0.0;
     float l[kBlock], o1[kBlock], o2[kBlock];
@@ -139,12 +139,12 @@ void Level() {
         }
     }
     const double db = 10.0 * std::log10(out / in);
-    Check(db > -2.0 && db < 0.5, "flow 8: grains at the input's level (dB)", db);
+    Check(db > -2.0 && db < 0.5, "density 8: grains at the input's level (dB)", db);
 
-    // Heavy: 20 ms grains, flow 16, all places, reverb: never above the limiter
+    // Heavy: 20 ms grains, density 16, all places, reverb: never above the limiter
     p.grain_ms = 20.0f;
-    p.flow = 16.0f;
-    p.place_flow.fill(16.0f);
+    p.density = 16.0f;
+    p.place_density.fill(16.0f);
     p.reverb = 0.8f;
     p.rand_pitch = 12.0f;
     r.engine.SetParams(p);
@@ -223,6 +223,29 @@ double PartialShare(float harmonic) {
     return near / total;
 }
 
+// Grains at once on average over 20 s of a 1 s recording
+double MeanActive(float size_variation) {
+    Rig r;
+    r.Hold(1.0, Sine);
+    Engine::Params p;
+    p.density = 8.0f;
+    p.jitter = 1.0f;
+    p.size_variation = size_variation;
+    r.engine.SetParams(p);
+    double active = 0.0;
+    size_t blocks = 0;
+    r.Run(20.0, Sine, [&](size_t) {
+        for (const auto& g : r.engine.Grains()) active += g.IsActive() ? 1.0 : 0.0;
+        blocks++;
+    });
+    return active / double(blocks);
+}
+
+void SizeVariation() {
+    const double fixed = MeanActive(0.0f), varied = MeanActive(1.0f);
+    Check(Near(varied, fixed, 0.03 * fixed), "size variation: density kept (grains at once)", varied);
+}
+
 void Harmonic() {
     const double free = PartialShare(0.0f), snapped = PartialShare(1.0f);
     Check(free < 0.7, "random pitch, free: power near partials (share)", free);
@@ -267,7 +290,7 @@ void Mapping() {
     Check(Near(p.pitch, 1.0, 1e-6), "S33 centre: pitch (ratio)", p.pitch);
     Check(Near(p.speed, 1.0, 1e-6), "S36 centre: speed", p.speed);
     Check(Near(p.rand_pitch, 24.0, 1e-4), "S34 top: random pitch (semitones)", p.rand_pitch);
-    Check(p.flow == 0.0f, "S37 bottom: playhead flow off", p.flow);
+    Check(p.density == 0.0f, "S37 bottom: playhead density off", p.density);
     Check(Near(p.tone, 0.0, 1e-6), "P11 + S35 default: tone off", p.tone);
 
     // P10 held through the UI records; the LED glows with the grains
@@ -297,22 +320,36 @@ void Mapping() {
     Check(ui.SecondLayer(Controls::S35) < tone_before - 0.2f, "P11 + S35: tone turned down", ui.SecondLayer(Controls::S35));
     Check(Near(r.engine.CurrentParams().length, 1.0, 1e-6), "P11 + S35: selection end unchanged", r.engine.CurrentParams().length);
 
-    // Grain size ends; a place pressed half way: the playhead gives way by half
+    // Grain size ends; a place pressed half way
     c.knobs[Controls::S31] = 0.0f;
     ui.Process(c, r.engine);
     Check(Near(r.engine.CurrentParams().grain_ms, 10.0, 0.01), "S31 bottom: grain size (ms)", r.engine.CurrentParams().grain_ms);
     c.knobs[Controls::S31] = 1.0f;
     ui.Process(c, r.engine);
-    Check(Near(r.engine.CurrentParams().grain_ms, 4000.0, 0.1), "S31 top: grain size (ms)", r.engine.CurrentParams().grain_ms);
-    const float flow = r.engine.CurrentParams().flow;
+    Check(Near(r.engine.CurrentParams().grain_ms, 500.0 * r.Seconds(), 0.1), "S31 top: half the recording (ms)", r.engine.CurrentParams().grain_ms);
+    const float density = r.engine.CurrentParams().density;
     const size_t place = ClessidraUI::kPlacePads[0];
     c.pressure[place] = 0.5f;
     press(place, true);
-    Check(Near(r.engine.CurrentParams().flow, 0.5 * flow, 1e-4), "place pressed half: playhead flow halved", r.engine.CurrentParams().flow);
+    const Engine::Params& pressed = r.engine.CurrentParams();
+    Check(pressed.place_density[0] == density && Near(pressed.level, std::sqrt(0.5), 1e-4) && Near(pressed.place_level[0], std::sqrt(0.5), 1e-4),
+          "place pressed half: its density, equal-power crossfade", pressed.level);
     press(ClessidraUI::kStopPad, true);
-    Check(r.engine.CurrentParams().place_flow[0] == 0.0f, "P02 held: places stopped", r.engine.CurrentParams().place_flow[0]);
+    Check(r.engine.CurrentParams().place_density[0] == 0.0f, "P02 held: places stopped", r.engine.CurrentParams().place_density[0]);
     press(ClessidraUI::kStopPad, false);
+
     press(place, false);
+
+    // P00 held and S37 down: output down; the main layer's density unchanged
+    const float density_before = r.engine.CurrentParams().density;
+    press(ClessidraUI::kThirdPad, true);
+    for (int i = 1; i <= 40; i++) {
+        c.knobs[Controls::S37] = 0.8f - 0.02f * float(i);
+        ui.Process(c, r.engine);
+    }
+    const float output = r.engine.CurrentParams().output;
+    press(ClessidraUI::kThirdPad, false);
+    Check(output < 0.01f && Near(r.engine.CurrentParams().density, density_before, 1e-4), "P00 + S37 down: output off, density kept", output);
 
     // Detent pulse: on reaching the centre, renewed while turned within it
     c.knobs[Controls::S33] = 0.4f;
@@ -328,6 +365,20 @@ void Mapping() {
     const float ended = ui.Led(10200 + ClessidraUI::kPulseMs, r.engine);
     Check(reached == 1.0f && renewed == 1.0f && ended < 1.0f, "LED: pulse at pitch unison, renewed while turned", renewed);
 
+    // P01 tapped: defaults, then the knob takes over from there
+    c.knobs[Controls::S33] = 0.9f;
+    ui.Process(c, r.engine);
+    const float pitch_before = r.engine.CurrentParams().pitch;
+    press(ClessidraUI::kResetPad, true);
+    press(ClessidraUI::kResetPad, false);
+    const float pitch_reset = r.engine.CurrentParams().pitch;
+    c.knobs[Controls::S33] = 0.95f;
+    ui.Process(c, r.engine);
+    const float pitch_after = r.engine.CurrentParams().pitch;
+    Check(pitch_before > 1.5f && pitch_reset == 1.0f && pitch_after > 1.0f && pitch_after < pitch_before,
+          "P01: pitch back to unison, knob takes over", pitch_after);
+    Check(r.engine.CurrentParams().output < 0.01f, "P01: output level kept", r.engine.CurrentParams().output);
+
     ui.SetSecondLayer(Controls::S34, 0.3f);
     Check(Near(ui.SecondLayer(Controls::S34), 0.3, 1e-6), "second layer set directly (web page)", ui.SecondLayer(Controls::S34));
 }
@@ -339,6 +390,7 @@ int main() {
     Level();
     Windows();
     Harmonic();
+    SizeVariation();
     Tone();
     Mapping();
     std::printf("%s\n", failures ? "Some checks failed." : "All checks passed.");

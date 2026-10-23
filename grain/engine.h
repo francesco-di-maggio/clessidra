@@ -15,9 +15,10 @@ namespace clessidra {
 // The instrument's signal path. No hardware code here.
 class Engine {
 public:
-    static constexpr float kMaxFlow = 16.0f;   // grains sounding at once, per source
-    static constexpr size_t kNumVoices = 32; // above kMaxFlow: random starts can cluster
+    static constexpr float kMaxDensity = 16.0f; // grains sounding at once, per source
+    static constexpr size_t kNumVoices = 32; // above kMaxDensity: random starts can cluster
     static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
+    static constexpr float kSizeVariationOctaves = 1.0f; // at most: each grain from half to twice the size
     // The selection divided into equal places, each a grain source of its own
     static constexpr size_t kNumPlaces = 7;
     static constexpr size_t kNumSources = 1 + kNumPlaces; // the playhead, then the places
@@ -53,19 +54,25 @@ public:
         bool freeze = false;       // every source held where it was, speed ignored
         float position = 0.0f;     // while frozen, moves every source through its span by its change
         float grain_ms = 100.0f;   // grain size
+        float size_variation = 0.0f; // 0..1: each grain's size random up to kSizeVariationOctaves either way
         float pitch = 1.0f;        // grain playback rate
-        float flow = 8.0f;         // playhead: grains sounding at once on average, up to kMaxFlow
-        std::array<float, kNumPlaces> place_flow{}; // the same per place, 0 = off
+        float density = 8.0f;      // playhead: grains sounding at once on average, up to kMaxDensity
+        std::array<float, kNumPlaces> place_density{}; // the same per place, 0 = off
+        float level = 1.0f;        // playhead gain
+        std::array<float, kNumPlaces> place_level = [] { std::array<float, kNumPlaces> a; a.fill(1.0f); return a; }(); // gain per place
         float jitter = 0.0f;       // 0 periodic .. 1 random (Poisson) grain starts
         float rand_pos = 0.0f;     // 0..1, position spread: up to half the source's span
         float rand_pitch = 0.0f;   // semitones: each grain's pitch up to this far up or down
         float harmonic = 0.0f;     // 0..1, share of grains whose random pitch snaps to a partial
-        float spread = 0.5f;       // 0..1, stereo spread
+        float spread = 0.5f;       // 0..1, stereo spread: random pan
+        float reverse = 0.0f;      // 0..1, share of grains read backwards
         float window_shape = 0.5f; // 0 reverse percussive, 0.5 Hann, 1 percussive
         float reverb = 0.0f;       // 0 none .. 1 most and longest, on the grains
         float tone = 0.0f;         // -1 lowpass .. 0 off .. 1 highpass, on the grains
         float mix = 0.5f;          // 0 input only .. 1 grains only, equal power
         float resample = 0.0f;     // recorded: 0 input .. 1 wet (after tone and reverb), equal power
+        float input = 1.0f;        // gain on the input, before the recording and the dry signal
+        float output = 1.0f;       // gain after the limiter, 0..1
     };
 
     // ring: ring_size floats; buffers: kNumBuffers of buffer_size floats, the longest
@@ -108,8 +115,8 @@ private:
     enum class Capture { Idle, Waiting, Copying };
 
     // Starts a grain on a free voice at sample offset of the block, reading the span at
-    // phase. All voices busy: dropped.
-    void _trigger(const Params& p, double start, double length, double phase, size_t offset);
+    // phase, at level. All voices busy: dropped.
+    void _trigger(const Params& p, double start, double length, double phase, float level, size_t offset);
     // Updates _norm from the mean powers of the last block
     void _normalise(float power_grains, float power_sum, float window_power, size_t size);
     // End of Process(), after the ring is written: on release, copies the recording to
@@ -162,6 +169,8 @@ private:
     float _record_wet = 0.0f;
     float _reverb_dry = 1.0f;
     float _reverb_wet = 0.0f;
+    float _input_gain = 1.0f;
+    float _output_gain = 1.0f;
 };
 
 } // namespace clessidra
