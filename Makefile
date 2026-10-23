@@ -1,8 +1,8 @@
 # Project Name
-TARGET = clessidra
+TARGET = Clessidra
 
 # Sources
-CPP_SOURCES = clessidra.cpp $(wildcard touch/*.cpp) $(wildcard grain/*.cpp) $(wildcard ui/*.cpp)
+CPP_SOURCES = Clessidra.cpp $(wildcard touch/*.cpp) $(wildcard grain/*.cpp) $(wildcard ui/*.cpp)
 
 # Library Locations
 LIBDAISY_DIR = lib/libDaisy
