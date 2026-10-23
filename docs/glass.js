@@ -1,4 +1,4 @@
-// The hourglass view: the recording in the upper bulb, its nine places as bands you
+// The hourglass view: the recording in the upper bulb, its places as bands you
 // press, and every grain falling through the neck while it plays. The controls sit
 // around the glass, one per function.
 
@@ -6,6 +6,7 @@ import { KNOB, POS, PAD, PLACE_PADS, KNOB_HELP, SWITCH_HELP } from './controls.j
 import { html, dial, slider, segmented, holdButton } from './ui.js'
 
 const HANDLE_PX = 14 // how near a selection edge counts as grabbing it
+const PLACES = PLACE_PADS.length
 
 export function buildGlass(root, controls, readout) {
   const left = html('div', { class: 'column' }, root)
@@ -37,9 +38,9 @@ export function buildGlass(root, controls, readout) {
   second(left, 'Window', KNOB.S31)
   main('Pitch', KNOB.S33)
   main('Random pitch', KNOB.S34)
-  main('Scatter', KNOB.S32)
+  second(left, 'Harmonic', KNOB.S33)
+  main('Random position', KNOB.S32)
   html('div', { class: 'label' }, right).textContent = 'Space'
-  second(right, 'Spread', KNOB.S32)
   second(right, 'Tone', KNOB.S35)
   second(right, 'Reverb', KNOB.S34)
   second(right, 'Dry / wet', KNOB.S36)
@@ -82,7 +83,7 @@ export function buildGlass(root, controls, readout) {
     press: (who) => controls.press(PAD.record, who),
     release: (who) => controls.release(who),
     isOn: () => controls.isHeld(PAD.record),
-    help: 'tap: keep the last 10 s. Hold: keep the touch. (Space)',
+    help: 'tap: keep the last 8 s. Hold: keep the touch. (Space)',
   }))
   draws.push(holdButton(hands, {
     label: 'Stop', readout,
@@ -100,10 +101,10 @@ export function buildGlass(root, controls, readout) {
     const { x, y } = local(e)
     const g = geometry
     if (y >= g.band.y0 && y <= g.band.y1) {
-      const place = Math.min(8, Math.max(0, Math.floor(((x - g.left) / (g.right - g.left)) * 9)))
+      const place = Math.min(PLACES - 1, Math.max(0, Math.floor(((x - g.left) / (g.right - g.left)) * PLACES)))
       canvas.setPointerCapture(e.pointerId)
       controls.press(PLACE_PADS[place], `p${e.pointerId}`, e.pointerType === 'pen' ? e.pressure : null)
-      readout.textContent = `Place ${place + 1}: hold to pour grains from this ninth of the selection; longer pours more`
+      readout.textContent = `Place ${place + 1}: hold to pour grains from this part of the selection; longer pours more`
       return
     }
     if (y <= g.wave.y1 + 8) {
@@ -133,7 +134,7 @@ export function buildGlass(root, controls, readout) {
     if (y <= g.wave.y1 + 8) {
       const near = [KNOB.S30, KNOB.S35].some((k) => Math.abs(g.toX(controls.knobs[k]) - x) < HANDLE_PX)
       readout.textContent = `The recording. Drag ${near ? 'this edge' : 'an edge'} to set the selection.`
-    } else if (y >= g.band.y0 && y <= g.band.y1) readout.textContent = 'The nine places: press and hold one to pour grains from it'
+    } else if (y >= g.band.y0 && y <= g.band.y1) readout.textContent = 'The places: press and hold one to pour grains from it'
     else readout.textContent = 'The grains: each falls through the neck while it plays'
   }
 
@@ -255,9 +256,9 @@ function drawGlass(canvas, view, controls, c) {
     g.fill()
   }
 
-  // The nine places: a row of pills; a held one lit, with its part of the recording
-  const cellW = (right - left) / 9
-  for (let p = 0; p < 9; p++) {
+  // The places: a row of pills; a held one lit, with its part of the recording
+  const cellW = (right - left) / PLACES
+  for (let p = 0; p < PLACES; p++) {
     const pad = PLACE_PADS[p]
     const on = controls.isHeld(pad)
     const x = left + p * cellW + 3
@@ -270,7 +271,7 @@ function drawGlass(canvas, view, controls, c) {
       g.globalAlpha = 0.25 + 0.6 * k
       g.fill()
       g.globalAlpha = 0.12 + 0.25 * k
-      g.fillRect(toX(s0 + (view.length * p) / 9), wave.y0, ((right - left) * view.length) / 9, wave.y1 - wave.y0)
+      g.fillRect(toX(s0 + (view.length * p) / PLACES), wave.y0, ((right - left) * view.length) / PLACES, wave.y1 - wave.y0)
       g.globalAlpha = 1
     } else {
       g.strokeStyle = c.line
@@ -285,9 +286,9 @@ function drawGlass(canvas, view, controls, c) {
 
   // Where each source reads: the playhead, and the places pouring
   if (cols) {
-    for (let s = 0; s < 10; s++) {
+    for (let s = 0; s <= PLACES; s++) {
       if (!view.sources[s * 2 + 1]) continue
-      const span = s === 0 ? [s0, view.length] : [s0 + (view.length * (s - 1)) / 9, view.length / 9]
+      const span = s === 0 ? [s0, view.length] : [s0 + (view.length * (s - 1)) / PLACES, view.length / PLACES]
       const x = toX(span[0] + view.sources[s * 2] * span[1])
       g.strokeStyle = s === 0 ? c.ink : c.accent
       g.lineWidth = s === 0 ? 1 : 2

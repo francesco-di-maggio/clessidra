@@ -1,11 +1,9 @@
-// Clessidra in the browser. Two views of one instrument: the hourglass, and the
-// Simple Touch panel. Both change the same controls, which go to the firmware
-// running in an AudioWorklet (audio.js).
+// Clessidra in the browser: the hourglass view changes the controls, which go to the
+// firmware running in an AudioWorklet (audio.js).
 
 import { Audio } from './audio.js'
 import { Controls, PAD, PLACE_PADS } from './controls.js'
 import { buildGlass } from './glass.js'
-import { buildPanel } from './panel.js'
 
 const params = new URLSearchParams(location.search)
 if (params.has('embed')) document.documentElement.dataset.embed = ''
@@ -23,7 +21,7 @@ const audio = new Audio((m) => {
   const outline = m.outline ?? view.outline
   const seconds = m.seconds ?? view.seconds
   view = { ...m, outline, seconds, running: true }
-  // The second layer as the instrument holds it (it changes with P11 on the panel)
+  // The second layer as the instrument holds it
   if (performance.now() - controls.secondEdited > 300) m.second.forEach((v, k) => controls.second[k] !== null && (controls.second[k] = v))
 })
 const controls = new Controls((m) => audio.send(m))
@@ -31,18 +29,7 @@ controls.sync()
 // ?debug: the page's state, for inspecting in the console
 if (params.has('debug')) window.clessidra = { audio, controls, view: () => view }
 
-const drawGlass = buildGlass(document.querySelector('[data-view="glass"]'), controls, readout)
-const drawPanel = buildPanel(document.querySelector('[data-board]'), controls, readout)
-
-// Views
-let current = params.get('view') === 'panel' ? 'panel' : 'glass'
-function show(name) {
-  current = name
-  for (const v of document.querySelectorAll('[data-view]')) v.hidden = v.dataset.view !== name
-  for (const b of document.querySelectorAll('[data-show]')) b.setAttribute('aria-checked', String(b.dataset.show === name))
-}
-for (const b of document.querySelectorAll('[data-show]')) b.addEventListener('click', () => show(b.dataset.show))
-show(current)
+const drawGlass = buildGlass(document.querySelector('[data-glass]'), controls, readout)
 
 // Start and input
 let inputKind = 'demo'
@@ -76,7 +63,7 @@ for (const b of document.querySelectorAll('[data-input]')) {
 }
 fileInput.addEventListener('change', () => fileInput.files?.[0] && audio.useInput(fileInput.files[0]))
 
-// Keys: Space record, Shift second layer, 1-9 the places, 0 stop
+// Keys: Space record, Shift second layer, 1-7 the places, 0 stop
 const KEYS = { Space: PAD.record, ShiftLeft: PAD.shift, ShiftRight: PAD.shift, Digit0: PAD.stop }
 PLACE_PADS.forEach((pad, place) => (KEYS[`Digit${place + 1}`] = pad))
 addEventListener('keydown', (e) => {
@@ -98,8 +85,7 @@ function frame() {
     sand: colour('--sand'), sandDeep: colour('--sand-deep'), glass: colour('--glass'), glassEdge: colour('--glass-edge'),
     shine: colour('--shine'), veil: colour('--veil'), dark: colour('--dark') === '1',
   }
-  if (current === 'glass') drawGlass(view, colours)
-  else drawPanel(view)
+  drawGlass(view, colours)
   led.style.opacity = view.led
   requestAnimationFrame(frame)
 }

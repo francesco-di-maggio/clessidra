@@ -4,7 +4,7 @@
 
 :root {
   --gap: 10px; --control: 44px; --pill: 26px;
-  /* The hourglass: gold sand (the panel's stones), a clear glass */
+  /* The hourglass: gold sand, a clear glass */
   --sand: #ad8a4f; --sand-deep: #7a5f33; --glass: rgb(0 0 0 / 0.015); --glass-edge: rgb(0 0 0 / 0.05);
   --shine: rgb(255 255 255 / 0.55); --veil: rgb(242 242 240 / 0.65); --dark: 0;
 }
@@ -63,15 +63,6 @@ header { display: flex; align-items: center; justify-content: space-between; gap
 .mark .ring { fill: none; stroke: var(--ink); stroke-width: 1.5; }
 .mark .core { fill: var(--accent); }
 .end { display: flex; align-items: center; gap: 6px; }
-.pills { display: flex; gap: 6px; }
-.pills button {
-  height: var(--pill);
-  padding: 0 10px;
-  border-radius: 999px;
-  background: none;
-  color: var(--dim);
-}
-.pills button[aria-checked="true"] { color: var(--ink); border-color: var(--ink); }
 .icon { width: 32px; height: 36px; display: flex; align-items: center; justify-content: center; color: var(--dim); }
 .icon:hover { color: var(--ink); }
 .icon svg { width: 16px; height: 16px; }
@@ -127,25 +118,6 @@ main > section { height: 100%; }
 
 .hold.on { color: var(--accent); border-color: var(--accent); }
 
-/* Panel view: the device keeps its own materials in both themes */
-.panel { display: flex; justify-content: center; }
-.board { height: 100%; max-width: 100%; touch-action: none; user-select: none; filter: drop-shadow(0 18px 30px rgb(0 0 0 / 0.35)); }
-.board .control { cursor: grab; }
-.board .stone { cursor: pointer; }
-.board .control:focus-visible { outline: none; }
-.board .control:focus-visible circle, .board .control:focus-visible path { stroke: var(--accent); }
-.board text { font-family: var(--mono); text-anchor: middle; pointer-events: none; }
-.board .print { font-size: 7.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; fill: #d4b97f; transition: opacity 120ms; }
-.board .print.second { font-size: 6px; font-weight: 500; fill: #8e7d58; }
-.board .print.off { opacity: 0.35; }
-.board .print.second.on { fill: #ff5a1f; }
-.board .title { font-size: 9px; font-weight: 600; letter-spacing: 0.32em; text-transform: uppercase; fill: #d4b97f; }
-.board .glyph path { fill: none; stroke: #d4b97f; stroke-width: 1.2; stroke-linejoin: round; }
-.board .tick { stroke: #8e7d58; stroke-width: 0.8; stroke-linecap: round; }
-.board .pointer { stroke: #f2f2f2; stroke-width: 1.8; stroke-linecap: round; }
-.board .engraved { font-size: 8px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; fill: #5c4623; }
-.board .switch-label { font-size: 6px; font-weight: 600; letter-spacing: 0.1em; fill: #d4b97f; }
-
 /* Phones: the columns go above and below the glass */
 @media (max-width: 700px) {
   body { overflow: auto; height: auto; }
@@ -153,7 +125,6 @@ main > section { height: 100%; }
   .glass { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 60vh auto auto; }
   .glass .column { flex-direction: row; flex-wrap: wrap; justify-content: center; }
   .glass .column .label { width: 100%; text-align: center; }
-  .board { height: auto; width: 100%; }
   .readout { white-space: normal; }
 }
 

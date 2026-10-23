@@ -21,10 +21,6 @@
         Clessidra
       </h1>
       <div class="end">
-        <div class="pills" role="radiogroup" aria-label="View">
-          <button type="button" role="radio" data-show="glass">Hourglass</button>
-          <button type="button" role="radio" data-show="panel">Panel</button>
-        </div>
         <a class="icon" href="https://github.com/francesco-di-maggio/clessidra" aria-label="Source on GitHub" title="Source on GitHub">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7 3 12l5 5M16 7l5 5-5 5"/></svg>
         </a>
@@ -32,10 +28,7 @@
     </header>
 
     <main>
-      <section class="glass" data-view="glass" aria-label="Hourglass"></section>
-      <section class="panel" data-view="panel" aria-label="Simple Touch panel" hidden>
-        <svg class="board" data-board viewBox="0 0 600 860" role="group" aria-label="Controls"></svg>
-      </section>
+      <section class="glass" data-glass aria-label="Hourglass"></section>
     </main>
 
     <footer>
@@ -46,7 +39,7 @@
         <button type="button" role="radio" aria-checked="false" data-input="file">File</button>
       </div>
       <input type="file" accept="audio/*" hidden data-file />
-      <p class="readout" data-readout aria-live="polite">Keys: Space record · Shift second layer · 1–9 places · 0 stop</p>
+      <p class="readout" data-readout aria-live="polite">Keys: Space record · Shift second layer · 1–7 places · 0 stop</p>
     </footer>
   </body>
 </html>

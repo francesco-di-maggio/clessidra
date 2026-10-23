@@ -1,4 +1,4 @@
-// The instrument's controls, shared by both views and the keys: knob positions,
+// The instrument's controls, shared by the view and the keys: knob positions,
 // second-layer values, switches and pads. Every change goes to the engine; the
 // mapping from controls to sound is the firmware's own (ui/clessidra_ui.cpp).
 
@@ -11,15 +11,15 @@ export const KNOB = { S30: 0, S31: 1, S32: 2, S33: 3, S34: 4, S35: 5, S36: 6, S3
 // Switch positions as libDaisy's Switch3
 export const POS = { centre: 0, up: 1, down: 2 }
 // Pads
-export const PAD = { stop: 1, record: 10, shift: 11 }
-export const PLACE_PADS = [3, 0, 4, 8, 5, 2, 6, 9, 7] // places first to last (ui/clessidra_ui.h)
+export const PAD = { stop: 2, record: 10, shift: 11 }
+export const PLACE_PADS = [3, 4, 8, 5, 6, 9, 7] // places first to last (ui/clessidra_ui.h)
 
 // What each control does: [main layer, second layer]. Shown in the readout.
 export const KNOB_HELP = [
   ['Selection start', null],
-  ['Grain size, 20 ms – 2 s', 'Window: near-rectangle / sine / Hann'],
-  ['Random position', 'Stereo spread'],
-  ['Pitch, ±2 octaves, flat at unison, fifths and octaves', null],
+  ['Grain size, 10 ms – 4 s', 'Window: reverse percussive / Hann / percussive'],
+  ['Random position', null],
+  ['Pitch, ±2 octaves, flat at unison, fifths and octaves', 'Harmonic: share of random pitches on partials'],
   ['Random pitch, up to ±2 octaves', 'Reverb amount and decay'],
   ['Selection end', 'Tone: lowpass / off / highpass'],
   ['Speed, 0–4, centre 1. Scrubs while frozen.', 'Dry / wet'],
@@ -35,9 +35,9 @@ export class Controls {
     this.send = send
     this.knobs = [0, 0.5, 0, 0.5, 0, 1, 0.5, 0.8]
     this.defaults = [...this.knobs]
-    // Second layer, as the engine's defaults: window sine, spread half, reverb none,
+    // Second layer, as the engine's defaults: window Hann, harmonic none, reverb none,
     // tone off, dry/wet half, resample none
-    this.second = [null, 0.5, 0.5, null, 0, 0.5, 0.5, 0]
+    this.second = [null, 0.5, null, 0, 0, 0.5, 0.5, 0]
     this.secondDefaults = [...this.second]
     this.switches = [POS.up, POS.centre]
     this.held = new Map() // who (pointer, key) -> pad
