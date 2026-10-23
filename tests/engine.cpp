@@ -1,6 +1,7 @@
 // Host tests: the engine and the Simple Touch mapping on a computer, no board.
 // Built and run by tests/run.sh (make test). Each check prints PASS or FAIL.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <functional>
@@ -25,10 +26,10 @@ bool Near(double value, double target, double tolerance) {
     return std::fabs(value - target) <= tolerance;
 }
 
-// An engine with the board's memory: a 10 s recording, an 11 s ring
+// An engine with the board's memory: an 8 s recording, a 9 s ring
 struct Rig {
-    std::vector<float> ring = std::vector<float>(11 * kRate);
-    std::vector<float> memory[Engine::kNumBuffers] = { std::vector<float>(10 * kRate), std::vector<float>(10 * kRate) };
+    std::vector<float> ring = std::vector<float>(9 * kRate);
+    std::vector<float> memory[Engine::kNumBuffers] = { std::vector<float>(8 * kRate), std::vector<float>(8 * kRate) };
     Engine engine;
     double time = 0.0; // seconds of input so far
     float peak = 0.0f;
@@ -36,7 +37,7 @@ struct Rig {
 
     Rig() {
         float* buffers[Engine::kNumBuffers] = { memory[0].data(), memory[1].data() };
-        engine.Init(kRate, ring.data(), ring.size(), buffers, 10 * kRate);
+        engine.Init(kRate, ring.data(), ring.size(), buffers, 8 * kRate);
     }
 
     // Runs the input for seconds; between blocks, each(block)
@@ -75,7 +76,7 @@ float Silence(double) { return 0.0f; }
 
 void Capture() {
     Rig r;
-    // 2 s silence, then sound: a tap keeps the 10 s before it, without the silence
+    // 2 s silence, then sound: a tap keeps the 8 s before it, without the silence
     const double begin = 2.0;
     auto later = [begin](double t) { return t < begin ? 0.0f : Sine(t); };
     r.Run(4.0, later);
@@ -87,11 +88,11 @@ void Capture() {
     Check(Near(r.Seconds(), 2.0, 0.03), "hold over silence: recording unchanged (s)", r.Seconds());
 
     r.Hold(15.0, Sine);
-    Check(Near(r.Seconds(), 10.0, 0.001), "hold 15 s: the last 10 s (s)", r.Seconds());
+    Check(Near(r.Seconds(), 8.0, 0.001), "hold 15 s: the last 8 s (s)", r.Seconds());
 
     r.Hold(0.1, Sine);
     r.Hold(0.1, Sine);
-    Check(Near(r.Seconds(), 10.0, 0.001), "two taps close together: 10 s each (s)", r.Seconds());
+    Check(Near(r.Seconds(), 8.0, 0.001), "two taps close together: 8 s each (s)", r.Seconds());
 
     // Trim: 5 ms kept before the first sound and after the last
     Rig t;
@@ -152,6 +153,82 @@ void Level() {
     Check(r.peak <= Limiter::kThreshold + 1e-4f, "heavy: output peak at most -0.5 dBFS", r.peak);
 }
 
+// One grain of 1000 samples over a recording of ones: its window, sample by sample
+std::vector<float> Window(float shape) {
+    std::vector<float> ones(kRate, 1.0f);
+    Buffer buffer;
+    buffer.Init(ones.data(), ones.size(), float(kRate));
+    std::fill(ones.begin(), ones.end(), 1.0f);
+    buffer.Finish(ones.size());
+    Grain::InitWindow();
+    Grain grain;
+    Grain::Latch latch;
+    latch.buffer = &buffer;
+    latch.position = kRate / 2;
+    latch.rate = 0.0f;
+    latch.pan = 0.0f; // all left, gain 1
+    latch.shape = shape;
+    grain.Start(latch, 0);
+    std::vector<float> window(1000, 0.0f), right(1000, 0.0f);
+    Grain::Sums sums;
+    grain.Render(1.0 / 1000.0, window.data(), right.data(), window.size(), sums);
+    return window;
+}
+
+void Windows() {
+    const auto hann = Window(0.5f);
+    Check(Near(hann[250], 0.5, 0.01) && Near(hann[500], 1.0, 0.01), "window 0.5: Hann (at 1/4, 1/2)", hann[250]);
+    const auto percussive = Window(1.0f);
+    const size_t peak = size_t(std::max_element(percussive.begin(), percussive.end()) - percussive.begin());
+    Check(peak == 10 && Near(percussive[500], 0.060, 0.005), "window 1: percussive (peak at 1 %, half way)", percussive[500]);
+    const auto reverse = Window(0.0f);
+    Check(Near(reverse[999 - 500], percussive[500], 0.002), "window 0: percussive reversed", reverse[499]);
+}
+
+// Share of the output's power within 10 Hz of the partials of 55 Hz, from 40 Hz to 1 kHz
+double PartialShare(float harmonic) {
+    Rig r;
+    r.Hold(1.0, Sine); // 220 Hz: the 4th partial
+    Engine::Params p;
+    p.mix = 1.0f;
+    p.freeze = true;
+    p.rand_pitch = 12.0f;
+    p.harmonic = harmonic;
+    r.engine.SetParams(p);
+    std::vector<float> mono;
+    float l[kBlock], o1[kBlock], o2[kBlock];
+    const float* ins[2] = { l, l };
+    float* outs[2] = { o1, o2 };
+    std::fill(l, l + kBlock, 0.0f);
+    for (size_t b = 0; b < 2000; b++) {
+        r.engine.Process(ins, outs, kBlock);
+        if (b < 1000) continue;
+        for (size_t i = 0; i < kBlock; i++) mono.push_back(o1[i] + o2[i]);
+    }
+    double near = 0.0, total = 0.0;
+    for (int hz = 40; hz <= 1000; hz++) {
+        // Goertzel
+        const double w = 2.0 * M_PI * hz / kRate, k = 2.0 * std::cos(w);
+        double s1 = 0.0, s2 = 0.0;
+        for (float x : mono) {
+            const double s0 = x + k * s1 - s2;
+            s2 = s1;
+            s1 = s0;
+        }
+        const double power = s1 * s1 + s2 * s2 - k * s1 * s2;
+        total += power;
+        const double partial = std::round(hz / 55.0) * 55.0;
+        if (std::fabs(hz - partial) <= 10.0) near += power;
+    }
+    return near / total;
+}
+
+void Harmonic() {
+    const double free = PartialShare(0.0f), snapped = PartialShare(1.0f);
+    Check(free < 0.7, "random pitch, free: power near partials (share)", free);
+    Check(snapped > 0.9, "random pitch, harmonic 1: power near partials (share)", snapped);
+}
+
 double Gain(float hz, float cutoff, float q, bool low) {
     Svf f;
     f.Set(cutoff, q, float(kRate));
@@ -168,7 +245,7 @@ double Gain(float hz, float cutoff, float q, bool low) {
 }
 
 void Tone() {
-    Check(Near(Gain(4000, 500, 1.5f, true), -36.4, 1.0), "tone: lowpass 500 Hz at 4 kHz (dB)", Gain(4000, 500, 1.5f, true));
+    Check(Near(Gain(4000, 200, 1.5f, true), -52.0, 1.0), "tone: lowpass 200 Hz at 4 kHz (dB)", Gain(4000, 200, 1.5f, true));
     Check(Near(Gain(200, 2000, 1.5f, false), -40.0, 1.0), "tone: highpass 2 kHz at 200 Hz (dB)", Gain(200, 2000, 1.5f, false));
     Check(std::fabs(Gain(10000, 20000, 0.707f, true)) < 0.05, "tone: off (lowpass 20 kHz) at 10 kHz (dB)",
           Gain(10000, 20000, 0.707f, true));
@@ -220,6 +297,37 @@ void Mapping() {
     Check(ui.SecondLayer(Controls::S35) < tone_before - 0.2f, "P11 + S35: tone turned down", ui.SecondLayer(Controls::S35));
     Check(Near(r.engine.CurrentParams().length, 1.0, 1e-6), "P11 + S35: selection end unchanged", r.engine.CurrentParams().length);
 
+    // Grain size ends; a place pressed half way: the playhead gives way by half
+    c.knobs[Controls::S31] = 0.0f;
+    ui.Process(c, r.engine);
+    Check(Near(r.engine.CurrentParams().grain_ms, 10.0, 0.01), "S31 bottom: grain size (ms)", r.engine.CurrentParams().grain_ms);
+    c.knobs[Controls::S31] = 1.0f;
+    ui.Process(c, r.engine);
+    Check(Near(r.engine.CurrentParams().grain_ms, 4000.0, 0.1), "S31 top: grain size (ms)", r.engine.CurrentParams().grain_ms);
+    const float flow = r.engine.CurrentParams().flow;
+    const size_t place = ClessidraUI::kPlacePads[0];
+    c.pressure[place] = 0.5f;
+    press(place, true);
+    Check(Near(r.engine.CurrentParams().flow, 0.5 * flow, 1e-4), "place pressed half: playhead flow halved", r.engine.CurrentParams().flow);
+    press(ClessidraUI::kStopPad, true);
+    Check(r.engine.CurrentParams().place_flow[0] == 0.0f, "P02 held: places stopped", r.engine.CurrentParams().place_flow[0]);
+    press(ClessidraUI::kStopPad, false);
+    press(place, false);
+
+    // Detent pulse: on reaching the centre, renewed while turned within it
+    c.knobs[Controls::S33] = 0.4f;
+    c.now_ms = 10000;
+    ui.Process(c, r.engine);
+    c.knobs[Controls::S33] = 0.49f;
+    ui.Process(c, r.engine);
+    const float reached = ui.Led(10000 + ClessidraUI::kPulseMs - 1, r.engine);
+    c.now_ms = 10200;
+    c.knobs[Controls::S33] = 0.51f;
+    ui.Process(c, r.engine);
+    const float renewed = ui.Led(10200 + ClessidraUI::kPulseMs - 1, r.engine);
+    const float ended = ui.Led(10200 + ClessidraUI::kPulseMs, r.engine);
+    Check(reached == 1.0f && renewed == 1.0f && ended < 1.0f, "LED: pulse at pitch unison, renewed while turned", renewed);
+
     ui.SetSecondLayer(Controls::S34, 0.3f);
     Check(Near(ui.SecondLayer(Controls::S34), 0.3, 1e-6), "second layer set directly (web page)", ui.SecondLayer(Controls::S34));
 }
@@ -229,6 +337,8 @@ void Mapping() {
 int main() {
     Capture();
     Level();
+    Windows();
+    Harmonic();
     Tone();
     Mapping();
     std::printf("%s\n", failures ? "Some checks failed." : "All checks passed.");

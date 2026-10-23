@@ -5,13 +5,23 @@
 
 namespace clessidra {
 
-float Grain::_window[Grain::kWindowSize + 1];
+float Grain::_rise[Grain::kWindowSize + 1];
+float Grain::_decay[Grain::kWindowSize + 1];
 
 void Grain::InitWindow() {
-    // sin(pi * phase), 0 at both ends
     for (size_t i = 0; i <= kWindowSize; i++) {
-        _window[i] = std::sin(float(M_PI) * float(i) / float(kWindowSize));
+        const float x = float(i) / float(kWindowSize);
+        const float sine = std::sin(0.5f * float(M_PI) * x);
+        _rise[i] = sine * sine;
+        _decay[i] = std::exp(-kDecay * x) * std::cos(0.5f * float(M_PI) * x);
     }
+}
+
+float Grain::_lookup(const float* table, float x) {
+    const float w = x * float(kWindowSize);
+    // x can round up to 1
+    const size_t i = std::min(static_cast<size_t>(w), kWindowSize - 1);
+    return table[i] + (w - float(i)) * (table[i + 1] - table[i]);
 }
 
 void Grain::Start(const Latch& latch, size_t offset) {
@@ -25,11 +35,14 @@ void Grain::Start(const Latch& latch, size_t offset) {
     _gain_l = std::cos(angle);
     _gain_r = std::sin(angle);
 
-    // Below 0.5 the sine is scaled up to 16 and clipped: flat top, edges down to 2 % of
-    // the grain each. Above 0.5 it blends to Hann.
-    const float shape = std::clamp(latch.shape, 0.0f, 1.0f);
-    _clip = shape < 0.5f ? std::exp2(4.0f * (1.0f - 2.0f * shape)) : 1.0f;
-    _hann = shape > 0.5f ? 2.0f * shape - 1.0f : 0.0f;
+    // Hann at 0.5. Towards 1 the peak moves to the start and the decay turns
+    // exponential (percussive); towards 0 the same, reversed.
+    const float skew = 2.0f * std::clamp(latch.shape, 0.0f, 1.0f) - 1.0f;
+    _percussive = std::fabs(skew);
+    _reverse = skew < 0.0f;
+    _peak = 0.5f - (0.5f - kMinPeak) * _percussive;
+    _rise_scale = 1.0f / _peak;
+    _fall_scale = 1.0f / (1.0f - _peak);
 }
 
 void Grain::Render(double inc, float* left, float* right, size_t size, Sums& sums) {
@@ -43,12 +56,15 @@ void Grain::Render(double inc, float* left, float* right, size_t size, Sums& sum
     float window_sum = 0.0f;
     float window_power = 0.0f;
     for (size_t n = _offset; n < size; n++) {
-        const float w = float(phase) * float(kWindowSize);
-        // float(phase) can round up to 1
-        const size_t i = std::min(static_cast<size_t>(w), kWindowSize - 1);
-        float window = _window[i] + (w - float(i)) * (_window[i + 1] - _window[i]);
-        window = std::min(1.0f, window * _clip);
-        window += _hann * (window * window - window);
+        const float x = _reverse ? 1.0f - float(phase) : float(phase);
+        float window;
+        if (x < _peak) {
+            window = _lookup(_rise, x * _rise_scale);
+        } else {
+            const float fall = std::min(1.0f, (x - _peak) * _fall_scale);
+            const float hann = _lookup(_rise, 1.0f - fall);
+            window = hann + _percussive * (_lookup(_decay, fall) - hann);
+        }
 
         const float s = buffer.Read(_latch.position + read) * window;
         left[n] += s * _gain_l;

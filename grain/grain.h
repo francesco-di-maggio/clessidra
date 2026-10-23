@@ -14,7 +14,7 @@ public:
         double position = 0.0; // samples
         float rate = 1.0f;     // samples read per output sample
         float pan = 0.5f;      // 0 left .. 1 right
-        float shape = 0.5f;    // window: 0 near-rectangle, 0.5 sine, 1 Hann
+        float shape = 0.5f;    // window: 0 reverse percussive, 0.5 Hann, 1 percussive
     };
 
     // Once, before any Grain is used.
@@ -41,7 +41,12 @@ public:
 
 private:
     static constexpr size_t kWindowSize = 512;
-    static float _window[kWindowSize + 1];
+    static constexpr float kDecay = 5.0f;    // percussive decay: e^-5 at the end, -43 dB
+    static constexpr float kMinPeak = 0.01f; // percussive peak, of the grain
+    // Over 0..1: Hann's rise sin^2(pi/2 x), the percussive decay e^-kx cos(pi/2 x)
+    static float _rise[kWindowSize + 1];
+    static float _decay[kWindowSize + 1];
+    static float _lookup(const float* table, float x);
 
     Latch _latch;
     double _phase = 0.0;
@@ -49,8 +54,12 @@ private:
     size_t _offset = 0;
     float _gain_l = 0.0f;
     float _gain_r = 0.0f;
-    float _clip = 1.0f; // sine scaled by this, clipped at 1
-    float _hann = 0.0f; // blend from sine to sine squared (Hann)
+    // Window: rises to its peak, then decays as Hann blended to the percussive decay
+    float _peak = 0.5f;      // of the grain
+    float _rise_scale = 2.0f; // 1 / _peak
+    float _fall_scale = 2.0f; // 1 / (1 - _peak)
+    float _percussive = 0.0f;
+    bool _reverse = false;
     bool _active = false;
 };
 

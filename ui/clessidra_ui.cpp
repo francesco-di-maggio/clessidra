@@ -13,10 +13,10 @@ static float Detent(float x, float width) {
     return 0.5f;
 }
 
-// 20 ms .. 2 s, exponential in each half: centre = 100 ms
+// 10 ms .. 4 s, exponential in each half: centre = 100 ms
 static float GrainMs(float x) {
     x = Detent(x, 0.05f);
-    return x < 0.5f ? 20.0f * std::pow(5.0f, 2.0f * x) : 100.0f * std::pow(20.0f, 2.0f * x - 1.0f);
+    return x < 0.5f ? 10.0f * std::pow(10.0f, 2.0f * x) : 100.0f * std::pow(40.0f, 2.0f * x - 1.0f);
 }
 
 // -24 .. +24 semitones over equal knob segments between musical intervals, flat
@@ -32,14 +32,14 @@ static float Semitones(float x) {
 }
 
 // Knobs with a second-layer function
-static constexpr Controls::Knob kSecondLayer[] = { Controls::S31, Controls::S32, Controls::S34,
+static constexpr Controls::Knob kSecondLayer[] = { Controls::S31, Controls::S33, Controls::S34,
                                                    Controls::S35, Controls::S36, Controls::S37 };
 
 ClessidraUI::ClessidraUI() {
     // Second layer at the engine defaults
     const Engine::Params defaults;
     _shift.values[Controls::S31] = Takeover(defaults.window_shape);
-    _shift.values[Controls::S32] = Takeover(defaults.spread);
+    _shift.values[Controls::S33] = Takeover(defaults.harmonic);
     _shift.values[Controls::S34] = Takeover(defaults.reverb);
     _shift.values[Controls::S35] = Takeover(0.5f + 0.5f * defaults.tone);
     _shift.values[Controls::S36] = Takeover(defaults.mix);
@@ -95,7 +95,7 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
 
     Engine::Params p;
 
-    // S30 and S33 have no second layer: always live
+    // S30 and S32 have no second layer: always live
     const float a = c.knobs[Controls::S30];
     const float b = _main[Controls::S35];
     p.start = std::min(a, b);
@@ -104,10 +104,10 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     p.grain_ms = GrainMs(_main[Controls::S31]);
     const bool size_centre = Detent(_main[Controls::S31], 0.05f) == 0.5f;
 
-    const float rand_pos = _main[Controls::S32];
+    const float rand_pos = c.knobs[Controls::S32];
     p.rand_pos = rand_pos * rand_pos * rand_pos * rand_pos;
 
-    const float semitones = Semitones(c.knobs[Controls::S33]);
+    const float semitones = Semitones(_main[Controls::S33]);
     const bool unison = semitones == 0.0f;
     p.pitch = std::exp2(semitones / 12.0f);
 
@@ -139,12 +139,20 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
                     ? 0.0f
                     : 0.1f * std::pow(Engine::kMaxFlow / 0.1f, (flow_knob - kFlowOff) / (1.0f - kFlowOff));
 
-    // A touched place pours 1 .. 16 grains at once, exponential in pressure
+    // A touched place pours 1 .. 16 grains at once, exponential in pressure. The
+    // playhead gives way to the strongest press.
     static_assert(std::size(kPlacePads) == Engine::kNumPlaces);
+    float press = 0.0f;
     for (size_t i = 0; i < Engine::kNumPlaces; i++) {
         const size_t pad = kPlacePads[i];
-        p.place_flow[i] = c.touched[pad] ? std::pow(Engine::kMaxFlow, c.pressure[pad]) : 0.0f;
+        if (!c.touched[pad]) {
+            p.place_flow[i] = 0.0f;
+            continue;
+        }
+        p.place_flow[i] = std::pow(Engine::kMaxFlow, c.pressure[pad]);
+        press = std::max(press, c.pressure[pad]);
     }
+    p.flow *= 1.0f - std::clamp(press, 0.0f, 1.0f);
 
     // S07: up periodic, centre half random, down random grain starts
     const Controls::Position starts = c.switches[Controls::S07];
@@ -157,8 +165,11 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     }
 
     // P11 layer
-    p.window_shape = _shift[Controls::S31];
-    p.spread = _shift[Controls::S32];
+    // Window shape: centre detent Hann
+    const float shape = Detent(_shift[Controls::S31], 0.05f);
+    const bool shape_centre = shape == 0.5f;
+    p.window_shape = shape;
+    p.harmonic = _shift[Controls::S33];
     p.reverb = _shift[Controls::S34];
     // Tone: centre detent off
     const float tone = Detent(_shift[Controls::S35], 0.05f);
@@ -169,11 +180,22 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
 
     engine.SetParams(p);
 
-    // Reaching a detent: a pulse
-    const uint8_t detents =
-        (unison ? 1 : 0) | (speed_centre ? 2 : 0) | (size_centre ? 4 : 0) | (tone_centre ? 8 : 0);
-    if (detents & ~_detents) _pulse_until = c.now_ms + kPulseMs;
-    _detents = detents;
+    // Reaching a detent, or turning within it: a pulse
+    const std::array<bool, kNumDetents> at = { unison, speed_centre, size_centre, tone_centre, shape_centre };
+    const std::array<float, kNumDetents> knobs = { _main[Controls::S33], _main[Controls::S36], _main[Controls::S31],
+                                                   _shift[Controls::S35], _shift[Controls::S31] };
+    if (!_detents_ready) {
+        // Power-up: no pulse
+        _at_detent = at;
+        _detent_knob = knobs;
+        _detents_ready = true;
+    }
+    for (size_t i = 0; i < kNumDetents; i++) {
+        const bool moved = std::fabs(knobs[i] - _detent_knob[i]) > kPulseStep;
+        if (at[i] && (!_at_detent[i] || moved)) _pulse_until = c.now_ms + kPulseMs;
+        if (!at[i] || !_at_detent[i] || moved) _detent_knob[i] = knobs[i];
+        _at_detent[i] = at[i];
+    }
 }
 
 // First that applies: recording flash, detent pulse, second layer (steady, brightness =

@@ -16,7 +16,7 @@ static constexpr size_t   kBlockSize    = 48;    // 1 ms at 48 kHz
 // BUFFER //////////////////////////////////////////////////////////////////
 // Mono float in SDRAM: two recordings and an input ring 1 s longer, which holds the
 // tap, pre-roll and copy margin (Engine constants). About 80 s fit in 64 MB.
-static constexpr size_t   kRecordSeconds = 10;
+static constexpr size_t   kRecordSeconds = 8;
 static constexpr size_t   kRecordSamples = kRecordSeconds * kSampleRateHz;
 static constexpr size_t   kRingSamples   = (kRecordSeconds + 1) * kSampleRateHz;
 

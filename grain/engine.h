@@ -19,7 +19,7 @@ public:
     static constexpr size_t kNumVoices = 32; // above kMaxFlow: random starts can cluster
     static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
     // The selection divided into equal places, each a grain source of its own
-    static constexpr size_t kNumPlaces = 9;
+    static constexpr size_t kNumPlaces = 7;
     static constexpr size_t kNumSources = 1 + kNumPlaces; // the playhead, then the places
     // Reverb on the grains: equal-power crossfade up to kReverbMaxAmount, decay (T60)
     // rising with it, exponentially
@@ -30,7 +30,7 @@ public:
     // Tone on the grains, before the reverb. From off, exponential to the ends; resonance
     // rising with it from flat (Butterworth). Fades in over the first kToneFade of each side.
     static constexpr float kLowpassOffHz = 20000.0f;
-    static constexpr float kLowpassMinHz = 500.0f;
+    static constexpr float kLowpassMinHz = 200.0f;
     static constexpr float kHighpassOffHz = 20.0f;
     static constexpr float kHighpassMaxHz = 2000.0f;
     static constexpr float kToneQMin = 0.707f;
@@ -59,8 +59,9 @@ public:
         float jitter = 0.0f;       // 0 periodic .. 1 random (Poisson) grain starts
         float rand_pos = 0.0f;     // 0..1, position spread: up to half the source's span
         float rand_pitch = 0.0f;   // semitones: each grain's pitch up to this far up or down
+        float harmonic = 0.0f;     // 0..1, share of grains whose random pitch snaps to a partial
         float spread = 0.5f;       // 0..1, stereo spread
-        float window_shape = 0.5f; // 0 near-rectangle, 0.5 sine, 1 Hann
+        float window_shape = 0.5f; // 0 reverse percussive, 0.5 Hann, 1 percussive
         float reverb = 0.0f;       // 0 none .. 1 most and longest, on the grains
         float tone = 0.0f;         // -1 lowpass .. 0 off .. 1 highpass, on the grains
         float mix = 0.5f;          // 0 input only .. 1 grains only, equal power

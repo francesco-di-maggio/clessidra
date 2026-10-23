@@ -29,15 +29,16 @@ public:
     // Pads
     static constexpr size_t kRecordPad = 10; // P10, tap or hold to record
     static constexpr size_t kShiftPad = 11;  // P11, hold for the second knob layer
-    static constexpr size_t kStopPad = 1;    // P01, hold to stop the flow
+    static constexpr size_t kStopPad = 2;    // P02, hold to stop the flow
     // The engine's places, first to last in the selection: pads left to right on the
     // faceplate, top to bottom within a column. Pressure sets each place's flow.
-    static constexpr size_t kPlacePads[] = { 3, 0, 4, 8, 5, 2, 6, 9, 7 };
+    static constexpr size_t kPlacePads[] = { 3, 4, 8, 5, 6, 9, 7 };
 
     // LED
     static constexpr float kGlow = 0.6f;            // brightness while grains play, below the pulse
     static constexpr uint32_t kRecordFlashMs = 125; // on and off while P10 is touched: 4 Hz
-    static constexpr uint32_t kPulseMs = 150;       // on when pitch, speed, grain size or tone reaches its centre
+    static constexpr uint32_t kPulseMs = 300;       // on when pitch, speed, grain size, tone or window shape reaches its centre, and while turned there
+    static constexpr float kPulseStep = 0.01f;      // turn within a centre that renews the pulse
     static constexpr float kShowStep = 0.01f;       // second-layer change that counts as turning
 
     ClessidraUI();
@@ -92,7 +93,12 @@ private:
     bool _recording = false;
     size_t _shown_knob = Controls::S36; // second-layer knob last turned. At power-up: dry/wet
     std::array<float, Controls::kNumKnobs> _shown{}; // second-layer values at their last move
-    uint8_t _detents = 0xff; // bits: pitch unison, speed 1, grain size 100 ms, tone off. All set: no pulse at power-up
+    // Pitch unison, speed 1, grain size 100 ms, tone off, window Hann: at the centre, and
+    // the knob when the pulse last started
+    static constexpr size_t kNumDetents = 5;
+    std::array<bool, kNumDetents> _at_detent{};
+    std::array<float, kNumDetents> _detent_knob{};
+    bool _detents_ready = false;
 };
 
 } // namespace clessidra

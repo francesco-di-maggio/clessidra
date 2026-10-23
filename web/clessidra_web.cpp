@@ -12,7 +12,7 @@ using namespace clessidra;
 
 namespace {
 
-constexpr size_t kRecordSeconds = 10; // as on the board (config.h)
+constexpr size_t kRecordSeconds = 8;  // as on the board (config.h)
 constexpr size_t kMaxBlock = 128;     // Web Audio's render quantum
 
 Engine engine;

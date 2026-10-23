@@ -241,7 +241,13 @@ void Engine::_trigger(const Params& p, double start, double length, double phase
     Grain::Latch latch;
     latch.buffer = &buffer;
     latch.position = start + phase * length + _random() * p.rand_pos * length * 0.5;
-    latch.rate = p.pitch * std::exp2(_random() * p.rand_pitch / 12.0f);
+    float ratio = std::exp2(_random() * p.rand_pitch / 12.0f);
+    // Snapped: the nearest partial of the fundamental two octaves below, 1/4 .. 4
+    // within the +-24 semitones of random pitch
+    if (p.harmonic > 0.0f && 0.5f - 0.5f * _random() <= p.harmonic) {
+        ratio = std::max(1.0f, std::round(4.0f * ratio)) / 4.0f;
+    }
+    latch.rate = p.pitch * ratio;
     // Grains read in the playhead's direction
     if (!p.freeze && p.speed < 0.0f) latch.rate = -latch.rate;
     latch.pan = 0.5f + _random() * p.spread * 0.5f;

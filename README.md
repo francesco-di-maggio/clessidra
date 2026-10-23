@@ -11,7 +11,7 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 | Control | Function |
 |---|---|
 | S30 / S35 | Selection start / end |
-| S31 | Grain size, 20 ms – 2 s |
+| S31 | Grain size, 10 ms – 4 s |
 | S32 | Random position |
 | S33 | Pitch, ±2 octaves |
 | S34 | Random pitch, ±2 octaves |
@@ -19,26 +19,26 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 | S37 | Flow: off, 0.1–16 grains at once |
 | S09 | Forward / freeze / reverse |
 | S07 | Grain starts: periodic / half random / random |
-| P00, P02–P09 | Places in the selection. Pressure sets the flow. |
-| P01 | Hold: stop the flow |
-| P10 | Tap: keep the last 10 s. Hold: record. |
+| P03–P09 | Places in the selection. Pressure sets the flow, the playhead gives way. |
+| P02 | Hold: stop the flow |
+| P10 | Tap: keep the last 8 s. Hold: record. |
 | P11 | Hold: second layer |
 
 Second layer:
 
 | Control | Function |
 |---|---|
-| S31 | Window shape |
-| S32 | Stereo spread |
+| S31 | Window: reverse percussive / Hann / percussive |
+| S33 | Harmonic: share of random pitches on partials |
 | S34 | Reverb |
-| S35 | Tone: lowpass / off / highpass |
+| S35 | Tone: lowpass 200 Hz / off / highpass 2 kHz |
 | S36 | Dry / wet |
 | S37 | Resample: what P10 records, input to grains |
 
 | LED | |
 |---|---|
 | Glow | Grains playing |
-| Pulse | A control at its centre |
+| Pulse | A control at or turning within its centre |
 | Flashing | P10 touched |
 | Steady | P11 held: brightness shows the value |
 
