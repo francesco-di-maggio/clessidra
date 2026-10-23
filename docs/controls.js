@@ -16,14 +16,14 @@ export const PLACE_PADS = [3, 4, 8, 5, 6, 9, 7] // places first to last (ui/cles
 
 // What each control does: [main layer, second layer]. Shown in the readout.
 export const KNOB_HELP = [
-  ['Selection start', null],
-  ['Grain size, 10 ms – 4 s', 'Window: reverse percussive / Hann / percussive'],
-  ['Random position', null],
-  ['Pitch, ±2 octaves, flat at unison, fifths and octaves', 'Harmonic: share of random pitches on partials'],
-  ['Random pitch, up to ±2 octaves', 'Reverb amount and decay'],
+  ['Selection start', 'Reverse: share of grains read backwards'],
+  ['Grain size, 10 ms – 4 s, at most the recording', 'Shape: reverse percussive / Hann / percussive'],
+  ['Random position', 'Size variation: each grain from half to twice the size'],
+  ['Pitch, ±2 octaves, flat at unison, fifths and octaves', 'Reverb amount and decay'],
+  ['Random pitch, up to ±2 octaves', 'Harmonic: share of random pitches on partials'],
   ['Selection end', 'Tone: lowpass / off / highpass'],
   ['Speed, 0–4, centre 1. Scrubs while frozen.', 'Dry / wet'],
-  ['Flow: grains at once, off to 16', 'Resample: what Record keeps, input to grains'],
+  ['Density: grains at once, off to 16', 'Resample: what Record keeps, input to grains'],
 ]
 export const SWITCH_HELP = [
   { 1: 'Forward', 0: 'Freeze', 2: 'Reverse' },
@@ -33,11 +33,12 @@ export const SWITCH_HELP = [
 export class Controls {
   constructor(send) {
     this.send = send
-    this.knobs = [0, 0.5, 0, 0.5, 0, 1, 0.5, 0.8]
+    // At the engine defaults: the recording played as it is (density 8)
+    this.knobs = [0, 0.5, 0, 0.5, 0, 1, 0.5, 0.866]
     this.defaults = [...this.knobs]
-    // Second layer, as the engine's defaults: window Hann, harmonic none, reverb none,
-    // tone off, dry/wet half, resample none
-    this.second = [null, 0.5, null, 0, 0, 0.5, 0.5, 0]
+    // Second layer, as the engine's defaults: reverse none, shape Hann, variation none,
+    // reverb none, harmonic none, tone off, dry/wet half, resample none
+    this.second = [0, 0.5, 0.5, 0, 0, 0.5, 0.5, 0]
     this.secondDefaults = [...this.second]
     this.switches = [POS.up, POS.centre]
     this.held = new Map() // who (pointer, key) -> pad
@@ -65,6 +66,12 @@ export class Controls {
     this.secondEdited = performance.now()
     this.send({ type: 'second', index, value: this.second[index] })
     this.changed()
+  }
+
+  // As P01 on the board: the sound back to the defaults
+  reset() {
+    this.defaults.forEach((value, index) => this.setKnob(index, value))
+    this.secondDefaults.forEach((value, index) => value !== null && this.setSecond(index, value))
   }
 
   setSwitch(index, position) {

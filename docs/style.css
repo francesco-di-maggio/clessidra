@@ -28,6 +28,7 @@ body {
   padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--gap);
   background: var(--bg);
   color: var(--ink);
@@ -84,17 +85,19 @@ footer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap); }
 main { min-height: 0; }
 main > section { height: 100%; }
 
-/* Hourglass view */
+/* Hourglass view: the glass between its controls, grouped as on the instrument */
 .glass {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 96px;
+  grid-template-columns: 252px minmax(0, 1fr) 252px;
   grid-template-rows: minmax(0, 1fr) auto;
-  gap: var(--gap);
-  max-width: 1000px;
+  gap: var(--gap) 24px;
+  max-width: 1280px;
   margin: 0 auto;
 }
 .glass .column { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; }
-.glass .column .label { margin-bottom: 2px; }
+.glass .column .label { margin-top: 16px; }
+.glass .column .label:first-child { margin-top: 0; }
+.dials { display: grid; grid-template-columns: repeat(3, 76px); gap: 12px 4px; justify-items: center; }
 .glass .centre { position: relative; min-height: 0; }
 .glass canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
 .glass .below { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap) 24px; }
@@ -118,13 +121,22 @@ main > section { height: 100%; }
 
 .hold.on { color: var(--accent); border-color: var(--accent); }
 
-/* Phones: the columns go above and below the glass */
+/* Narrower: two dials a row */
+@media (max-width: 1100px) {
+  .glass { grid-template-columns: 172px minmax(0, 1fr) 172px; gap: var(--gap) 12px; }
+  .dials { grid-template-columns: repeat(2, 76px); }
+}
+
+/* Phones: the glass first, then the controls, stacked */
 @media (max-width: 700px) {
   body { overflow: auto; height: auto; }
   main > section { height: auto; }
-  .glass { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 60vh auto auto; }
-  .glass .column { flex-direction: row; flex-wrap: wrap; justify-content: center; }
-  .glass .column .label { width: 100%; text-align: center; }
+  .glass { grid-template-columns: minmax(0, 1fr); grid-template-rows: 56vh auto auto auto; }
+  .glass .centre { grid-row: 1; }
+  .dials { grid-template-columns: repeat(3, 76px); }
+  .glass .group { flex-wrap: wrap; justify-content: center; }
+  .slider { flex: 1 1 100%; }
+  .slider .track { flex: 1; width: auto; }
   .readout { white-space: normal; }
 }
 

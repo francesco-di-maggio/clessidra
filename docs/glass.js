@@ -17,8 +17,8 @@ export function buildGlass(root, controls, readout) {
   const draws = []
 
   // One dial per function. Main layer: the knob itself. Second layer: its value.
-  const main = (label, k) =>
-    draws.push(dial(left, {
+  const main = (parent, label, k) =>
+    draws.push(dial(parent, {
       label, readout,
       get: () => controls.knobs[k],
       set: (v) => controls.setKnob(k, v),
@@ -33,18 +33,25 @@ export function buildGlass(root, controls, readout) {
       reset: () => controls.setSecond(k, controls.secondDefaults[k]),
       help: () => KNOB_HELP[k][1],
     }))
-  html('div', { class: 'label' }, left).textContent = 'Grain'
-  main('Size', KNOB.S31)
-  second(left, 'Window', KNOB.S31)
-  main('Pitch', KNOB.S33)
-  main('Random pitch', KNOB.S34)
-  second(left, 'Harmonic', KNOB.S33)
-  main('Random position', KNOB.S32)
-  html('div', { class: 'label' }, right).textContent = 'Space'
-  second(right, 'Tone', KNOB.S35)
-  second(right, 'Reverb', KNOB.S34)
-  second(right, 'Dry / wet', KNOB.S36)
-  second(right, 'Resample', KNOB.S37)
+  // Groups as on the instrument: each grain, its pitch, the space around it
+  const group = (parent, title) => {
+    html('div', { class: 'label' }, parent).textContent = title
+    return html('div', { class: 'dials' }, parent)
+  }
+  const grain = group(left, 'Grain')
+  main(grain, 'Size', KNOB.S31)
+  second(grain, 'Variation', KNOB.S32)
+  second(grain, 'Shape', KNOB.S31)
+  main(grain, 'Random', KNOB.S32)
+  second(grain, 'Reverse', KNOB.S30)
+  const pitch = group(right, 'Pitch')
+  main(pitch, 'Pitch', KNOB.S33)
+  main(pitch, 'Random', KNOB.S34)
+  second(pitch, 'Harmonic', KNOB.S34)
+  const space = group(right, 'Space')
+  second(space, 'Tone', KNOB.S35)
+  second(space, 'Reverb', KNOB.S33)
+  second(space, 'Dry / wet', KNOB.S36)
 
   // Below the glass: time and sand
   const time = html('div', { class: 'group' }, below)
@@ -71,7 +78,7 @@ export function buildGlass(root, controls, readout) {
     help: (p) => SWITCH_HELP[1][p],
   }))
   draws.push(slider(sand, {
-    label: 'Flow', readout,
+    label: 'Density', readout,
     get: () => controls.knobs[KNOB.S37],
     set: (v) => controls.setKnob(KNOB.S37, v),
     reset: () => controls.setKnob(KNOB.S37, controls.defaults[KNOB.S37]),
@@ -85,12 +92,20 @@ export function buildGlass(root, controls, readout) {
     isOn: () => controls.isHeld(PAD.record),
     help: 'tap: keep the last 8 s. Hold: keep the touch. (Space)',
   }))
+  second(hands, 'Resample', KNOB.S37)
   draws.push(holdButton(hands, {
     label: 'Stop', readout,
     press: (who) => controls.press(PAD.stop, who),
     release: (who) => controls.release(who),
     isOn: () => controls.isHeld(PAD.stop),
     help: 'hold: no new grains; those playing ring out. (0)',
+  }))
+  draws.push(holdButton(hands, {
+    label: 'Reset', readout,
+    press: () => controls.reset(),
+    release: () => {},
+    isOn: () => false,
+    help: 'the sound back to the defaults: the recording played as it is. (R)',
   }))
 
   // The glass: drag the selection's edges; press the places
@@ -321,7 +336,7 @@ function drawGlass(canvas, view, controls, c) {
   }
   const grains = view.grains
   const count = grains.length / 3
-  // The stream through the neck, as dense as the flow
+  // The stream through the neck, as dense as the grains
   if (mode !== 0 && count) {
     const stream = g.createLinearGradient(0, neckY - 40, 0, neckY + 40)
     stream.addColorStop(0, 'transparent')

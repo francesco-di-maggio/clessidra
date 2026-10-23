@@ -63,10 +63,11 @@ for (const b of document.querySelectorAll('[data-input]')) {
 }
 fileInput.addEventListener('change', () => fileInput.files?.[0] && audio.useInput(fileInput.files[0]))
 
-// Keys: Space record, Shift second layer, 1-7 the places, 0 stop
-const KEYS = { Space: PAD.record, ShiftLeft: PAD.shift, ShiftRight: PAD.shift, Digit0: PAD.stop }
+// Keys: Space record, 1-7 the places, 0 stop, R reset. Every function has its own control: no second layer.
+const KEYS = { Space: PAD.record, Digit0: PAD.stop }
 PLACE_PADS.forEach((pad, place) => (KEYS[`Digit${place + 1}`] = pad))
 addEventListener('keydown', (e) => {
+  if (e.code === 'KeyR' && !e.repeat && !(e.target instanceof HTMLInputElement)) return controls.reset()
   const pad = KEYS[e.code]
   if (pad === undefined || e.repeat || e.target instanceof HTMLInputElement) return
   e.preventDefault()
