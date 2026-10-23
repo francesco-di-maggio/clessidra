@@ -141,7 +141,7 @@ private:
     volatile bool _record = false;
     bool _was_record = false;
 
-    // Grains. Running positions in double: float steps reach 1/32 sample at 10 s.
+    // Grains. Running positions in double: float steps reach 1/32 sample at 8 s.
     std::array<Grain, kNumVoices> _grains;
     std::array<Stream, kNumStreams> _streams;
     uint32_t _seed = 1;

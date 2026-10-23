@@ -49,7 +49,7 @@ Levels:
 | LED | |
 |---|---|
 | Glow | Grains playing |
-| Pulse | A control at or turning within its centre |
+| Pulse | P01 reset, or a control at or turning within its centre |
 | Flashing | P10 touched |
 | Steady | P11 or P00 held: brightness shows the value |
 

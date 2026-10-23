@@ -16,7 +16,7 @@ public:
         float rate = 1.0f;     // samples read per output sample
         float pan = 0.5f;      // 0 left .. 1 right
         float shape = 0.5f;    // window: 0 reverse percussive, 0.5 Hann, 1 percussive
-        float gain = 1.0f;
+        float gain = 1.0f;     // the source's level
         float size = 1.0f;     // of the grain size passed to Render()
     };
 
@@ -62,7 +62,7 @@ private:
     float _rise_scale = 2.0f; // 1 / _peak
     float _fall_scale = 2.0f; // 1 / (1 - _peak)
     float _percussive = 0.0f;
-    bool _reverse = false;
+    bool _mirrored = false; // percussive window reversed
     bool _active = false;
 };
 

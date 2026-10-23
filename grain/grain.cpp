@@ -39,7 +39,7 @@ void Grain::Start(const Latch& latch, size_t offset) {
     // exponential (percussive); towards 0 the same, reversed.
     const float skew = 2.0f * std::clamp(latch.shape, 0.0f, 1.0f) - 1.0f;
     _percussive = std::fabs(skew);
-    _reverse = skew < 0.0f;
+    _mirrored = skew < 0.0f;
     _peak = 0.5f - (0.5f - kMinPeak) * _percussive;
     _rise_scale = 1.0f / _peak;
     _fall_scale = 1.0f / (1.0f - _peak);
@@ -58,7 +58,7 @@ void Grain::Render(double inc, float* left, float* right, size_t size, Sums& sum
     float window_sum = 0.0f;
     float window_power = 0.0f;
     for (size_t n = _offset; n < size; n++) {
-        const float x = _reverse ? 1.0f - float(phase) : float(phase);
+        const float x = _mirrored ? 1.0f - float(phase) : float(phase);
         float window;
         if (x < _peak) {
             window = _lookup(_rise, x * _rise_scale);

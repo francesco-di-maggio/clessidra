@@ -48,12 +48,12 @@ ClessidraUI::ClessidraUI() {
     Controls c;
     _reset(c);
     // Levels at unity
-    _third.values[Controls::S36] = Takeover(0.5f);
-    _third.values[Controls::S37] = Takeover(1.0f);
+    _levels.values[Controls::S36] = Takeover(0.5f);
+    _levels.values[Controls::S37] = Takeover(1.0f);
     _shift_shown.Update(_shift);
     _shift_shown.knob = Controls::S36;
-    _third_shown.Update(_third);
-    _third_shown.knob = Controls::S37;
+    _levels_shown.Update(_levels);
+    _levels_shown.knob = Controls::S37;
 }
 
 void ClessidraUI::_reset(const Controls& c) {
@@ -117,14 +117,14 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
         for (size_t i = 0; i < Controls::kNumKnobs; i++) _main.values[i] = Takeover(c.knobs[i]);
         _started = true;
     }
-    // P11 held: second layer. P00 held: third.
+    // P11 held: second layer. P00 held: levels.
     const bool shifted = c.touched[kShiftPad];
-    const bool third = !shifted && c.touched[kThirdPad];
-    Layer* layer = shifted ? &_shift : third ? &_third : &_main;
+    const bool levels = !shifted && c.touched[kLevelsPad];
+    Layer* layer = shifted ? &_shift : levels ? &_levels : &_main;
     if (layer != _layer) layer->Engage(c);
     _layer = layer;
     _shifted = shifted;
-    _third_on = third;
+    _levels_on = levels;
     layer->Process(c);
 
     // P01 tapped: defaults, the knobs taking over from there
@@ -136,7 +136,7 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     _reset_touched = reset;
 
     _shift_shown.Update(_shift);
-    _third_shown.Update(_third);
+    _levels_shown.Update(_levels);
 
     Engine::Params p;
 
@@ -211,7 +211,7 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
 
     // P11 layer
     p.reverse = _shift[Controls::S30];
-    // Window shape: centre detent Hann
+    // Shape: centre detent Hann
     const float shape = Detent(_shift[Controls::S31], 0.05f);
     const bool shape_centre = shape == 0.5f;
     p.window_shape = shape;
@@ -225,11 +225,11 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     p.mix = _shift[Controls::S36];
     p.resample = _shift[Controls::S37];
 
-    // P00 layer, levels: input, centre detent unity; output. Fader law.
-    const float input = Detent(_third[Controls::S36], 0.05f);
+    // Levels: input, centre detent unity. Output, fader law.
+    const float input = Detent(_levels[Controls::S36], 0.05f);
     const bool input_centre = input == 0.5f;
     p.input = kMaxInput * input * input;
-    const float output = _third[Controls::S37];
+    const float output = _levels[Controls::S37];
     p.output = output * output;
 
     engine.SetParams(p);
@@ -237,7 +237,7 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     // Reaching a detent, or turning within it: a pulse
     const std::array<bool, kNumDetents> at = { unison, speed_centre, size_centre, tone_centre, shape_centre, input_centre };
     const std::array<float, kNumDetents> knobs = { _main[Controls::S33], _main[Controls::S36], _main[Controls::S31],
-                                                   _shift[Controls::S35], _shift[Controls::S31], _third[Controls::S36] };
+                                                   _shift[Controls::S35], _shift[Controls::S31], _levels[Controls::S36] };
     if (!_detents_ready) {
         // Power-up: no pulse
         _at_detent = at;
@@ -263,8 +263,8 @@ float ClessidraUI::Led(uint32_t now, const Engine& engine) const {
         brightness = 1.0f;
     } else if (_shifted) {
         brightness = _shift[_shift_shown.knob];
-    } else if (_third_on) {
-        brightness = _third[_third_shown.knob];
+    } else if (_levels_on) {
+        brightness = _levels[_levels_shown.knob];
     } else {
         brightness = kGlow * std::min(1.0f, engine.GrainLevel());
     }

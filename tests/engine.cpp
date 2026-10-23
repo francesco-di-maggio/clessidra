@@ -342,13 +342,13 @@ void Mapping() {
 
     // P00 held and S37 down: output down; the main layer's density unchanged
     const float density_before = r.engine.CurrentParams().density;
-    press(ClessidraUI::kThirdPad, true);
+    press(ClessidraUI::kLevelsPad, true);
     for (int i = 1; i <= 40; i++) {
         c.knobs[Controls::S37] = 0.8f - 0.02f * float(i);
         ui.Process(c, r.engine);
     }
     const float output = r.engine.CurrentParams().output;
-    press(ClessidraUI::kThirdPad, false);
+    press(ClessidraUI::kLevelsPad, false);
     Check(output < 0.01f && Near(r.engine.CurrentParams().density, density_before, 1e-4), "P00 + S37 down: output off, density kept", output);
 
     // Detent pulse: on reaching the centre, renewed while turned within it
