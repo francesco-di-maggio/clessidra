@@ -31,7 +31,7 @@ libs:
 
 .PHONY: libs
 
-# Host tests, no board: the engine, the mapping and the web page's worklet
+# Host tests, no board: the engine and the mapping
 test:
 	@sh tests/run.sh
 

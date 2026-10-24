@@ -1,6 +1,5 @@
 #!/bin/sh
-# Runs the host tests: the engine and mapping (C++), then the web page's worklet
-# (Node, if installed). No board needed. From the repo: make test
+# Runs the host tests: the engine and mapping (C++). No board needed. From the repo: make test
 set -e
 cd "$(dirname "$0")/.."
 
@@ -13,10 +12,3 @@ c++ -std=c++17 -O2 -Wall -Wextra -I. \
     -o build/tests/engine 2>&1 | grep -v "DaisySP" || true
 echo "== Engine and mapping"
 build/tests/engine
-
-if command -v node >/dev/null; then
-    echo "== Web page worklet"
-    node tests/worklet.mjs
-else
-    echo "== Web page worklet: skipped (Node not installed)"
-fi

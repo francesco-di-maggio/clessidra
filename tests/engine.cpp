@@ -378,9 +378,6 @@ void Mapping() {
     Check(pitch_before > 1.5f && pitch_reset == 1.0f && pitch_after > 1.0f && pitch_after < pitch_before,
           "P01: pitch back to unison, knob takes over", pitch_after);
     Check(r.engine.CurrentParams().output < 0.01f, "P01: output level kept", r.engine.CurrentParams().output);
-
-    ui.SetSecondLayer(Controls::S34, 0.3f);
-    Check(Near(ui.SecondLayer(Controls::S34), 0.3, 1e-6), "second layer set directly (web page)", ui.SecondLayer(Controls::S34));
 }
 
 } // namespace

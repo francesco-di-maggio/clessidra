@@ -23,7 +23,7 @@ struct Controls {
 
 // Maps the Simple Touch's controls to the engine's parameters, and drives the LED.
 // Holding P11 switches the knobs to a second layer, holding P00 to the levels. No
-// hardware code: the board and the web page run the same mapping.
+// hardware code: the board and the host tests run the same mapping.
 class ClessidraUI {
 public:
     // Pads
@@ -49,9 +49,7 @@ public:
 
     // Every control pass. Sets the engine's parameters and recording.
     void Process(const Controls& c, Engine& engine);
-    // For panels with a control per function: sets a knob's second-layer value, as if
-    // turned with P11 held
-    void SetSecondLayer(size_t knob, float value) { _shift.values[knob % Controls::kNumKnobs] = Takeover(value); }
+    // A knob's second-layer value
     float SecondLayer(size_t knob) const { return _shift[knob % Controls::kNumKnobs]; }
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
     float Led(uint32_t now_ms, const Engine& engine) const;
