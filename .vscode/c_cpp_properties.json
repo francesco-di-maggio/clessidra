@@ -8,6 +8,7 @@
       "defines": ["USE_HAL_DRIVER", "STM32H750xx"],
       "includePath": [
         "${workspaceFolder}",
+        "${workspaceFolder}/src",
         "${workspaceFolder}/lib/libDaisy/**",
         "${workspaceFolder}/lib/DaisySP/**"
       ]

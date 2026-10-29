@@ -2,7 +2,8 @@
 TARGET = Clessidra
 
 # Sources
-CPP_SOURCES = Clessidra.cpp $(wildcard touch/*.cpp) $(wildcard grain/*.cpp) $(wildcard ui/*.cpp)
+CPP_SOURCES = Clessidra.cpp $(wildcard src/hw/*.cpp) $(wildcard src/dsp/*.cpp) $(wildcard src/ui/*.cpp)
+C_INCLUDES += -Isrc
 
 # Library Locations
 LIBDAISY_DIR = lib/libDaisy

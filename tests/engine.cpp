@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <functional>
 #include <vector>
-#include "grain/svf.h"
+#include "dsp/svf.h"
 #include "ui/clessidra_ui.h"
 
 using namespace clessidra;

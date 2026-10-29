@@ -3,7 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include "../grain/engine.h"
+#include "dsp/engine.h"
 
 namespace clessidra {
 

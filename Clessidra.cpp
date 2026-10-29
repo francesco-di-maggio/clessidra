@@ -1,7 +1,7 @@
 #include "daisy_seed.h"
 #include "config.h"
-#include "touch/touch.h"
-#include "grain/engine.h"
+#include "hw/touch.h"
+#include "dsp/engine.h"
 #include "ui/clessidra_ui.h"
 
 // Read by the Synthux libDaisy fork's USB descriptors
