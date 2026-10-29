@@ -41,7 +41,7 @@ struct Rig {
     }
 
     // Runs the input for seconds; between blocks, each(block)
-    void Run(double seconds, const std::function<float(double)>& input,
+    void run(double seconds, const std::function<float(double)>& input,
              const std::function<void(size_t)>& each = nullptr) {
         float l[kBlock], o1[kBlock], o2[kBlock];
         const float* in[2] = { l, l };
@@ -61,14 +61,14 @@ struct Rig {
         }
     }
 
-    void Hold(double seconds, const std::function<float(double)>& input) {
+    void hold(double seconds, const std::function<float(double)>& input) {
         core.set_recording(true);
-        Run(seconds, input);
+        run(seconds, input);
         core.set_recording(false);
-        Run(0.6, input); // the copy lands
+        run(0.6, input); // the copy lands
     }
 
-    double Seconds() const { return core.recorded_seconds(); }
+    double seconds() const { return core.recorded_seconds(); }
 };
 
 float Sine(double t) { return 0.5f * float(std::sin(2.0 * M_PI * 220.0 * t)); }
@@ -79,25 +79,25 @@ void Capture() {
     // 2 s silence, then sound: a tap keeps the 8 s before it, without the silence
     const double begin = 2.0;
     auto later = [begin](double t) { return t < begin ? 0.0f : Sine(t); };
-    r.Run(4.0, later);
-    r.Hold(0.1, later);
-    Check(Near(r.Seconds(), 2.0, 0.03), "tap: the sound before it, silence cut (s)", r.Seconds());
+    r.run(4.0, later);
+    r.hold(0.1, later);
+    Check(Near(r.seconds(), 2.0, 0.03), "tap: the sound before it, silence cut (s)", r.seconds());
 
-    r.Run(1.0, Silence); // longer than the pre-roll
-    r.Hold(1.0, Silence);
-    Check(Near(r.Seconds(), 2.0, 0.03), "hold over silence: recording unchanged (s)", r.Seconds());
+    r.run(1.0, Silence); // longer than the pre-roll
+    r.hold(1.0, Silence);
+    Check(Near(r.seconds(), 2.0, 0.03), "hold over silence: recording unchanged (s)", r.seconds());
 
-    r.Hold(15.0, Sine);
-    Check(Near(r.Seconds(), 8.0, 0.001), "hold 15 s: the last 8 s (s)", r.Seconds());
+    r.hold(15.0, Sine);
+    Check(Near(r.seconds(), 8.0, 0.001), "hold 15 s: the last 8 s (s)", r.seconds());
 
-    r.Hold(0.1, Sine);
-    r.Hold(0.1, Sine);
-    Check(Near(r.Seconds(), 8.0, 0.001), "two taps close together: 8 s each (s)", r.Seconds());
+    r.hold(0.1, Sine);
+    r.hold(0.1, Sine);
+    Check(Near(r.seconds(), 8.0, 0.001), "two taps close together: 8 s each (s)", r.seconds());
 
     // Trim: 5 ms kept before the first sound and after the last
     Rig t;
     auto burst = [](double x) { return x >= 0.5 && x < 1.5 ? Sine(x) : 0.0f; };
-    t.Hold(3.0, burst);
+    t.hold(3.0, burst);
     const Buffer& rec = t.core.recording();
     size_t first = rec.length(), last = 0;
     for (size_t i = 0; i < rec.length(); i++) {
@@ -120,7 +120,7 @@ void Level() {
         seed = seed * 1664525u + 1013904223u;
         return 0.3f * (float(seed >> 8) / float(1 << 24) * 2.0f - 1.0f);
     };
-    r.Hold(2.0, noise);
+    r.hold(2.0, noise);
     Core::Params p;
     p.mix = 1.0f;
     p.density = 8.0f;
@@ -149,7 +149,7 @@ void Level() {
     p.rand_pitch = 12.0f;
     r.core.set_params(p);
     r.peak = 0.0f;
-    r.Run(3.0, Sine);
+    r.run(3.0, Sine);
     Check(r.peak <= Limiter::kThreshold + 1e-4f, "heavy: output peak at most -0.5 dBFS", r.peak);
 }
 
@@ -188,7 +188,7 @@ void Windows() {
 // Share of the output's power within 10 Hz of the partials of 55 Hz, from 40 Hz to 1 kHz
 double PartialShare(float harmonic) {
     Rig r;
-    r.Hold(1.0, Sine); // 220 Hz: the 4th partial
+    r.hold(1.0, Sine); // 220 Hz: the 4th partial
     Core::Params p;
     p.mix = 1.0f;
     p.freeze = true;
@@ -226,7 +226,7 @@ double PartialShare(float harmonic) {
 // Grains at once on average over 20 s of a 1 s recording
 double MeanActive(float size_variation) {
     Rig r;
-    r.Hold(1.0, Sine);
+    r.hold(1.0, Sine);
     Core::Params p;
     p.density = 8.0f;
     p.jitter = 1.0f;
@@ -234,7 +234,7 @@ double MeanActive(float size_variation) {
     r.core.set_params(p);
     double active = 0.0;
     size_t blocks = 0;
-    r.Run(20.0, Sine, [&](size_t) {
+    r.run(20.0, Sine, [&](size_t) {
         for (const auto& g : r.core.grains()) active += g.is_active() ? 1.0 : 0.0;
         blocks++;
     });
@@ -300,12 +300,12 @@ void Mapping() {
         c.touched[pad] = on;
         ui.process(c, r.core);
     };
-    r.Run(1.5, Sine, [&](size_t b) {
+    r.run(1.5, Sine, [&](size_t b) {
         c.now_ms = ms = uint32_t(b);
         press(CoreUI::kRecordPad, b >= 500 && b < 1000); // 1 ms blocks
     });
-    Check(Near(r.Seconds(), 0.55, 0.01), "P10 held 0.5 s: recording, with pre-roll (s)", r.Seconds());
-    r.Run(0.5, Sine);
+    Check(Near(r.seconds(), 0.55, 0.01), "P10 held 0.5 s: recording, with pre-roll (s)", r.seconds());
+    r.run(0.5, Sine);
     const float led = ui.led(ms + 1000, r.core);
     Check(Near(led, 0.6 * 0.6 * 0.6, 0.01), "LED: dim glow with grains", led);
 
@@ -326,7 +326,7 @@ void Mapping() {
     Check(Near(r.core.current_params().grain_ms, 10.0, 0.01), "S31 bottom: grain size (ms)", r.core.current_params().grain_ms);
     c.knobs[Controls::S31] = 1.0f;
     ui.process(c, r.core);
-    Check(Near(r.core.current_params().grain_ms, 500.0 * r.Seconds(), 0.1), "S31 top: half the recording (ms)", r.core.current_params().grain_ms);
+    Check(Near(r.core.current_params().grain_ms, 500.0 * r.seconds(), 0.1), "S31 top: half the recording (ms)", r.core.current_params().grain_ms);
     const float density = r.core.current_params().density;
     const size_t place = CoreUI::kPlacePads[0];
     c.pressure[place] = 0.5f;

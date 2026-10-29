@@ -120,7 +120,7 @@ private:
     void _trigger(const Params& p, double start, double length, double phase, float level, size_t offset);
     // Updates _norm from the mean powers of the last block
     void _normalise(float power_grains, float power_sum, float window_power, size_t size);
-    // End of Process(), after the ring is written: on release, copies the recording to
+    // End of process(), after the ring is written: on release, copies the recording to
     // the buffer not playing once its grains have ended, then plays it.
     void _update_capture(size_t size);
     float _interval(float jitter); // to the next start, 1 = mean

@@ -12,7 +12,7 @@ public:
 
     enum Knob : size_t { S30, S31, S32, S33, S34, S35, S36, S37 };
 
-    // update_rate: Process() calls per second
+    // update_rate: process() calls per second
     void init(daisy::DaisySeed& hw, float update_rate);
     void process();
 

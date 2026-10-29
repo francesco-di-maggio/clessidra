@@ -6,7 +6,7 @@
 
 namespace clessidra {
 
-// Mono recording in external memory, read by the grains. Filled by Ring::Copy(), with
+// Mono recording in external memory, read by the grains. Filled by Ring::copy(), with
 // short fades at both ends so it has no clicks at its edges.
 class Buffer {
 public:
@@ -15,13 +15,13 @@ public:
     // mem: capacity floats, zeroed here (SDRAM content is undefined at boot)
     void init(float* mem, size_t capacity, float sample_rate);
 
-    // After writing length samples to Data(): sets the length and fades the ends
+    // After writing length samples to data(): sets the length and fades the ends
     void finish(size_t length);
     float* data() { return _mem; }
     const float* data() const { return _mem; }
     size_t capacity() const { return _capacity; }
 
-    // Linear interpolation. pos wraps within Length().
+    // Linear interpolation. pos wraps within length().
     float read(double pos) const;
 
     size_t length() const { return _length; }

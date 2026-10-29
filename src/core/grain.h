@@ -6,8 +6,8 @@
 namespace clessidra {
 
 // One grain: a window over a buffer read. Buffer, position, read rate, pan, window
-// shape and size are latched at Start(). The window advances at the rate passed to
-// Render(), divided by the size.
+// shape and size are latched at start(). The window advances at the rate passed to
+// render(), divided by the size.
 class Grain {
 public:
     struct Latch {
@@ -25,7 +25,7 @@ public:
 
     bool is_active() const { return _active; }
     const Buffer* source() const { return _latch.buffer; }
-    // offset: first sample of the grain in the next Render()
+    // offset: first sample of the grain in the next render()
     void start(const Latch& latch, size_t offset);
 
     // Sums over all grains and samples of a block
