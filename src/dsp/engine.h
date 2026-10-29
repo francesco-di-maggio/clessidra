@@ -5,9 +5,9 @@
 #include <cstdint>
 #include "Effects/reverbsc.h"
 #include "Utility/dcblock.h"
-#include "buffer.h"
 #include "grain.h"
 #include "limiter.h"
+#include "ring.h"
 #include "svf.h"
 
 namespace clessidra {
