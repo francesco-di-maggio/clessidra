@@ -92,12 +92,9 @@ public:
     // Grain windows summed, mean over the last block: 1 = one grain at its peak
     float GrainLevel() const { return _grain_level; }
 
-    // For displays, between blocks: the recording playing, the grains, each source's
-    // place in its span (0 = playhead, 1.. = places) and the parameters in use
+    // For tests, between blocks: the recording playing, the grains and the parameters in use
     const Buffer& Recording() const { return _buffers[_playing]; }
     const std::array<Grain, kNumVoices>& Grains() const { return _grains; }
-    double SourcePhase(size_t source) const { return _streams[source].phase; }
-    bool SourceOn(size_t source) const { return _streams[source].on; }
     const Params& CurrentParams() const { return _params; }
 
 private:

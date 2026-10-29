@@ -7,7 +7,7 @@
 
 namespace clessidra {
 
-// The Simple Touch panel as plain values: what the board reads, or what a page sends.
+// The Simple Touch panel as plain values, as the board reads them.
 struct Controls {
     enum Knob : size_t { S30, S31, S32, S33, S34, S35, S36, S37, kNumKnobs }; // S36, S37: faders
     enum Switch : size_t { S09, S07, kNumSwitches };
