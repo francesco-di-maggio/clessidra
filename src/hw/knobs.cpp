@@ -5,7 +5,7 @@ using namespace daisy::seed;
 
 namespace clessidra {
 
-void Knobs::init(DaisySeed& hw, float update_rate) {
+void Knobs::Init(DaisySeed& hw, float update_rate) {
     const Pin pins[kNumKnobs] = { A0, A1, A2, A3, A4, A5, A6, A7 };
     AdcChannelConfig cfg[kNumKnobs];
     for (size_t k = 0; k < kNumKnobs; k++) {
@@ -17,7 +17,7 @@ void Knobs::init(DaisySeed& hw, float update_rate) {
     }
 }
 
-void Knobs::process() {
+void Knobs::Process() {
     for (auto& k : _knobs) {
         k.Process();
     }

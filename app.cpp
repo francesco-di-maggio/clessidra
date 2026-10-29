@@ -18,9 +18,9 @@ static float DSY_SDRAM_BSS buffers[Core::kNumBuffers][kRecordSamples];
 
 class AppImpl {
 public:
-    void init();
-    void loop();
-    void process_audio(daisy::AudioHandle::InputBuffer in, daisy::AudioHandle::OutputBuffer out, size_t size);
+    void Init();
+    void Loop();
+    void ProcessAudio(daisy::AudioHandle::InputBuffer in, daisy::AudioHandle::OutputBuffer out, size_t size);
 
 private:
 #if DEBUG
@@ -40,15 +40,15 @@ using namespace clessidra;
 static AppImpl impl;
 
 static void AudioCallback(daisy::AudioHandle::InputBuffer in, daisy::AudioHandle::OutputBuffer out, size_t size) {
-    impl.process_audio(in, out, size);
+    impl.ProcessAudio(in, out, size);
 }
 
-void AppImpl::init() {
-    _touch.init(kSampleRate, kBlockSize);
+void AppImpl::Init() {
+    _touch.Init(kSampleRate, kBlockSize);
     daisy::DaisySeed& seed = _touch.seed();
     float* buffer_ptrs[Core::kNumBuffers];
     for (size_t b = 0; b < Core::kNumBuffers; b++) buffer_ptrs[b] = buffers[b];
-    _core.init(seed.AudioSampleRate(), ring, kRingSamples, buffer_ptrs, kRecordSamples);
+    _core.Init(seed.AudioSampleRate(), ring, kRingSamples, buffer_ptrs, kRecordSamples);
     _cpu.Init(seed.AudioSampleRate(), seed.AudioBlockSize());
 #if DEBUG
     seed.StartLog(false);
@@ -56,16 +56,16 @@ void AppImpl::init() {
     seed.StartAudio(AudioCallback);
 }
 
-void AppImpl::loop() {
+void AppImpl::Loop() {
 #if DEBUG
     uint32_t last_log = daisy::System::GetNow();
 #endif
 
     while (true) {
-        _touch.process_pads();
-        const Controls c = _touch.read();
-        _ui.process(c, _core);
-        _touch.set_led(_ui.led(c.now_ms, _core));
+        _touch.ProcessPads();
+        const Controls c = _touch.Read();
+        _ui.Process(c, _core);
+        _touch.SetLed(_ui.Led(c.now_ms, _core));
 
 #if DEBUG
         if (daisy::System::GetNow() - last_log >= kLogMs) {
@@ -78,10 +78,10 @@ void AppImpl::loop() {
     }
 }
 
-void AppImpl::process_audio(daisy::AudioHandle::InputBuffer in, daisy::AudioHandle::OutputBuffer out, size_t size) {
+void AppImpl::ProcessAudio(daisy::AudioHandle::InputBuffer in, daisy::AudioHandle::OutputBuffer out, size_t size) {
     _cpu.OnBlockStart();
-    _touch.process_controls();
-    _core.process(in, out, size);
+    _touch.ProcessControls();
+    _core.Process(in, out, size);
     _cpu.OnBlockEnd();
 }
 
@@ -95,27 +95,27 @@ void AppImpl::_log() {
     daisy::DaisySeed& seed = _touch.seed();
     seed.Print("knobs");
     for (size_t k = 0; k < Knobs::kNumKnobs; k++) {
-        seed.Print(" %3d", Percent(_touch.knobs().value(k)));
+        seed.Print(" %3d", Percent(_touch.knobs().Value(k)));
     }
     seed.Print(" | S09 %d S07 %d | pads",
-               _touch.switches().position(Switches::S09),
-               _touch.switches().position(Switches::S07));
+               _touch.switches().Position(Switches::S09),
+               _touch.switches().Position(Switches::S07));
     for (size_t p = 0; p < Pads::kNumPads; p++) {
-        seed.Print(" %3d", Percent(_touch.pads().pressure(p)));
+        seed.Print(" %3d", Percent(_touch.pads().Pressure(p)));
     }
-    seed.Print(" | rec %d len %d.%d s", _core.is_recording(),
-               static_cast<int>(_core.recorded_seconds()),
-               static_cast<int>(_core.recorded_seconds() * 10.0f) % 10);
+    seed.Print(" | rec %d len %d.%d s", _core.IsRecording(),
+               static_cast<int>(_core.RecordedSeconds()),
+               static_cast<int>(_core.RecordedSeconds() * 10.0f) % 10);
     seed.PrintLine(" | cpu avg %d max %d", Percent(_cpu.GetAvgCpuLoad()), Percent(_cpu.GetMaxCpuLoad()));
     // Readings per log line
     _cpu.Reset();
 }
 #endif
 
-void Application::init() {
-    impl.init();
+void Application::Init() {
+    impl.Init();
 }
 
-void Application::loop() {
-    impl.loop();
+void Application::Loop() {
+    impl.Loop();
 }

@@ -9,8 +9,8 @@ public:
     Application()  = default;
     ~Application() = default;
 
-    void init();
-    void loop();
+    void Init();
+    void Loop();
 
 private:
     NOCOPY(Application)

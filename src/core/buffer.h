@@ -6,25 +6,25 @@
 
 namespace clessidra {
 
-// Mono recording in external memory, read by the grains. Filled by Ring::copy(), with
+// Mono recording in external memory, read by the grains. Filled by Ring::Copy(), with
 // short fades at both ends so it has no clicks at its edges.
 class Buffer {
 public:
     static constexpr float kFadeSeconds = 0.005f;
 
     // mem: capacity floats, zeroed here (SDRAM content is undefined at boot)
-    void init(float* mem, size_t capacity, float sample_rate);
+    void Init(float* mem, size_t capacity, float sample_rate);
 
-    // After writing length samples to data(): sets the length and fades the ends
-    void finish(size_t length);
-    float* data() { return _mem; }
-    const float* data() const { return _mem; }
-    size_t capacity() const { return _capacity; }
+    // After writing length samples to Data(): sets the length and fades the ends
+    void Finish(size_t length);
+    float* Data() { return _mem; }
+    const float* Data() const { return _mem; }
+    size_t Capacity() const { return _capacity; }
 
-    // Linear interpolation. pos wraps within length().
-    float read(double pos) const;
+    // Linear interpolation. pos wraps within Length().
+    float Read(double pos) const;
 
-    size_t length() const { return _length; }
+    size_t Length() const { return _length; }
 
 private:
     float* _mem = nullptr;
@@ -34,7 +34,7 @@ private:
 };
 
 // Inline: called per grain per sample
-inline float Buffer::read(double pos) const {
+inline float Buffer::Read(double pos) const {
     if (_length == 0) return 0.0f;
     const double len = double(_length);
     if (pos < 0.0 || pos >= len) pos -= len * std::floor(pos / len);

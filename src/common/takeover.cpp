@@ -5,7 +5,7 @@
 
 namespace clessidra {
 
-void Takeover::process(float knob) {
+void Takeover::Process(float knob) {
     float delta = knob - _previous;
     _previous = knob;
     if (_origin >= 0.0f) {

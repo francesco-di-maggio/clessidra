@@ -5,20 +5,20 @@
 
 namespace clessidra {
 
-void Ring::init(float* mem, size_t capacity, float sample_rate) {
+void Ring::Init(float* mem, size_t capacity, float sample_rate) {
     _mem = mem;
     _capacity = capacity;
     _margin = std::max<size_t>(1, static_cast<size_t>(Buffer::kFadeSeconds * sample_rate));
     std::fill(_mem, _mem + _capacity, 0.0f);
 }
 
-void Ring::write(float x) {
+void Ring::Write(float x) {
     _mem[_write_pos] = x;
     if (++_write_pos == _capacity) _write_pos = 0;
     _written = std::min(_written + 1, _capacity);
 }
 
-void Ring::select(size_t end_back, size_t length) {
+void Ring::Select(size_t end_back, size_t length) {
     end_back = std::min(end_back, _written);
     _length = std::min(length, _written - end_back);
     _start = (_write_pos + 2 * _capacity - end_back - _length) % _capacity;
@@ -27,10 +27,10 @@ void Ring::select(size_t end_back, size_t length) {
     _last = 0;
 }
 
-Ring::Step Ring::copy(Buffer& dst, size_t max_samples) {
+Ring::Step Ring::Copy(Buffer& dst, size_t max_samples) {
     // At most the region: _copied <= _done <= _length <= dst capacity
     const size_t end = std::min(_done + max_samples, _length);
-    float* data = dst.data();
+    float* data = dst.Data();
     size_t i = _index(_done);
     // Leading silence, then from the margin before the first sound
     for (; _copied == 0 && _done < end; _done++) {
@@ -48,7 +48,7 @@ Ring::Step Ring::copy(Buffer& dst, size_t max_samples) {
     }
     if (_done < _length) return Step::Pending;
     if (_copied == 0) return Step::Silent;
-    dst.finish(std::min(_copied, _last + _margin));
+    dst.Finish(std::min(_copied, _last + _margin));
     return Step::Done;
 }
 

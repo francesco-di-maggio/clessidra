@@ -50,9 +50,9 @@ CoreUI::CoreUI() {
     // Levels at unity
     _levels.values[Controls::S36] = Takeover(0.5f);
     _levels.values[Controls::S37] = Takeover(1.0f);
-    _shift_shown.update(_shift);
+    _shift_shown.Update(_shift);
     _shift_shown.knob = Controls::S36;
-    _levels_shown.update(_levels);
+    _levels_shown.Update(_levels);
     _levels_shown.knob = Controls::S37;
 }
 
@@ -72,10 +72,10 @@ void CoreUI::_reset(const Controls& c) {
         _shift.values[i] = Takeover(shift[i]);
     }
     _speed = 0.5f;
-    _layer->engage(c);
+    _layer->Engage(c);
 }
 
-void CoreUI::Shown::update(const Layer& layer) {
+void CoreUI::Shown::Update(const Layer& layer) {
     for (size_t i = 0; i < Controls::kNumKnobs; i++) {
         if (std::fabs(layer[i] - values[i]) < kShowStep) continue;
         values[i] = layer[i];
@@ -83,19 +83,19 @@ void CoreUI::Shown::update(const Layer& layer) {
     }
 }
 
-void CoreUI::Layer::engage(const Controls& c) {
-    for (size_t i = 0; i < Controls::kNumKnobs; i++) values[i].engage(c.knobs[i]);
+void CoreUI::Layer::Engage(const Controls& c) {
+    for (size_t i = 0; i < Controls::kNumKnobs; i++) values[i].Engage(c.knobs[i]);
 }
 
-void CoreUI::Layer::process(const Controls& c) {
-    for (size_t i = 0; i < Controls::kNumKnobs; i++) values[i].process(c.knobs[i]);
+void CoreUI::Layer::Process(const Controls& c) {
+    for (size_t i = 0; i < Controls::kNumKnobs; i++) values[i].Process(c.knobs[i]);
 }
 
-void CoreUI::process(const Controls& c, Core& core) {
+void CoreUI::Process(const Controls& c, Core& core) {
     const bool recording = c.touched[kRecordPad];
     if (recording && !_recording) _record_since = c.now_ms;
     _recording = recording;
-    core.set_recording(recording);
+    core.SetRecording(recording);
 
     if (!_started) {
         // The main layer starts where its knobs are, and follows them exactly
@@ -106,11 +106,11 @@ void CoreUI::process(const Controls& c, Core& core) {
     const bool shifted = c.touched[kShiftPad];
     const bool levels = !shifted && c.touched[kLevelsPad];
     Layer* layer = shifted ? &_shift : levels ? &_levels : &_main;
-    if (layer != _layer) layer->engage(c);
+    if (layer != _layer) layer->Engage(c);
     _layer = layer;
     _shifted = shifted;
     _levels_on = levels;
-    layer->process(c);
+    layer->Process(c);
 
     // P01 tapped: defaults, the knobs taking over from there
     const bool reset = c.touched[kResetPad];
@@ -120,8 +120,8 @@ void CoreUI::process(const Controls& c, Core& core) {
     }
     _reset_touched = reset;
 
-    _shift_shown.update(_shift);
-    _levels_shown.update(_levels);
+    _shift_shown.Update(_shift);
+    _levels_shown.Update(_levels);
 
     Core::Params p;
 
@@ -131,7 +131,7 @@ void CoreUI::process(const Controls& c, Core& core) {
     p.length = std::fabs(b - a);
 
     // Grain size: up to half the recording
-    const float top_ms = std::max(100.0f, 500.0f * core.recorded_seconds());
+    const float top_ms = std::max(100.0f, 500.0f * core.RecordedSeconds());
     p.grain_ms = GrainMs(_main[Controls::S31], top_ms);
     const bool size_centre = Detent(_main[Controls::S31], 0.05f) == 0.5f;
 
@@ -153,7 +153,7 @@ void CoreUI::process(const Controls& c, Core& core) {
     if (frozen && !_frozen) _speed = _main[Controls::S36];
     if (!frozen && _frozen) {
         _main.values[Controls::S36] = Takeover(_speed);
-        _main.values[Controls::S36].engage(c.knobs[Controls::S36]);
+        _main.values[Controls::S36].Engage(c.knobs[Controls::S36]);
     }
     _frozen = frozen;
     const float speed = Detent(frozen ? _speed : _main[Controls::S36], 0.05f);
@@ -217,7 +217,7 @@ void CoreUI::process(const Controls& c, Core& core) {
     const float output = _levels[Controls::S37];
     p.output = output * output;
 
-    core.set_params(p);
+    core.SetParams(p);
 
     // Reaching a detent, or turning within it: a pulse
     const std::array<bool, kNumDetents> at = { unison, speed_centre, size_centre, tone_centre, shape_centre, input_centre };
@@ -239,7 +239,7 @@ void CoreUI::process(const Controls& c, Core& core) {
 
 // First that applies: recording flash, detent pulse, second layer (steady, brightness =
 // value last turned), grains (dim glow that follows their windows)
-float CoreUI::led(uint32_t now, const Core& core) const {
+float CoreUI::Led(uint32_t now, const Core& core) const {
     float brightness;
     if (_recording) {
         // From the touch: a tap shows one flash
@@ -251,7 +251,7 @@ float CoreUI::led(uint32_t now, const Core& core) const {
     } else if (_levels_on) {
         brightness = _levels[_levels_shown.knob];
     } else {
-        brightness = kGlow * std::min(1.0f, core.grain_level());
+        brightness = kGlow * std::min(1.0f, core.GrainLevel());
     }
     // Cubed: even steps to the eye
     return brightness * brightness * brightness;

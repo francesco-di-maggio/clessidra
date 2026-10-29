@@ -6,7 +6,7 @@ using namespace daisy;
 
 namespace clessidra {
 
-void Pads::init() {
+void Pads::Init() {
     Mpr121I2C::Config cfg;
     cfg.touch_threshold = kTouchThreshold;
     cfg.release_threshold = kReleaseThreshold;
@@ -57,7 +57,7 @@ void Pads::_configure() {
     System::Delay(80); // auto-configuration
 }
 
-void Pads::process() {
+void Pads::Process() {
     const uint16_t touched = _mpr.Touched();
     _touched = 0;
     for (size_t p = 0; p < kNumPads; p++) {

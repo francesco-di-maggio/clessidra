@@ -19,8 +19,8 @@ public:
     static constexpr float kReleaseSeconds = 0.04f;
     static constexpr float kMaxSampleRate = 96000.0f;
 
-    void init(float sample_rate);
-    void process(float& left, float& right);
+    void Init(float sample_rate);
+    void Process(float& left, float& right);
 
 private:
     static constexpr size_t kMaxBox = size_t(kMaxSampleRate * kAttackSeconds / 2.0f);
@@ -29,8 +29,8 @@ private:
     // Minimum of the last length values: monotonic queue in a ring
     class MovingMin {
     public:
-        void init(size_t length);
-        float process(float x);
+        void Init(size_t length);
+        float Process(float x);
 
     private:
         std::array<float, kMaxWindow> _value;
@@ -44,8 +44,8 @@ private:
     // Mean of the last length values
     class Box {
     public:
-        void init(size_t length);
-        float process(float x);
+        void Init(size_t length);
+        float Process(float x);
 
     private:
         std::array<float, kMaxBox> _ring;

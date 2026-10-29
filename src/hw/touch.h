@@ -14,45 +14,45 @@ class Touch {
 public:
     Touch() = default;
 
-    void init(daisy::SaiHandle::Config::SampleRate sample_rate, size_t block_size) {
+    void Init(daisy::SaiHandle::Config::SampleRate sample_rate, size_t block_size) {
         _seed.Init(true);
         _seed.SetAudioSampleRate(sample_rate);
         _seed.SetAudioBlockSize(block_size);
         // Knobs are smoothed at the callback rate, set above
-        _knobs.init(_seed, _seed.AudioCallbackRate());
+        _knobs.Init(_seed, _seed.AudioCallbackRate());
         _seed.adc.Start();
-        _switches.init();
-        _pads.init();
+        _switches.Init();
+        _pads.Init();
         // TIM3 channel 2 drives PC7, the Seed's LED. 16-bit period: about 3.7 kHz.
         _led.Init(daisy::PWMHandle::Config(daisy::PWMHandle::Config::Peripheral::TIM_3));
         _led.Channel2().Init();
     }
 
     // Audio callback, once per block.
-    void process_controls() {
-        _knobs.process();
-        _switches.process();
+    void ProcessControls() {
+        _knobs.Process();
+        _switches.Process();
     }
 
     // Main loop.
-    void process_pads() { _pads.process(); }
+    void ProcessPads() { _pads.Process(); }
 
     // The panel as the UI reads it
-    Controls read() const {
+    Controls Read() const {
         Controls c;
-        for (size_t k = 0; k < Controls::kNumKnobs; k++) c.knobs[k] = _knobs.value(k);
-        c.switches[Controls::S09] = Controls::Position(_switches.position(Switches::S09));
-        c.switches[Controls::S07] = Controls::Position(_switches.position(Switches::S07));
+        for (size_t k = 0; k < Controls::kNumKnobs; k++) c.knobs[k] = _knobs.Value(k);
+        c.switches[Controls::S09] = Controls::Position(_switches.Position(Switches::S09));
+        c.switches[Controls::S07] = Controls::Position(_switches.Position(Switches::S07));
         for (size_t p = 0; p < Controls::kNumPads; p++) {
-            c.touched[p] = _pads.is_touched(p);
-            c.pressure[p] = _pads.pressure(p);
+            c.touched[p] = _pads.IsTouched(p);
+            c.pressure[p] = _pads.Pressure(p);
         }
         c.now_ms = daisy::System::GetNow();
         return c;
     }
 
     // 0..1, duty cycle
-    void set_led(float value) { _led.Channel2().Set(value); }
+    void SetLed(float value) { _led.Channel2().Set(value); }
 
     daisy::DaisySeed& seed() { return _seed; }
     Knobs& knobs() { return _knobs; }

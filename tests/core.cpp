@@ -37,11 +37,11 @@ struct Rig {
 
     Rig() {
         float* buffers[Core::kNumBuffers] = { memory[0].data(), memory[1].data() };
-        core.init(kRate, ring.data(), ring.size(), buffers, 8 * kRate);
+        core.Init(kRate, ring.data(), ring.size(), buffers, 8 * kRate);
     }
 
     // Runs the input for seconds; between blocks, each(block)
-    void run(double seconds, const std::function<float(double)>& input,
+    void Run(double seconds, const std::function<float(double)>& input,
              const std::function<void(size_t)>& each = nullptr) {
         float l[kBlock], o1[kBlock], o2[kBlock];
         const float* in[2] = { l, l };
@@ -53,7 +53,7 @@ struct Rig {
                 l[i] = input(time);
                 time += 1.0 / kRate;
             }
-            core.process(in, out, kBlock);
+            core.Process(in, out, kBlock);
             for (size_t i = 0; i < kBlock; i++) {
                 finite = finite && std::isfinite(o1[i]) && std::isfinite(o2[i]);
                 peak = std::max(peak, std::max(std::fabs(o1[i]), std::fabs(o2[i])));
@@ -61,14 +61,14 @@ struct Rig {
         }
     }
 
-    void hold(double seconds, const std::function<float(double)>& input) {
-        core.set_recording(true);
-        run(seconds, input);
-        core.set_recording(false);
-        run(0.6, input); // the copy lands
+    void Hold(double seconds, const std::function<float(double)>& input) {
+        core.SetRecording(true);
+        Run(seconds, input);
+        core.SetRecording(false);
+        Run(0.6, input); // the copy lands
     }
 
-    double seconds() const { return core.recorded_seconds(); }
+    double Seconds() const { return core.RecordedSeconds(); }
 };
 
 float Sine(double t) { return 0.5f * float(std::sin(2.0 * M_PI * 220.0 * t)); }
@@ -79,36 +79,36 @@ void Capture() {
     // 2 s silence, then sound: a tap keeps the 8 s before it, without the silence
     const double begin = 2.0;
     auto later = [begin](double t) { return t < begin ? 0.0f : Sine(t); };
-    r.run(4.0, later);
-    r.hold(0.1, later);
-    Check(Near(r.seconds(), 2.0, 0.03), "tap: the sound before it, silence cut (s)", r.seconds());
+    r.Run(4.0, later);
+    r.Hold(0.1, later);
+    Check(Near(r.Seconds(), 2.0, 0.03), "tap: the sound before it, silence cut (s)", r.Seconds());
 
-    r.run(1.0, Silence); // longer than the pre-roll
-    r.hold(1.0, Silence);
-    Check(Near(r.seconds(), 2.0, 0.03), "hold over silence: recording unchanged (s)", r.seconds());
+    r.Run(1.0, Silence); // longer than the pre-roll
+    r.Hold(1.0, Silence);
+    Check(Near(r.Seconds(), 2.0, 0.03), "hold over silence: recording unchanged (s)", r.Seconds());
 
-    r.hold(15.0, Sine);
-    Check(Near(r.seconds(), 8.0, 0.001), "hold 15 s: the last 8 s (s)", r.seconds());
+    r.Hold(15.0, Sine);
+    Check(Near(r.Seconds(), 8.0, 0.001), "hold 15 s: the last 8 s (s)", r.Seconds());
 
-    r.hold(0.1, Sine);
-    r.hold(0.1, Sine);
-    Check(Near(r.seconds(), 8.0, 0.001), "two taps close together: 8 s each (s)", r.seconds());
+    r.Hold(0.1, Sine);
+    r.Hold(0.1, Sine);
+    Check(Near(r.Seconds(), 8.0, 0.001), "two taps close together: 8 s each (s)", r.Seconds());
 
     // Trim: 5 ms kept before the first sound and after the last
     Rig t;
     auto burst = [](double x) { return x >= 0.5 && x < 1.5 ? Sine(x) : 0.0f; };
-    t.hold(3.0, burst);
-    const Buffer& rec = t.core.recording();
-    size_t first = rec.length(), last = 0;
-    for (size_t i = 0; i < rec.length(); i++) {
-        if (std::fabs(rec.data()[i]) > Ring::kSilence) {
-            if (first == rec.length()) first = i;
+    t.Hold(3.0, burst);
+    const Buffer& rec = t.core.Recording();
+    size_t first = rec.Length(), last = 0;
+    for (size_t i = 0; i < rec.Length(); i++) {
+        if (std::fabs(rec.Data()[i]) > Ring::kSilence) {
+            if (first == rec.Length()) first = i;
             last = i;
         }
     }
     const double margin = Buffer::kFadeSeconds * kRate;
     Check(Near(double(first), margin, 1.0), "trim: samples kept before the sound", double(first));
-    Check(Near(double(rec.length() - 1 - last), margin, 1.0), "trim: samples kept after the sound", double(rec.length() - 1 - last));
+    Check(Near(double(rec.Length() - 1 - last), margin, 1.0), "trim: samples kept after the sound", double(rec.Length() - 1 - last));
     Check(t.finite, "output finite throughout", 1.0);
 }
 
@@ -120,18 +120,18 @@ void Level() {
         seed = seed * 1664525u + 1013904223u;
         return 0.3f * (float(seed >> 8) / float(1 << 24) * 2.0f - 1.0f);
     };
-    r.hold(2.0, noise);
+    r.Hold(2.0, noise);
     Core::Params p;
     p.mix = 1.0f;
     p.density = 8.0f;
-    r.core.set_params(p);
+    r.core.SetParams(p);
     double in = 0.0, out = 0.0;
     float l[kBlock], o1[kBlock], o2[kBlock];
     const float* ins[2] = { l, l };
     float* outs[2] = { o1, o2 };
     for (size_t b = 0; b < 4000; b++) {
         for (size_t i = 0; i < kBlock; i++) l[i] = noise(0.0);
-        r.core.process(ins, outs, kBlock);
+        r.core.Process(ins, outs, kBlock);
         if (b < 1000) continue;
         for (size_t i = 0; i < kBlock; i++) {
             in += double(l[i]) * l[i];
@@ -147,9 +147,9 @@ void Level() {
     p.place_density.fill(16.0f);
     p.reverb = 0.8f;
     p.rand_pitch = 12.0f;
-    r.core.set_params(p);
+    r.core.SetParams(p);
     r.peak = 0.0f;
-    r.run(3.0, Sine);
+    r.Run(3.0, Sine);
     Check(r.peak <= Limiter::kThreshold + 1e-4f, "heavy: output peak at most -0.5 dBFS", r.peak);
 }
 
@@ -157,10 +157,10 @@ void Level() {
 std::vector<float> Window(float shape) {
     std::vector<float> ones(kRate, 1.0f);
     Buffer buffer;
-    buffer.init(ones.data(), ones.size(), float(kRate));
+    buffer.Init(ones.data(), ones.size(), float(kRate));
     std::fill(ones.begin(), ones.end(), 1.0f);
-    buffer.finish(ones.size());
-    Grain::init_window();
+    buffer.Finish(ones.size());
+    Grain::InitWindow();
     Grain grain;
     Grain::Latch latch;
     latch.buffer = &buffer;
@@ -168,10 +168,10 @@ std::vector<float> Window(float shape) {
     latch.rate = 0.0f;
     latch.pan = 0.0f; // all left, gain 1
     latch.shape = shape;
-    grain.start(latch, 0);
+    grain.Start(latch, 0);
     std::vector<float> window(1000, 0.0f), right(1000, 0.0f);
     Grain::Sums sums;
-    grain.render(1.0 / 1000.0, window.data(), right.data(), window.size(), sums);
+    grain.Render(1.0 / 1000.0, window.data(), right.data(), window.size(), sums);
     return window;
 }
 
@@ -188,20 +188,20 @@ void Windows() {
 // Share of the output's power within 10 Hz of the partials of 55 Hz, from 40 Hz to 1 kHz
 double PartialShare(float harmonic) {
     Rig r;
-    r.hold(1.0, Sine); // 220 Hz: the 4th partial
+    r.Hold(1.0, Sine); // 220 Hz: the 4th partial
     Core::Params p;
     p.mix = 1.0f;
     p.freeze = true;
     p.rand_pitch = 12.0f;
     p.harmonic = harmonic;
-    r.core.set_params(p);
+    r.core.SetParams(p);
     std::vector<float> mono;
     float l[kBlock], o1[kBlock], o2[kBlock];
     const float* ins[2] = { l, l };
     float* outs[2] = { o1, o2 };
     std::fill(l, l + kBlock, 0.0f);
     for (size_t b = 0; b < 2000; b++) {
-        r.core.process(ins, outs, kBlock);
+        r.core.Process(ins, outs, kBlock);
         if (b < 1000) continue;
         for (size_t i = 0; i < kBlock; i++) mono.push_back(o1[i] + o2[i]);
     }
@@ -226,16 +226,16 @@ double PartialShare(float harmonic) {
 // Grains at once on average over 20 s of a 1 s recording
 double MeanActive(float size_variation) {
     Rig r;
-    r.hold(1.0, Sine);
+    r.Hold(1.0, Sine);
     Core::Params p;
     p.density = 8.0f;
     p.jitter = 1.0f;
     p.size_variation = size_variation;
-    r.core.set_params(p);
+    r.core.SetParams(p);
     double active = 0.0;
     size_t blocks = 0;
-    r.run(20.0, Sine, [&](size_t) {
-        for (const auto& g : r.core.grains()) active += g.is_active() ? 1.0 : 0.0;
+    r.Run(20.0, Sine, [&](size_t) {
+        for (const auto& g : r.core.Grains()) active += g.IsActive() ? 1.0 : 0.0;
         blocks++;
     });
     return active / double(blocks);
@@ -254,12 +254,12 @@ void Harmonic() {
 
 double Gain(float hz, float cutoff, float q, bool low) {
     Svf f;
-    f.set(cutoff, q, float(kRate));
+    f.Set(cutoff, q, float(kRate));
     double in = 0.0, out = 0.0;
     for (size_t n = 0; n < 2 * kRate; n++) {
         const float x = float(std::sin(2.0 * M_PI * hz * double(n) / kRate));
-        f.process(x);
-        const float y = low ? f.low() : f.high();
+        f.Process(x);
+        const float y = low ? f.Low() : f.High();
         if (n < kRate) continue;
         in += double(x) * x;
         out += double(y) * y;
@@ -284,8 +284,8 @@ void Mapping() {
     c.knobs[Controls::S35] = 1.0f;
     c.knobs[Controls::S37] = 0.0f;
     c.switches = { Controls::Up, Controls::Up };
-    ui.process(c, r.core);
-    const Core::Params& p = r.core.current_params();
+    ui.Process(c, r.core);
+    const Core::Params& p = r.core.CurrentParams();
     Check(Near(p.grain_ms, 100.0, 0.01), "S31 centre: grain size (ms)", p.grain_ms);
     Check(Near(p.pitch, 1.0, 1e-6), "S33 centre: pitch (ratio)", p.pitch);
     Check(Near(p.speed, 1.0, 1e-6), "S36 centre: speed", p.speed);
@@ -298,86 +298,86 @@ void Mapping() {
     uint32_t ms = 0;
     auto press = [&](size_t pad, bool on) {
         c.touched[pad] = on;
-        ui.process(c, r.core);
+        ui.Process(c, r.core);
     };
-    r.run(1.5, Sine, [&](size_t b) {
+    r.Run(1.5, Sine, [&](size_t b) {
         c.now_ms = ms = uint32_t(b);
         press(CoreUI::kRecordPad, b >= 500 && b < 1000); // 1 ms blocks
     });
-    Check(Near(r.seconds(), 0.55, 0.01), "P10 held 0.5 s: recording, with pre-roll (s)", r.seconds());
-    r.run(0.5, Sine);
-    const float led = ui.led(ms + 1000, r.core);
+    Check(Near(r.Seconds(), 0.55, 0.01), "P10 held 0.5 s: recording, with pre-roll (s)", r.Seconds());
+    r.Run(0.5, Sine);
+    const float led = ui.Led(ms + 1000, r.core);
     Check(Near(led, 0.6 * 0.6 * 0.6, 0.01), "LED: dim glow with grains", led);
 
     // P11 held and S35 turned: the second layer changes, the main layer doesn't
-    const float tone_before = ui.second_layer(Controls::S35);
+    const float tone_before = ui.SecondLayer(Controls::S35);
     press(CoreUI::kShiftPad, true);
     for (int i = 1; i <= 20; i++) {
         c.knobs[Controls::S35] = 1.0f - 0.02f * float(i);
-        ui.process(c, r.core);
+        ui.Process(c, r.core);
     }
     press(CoreUI::kShiftPad, false);
-    Check(ui.second_layer(Controls::S35) < tone_before - 0.2f, "P11 + S35: tone turned down", ui.second_layer(Controls::S35));
-    Check(Near(r.core.current_params().length, 1.0, 1e-6), "P11 + S35: selection end unchanged", r.core.current_params().length);
+    Check(ui.SecondLayer(Controls::S35) < tone_before - 0.2f, "P11 + S35: tone turned down", ui.SecondLayer(Controls::S35));
+    Check(Near(r.core.CurrentParams().length, 1.0, 1e-6), "P11 + S35: selection end unchanged", r.core.CurrentParams().length);
 
     // Grain size ends; a place pressed half way
     c.knobs[Controls::S31] = 0.0f;
-    ui.process(c, r.core);
-    Check(Near(r.core.current_params().grain_ms, 10.0, 0.01), "S31 bottom: grain size (ms)", r.core.current_params().grain_ms);
+    ui.Process(c, r.core);
+    Check(Near(r.core.CurrentParams().grain_ms, 10.0, 0.01), "S31 bottom: grain size (ms)", r.core.CurrentParams().grain_ms);
     c.knobs[Controls::S31] = 1.0f;
-    ui.process(c, r.core);
-    Check(Near(r.core.current_params().grain_ms, 500.0 * r.seconds(), 0.1), "S31 top: half the recording (ms)", r.core.current_params().grain_ms);
-    const float density = r.core.current_params().density;
+    ui.Process(c, r.core);
+    Check(Near(r.core.CurrentParams().grain_ms, 500.0 * r.Seconds(), 0.1), "S31 top: half the recording (ms)", r.core.CurrentParams().grain_ms);
+    const float density = r.core.CurrentParams().density;
     const size_t place = CoreUI::kPlacePads[0];
     c.pressure[place] = 0.5f;
     press(place, true);
-    const Core::Params& pressed = r.core.current_params();
+    const Core::Params& pressed = r.core.CurrentParams();
     Check(pressed.place_density[0] == density && Near(pressed.level, std::sqrt(0.5), 1e-4) && Near(pressed.place_level[0], std::sqrt(0.5), 1e-4),
           "place pressed half: its density, equal-power crossfade", pressed.level);
     press(CoreUI::kStopPad, true);
-    Check(r.core.current_params().place_density[0] == 0.0f, "P02 held: places stopped", r.core.current_params().place_density[0]);
+    Check(r.core.CurrentParams().place_density[0] == 0.0f, "P02 held: places stopped", r.core.CurrentParams().place_density[0]);
     press(CoreUI::kStopPad, false);
 
     press(place, false);
 
     // P00 held and S37 down: output down; the main layer's density unchanged
-    const float density_before = r.core.current_params().density;
+    const float density_before = r.core.CurrentParams().density;
     press(CoreUI::kLevelsPad, true);
     for (int i = 1; i <= 40; i++) {
         c.knobs[Controls::S37] = 0.8f - 0.02f * float(i);
-        ui.process(c, r.core);
+        ui.Process(c, r.core);
     }
-    const float output = r.core.current_params().output;
+    const float output = r.core.CurrentParams().output;
     press(CoreUI::kLevelsPad, false);
-    Check(output < 0.01f && Near(r.core.current_params().density, density_before, 1e-4), "P00 + S37 down: output off, density kept", output);
+    Check(output < 0.01f && Near(r.core.CurrentParams().density, density_before, 1e-4), "P00 + S37 down: output off, density kept", output);
 
     // Detent pulse: on reaching the centre, renewed while turned within it
     c.knobs[Controls::S33] = 0.4f;
     c.now_ms = 10000;
-    ui.process(c, r.core);
+    ui.Process(c, r.core);
     c.knobs[Controls::S33] = 0.49f;
-    ui.process(c, r.core);
-    const float reached = ui.led(10000 + CoreUI::kPulseMs - 1, r.core);
+    ui.Process(c, r.core);
+    const float reached = ui.Led(10000 + CoreUI::kPulseMs - 1, r.core);
     c.now_ms = 10200;
     c.knobs[Controls::S33] = 0.51f;
-    ui.process(c, r.core);
-    const float renewed = ui.led(10200 + CoreUI::kPulseMs - 1, r.core);
-    const float ended = ui.led(10200 + CoreUI::kPulseMs, r.core);
+    ui.Process(c, r.core);
+    const float renewed = ui.Led(10200 + CoreUI::kPulseMs - 1, r.core);
+    const float ended = ui.Led(10200 + CoreUI::kPulseMs, r.core);
     Check(reached == 1.0f && renewed == 1.0f && ended < 1.0f, "LED: pulse at pitch unison, renewed while turned", renewed);
 
     // P01 tapped: defaults, then the knob takes over from there
     c.knobs[Controls::S33] = 0.9f;
-    ui.process(c, r.core);
-    const float pitch_before = r.core.current_params().pitch;
+    ui.Process(c, r.core);
+    const float pitch_before = r.core.CurrentParams().pitch;
     press(CoreUI::kResetPad, true);
     press(CoreUI::kResetPad, false);
-    const float pitch_reset = r.core.current_params().pitch;
+    const float pitch_reset = r.core.CurrentParams().pitch;
     c.knobs[Controls::S33] = 0.95f;
-    ui.process(c, r.core);
-    const float pitch_after = r.core.current_params().pitch;
+    ui.Process(c, r.core);
+    const float pitch_after = r.core.CurrentParams().pitch;
     Check(pitch_before > 1.5f && pitch_reset == 1.0f && pitch_after > 1.0f && pitch_after < pitch_before,
           "P01: pitch back to unison, knob takes over", pitch_after);
-    Check(r.core.current_params().output < 0.01f, "P01: output level kept", r.core.current_params().output);
+    Check(r.core.CurrentParams().output < 0.01f, "P01: output level kept", r.core.CurrentParams().output);
 }
 
 } // namespace

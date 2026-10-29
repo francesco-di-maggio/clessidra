@@ -81,24 +81,24 @@ public:
     // ring: ring_size floats; buffers: kNumBuffers of buffer_size floats, the longest
     // recording. All allocated by the caller. The ring holds the tap, pre-roll and
     // copy margin beyond buffer_size.
-    void init(float sample_rate, float* ring, size_t ring_size, float* const* buffers, size_t buffer_size);
-    void process(const float* const* in, float** out, size_t size);
+    void Init(float sample_rate, float* ring, size_t ring_size, float* const* buffers, size_t buffer_size);
+    void Process(const float* const* in, float** out, size_t size);
 
     // Main loop. Applied at the next audio block: on release, the recording replaces
     // the playing one unless it is silent. Silence at both ends is cut.
-    void set_recording(bool on) { _record = on; }
+    void SetRecording(bool on) { _record = on; }
     // Main loop. Fields are copied one by one: a block may see a mix of old and new.
-    void set_params(const Params& p) { _params = p; }
+    void SetParams(const Params& p) { _params = p; }
 
-    bool is_recording() const { return _record; }
-    float recorded_seconds() const { return float(_buffers[_playing].length()) / _sample_rate; }
+    bool IsRecording() const { return _record; }
+    float RecordedSeconds() const { return float(_buffers[_playing].Length()) / _sample_rate; }
     // Grain windows summed, mean over the last block: 1 = one grain at its peak
-    float grain_level() const { return _grain_level; }
+    float GrainLevel() const { return _grain_level; }
 
     // For tests, between blocks: the recording playing, the grains and the parameters in use
-    const Buffer& recording() const { return _buffers[_playing]; }
-    const std::array<Grain, kNumVoices>& grains() const { return _grains; }
-    const Params& current_params() const { return _params; }
+    const Buffer& Recording() const { return _buffers[_playing]; }
+    const std::array<Grain, kNumVoices>& Grains() const { return _grains; }
+    const Params& CurrentParams() const { return _params; }
 
 private:
     NOCOPY(Core)
@@ -120,7 +120,7 @@ private:
     void _trigger(const Params& p, double start, double length, double phase, float level, size_t offset);
     // Updates _norm from the mean powers of the last block
     void _normalise(float power_grains, float power_sum, float window_power, size_t size);
-    // End of process(), after the ring is written: on release, copies the recording to
+    // End of Process(), after the ring is written: on release, copies the recording to
     // the buffer not playing once its grains have ended, then plays it.
     void _update_capture(size_t size);
     float _interval(float jitter); // to the next start, 1 = mean

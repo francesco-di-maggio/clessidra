@@ -8,7 +8,7 @@ namespace clessidra {
 float Grain::_rise[Grain::kWindowSize + 1];
 float Grain::_decay[Grain::kWindowSize + 1];
 
-void Grain::init_window() {
+void Grain::InitWindow() {
     for (size_t i = 0; i <= kWindowSize; i++) {
         const float x = float(i) / float(kWindowSize);
         const float sine = std::sin(0.5f * float(M_PI) * x);
@@ -24,7 +24,7 @@ float Grain::_lookup(const float* table, float x) {
     return table[i] + (w - float(i)) * (table[i + 1] - table[i]);
 }
 
-void Grain::start(const Latch& latch, size_t offset) {
+void Grain::Start(const Latch& latch, size_t offset) {
     _latch = latch;
     _offset = offset;
     _phase = 0.0;
@@ -45,7 +45,7 @@ void Grain::start(const Latch& latch, size_t offset) {
     _fall_scale = 1.0f / (1.0f - _peak);
 }
 
-void Grain::render(double inc, float* left, float* right, size_t size, Sums& sums) {
+void Grain::Render(double inc, float* left, float* right, size_t size, Sums& sums) {
     if (!_active) return;
 
     // Locals: the compiler keeps them in registers through the loop
@@ -68,7 +68,7 @@ void Grain::render(double inc, float* left, float* right, size_t size, Sums& sum
             window = hann + _percussive * (_lookup(_decay, fall) - hann);
         }
 
-        const float s = buffer.read(_latch.position + read) * window * gain;
+        const float s = buffer.Read(_latch.position + read) * window * gain;
         left[n] += s * _gain_l;
         right[n] += s * _gain_r;
         power += s * s;

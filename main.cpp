@@ -8,6 +8,6 @@ const char* USBD_PRODUCT_STRING_FS   = "Clessidra";
 static clessidra::Application app;
 
 extern "C" int main(void) {
-    app.init();
-    app.loop();
+    app.Init();
+    app.Loop();
 }

@@ -10,11 +10,11 @@ class Switches {
 public:
     enum Switch : size_t { S09, S07, kNumSwitches };
 
-    void init();
-    void process();
+    void Init();
+    void Process();
 
     // daisy::Switch3::POS_UP, POS_CENTER or POS_DOWN
-    int position(size_t s) const { return _positions[s]; }
+    int Position(size_t s) const { return _positions[s]; }
 
 private:
     std::array<daisy::Switch3, kNumSwitches> _switches;

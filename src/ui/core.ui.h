@@ -37,11 +37,11 @@ public:
     CoreUI();
 
     // Every control pass. Sets the core's parameters and recording.
-    void process(const Controls& c, Core& core);
+    void Process(const Controls& c, Core& core);
     // A knob's second-layer value
-    float second_layer(size_t knob) const { return _shift[knob % Controls::kNumKnobs]; }
+    float SecondLayer(size_t knob) const { return _shift[knob % Controls::kNumKnobs]; }
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
-    float led(uint32_t now_ms, const Core& core) const;
+    float Led(uint32_t now_ms, const Core& core) const;
 
 private:
     NOCOPY(CoreUI)
@@ -49,9 +49,9 @@ private:
     struct Layer {
         std::array<Takeover, Controls::kNumKnobs> values;
 
-        float operator[](size_t knob) const { return values[knob].value(); }
-        void engage(const Controls& c);
-        void process(const Controls& c);
+        float operator[](size_t knob) const { return values[knob].Value(); }
+        void Engage(const Controls& c);
+        void Process(const Controls& c);
     };
 
     // A layer's values at their last move, and the knob last turned: what the LED shows
@@ -59,7 +59,7 @@ private:
         std::array<float, Controls::kNumKnobs> values{};
         size_t knob = 0;
 
-        void update(const Layer& layer);
+        void Update(const Layer& layer);
     };
 
     // Sound defaults: main and second layer. Levels kept.
