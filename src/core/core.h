@@ -7,14 +7,17 @@
 #include "Utility/dcblock.h"
 #include "grain.h"
 #include "limiter.h"
+#include "nocopy.h"
 #include "ring.h"
 #include "svf.h"
 
 namespace clessidra {
 
 // The instrument's signal path. No hardware code here.
-class Engine {
+class Core {
 public:
+    Core() = default;
+
     static constexpr float kMaxDensity = 16.0f; // grains sounding at once, per source
     static constexpr size_t kNumVoices = 32; // above kMaxDensity: random starts can cluster
     static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
@@ -78,26 +81,27 @@ public:
     // ring: ring_size floats; buffers: kNumBuffers of buffer_size floats, the longest
     // recording. All allocated by the caller. The ring holds the tap, pre-roll and
     // copy margin beyond buffer_size.
-    void Init(float sample_rate, float* ring, size_t ring_size, float* const* buffers, size_t buffer_size);
-    void Process(const float* const* in, float** out, size_t size);
+    void init(float sample_rate, float* ring, size_t ring_size, float* const* buffers, size_t buffer_size);
+    void process(const float* const* in, float** out, size_t size);
 
     // Main loop. Applied at the next audio block: on release, the recording replaces
     // the playing one unless it is silent. Silence at both ends is cut.
-    void SetRecording(bool on) { _record = on; }
+    void set_recording(bool on) { _record = on; }
     // Main loop. Fields are copied one by one: a block may see a mix of old and new.
-    void SetParams(const Params& p) { _params = p; }
+    void set_params(const Params& p) { _params = p; }
 
-    bool IsRecording() const { return _record; }
-    float RecordedSeconds() const { return float(_buffers[_playing].Length()) / _sample_rate; }
+    bool is_recording() const { return _record; }
+    float recorded_seconds() const { return float(_buffers[_playing].length()) / _sample_rate; }
     // Grain windows summed, mean over the last block: 1 = one grain at its peak
-    float GrainLevel() const { return _grain_level; }
+    float grain_level() const { return _grain_level; }
 
     // For tests, between blocks: the recording playing, the grains and the parameters in use
-    const Buffer& Recording() const { return _buffers[_playing]; }
-    const std::array<Grain, kNumVoices>& Grains() const { return _grains; }
-    const Params& CurrentParams() const { return _params; }
+    const Buffer& recording() const { return _buffers[_playing]; }
+    const std::array<Grain, kNumVoices>& grains() const { return _grains; }
+    const Params& current_params() const { return _params; }
 
 private:
+    NOCOPY(Core)
     // A source of grains: the playhead over the selection, or a place
     struct Stream {
         double phase = 0.0;       // through its span, 0..1

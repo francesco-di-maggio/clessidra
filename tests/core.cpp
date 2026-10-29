@@ -1,4 +1,4 @@
-// Host tests: the engine and the Simple Touch mapping on a computer, no board.
+// Host tests: the core and the Simple Touch mapping on a computer, no board.
 // Built and run by tests/run.sh (make test). Each check prints PASS or FAIL.
 
 #include <algorithm>
@@ -6,8 +6,8 @@
 #include <cstdio>
 #include <functional>
 #include <vector>
-#include "dsp/svf.h"
-#include "ui/clessidra_ui.h"
+#include "core/svf.h"
+#include "ui/core.ui.h"
 
 using namespace clessidra;
 
@@ -26,18 +26,18 @@ bool Near(double value, double target, double tolerance) {
     return std::fabs(value - target) <= tolerance;
 }
 
-// An engine with the board's memory: an 8 s recording, a 9 s ring
+// A core with the board's memory: an 8 s recording, a 9 s ring
 struct Rig {
     std::vector<float> ring = std::vector<float>(9 * kRate);
-    std::vector<float> memory[Engine::kNumBuffers] = { std::vector<float>(8 * kRate), std::vector<float>(8 * kRate) };
-    Engine engine;
+    std::vector<float> memory[Core::kNumBuffers] = { std::vector<float>(8 * kRate), std::vector<float>(8 * kRate) };
+    Core core;
     double time = 0.0; // seconds of input so far
     float peak = 0.0f;
     bool finite = true;
 
     Rig() {
-        float* buffers[Engine::kNumBuffers] = { memory[0].data(), memory[1].data() };
-        engine.Init(kRate, ring.data(), ring.size(), buffers, 8 * kRate);
+        float* buffers[Core::kNumBuffers] = { memory[0].data(), memory[1].data() };
+        core.init(kRate, ring.data(), ring.size(), buffers, 8 * kRate);
     }
 
     // Runs the input for seconds; between blocks, each(block)
@@ -53,7 +53,7 @@ struct Rig {
                 l[i] = input(time);
                 time += 1.0 / kRate;
             }
-            engine.Process(in, out, kBlock);
+            core.process(in, out, kBlock);
             for (size_t i = 0; i < kBlock; i++) {
                 finite = finite && std::isfinite(o1[i]) && std::isfinite(o2[i]);
                 peak = std::max(peak, std::max(std::fabs(o1[i]), std::fabs(o2[i])));
@@ -62,13 +62,13 @@ struct Rig {
     }
 
     void Hold(double seconds, const std::function<float(double)>& input) {
-        engine.SetRecording(true);
+        core.set_recording(true);
         Run(seconds, input);
-        engine.SetRecording(false);
+        core.set_recording(false);
         Run(0.6, input); // the copy lands
     }
 
-    double Seconds() const { return engine.RecordedSeconds(); }
+    double Seconds() const { return core.recorded_seconds(); }
 };
 
 float Sine(double t) { return 0.5f * float(std::sin(2.0 * M_PI * 220.0 * t)); }
@@ -98,17 +98,17 @@ void Capture() {
     Rig t;
     auto burst = [](double x) { return x >= 0.5 && x < 1.5 ? Sine(x) : 0.0f; };
     t.Hold(3.0, burst);
-    const Buffer& rec = t.engine.Recording();
-    size_t first = rec.Length(), last = 0;
-    for (size_t i = 0; i < rec.Length(); i++) {
-        if (std::fabs(rec.Data()[i]) > Ring::kSilence) {
-            if (first == rec.Length()) first = i;
+    const Buffer& rec = t.core.recording();
+    size_t first = rec.length(), last = 0;
+    for (size_t i = 0; i < rec.length(); i++) {
+        if (std::fabs(rec.data()[i]) > Ring::kSilence) {
+            if (first == rec.length()) first = i;
             last = i;
         }
     }
     const double margin = Buffer::kFadeSeconds * kRate;
     Check(Near(double(first), margin, 1.0), "trim: samples kept before the sound", double(first));
-    Check(Near(double(rec.Length() - 1 - last), margin, 1.0), "trim: samples kept after the sound", double(rec.Length() - 1 - last));
+    Check(Near(double(rec.length() - 1 - last), margin, 1.0), "trim: samples kept after the sound", double(rec.length() - 1 - last));
     Check(t.finite, "output finite throughout", 1.0);
 }
 
@@ -121,17 +121,17 @@ void Level() {
         return 0.3f * (float(seed >> 8) / float(1 << 24) * 2.0f - 1.0f);
     };
     r.Hold(2.0, noise);
-    Engine::Params p;
+    Core::Params p;
     p.mix = 1.0f;
     p.density = 8.0f;
-    r.engine.SetParams(p);
+    r.core.set_params(p);
     double in = 0.0, out = 0.0;
     float l[kBlock], o1[kBlock], o2[kBlock];
     const float* ins[2] = { l, l };
     float* outs[2] = { o1, o2 };
     for (size_t b = 0; b < 4000; b++) {
         for (size_t i = 0; i < kBlock; i++) l[i] = noise(0.0);
-        r.engine.Process(ins, outs, kBlock);
+        r.core.process(ins, outs, kBlock);
         if (b < 1000) continue;
         for (size_t i = 0; i < kBlock; i++) {
             in += double(l[i]) * l[i];
@@ -147,7 +147,7 @@ void Level() {
     p.place_density.fill(16.0f);
     p.reverb = 0.8f;
     p.rand_pitch = 12.0f;
-    r.engine.SetParams(p);
+    r.core.set_params(p);
     r.peak = 0.0f;
     r.Run(3.0, Sine);
     Check(r.peak <= Limiter::kThreshold + 1e-4f, "heavy: output peak at most -0.5 dBFS", r.peak);
@@ -157,10 +157,10 @@ void Level() {
 std::vector<float> Window(float shape) {
     std::vector<float> ones(kRate, 1.0f);
     Buffer buffer;
-    buffer.Init(ones.data(), ones.size(), float(kRate));
+    buffer.init(ones.data(), ones.size(), float(kRate));
     std::fill(ones.begin(), ones.end(), 1.0f);
-    buffer.Finish(ones.size());
-    Grain::InitWindow();
+    buffer.finish(ones.size());
+    Grain::init_window();
     Grain grain;
     Grain::Latch latch;
     latch.buffer = &buffer;
@@ -168,10 +168,10 @@ std::vector<float> Window(float shape) {
     latch.rate = 0.0f;
     latch.pan = 0.0f; // all left, gain 1
     latch.shape = shape;
-    grain.Start(latch, 0);
+    grain.start(latch, 0);
     std::vector<float> window(1000, 0.0f), right(1000, 0.0f);
     Grain::Sums sums;
-    grain.Render(1.0 / 1000.0, window.data(), right.data(), window.size(), sums);
+    grain.render(1.0 / 1000.0, window.data(), right.data(), window.size(), sums);
     return window;
 }
 
@@ -189,19 +189,19 @@ void Windows() {
 double PartialShare(float harmonic) {
     Rig r;
     r.Hold(1.0, Sine); // 220 Hz: the 4th partial
-    Engine::Params p;
+    Core::Params p;
     p.mix = 1.0f;
     p.freeze = true;
     p.rand_pitch = 12.0f;
     p.harmonic = harmonic;
-    r.engine.SetParams(p);
+    r.core.set_params(p);
     std::vector<float> mono;
     float l[kBlock], o1[kBlock], o2[kBlock];
     const float* ins[2] = { l, l };
     float* outs[2] = { o1, o2 };
     std::fill(l, l + kBlock, 0.0f);
     for (size_t b = 0; b < 2000; b++) {
-        r.engine.Process(ins, outs, kBlock);
+        r.core.process(ins, outs, kBlock);
         if (b < 1000) continue;
         for (size_t i = 0; i < kBlock; i++) mono.push_back(o1[i] + o2[i]);
     }
@@ -227,15 +227,15 @@ double PartialShare(float harmonic) {
 double MeanActive(float size_variation) {
     Rig r;
     r.Hold(1.0, Sine);
-    Engine::Params p;
+    Core::Params p;
     p.density = 8.0f;
     p.jitter = 1.0f;
     p.size_variation = size_variation;
-    r.engine.SetParams(p);
+    r.core.set_params(p);
     double active = 0.0;
     size_t blocks = 0;
     r.Run(20.0, Sine, [&](size_t) {
-        for (const auto& g : r.engine.Grains()) active += g.IsActive() ? 1.0 : 0.0;
+        for (const auto& g : r.core.grains()) active += g.is_active() ? 1.0 : 0.0;
         blocks++;
     });
     return active / double(blocks);
@@ -254,12 +254,12 @@ void Harmonic() {
 
 double Gain(float hz, float cutoff, float q, bool low) {
     Svf f;
-    f.Set(cutoff, q, float(kRate));
+    f.set(cutoff, q, float(kRate));
     double in = 0.0, out = 0.0;
     for (size_t n = 0; n < 2 * kRate; n++) {
         const float x = float(std::sin(2.0 * M_PI * hz * double(n) / kRate));
-        f.Process(x);
-        const float y = low ? f.Low() : f.High();
+        f.process(x);
+        const float y = low ? f.low() : f.high();
         if (n < kRate) continue;
         in += double(x) * x;
         out += double(y) * y;
@@ -276,7 +276,7 @@ void Tone() {
 
 void Mapping() {
     Rig r;
-    ClessidraUI ui;
+    CoreUI ui;
     Controls c;
     c.knobs.fill(0.5f);
     c.knobs[Controls::S30] = 0.0f;
@@ -284,8 +284,8 @@ void Mapping() {
     c.knobs[Controls::S35] = 1.0f;
     c.knobs[Controls::S37] = 0.0f;
     c.switches = { Controls::Up, Controls::Up };
-    ui.Process(c, r.engine);
-    const Engine::Params& p = r.engine.CurrentParams();
+    ui.process(c, r.core);
+    const Core::Params& p = r.core.current_params();
     Check(Near(p.grain_ms, 100.0, 0.01), "S31 centre: grain size (ms)", p.grain_ms);
     Check(Near(p.pitch, 1.0, 1e-6), "S33 centre: pitch (ratio)", p.pitch);
     Check(Near(p.speed, 1.0, 1e-6), "S36 centre: speed", p.speed);
@@ -298,86 +298,86 @@ void Mapping() {
     uint32_t ms = 0;
     auto press = [&](size_t pad, bool on) {
         c.touched[pad] = on;
-        ui.Process(c, r.engine);
+        ui.process(c, r.core);
     };
     r.Run(1.5, Sine, [&](size_t b) {
         c.now_ms = ms = uint32_t(b);
-        press(ClessidraUI::kRecordPad, b >= 500 && b < 1000); // 1 ms blocks
+        press(CoreUI::kRecordPad, b >= 500 && b < 1000); // 1 ms blocks
     });
     Check(Near(r.Seconds(), 0.55, 0.01), "P10 held 0.5 s: recording, with pre-roll (s)", r.Seconds());
     r.Run(0.5, Sine);
-    const float led = ui.Led(ms + 1000, r.engine);
+    const float led = ui.led(ms + 1000, r.core);
     Check(Near(led, 0.6 * 0.6 * 0.6, 0.01), "LED: dim glow with grains", led);
 
     // P11 held and S35 turned: the second layer changes, the main layer doesn't
-    const float tone_before = ui.SecondLayer(Controls::S35);
-    press(ClessidraUI::kShiftPad, true);
+    const float tone_before = ui.second_layer(Controls::S35);
+    press(CoreUI::kShiftPad, true);
     for (int i = 1; i <= 20; i++) {
         c.knobs[Controls::S35] = 1.0f - 0.02f * float(i);
-        ui.Process(c, r.engine);
+        ui.process(c, r.core);
     }
-    press(ClessidraUI::kShiftPad, false);
-    Check(ui.SecondLayer(Controls::S35) < tone_before - 0.2f, "P11 + S35: tone turned down", ui.SecondLayer(Controls::S35));
-    Check(Near(r.engine.CurrentParams().length, 1.0, 1e-6), "P11 + S35: selection end unchanged", r.engine.CurrentParams().length);
+    press(CoreUI::kShiftPad, false);
+    Check(ui.second_layer(Controls::S35) < tone_before - 0.2f, "P11 + S35: tone turned down", ui.second_layer(Controls::S35));
+    Check(Near(r.core.current_params().length, 1.0, 1e-6), "P11 + S35: selection end unchanged", r.core.current_params().length);
 
     // Grain size ends; a place pressed half way
     c.knobs[Controls::S31] = 0.0f;
-    ui.Process(c, r.engine);
-    Check(Near(r.engine.CurrentParams().grain_ms, 10.0, 0.01), "S31 bottom: grain size (ms)", r.engine.CurrentParams().grain_ms);
+    ui.process(c, r.core);
+    Check(Near(r.core.current_params().grain_ms, 10.0, 0.01), "S31 bottom: grain size (ms)", r.core.current_params().grain_ms);
     c.knobs[Controls::S31] = 1.0f;
-    ui.Process(c, r.engine);
-    Check(Near(r.engine.CurrentParams().grain_ms, 500.0 * r.Seconds(), 0.1), "S31 top: half the recording (ms)", r.engine.CurrentParams().grain_ms);
-    const float density = r.engine.CurrentParams().density;
-    const size_t place = ClessidraUI::kPlacePads[0];
+    ui.process(c, r.core);
+    Check(Near(r.core.current_params().grain_ms, 500.0 * r.Seconds(), 0.1), "S31 top: half the recording (ms)", r.core.current_params().grain_ms);
+    const float density = r.core.current_params().density;
+    const size_t place = CoreUI::kPlacePads[0];
     c.pressure[place] = 0.5f;
     press(place, true);
-    const Engine::Params& pressed = r.engine.CurrentParams();
+    const Core::Params& pressed = r.core.current_params();
     Check(pressed.place_density[0] == density && Near(pressed.level, std::sqrt(0.5), 1e-4) && Near(pressed.place_level[0], std::sqrt(0.5), 1e-4),
           "place pressed half: its density, equal-power crossfade", pressed.level);
-    press(ClessidraUI::kStopPad, true);
-    Check(r.engine.CurrentParams().place_density[0] == 0.0f, "P02 held: places stopped", r.engine.CurrentParams().place_density[0]);
-    press(ClessidraUI::kStopPad, false);
+    press(CoreUI::kStopPad, true);
+    Check(r.core.current_params().place_density[0] == 0.0f, "P02 held: places stopped", r.core.current_params().place_density[0]);
+    press(CoreUI::kStopPad, false);
 
     press(place, false);
 
     // P00 held and S37 down: output down; the main layer's density unchanged
-    const float density_before = r.engine.CurrentParams().density;
-    press(ClessidraUI::kLevelsPad, true);
+    const float density_before = r.core.current_params().density;
+    press(CoreUI::kLevelsPad, true);
     for (int i = 1; i <= 40; i++) {
         c.knobs[Controls::S37] = 0.8f - 0.02f * float(i);
-        ui.Process(c, r.engine);
+        ui.process(c, r.core);
     }
-    const float output = r.engine.CurrentParams().output;
-    press(ClessidraUI::kLevelsPad, false);
-    Check(output < 0.01f && Near(r.engine.CurrentParams().density, density_before, 1e-4), "P00 + S37 down: output off, density kept", output);
+    const float output = r.core.current_params().output;
+    press(CoreUI::kLevelsPad, false);
+    Check(output < 0.01f && Near(r.core.current_params().density, density_before, 1e-4), "P00 + S37 down: output off, density kept", output);
 
     // Detent pulse: on reaching the centre, renewed while turned within it
     c.knobs[Controls::S33] = 0.4f;
     c.now_ms = 10000;
-    ui.Process(c, r.engine);
+    ui.process(c, r.core);
     c.knobs[Controls::S33] = 0.49f;
-    ui.Process(c, r.engine);
-    const float reached = ui.Led(10000 + ClessidraUI::kPulseMs - 1, r.engine);
+    ui.process(c, r.core);
+    const float reached = ui.led(10000 + CoreUI::kPulseMs - 1, r.core);
     c.now_ms = 10200;
     c.knobs[Controls::S33] = 0.51f;
-    ui.Process(c, r.engine);
-    const float renewed = ui.Led(10200 + ClessidraUI::kPulseMs - 1, r.engine);
-    const float ended = ui.Led(10200 + ClessidraUI::kPulseMs, r.engine);
+    ui.process(c, r.core);
+    const float renewed = ui.led(10200 + CoreUI::kPulseMs - 1, r.core);
+    const float ended = ui.led(10200 + CoreUI::kPulseMs, r.core);
     Check(reached == 1.0f && renewed == 1.0f && ended < 1.0f, "LED: pulse at pitch unison, renewed while turned", renewed);
 
     // P01 tapped: defaults, then the knob takes over from there
     c.knobs[Controls::S33] = 0.9f;
-    ui.Process(c, r.engine);
-    const float pitch_before = r.engine.CurrentParams().pitch;
-    press(ClessidraUI::kResetPad, true);
-    press(ClessidraUI::kResetPad, false);
-    const float pitch_reset = r.engine.CurrentParams().pitch;
+    ui.process(c, r.core);
+    const float pitch_before = r.core.current_params().pitch;
+    press(CoreUI::kResetPad, true);
+    press(CoreUI::kResetPad, false);
+    const float pitch_reset = r.core.current_params().pitch;
     c.knobs[Controls::S33] = 0.95f;
-    ui.Process(c, r.engine);
-    const float pitch_after = r.engine.CurrentParams().pitch;
+    ui.process(c, r.core);
+    const float pitch_after = r.core.current_params().pitch;
     Check(pitch_before > 1.5f && pitch_reset == 1.0f && pitch_after > 1.0f && pitch_after < pitch_before,
           "P01: pitch back to unison, knob takes over", pitch_after);
-    Check(r.engine.CurrentParams().output < 0.01f, "P01: output level kept", r.engine.CurrentParams().output);
+    Check(r.core.current_params().output < 0.01f, "P01: output level kept", r.core.current_params().output);
 }
 
 } // namespace

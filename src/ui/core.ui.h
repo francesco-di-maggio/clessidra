@@ -3,15 +3,17 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include "dsp/engine.h"
+#include "common/takeover.h"
+#include "core/core.h"
 #include "hw/controls.h"
+#include "nocopy.h"
 
 namespace clessidra {
 
-// Maps the Simple Touch's controls to the engine's parameters, and drives the LED.
+// Maps the Simple Touch's controls to the core's parameters, and drives the LED.
 // Holding P11 switches the knobs to a second layer, holding P00 to the levels. No
 // hardware code: the board and the host tests run the same mapping.
-class ClessidraUI {
+class CoreUI {
 public:
     // Pads
     static constexpr size_t kRecordPad = 10; // P10, tap or hold to record
@@ -19,7 +21,7 @@ public:
     static constexpr size_t kStopPad = 2;    // P02, hold to stop the grains
     static constexpr size_t kResetPad = 1;   // P01, tap: all but the levels back to the defaults
     static constexpr size_t kLevelsPad = 0;  // P00, hold for the levels: S36 input, S37 output
-    // The engine's places, first to last in the selection: pads left to right on the
+    // The core's places, first to last in the selection: pads left to right on the
     // faceplate, top to bottom within a column. Pressure sets each place's density.
     static constexpr size_t kPlacePads[] = { 3, 4, 8, 5, 6, 9, 7 };
 
@@ -32,42 +34,24 @@ public:
     static constexpr float kPulseStep = 0.01f;      // turn within a centre that renews the pulse
     static constexpr float kShowStep = 0.01f;       // second-layer or levels change that counts as turning
 
-    ClessidraUI();
+    CoreUI();
 
-    // Every control pass. Sets the engine's parameters and recording.
-    void Process(const Controls& c, Engine& engine);
+    // Every control pass. Sets the core's parameters and recording.
+    void process(const Controls& c, Core& core);
     // A knob's second-layer value
-    float SecondLayer(size_t knob) const { return _shift[knob % Controls::kNumKnobs]; }
+    float second_layer(size_t knob) const { return _shift[knob % Controls::kNumKnobs]; }
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
-    float Led(uint32_t now_ms, const Engine& engine) const;
+    float led(uint32_t now_ms, const Core& core) const;
 
 private:
-    // A value set by a knob shared between layers. After a layer change the knob
-    // moves the value from where it is, scaled so both reach the end stops together:
-    // no jump, no dead zone.
-    class Takeover {
-    public:
-        explicit Takeover(float value = 0.0f) : _value{ value }, _previous{ value } {}
-
-        void Engage(float knob) { _previous = _origin = knob; }
-        void Process(float knob);
-        float Value() const { return _value; }
-
-    private:
-        static constexpr float kDeadband = 0.02f; // around the knob at Engage(): noise
-
-        float _value;
-        float _previous;
-        float _origin = -1.0f; // knob at Engage() until it moves past the deadband
-    };
-
+    NOCOPY(CoreUI)
     // A value per knob
     struct Layer {
         std::array<Takeover, Controls::kNumKnobs> values;
 
-        float operator[](size_t knob) const { return values[knob].Value(); }
-        void Engage(const Controls& c);
-        void Process(const Controls& c);
+        float operator[](size_t knob) const { return values[knob].value(); }
+        void engage(const Controls& c);
+        void process(const Controls& c);
     };
 
     // A layer's values at their last move, and the knob last turned: what the LED shows
@@ -75,7 +59,7 @@ private:
         std::array<float, Controls::kNumKnobs> values{};
         size_t knob = 0;
 
-        void Update(const Layer& layer);
+        void update(const Layer& layer);
     };
 
     // Sound defaults: main and second layer. Levels kept.

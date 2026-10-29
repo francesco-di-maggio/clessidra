@@ -18,16 +18,16 @@ public:
     // Pressure 0..1 maps the delta from kReleaseThreshold to kMaxDelta.
     // Measured: light 200-330, medium 360-440, hard 470-590.
     static constexpr int32_t kMaxDelta = 600;
-    static constexpr float kSmoothing     = 0.4f;  // per Process() call
+    static constexpr float kSmoothing     = 0.4f;  // per process() call
     static constexpr float kPressureFloor = 0.01f; // released pressure below this is 0
 
-    void Init();
+    void init();
 
     // Reads every pad over I2C, which blocks: call from the main loop.
-    void Process();
+    void process();
 
-    bool IsTouched(size_t p) const { return (_touched & (1 << p)) != 0; }
-    float Pressure(size_t p) const { return _pressure[p]; }
+    bool is_touched(size_t p) const { return (_touched & (1 << p)) != 0; }
+    float pressure(size_t p) const { return _pressure[p]; }
 
 private:
     void _configure();

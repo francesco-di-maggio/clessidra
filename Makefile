@@ -2,7 +2,7 @@
 TARGET = Clessidra
 
 # Sources
-CPP_SOURCES = Clessidra.cpp $(wildcard src/hw/*.cpp) $(wildcard src/dsp/*.cpp) $(wildcard src/ui/*.cpp)
+CPP_SOURCES = main.cpp app.cpp $(wildcard src/common/*.cpp) $(wildcard src/hw/*.cpp) $(wildcard src/core/*.cpp) $(wildcard src/ui/*.cpp)
 C_INCLUDES += -Isrc
 
 # Library Locations
@@ -12,10 +12,7 @@ DAISYSP_DIR = lib/DaisySP
 # ReverbSc
 USE_DAISYSP_LGPL = 1
 
-# Serial log over USB: make clean; make LOG=1
-ifeq ($(LOG), 1)
-C_DEFS += -DCLESSIDRA_LOG
-endif
+# Serial log over USB: make clean; make DEBUG=1
 
 # Core location, and generic Makefile.
 SYSTEM_FILES_DIR = $(LIBDAISY_DIR)/core
@@ -32,7 +29,7 @@ libs:
 
 .PHONY: libs
 
-# Host tests, no board: the engine and the mapping
+# Host tests, no board: the core and the mapping
 test:
 	@sh tests/run.sh
 

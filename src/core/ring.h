@@ -15,16 +15,16 @@ public:
     enum class Step { Pending, Done, Silent };
 
     // mem: capacity floats
-    void Init(float* mem, size_t capacity, float sample_rate);
+    void init(float* mem, size_t capacity, float sample_rate);
 
-    void Write(float x);
+    void write(float x);
 
     // The region: length samples ending end_back samples before the next write, within
     // what was written, up to the Buffer's capacity. Writing on must not reach it
     // before the copy is done.
-    void Select(size_t end_back, size_t length);
+    void select(size_t end_back, size_t length);
     // Copies to dst without the silence at both ends. At most max_samples per call.
-    Step Copy(Buffer& dst, size_t max_samples);
+    Step copy(Buffer& dst, size_t max_samples);
 
 private:
     size_t _index(size_t i) const { return (_start + i) % _capacity; }

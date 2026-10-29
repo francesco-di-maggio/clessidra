@@ -1,4 +1,4 @@
-#include "engine.h"
+#include "core.h"
 
 #include "Utility/dsp.h"
 
@@ -7,22 +7,22 @@
 
 namespace clessidra {
 
-void Engine::Init(float sample_rate, float* ring, size_t ring_size, float* const* buffers, size_t buffer_size) {
+void Core::init(float sample_rate, float* ring, size_t ring_size, float* const* buffers, size_t buffer_size) {
     _sample_rate = sample_rate;
-    _ring.Init(ring, ring_size, sample_rate);
+    _ring.init(ring, ring_size, sample_rate);
     _ring_size = ring_size;
-    for (size_t b = 0; b < kNumBuffers; b++) _buffers[b].Init(buffers[b], buffer_size, sample_rate);
+    for (size_t b = 0; b < kNumBuffers; b++) _buffers[b].init(buffers[b], buffer_size, sample_rate);
     _dc_block.Init(sample_rate);
     _reverb.Init(sample_rate);
     _reverb.SetLpFreq(kReverbLowpassHz);
-    _limiter.Init(sample_rate);
+    _limiter.init(sample_rate);
 
-    Grain::InitWindow();
+    Grain::init_window();
 }
 
-void Engine::Process(const float* const* in, float** out, size_t size) {
+void Core::process(const float* const* in, float** out, size_t size) {
     const Params p = _params;
-    const double len = double(_buffers[_playing].Length());
+    const double len = double(_buffers[_playing].length());
     const double sel_start = p.start * len;
     const double sel_len = std::max(p.length * len, 1.0);
     const double place_len = std::max(sel_len / kNumPlaces, 1.0);
@@ -98,7 +98,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     std::fill(out[0], out[0] + size, 0.0f);
     std::fill(out[1], out[1] + size, 0.0f);
     Grain::Sums sums;
-    for (auto& grain : _grains) grain.Render(grain_inc, out[0], out[1], size, sums);
+    for (auto& grain : _grains) grain.render(grain_inc, out[0], out[1], size, sums);
     float power_sum = 0.0f;
     for (size_t i = 0; i < size; i++) power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
 
@@ -128,7 +128,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
                                   : kHighpassOffHz * std::pow(kHighpassMaxHz / kHighpassOffHz, tone);
     const float tone_q = kToneQMin + tone * (kToneQMax - kToneQMin);
     const float tone_mix = std::min(1.0f, tone / kToneFade);
-    for (auto& filter : _tone_filter) filter.Set(tone_hz, tone_q, _sample_rate);
+    for (auto& filter : _tone_filter) filter.set(tone_hz, tone_q, _sample_rate);
 
     // Dry/wet and what the ring records, equal power. The wet signal is recorded
     // whatever the dry/wet.
@@ -151,10 +151,10 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
         _record_input += record_input_step;
         float l = out[0][i] * _norm_gain;
         float r = out[1][i] * _norm_gain;
-        _tone_filter[0].Process(l);
-        _tone_filter[1].Process(r);
-        l += tone_mix * ((lowpass ? _tone_filter[0].Low() : _tone_filter[0].High()) - l);
-        r += tone_mix * ((lowpass ? _tone_filter[1].Low() : _tone_filter[1].High()) - r);
+        _tone_filter[0].process(l);
+        _tone_filter[1].process(r);
+        l += tone_mix * ((lowpass ? _tone_filter[0].low() : _tone_filter[0].high()) - l);
+        r += tone_mix * ((lowpass ? _tone_filter[1].low() : _tone_filter[1].high()) - r);
         float reverb_l, reverb_r;
         _reverb.Process(l, r, &reverb_l, &reverb_r);
         l = l * _reverb_dry + reverb_l * _reverb_wet;
@@ -166,11 +166,11 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
         const float in_l = in[0][i] * _input_gain;
         const float in_r = in[1][i] * _input_gain;
         const float input = _dc_block.Process(0.5f * (in_l + in_r));
-        _ring.Write(_record_input * input + _record_wet * float(M_SQRT1_2) * (l + r));
+        _ring.write(_record_input * input + _record_wet * float(M_SQRT1_2) * (l + r));
 
         out[0][i] = l * _wet_gain + in_l * _dry_gain;
         out[1][i] = r * _wet_gain + in_r * _dry_gain;
-        _limiter.Process(out[0][i], out[1][i]);
+        _limiter.process(out[0][i], out[1][i]);
         _output_gain += output_step;
         out[0][i] *= _output_gain;
         out[1][i] *= _output_gain;
@@ -179,7 +179,7 @@ void Engine::Process(const float* const* in, float** out, size_t size) {
     _update_capture(size);
 }
 
-void Engine::_update_capture(size_t size) {
+void Core::_update_capture(size_t size) {
     const bool record = _record;
     if (record && !_was_record) _held = 0;
     if (record) _held += size;
@@ -188,7 +188,7 @@ void Engine::_update_capture(size_t size) {
         const size_t tap = size_t(kTapSeconds * _sample_rate);
         const size_t pre_roll = size_t(kPreRollSeconds * _sample_rate);
         _capture_back = _held < tap ? _held : 0;
-        _capture_length = _held < tap ? _buffers[0].Capacity() : _held + pre_roll;
+        _capture_length = _held < tap ? _buffers[0].capacity() : _held + pre_roll;
         _capture = Capture::Waiting;
     }
     _was_record = record;
@@ -198,7 +198,7 @@ void Engine::_update_capture(size_t size) {
         // Grains started before the last swap can still read it. Only with swaps closer
         // than the longest grain.
         for (const auto& grain : _grains) {
-            if (grain.IsActive() && grain.Source() == &target) {
+            if (grain.is_active() && grain.source() == &target) {
                 _capture_back += size;
                 return;
             }
@@ -206,18 +206,18 @@ void Engine::_update_capture(size_t size) {
         // Waited long: the oldest part is lost to the writing on
         const size_t margin = size_t(kCopyMarginSeconds * _sample_rate);
         const size_t room = _ring_size > _capture_back + margin ? _ring_size - _capture_back - margin : 0;
-        _ring.Select(_capture_back, std::min({ _capture_length, room, target.Capacity() }));
+        _ring.select(_capture_back, std::min({ _capture_length, room, target.capacity() }));
         _capture = Capture::Copying;
     }
     if (_capture == Capture::Copying) {
-        const Ring::Step step = _ring.Copy(target, kCopyPerBlock);
+        const Ring::Step step = _ring.copy(target, kCopyPerBlock);
         if (step == Ring::Step::Pending) return;
         _capture = Capture::Idle;
         if (step == Ring::Step::Done) _playing = 1 - _playing;
     }
 }
 
-void Engine::_normalise(float power_grains, float power_sum, float window_power, size_t size) {
+void Core::_normalise(float power_grains, float power_sum, float window_power, size_t size) {
     const float coeff = 1.0f - std::exp(-float(size) / (kNormSeconds * _sample_rate));
     daisysp::fonepole(_power_grains, power_grains, coeff);
     daisysp::fonepole(_power_sum, power_sum, coeff);
@@ -237,13 +237,13 @@ void Engine::_normalise(float power_grains, float power_sum, float window_power,
     _norm = 0.9f * overlap_gain * _coherence_gain;
 }
 
-void Engine::_trigger(const Params& p, double start, double length, double phase, float level, size_t offset) {
+void Core::_trigger(const Params& p, double start, double length, double phase, float level, size_t offset) {
     const Buffer& buffer = _buffers[_playing];
-    if (buffer.Length() == 0) return; // nothing recorded: no grains
+    if (buffer.length() == 0) return; // nothing recorded: no grains
 
     Grain* grain = nullptr;
     for (auto& g : _grains) {
-        if (!g.IsActive()) {
+        if (!g.is_active()) {
             grain = &g;
             break;
         }
@@ -268,17 +268,17 @@ void Engine::_trigger(const Params& p, double start, double length, double phase
     latch.gain = level;
     if (p.size_variation > 0.0f) latch.size = std::exp2(_random() * p.size_variation * kSizeVariationOctaves);
     latch.shape = p.window_shape;
-    grain->Start(latch, offset);
+    grain->start(latch, offset);
 }
 
-float Engine::_interval(float jitter) {
+float Core::_interval(float jitter) {
     // Mean 1 at any jitter. Exponential intervals (jitter 1) make Poisson starts.
     const float u = 0.5f - 0.5f * _random(); // (0, 1]
     const float exponential = -std::log(u);
     return 1.0f - jitter + jitter * exponential;
 }
 
-float Engine::_random() {
+float Core::_random() {
     // xorshift32
     _seed ^= _seed << 13;
     _seed ^= _seed >> 17;

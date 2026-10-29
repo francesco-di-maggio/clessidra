@@ -50,7 +50,7 @@
     {
       "label": "build_log_and_program_dfu",
       "type": "shell",
-      "command": "make clean; make LOG=1 -j8; make program-dfu",
+      "command": "make clean; make DEBUG=1 -j8; make program-dfu",
       "options": {
         "cwd": "${workspaceFolder}"
       },

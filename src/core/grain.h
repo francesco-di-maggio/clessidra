@@ -17,16 +17,16 @@ public:
         float pan = 0.5f;      // 0 left .. 1 right
         float shape = 0.5f;    // window: 0 reverse percussive, 0.5 Hann, 1 percussive
         float gain = 1.0f;     // the source's level
-        float size = 1.0f;     // of the grain size passed to Render()
+        float size = 1.0f;     // of the grain size passed to render()
     };
 
     // Once, before any Grain is used.
-    static void InitWindow();
+    static void init_window();
 
-    bool IsActive() const { return _active; }
-    const Buffer* Source() const { return _latch.buffer; }
+    bool is_active() const { return _active; }
+    const Buffer* source() const { return _latch.buffer; }
     // offset: first sample of the grain in the next Render()
-    void Start(const Latch& latch, size_t offset);
+    void start(const Latch& latch, size_t offset);
 
     // Sums over all grains and samples of a block
     struct Sums {
@@ -36,7 +36,7 @@ public:
     };
 
     // Adds the grain to left and right while active. inc: window phase per sample.
-    void Render(double inc, float* left, float* right, size_t size, Sums& sums);
+    void render(double inc, float* left, float* right, size_t size, Sums& sums);
 
 private:
     static constexpr size_t kWindowSize = 512;
@@ -49,7 +49,7 @@ private:
 
     Latch _latch;
     double _phase = 0.0;
-    double _read = 0.0; // samples read since Start()
+    double _read = 0.0; // samples read since start()
     size_t _offset = 0;
     float _gain_l = 0.0f;
     float _gain_r = 0.0f;

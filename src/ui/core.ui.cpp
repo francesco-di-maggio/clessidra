@@ -1,4 +1,4 @@
-#include "clessidra_ui.h"
+#include "core.ui.h"
 
 #include <algorithm>
 #include <cmath>
@@ -19,11 +19,11 @@ static constexpr float kDensityMin = 0.1f;
 
 static float Density(float x) {
     if (x < kDensityOff) return 0.0f;
-    return kDensityMin * std::pow(Engine::kMaxDensity / kDensityMin, (x - kDensityOff) / (1.0f - kDensityOff));
+    return kDensityMin * std::pow(Core::kMaxDensity / kDensityMin, (x - kDensityOff) / (1.0f - kDensityOff));
 }
 
 static float DensityKnob(float density) {
-    return kDensityOff + (1.0f - kDensityOff) * std::log(density / kDensityMin) / std::log(Engine::kMaxDensity / kDensityMin);
+    return kDensityOff + (1.0f - kDensityOff) * std::log(density / kDensityMin) / std::log(Core::kMaxDensity / kDensityMin);
 }
 
 // 10 ms .. top_ms, exponential in each half: centre = 100 ms
@@ -44,21 +44,21 @@ static float Semitones(float x) {
     return kIntervals[i] + t * (kIntervals[i + 1] - kIntervals[i]);
 }
 
-ClessidraUI::ClessidraUI() {
+CoreUI::CoreUI() {
     Controls c;
     _reset(c);
     // Levels at unity
     _levels.values[Controls::S36] = Takeover(0.5f);
     _levels.values[Controls::S37] = Takeover(1.0f);
-    _shift_shown.Update(_shift);
+    _shift_shown.update(_shift);
     _shift_shown.knob = Controls::S36;
-    _levels_shown.Update(_levels);
+    _levels_shown.update(_levels);
     _levels_shown.knob = Controls::S37;
 }
 
-void ClessidraUI::_reset(const Controls& c) {
-    // At the engine defaults: the recording played as it is
-    const Engine::Params d;
+void CoreUI::_reset(const Controls& c) {
+    // At the core defaults: the recording played as it is
+    const Core::Params d;
     const std::array<float, Controls::kNumKnobs> main = {
         d.start, 0.5f /* 100 ms */, 0.0f /* rand_pos */, 0.5f /* unison */, 0.0f /* rand_pitch */,
         d.start + d.length, 0.5f /* speed 1 */, DensityKnob(d.density)
@@ -72,10 +72,10 @@ void ClessidraUI::_reset(const Controls& c) {
         _shift.values[i] = Takeover(shift[i]);
     }
     _speed = 0.5f;
-    _layer->Engage(c);
+    _layer->engage(c);
 }
 
-void ClessidraUI::Shown::Update(const Layer& layer) {
+void CoreUI::Shown::update(const Layer& layer) {
     for (size_t i = 0; i < Controls::kNumKnobs; i++) {
         if (std::fabs(layer[i] - values[i]) < kShowStep) continue;
         values[i] = layer[i];
@@ -83,34 +83,19 @@ void ClessidraUI::Shown::Update(const Layer& layer) {
     }
 }
 
-void ClessidraUI::Takeover::Process(float knob) {
-    float delta = knob - _previous;
-    _previous = knob;
-    if (_origin >= 0.0f) {
-        if (std::fabs(knob - _origin) < kDeadband) return;
-        // The motion inside the deadband counts
-        delta = knob - _origin;
-        _origin = -1.0f;
-    }
-    // Towards an end stop, the value covers its remaining range while the knob covers its own
-    const float scale = delta > 0.0f ? (1.001f - _value) / (1.001f - (knob - delta))
-                                     : (0.001f + _value) / (0.001f + (knob - delta));
-    _value = std::clamp(_value + std::clamp(scale, 0.1f, 10.0f) * delta, 0.0f, 1.0f);
+void CoreUI::Layer::engage(const Controls& c) {
+    for (size_t i = 0; i < Controls::kNumKnobs; i++) values[i].engage(c.knobs[i]);
 }
 
-void ClessidraUI::Layer::Engage(const Controls& c) {
-    for (size_t i = 0; i < Controls::kNumKnobs; i++) values[i].Engage(c.knobs[i]);
+void CoreUI::Layer::process(const Controls& c) {
+    for (size_t i = 0; i < Controls::kNumKnobs; i++) values[i].process(c.knobs[i]);
 }
 
-void ClessidraUI::Layer::Process(const Controls& c) {
-    for (size_t i = 0; i < Controls::kNumKnobs; i++) values[i].Process(c.knobs[i]);
-}
-
-void ClessidraUI::Process(const Controls& c, Engine& engine) {
+void CoreUI::process(const Controls& c, Core& core) {
     const bool recording = c.touched[kRecordPad];
     if (recording && !_recording) _record_since = c.now_ms;
     _recording = recording;
-    engine.SetRecording(recording);
+    core.set_recording(recording);
 
     if (!_started) {
         // The main layer starts where its knobs are, and follows them exactly
@@ -121,11 +106,11 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     const bool shifted = c.touched[kShiftPad];
     const bool levels = !shifted && c.touched[kLevelsPad];
     Layer* layer = shifted ? &_shift : levels ? &_levels : &_main;
-    if (layer != _layer) layer->Engage(c);
+    if (layer != _layer) layer->engage(c);
     _layer = layer;
     _shifted = shifted;
     _levels_on = levels;
-    layer->Process(c);
+    layer->process(c);
 
     // P01 tapped: defaults, the knobs taking over from there
     const bool reset = c.touched[kResetPad];
@@ -135,10 +120,10 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     }
     _reset_touched = reset;
 
-    _shift_shown.Update(_shift);
-    _levels_shown.Update(_levels);
+    _shift_shown.update(_shift);
+    _levels_shown.update(_levels);
 
-    Engine::Params p;
+    Core::Params p;
 
     const float a = _main[Controls::S30];
     const float b = _main[Controls::S35];
@@ -146,7 +131,7 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     p.length = std::fabs(b - a);
 
     // Grain size: up to half the recording
-    const float top_ms = std::max(100.0f, 500.0f * engine.RecordedSeconds());
+    const float top_ms = std::max(100.0f, 500.0f * core.recorded_seconds());
     p.grain_ms = GrainMs(_main[Controls::S31], top_ms);
     const bool size_centre = Detent(_main[Controls::S31], 0.05f) == 0.5f;
 
@@ -168,7 +153,7 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     if (frozen && !_frozen) _speed = _main[Controls::S36];
     if (!frozen && _frozen) {
         _main.values[Controls::S36] = Takeover(_speed);
-        _main.values[Controls::S36].Engage(c.knobs[Controls::S36]);
+        _main.values[Controls::S36].engage(c.knobs[Controls::S36]);
     }
     _frozen = frozen;
     const float speed = Detent(frozen ? _speed : _main[Controls::S36], 0.05f);
@@ -183,10 +168,10 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     // A touched place pours at the playhead's density, or the default with the playhead
     // off. Pressure crossfades, equal power: the place up, the playhead down under the
     // strongest press.
-    static_assert(std::size(kPlacePads) == Engine::kNumPlaces);
-    const float place_density = p.density > 0.0f ? p.density : Engine::Params{}.density;
+    static_assert(std::size(kPlacePads) == Core::kNumPlaces);
+    const float place_density = p.density > 0.0f ? p.density : Core::Params{}.density;
     float press = 0.0f;
-    for (size_t i = 0; i < Engine::kNumPlaces; i++) {
+    for (size_t i = 0; i < Core::kNumPlaces; i++) {
         const size_t pad = kPlacePads[i];
         if (!c.touched[pad]) {
             p.place_density[i] = 0.0f;
@@ -232,7 +217,7 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
     const float output = _levels[Controls::S37];
     p.output = output * output;
 
-    engine.SetParams(p);
+    core.set_params(p);
 
     // Reaching a detent, or turning within it: a pulse
     const std::array<bool, kNumDetents> at = { unison, speed_centre, size_centre, tone_centre, shape_centre, input_centre };
@@ -254,7 +239,7 @@ void ClessidraUI::Process(const Controls& c, Engine& engine) {
 
 // First that applies: recording flash, detent pulse, second layer (steady, brightness =
 // value last turned), grains (dim glow that follows their windows)
-float ClessidraUI::Led(uint32_t now, const Engine& engine) const {
+float CoreUI::led(uint32_t now, const Core& core) const {
     float brightness;
     if (_recording) {
         // From the touch: a tap shows one flash
@@ -266,7 +251,7 @@ float ClessidraUI::Led(uint32_t now, const Engine& engine) const {
     } else if (_levels_on) {
         brightness = _levels[_levels_shown.knob];
     } else {
-        brightness = kGlow * std::min(1.0f, engine.GrainLevel());
+        brightness = kGlow * std::min(1.0f, core.grain_level());
     }
     // Cubed: even steps to the eye
     return brightness * brightness * brightness;
