@@ -238,19 +238,27 @@ void CoreUI::Process(const Controls& c, Core& core)
     }
     p.level = std::cos(HALFPI_F * press);
 
-    // S07: up periodic, centre half random, down random grain starts
-    const Controls::Position starts = c.switches[Controls::S07];
-    p.jitter                        = starts == Controls::Up
-                   ? 0.0f
-                   : starts == Controls::Centre ? 0.5f : 1.0f;
+    // S07: up one-shot, centre ping-pong, down loop
+    const Controls::Position end = c.switches[Controls::S07];
+    p.end                        = end == Controls::Up
+                ? Playhead::End::OneShot
+                : end == Controls::Centre ? Playhead::End::PingPong
+                                          : Playhead::End::Loop;
+
+    // S32: random starts with random position, from periodic at 0
+    p.jitter = rand_pos;
 
     // P02 held: no new grains. Those playing and the reverb ring out; time
     // keeps running.
-    if(c.touched[kStopPad])
+    const bool stop = c.touched[kStopPad];
+    if(stop)
     {
         p.density = 0.0f;
         p.place_density.fill(0.0f);
     }
+    if(!stop && stop_touched_ && p.end == Playhead::End::OneShot)
+        core.Restart();
+    stop_touched_ = stop;
 
     // P11 layer
     p.reverse = shift_[Controls::S30];

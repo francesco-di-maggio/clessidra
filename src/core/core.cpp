@@ -55,6 +55,21 @@ void Core::Process(const float* const* in, float** out, size_t size)
     was_freeze_        = p.freeze;
     const double scrub = double(p.position) - double(freeze_position_);
 
+    if(p.freeze)
+        playhead_.Resume();
+    if(restart_.exchange(false, std::memory_order_relaxed))
+    {
+        Stream& stream = streams_[0];
+        playhead_.Restart();
+        stream.phase  = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
+        stream.frozen = stream.phase - scrub;
+        // With a grain at once
+        stream.sched_phase = stream.sched_next;
+    }
+    // Outside Loop, the last grains stay inside the selection
+    const double margin
+        = std::min(grain_samples * std::fabs(p.pitch) / sel_len, 0.5);
+
     struct Span
     {
         double start, length;
@@ -102,10 +117,21 @@ void Core::Process(const float* const* in, float** out, size_t size)
             const Span& span   = spans[s];
             if(!stream.on)
                 continue;
+            const bool playhead = s == 0;
             if(!p.freeze)
             {
-                stream.phase += span.play_inc;
-                stream.phase -= std::floor(stream.phase);
+                if(playhead)
+                {
+                    stream.phase = playhead_.Step(
+                        stream.phase, span.play_inc, p.end, margin);
+                    if(playhead_.IsStopped())
+                        continue;
+                }
+                else
+                {
+                    stream.phase += span.play_inc;
+                    stream.phase -= std::floor(stream.phase);
+                }
             }
 
             stream.sched_phase += span.sched_inc;
@@ -116,7 +142,10 @@ void Core::Process(const float* const* in, float** out, size_t size)
                         span.start,
                         span.length,
                         stream.phase,
-                        s == 0 ? p.level : p.place_level[s - 1],
+                        playhead ? p.level : p.place_level[s - 1],
+                        !p.freeze
+                            && (playhead ? playhead_.IsBackward(span.play_inc)
+                                         : p.speed < 0.0f),
                         i);
                 stream.sched_next = Interval(p.jitter);
                 // At most one start per sample
@@ -275,7 +304,10 @@ void Core::UpdateCapture(size_t size)
             return;
         capture_ = Capture::Idle;
         if(step == Ring::Step::Done)
+        {
             playing_ = 1 - playing_;
+            Restart();
+        }
     }
 }
 
@@ -312,6 +344,7 @@ void Core::Trigger(const Params& p,
                    double        length,
                    double        phase,
                    float         level,
+                   bool          backwards,
                    size_t        offset)
 {
     const Buffer& buffer = buffers_[playing_];
@@ -344,7 +377,6 @@ void Core::Trigger(const Params& p,
     latch.pan  = 0.5f + Random() * p.spread * 0.5f;
     latch.rate = p.pitch * ratio;
     // Grains read in the playhead's direction, a share of them the other way
-    bool backwards = !p.freeze && p.speed < 0.0f;
     if(p.reverse > 0.0f && 0.5f - 0.5f * Random() <= p.reverse)
         backwards = !backwards;
     if(backwards)

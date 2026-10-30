@@ -8,6 +8,7 @@
 #include <Utility/dcblock.h>
 #include "grain.h"
 #include "limiter.h"
+#include "playhead.h"
 #include "ring.h"
 #include "svf.h"
 
@@ -64,10 +65,12 @@ class Core
 
     struct Params
     {
-        float start  = 0.0f;  // selection start, 0..1 of the recording
-        float length = 1.0f;  // selection length, 0..1 of the recording
-        float speed  = 1.0f;  // every source, 1 = real time, negative = reverse
-        bool  freeze = false; // every source held where it was, speed ignored
+        float start  = 0.0f; // selection start, 0..1 of the recording
+        float length = 1.0f; // selection length, 0..1 of the recording
+        float speed  = 1.0f; // every source, 1 = real time, negative = reverse
+        // what the playhead does at the end of the selection
+        Playhead::End end = Playhead::End::Loop;
+        bool freeze = false; // every source held where it was, speed ignored
         // while frozen, moves every source through its span by its change
         float position = 0.0f;
         float grain_ms = 100.0f; // grain size
@@ -123,6 +126,9 @@ class Core
     // Main loop. Fields are copied one by one: a block may see a mix of old and
     // new.
     void SetParams(const Params& p) { params_ = p; }
+    // Main loop. The playhead from the start of the selection, at the next
+    // block. Also after each new recording.
+    void Restart() { restart_.store(true, std::memory_order_relaxed); }
 
     bool IsRecording() const { return record_.load(std::memory_order_relaxed); }
     float RecordedSeconds() const
@@ -169,6 +175,7 @@ class Core
                  double        length,
                  double        phase,
                  float         level,
+                 bool          backwards,
                  size_t        offset);
     // Updates norm_ from the mean powers of the last block
     void Normalise(float  power_grains,
@@ -204,6 +211,8 @@ class Core
     // s.
     std::array<Grain, kNumVoices>   grains_;
     std::array<Stream, kNumStreams> streams_;
+    Playhead                        playhead_;
+    std::atomic<bool>               restart_{false};
     uint32_t                        seed_ = 1;
     float              freeze_position_ = 0.0f; // Params.position at the freeze
     bool               was_freeze_      = false;

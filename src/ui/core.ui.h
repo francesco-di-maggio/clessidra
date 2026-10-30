@@ -18,8 +18,9 @@ class CoreUI
     // Pads
     static constexpr size_t kRecordPad = 10; // P10, tap or hold to record
     static constexpr size_t kShiftPad
-        = 11;                             // P11, hold for the second knob layer
-    static constexpr size_t kStopPad = 2; // P02, hold to stop the grains
+        = 11; // P11, hold for the second knob layer
+    // P02, hold to stop the grains. In one-shot, release plays it again
+    static constexpr size_t kStopPad = 2;
     // P01, tap: all but the levels back to the defaults
     static constexpr size_t kResetPad = 1;
     // P00, hold for the levels: S36 input, S37 output
@@ -90,6 +91,7 @@ class CoreUI
     bool   shifted_       = false;
     bool   levels_on_     = false;
     bool   reset_touched_ = false;
+    bool   stop_touched_  = false;
     bool   frozen_        = false;
     float  speed_         = 0.5f; // S36 at the freeze
     // LED. Times in ms, shown until they pass.

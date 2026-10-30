@@ -360,6 +360,65 @@ void Tone()
           Gain(10000, 20000, 0.707f, true));
 }
 
+void Ends()
+{
+    Playhead one_shot;
+    double   phase = 0.0;
+    for(int i = 0; i < 20; i++)
+        phase = one_shot.Step(phase, 0.1, Playhead::End::OneShot, 0.0);
+    Check(one_shot.IsStopped() && phase < 1.0,
+          "one-shot: stops at the end",
+          phase);
+    const double stopped = phase;
+    phase = one_shot.Step(phase, 0.1, Playhead::End::OneShot, 0.0);
+    Check(phase == stopped, "one-shot: stays stopped", phase);
+    phase = one_shot.Step(phase, -0.1, Playhead::End::OneShot, 0.0);
+    Check(!one_shot.IsStopped() && phase < stopped,
+          "one-shot: flipped, it falls back",
+          phase);
+
+    Playhead ping_pong;
+    phase        = 0.5;
+    double least = 1.0;
+    double most  = 0.0;
+    bool   back  = false;
+    for(int i = 0; i < 100; i++)
+    {
+        phase = ping_pong.Step(phase, 0.03, Playhead::End::PingPong, 0.1);
+        least = std::min(least, phase);
+        most  = std::max(most, phase);
+        back  = back || ping_pong.IsBackward(0.03);
+    }
+    Check(back && most < 0.9 && least >= 0.1 - 0.03,
+          "ping-pong: turns inside the margins (highest phase)",
+          most);
+
+    Playhead loop;
+    Check(Near(loop.Step(0.95, 0.1, Playhead::End::Loop, 0.1), 0.05, 1e-9),
+          "loop: wraps",
+          0.05);
+
+    Rig r;
+    r.Hold(1.0, Sine);
+    Core::Params p;
+    p.end = Playhead::End::OneShot;
+    r.core.SetParams(p);
+    auto sounding = [&r] {
+        int n = 0;
+        for(const auto& grain : r.core.Grains())
+            n += grain.IsActive();
+        return n;
+    };
+    r.Run(2.0, Silence);
+    Check(sounding() == 0,
+          "one-shot: silence after the end (grains)",
+          sounding());
+    r.core.Restart();
+    r.Run(0.05, Silence);
+    Check(
+        sounding() > 0, "one-shot: restart sounds again (grains)", sounding());
+}
+
 void Mapping()
 {
     Rig      r;
@@ -383,6 +442,13 @@ void Mapping()
           p.rand_pitch);
     Check(p.density == 0.0f, "S37 bottom: playhead density off", p.density);
     Check(Near(p.tone, 0.0, 1e-6), "P11 + S35 default: tone off", p.tone);
+
+    Check(p.end == Playhead::End::OneShot, "S07 up: one-shot", int(p.end));
+    Check(
+        Near(p.jitter, 0.5, 1e-6), "S32 centre: half random starts", p.jitter);
+    c.switches[Controls::S07] = Controls::Down;
+    ui.Process(c, r.core);
+    Check(p.end == Playhead::End::Loop, "S07 down: loop", int(p.end));
 
     // P10 held through the UI records; the LED glows with the grains
     c.knobs[Controls::S37] = 0.8f;
@@ -507,6 +573,7 @@ int main()
     Harmonic();
     SizeVariation();
     Tone();
+    Ends();
     Mapping();
     std::printf("%s\n",
                 failures ? "Some checks failed." : "All checks passed.");

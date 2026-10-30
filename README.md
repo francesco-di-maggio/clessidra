@@ -10,15 +10,15 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 |---|---|
 | S30 / S35 | Selection start / end |
 | S31 | Grain size, 10 ms – half the recording (4 s at 8 s) |
-| S32 | Random position |
+| S32 | Random position and random grain starts |
 | S33 | Pitch, ±2 octaves |
 | S34 | Random pitch, ±2 octaves |
 | S36 | Speed, 0–4. Scrubs while frozen. |
 | S37 | Density: off, 0.1–16 grains at once |
 | S09 | Forward / freeze / reverse |
-| S07 | Grain starts: periodic / half random / random |
+| S07 | End of the selection: one-shot / ping-pong / loop |
 | P03–P09 | Places in the selection, at the S37 density (8 with S37 off). Pressure crossfades from the playhead to the place. |
-| P02 | Hold: stop the grains |
+| P02 | Hold: stop the grains. In one-shot, release plays it again |
 | P01 | Tap: the sound back to the defaults, knobs take over from there. Levels kept. |
 | P00 | Hold: levels |
 | P10 | Tap: keep the last 8 s. Hold: record. |
