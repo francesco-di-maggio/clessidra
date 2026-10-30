@@ -8,46 +8,34 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 
 | Control | Function |
 |---|---|
-| S30 / S35 | Selection start / end |
-| S31 | Grain size, 10 ms – half the recording (4 s at 8 s) |
-| S32 | Random position and random grain starts |
-| S33 | Pitch, ±2 octaves |
-| S34 | Random pitch, ±2 octaves |
-| S36 | Speed, 0–4. Scrubs while frozen. |
-| S37 | Density: off, 0.1–16 grains at once |
-| S09 | Forward / freeze / reverse |
-| S07 | End of the selection: one-shot / ping-pong / loop |
-| P03–P09 | Places in the selection, at the S37 density (8 with S37 off). Pressure crossfades from the playhead to the place. |
-| P02 | Hold: stop the grains. In one-shot, release plays it again |
-| P01 | Tap: the sound back to the defaults, knobs take over from there. Levels kept. |
-| P00 | Hold: levels |
-| P10 | Tap: keep the last 8 s. Hold: record. |
-| P11 | Hold: second layer |
+| S36 | Speed: centre stop, up forward, down backward, up to 4 times. Speed 1 half way |
+| S37 | Density: off, 0.3–130 grains per second |
+| S30 | Position of the selection in the recording |
+| S35 | Length of the selection |
+| S31 | Grain size, 10 ms – half the recording, up to 4 s |
+| S32 | Scatter: from periodic and plain to random starts, positions and sizes. Above the centre, random pitch |
+| S33 | Pitch, ±2 octaves, stops at 0, 0.1, 1, 3, 4, 7, 12 and 24 semitones |
+| S34 | Shape: reverse percussive / Hann / percussive |
+| S07 | End: one-shot / ping-pong / loop |
+| P03–P09 | Slices at the sound's onsets. A touch plays one, a firm press adds density |
+| P10 | Tap: keep the last 8 s. Hold: record, up to 60 s |
+| P11 | Hold: effects |
 
-Second layer:
-
-| Control | Function |
-|---|---|
-| S30 | Reverse: share of grains read backwards |
-| S31 | Shape: reverse percussive / Hann / percussive |
-| S32 | Size variation: each grain from half to twice the size |
-| S33 | Reverb |
-| S34 | Harmonic: share of random pitches on partials |
-| S35 | Tone: lowpass 200 Hz / off / highpass 2 kHz |
-| S36 | Dry / wet |
-| S37 | Resample: what P10 records, input to grains |
-
-Levels:
+Effects, P11 held:
 
 | Control | Function |
 |---|---|
 | S36 | Input level, centre unity, up to +12 dB |
 | S37 | Output level |
+| S35 | Dry / wet |
+| S32 | Reverb |
+| S33 | Resample: what P10 records, input to grains |
+| S34 | Tone: lowpass 200 Hz / off / highpass 2 kHz |
 
 | LED | |
 |---|---|
 | Glow | Grains playing |
-| Pulse | P01 reset, or a control at or turning within its centre |
+| Pulse | A control at or turning within its centre |
 | Flashing | P10 touched |
 | Steady | P11 or P00 held: brightness shows the value |
 

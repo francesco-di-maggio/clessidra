@@ -30,11 +30,13 @@ float Grain::Lookup(const float* table, float x)
 
 void Grain::Start(const Latch& latch, size_t offset)
 {
-    latch_  = latch;
-    offset_ = offset;
-    phase_  = 0.0;
-    read_   = 0.0;
-    active_ = true;
+    latch_     = latch;
+    offset_    = offset;
+    phase_     = 0.0;
+    read_      = 0.0;
+    active_    = true;
+    fade_      = 1.0f;
+    fade_step_ = 0.0f;
     // Equal-power pan
     const float angle = HALFPI_F * latch.pan;
     gain_l_           = std::cos(angle);
@@ -48,6 +50,11 @@ void Grain::Start(const Latch& latch, size_t offset)
     peak_            = 0.5f - (0.5f - kMinPeak) * percussive_;
     rise_scale_      = 1.0f / peak_;
     fall_scale_      = 1.0f / (1.0f - peak_);
+}
+
+void Grain::FadeOut(size_t samples)
+{
+    fade_step_ = fade_ / float(samples);
 }
 
 void Grain::Render(double inc,
@@ -68,6 +75,7 @@ void Grain::Render(double inc,
     float power        = 0.0f;
     float window_sum   = 0.0f;
     float window_power = 0.0f;
+    float fade         = fade_;
     for(size_t n = offset_; n < size; n++)
     {
         const float x = mirrored_ ? 1.0f - float(phase) : float(phase);
@@ -82,6 +90,8 @@ void Grain::Render(double inc,
             const float hann = Lookup(rise_, 1.0f - fall);
             window = hann + percussive_ * (Lookup(decay_, fall) - hann);
         }
+        window *= fade;
+        fade -= fade_step_;
 
         const float s = buffer.Read(latch_.position + read) * window * gain;
         left[n] += s * gain_l_;
@@ -92,7 +102,7 @@ void Grain::Render(double inc,
 
         read += latch_.rate;
         phase += inc;
-        if(phase >= 1.0)
+        if(phase >= 1.0 || fade <= 0.0f)
         {
             active_ = false;
             break;
@@ -100,6 +110,7 @@ void Grain::Render(double inc,
     }
     offset_ = 0;
     phase_  = phase;
+    fade_   = fade;
     read_   = read;
     sums.power += power;
     sums.window += window_sum;

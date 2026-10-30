@@ -31,127 +31,65 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const double len       = double(buffers_[playing_].Length());
     const double sel_start = p.start * len;
     const double sel_len   = std::max(p.length * len, 1.0);
-    const double place_len = std::max(sel_len / kNumPlaces, 1.0);
-    // A grain reads about grain_samples: no longer than the recording
-    const double grain_samples = std::clamp(
-        p.grain_ms * 0.001 * sample_rate_, 1.0, std::max(len, 1.0));
-    const double grain_inc = p.pitch / grain_samples;
-    // Sizes log-uniform within +-octaves: their mean, which the starts divide
-    // by so the density stays the grains at once
-    const float octaves
-        = std::clamp(p.size_variation, 0.0f, 1.0f) * kSizeVariationOctaves;
-    const float mean_size = octaves > 0.0f
-                                ? (std::exp2(octaves) - std::exp2(-octaves))
-                                      / (2.0f * octaves * float(M_LN2))
-                                : 1.0f;
-
-    // Freeze holds every source where it is; position moves them from there
-    if(p.freeze && !was_freeze_)
-    {
-        for(auto& stream : streams_)
-            stream.frozen = stream.phase;
-        freeze_position_ = p.position;
-    }
-    was_freeze_        = p.freeze;
-    const double scrub = double(p.position) - double(freeze_position_);
+    const float  density   = std::clamp(p.density, 0.0f, kMaxDensity);
+    // A grain lasts grain_samples whatever its pitch, as the starts per second
+    // do: no longer than the recording, and short enough for the voices to hold
+    // whole windows at this density. Stolen, they would hardly rise.
+    const double most_samples
+        = density > 0.0f
+              ? double(kNumVoices - kSafetyVoices) * sample_rate_ / density
+              : len;
+    const double grain_samples
+        = std::clamp(p.grain_ms * 0.001 * sample_rate_,
+                     1.0,
+                     std::max(std::min(len, most_samples), 1.0));
+    const double grain_inc = 1.0 / grain_samples;
 
     if(p.freeze)
         playhead_.Resume();
+    const double low  = p.slice_start;
+    const double high = p.slice_end;
     if(restart_.exchange(false, std::memory_order_relaxed))
     {
-        Stream& stream = streams_[0];
         playhead_.Restart();
-        stream.phase  = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
-        stream.frozen = stream.phase - scrub;
+        stream_.phase = p.speed < 0.0f ? std::nextafter(high, low) : low;
         // With a grain at once
-        stream.sched_phase = stream.sched_next;
+        stream_.sched_phase = stream_.sched_next;
     }
-    // Outside Loop, the last grains stay inside the selection
-    const double margin
-        = std::min(grain_samples * std::fabs(p.pitch) / sel_len, 0.5);
+    // Outside Loop, the last grains stay inside the slice
+    const double margin = std::min(grain_samples * std::fabs(p.pitch) / sel_len,
+                                   0.25 * (high - low));
 
-    struct Span
-    {
-        double start, length;
-        double play_inc;  // phase per sample
-        double sched_inc; // density starts per grain duration
-    };
-    std::array<Span, kNumStreams> spans;
-    for(size_t s = 0; s < kNumStreams; s++)
-    {
-        const bool  playhead = s == 0;
-        const float density  = std::clamp(
-            playhead ? p.density : p.place_density[s - 1], 0.0f, kMaxDensity);
-        const double length = playhead ? sel_len : place_len;
-        spans[s]            = {playhead ? sel_start
-                             : sel_start + double(s - 1) * sel_len / kNumPlaces,
-                    length,
-                    p.speed / length,
-                    grain_inc * density / mean_size};
-
-        Stream&    stream = streams_[s];
-        const bool on     = density > 0.0f;
-        // A place starts at its edge in the playing direction, with a grain at
-        // once. The playhead keeps running.
-        if(on && !stream.on && !playhead)
-        {
-            stream.phase  = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
-            stream.frozen = stream.phase - scrub;
-            stream.sched_phase = stream.sched_next;
-        }
-        stream.on = on || playhead;
-        if(p.freeze)
-        {
-            stream.phase = stream.frozen + scrub;
-            stream.phase -= std::floor(stream.phase);
-        }
-    }
+    const double play_inc = p.speed / sel_len; // phase per sample
+    // grain starts per sample
+    const double sched_inc = density / sample_rate_;
 
     // Grain starts in this block, at the sample they fall on. A voice that ends
     // in this block is free from the next.
     for(size_t i = 0; i < size; i++)
     {
-        for(size_t s = 0; s < kNumStreams; s++)
+        if(!p.freeze)
         {
-            Stream&     stream = streams_[s];
-            const Span& span   = spans[s];
-            if(!stream.on)
+            stream_.phase = playhead_.Step(
+                stream_.phase, play_inc, p.end, low, high, margin);
+            if(playhead_.IsStopped())
                 continue;
-            const bool playhead = s == 0;
-            if(!p.freeze)
-            {
-                if(playhead)
-                {
-                    stream.phase = playhead_.Step(
-                        stream.phase, span.play_inc, p.end, margin);
-                    if(playhead_.IsStopped())
-                        continue;
-                }
-                else
-                {
-                    stream.phase += span.play_inc;
-                    stream.phase -= std::floor(stream.phase);
-                }
-            }
+        }
 
-            stream.sched_phase += span.sched_inc;
-            if(stream.sched_phase >= stream.sched_next)
-            {
-                stream.sched_phase -= stream.sched_next;
-                Trigger(p,
-                        span.start,
-                        span.length,
-                        stream.phase,
-                        playhead ? p.level : p.place_level[s - 1],
-                        !p.freeze
-                            && (playhead ? playhead_.IsBackward(span.play_inc)
-                                         : p.speed < 0.0f),
-                        i);
-                stream.sched_next = Interval(p.jitter);
-                // At most one start per sample
-                stream.sched_phase
-                    = std::min(stream.sched_phase, double(stream.sched_next));
-            }
+        stream_.sched_phase += sched_inc;
+        if(stream_.sched_phase >= stream_.sched_next)
+        {
+            stream_.sched_phase -= stream_.sched_next;
+            Trigger(p,
+                    sel_start,
+                    sel_len,
+                    stream_.phase,
+                    !p.freeze && playhead_.IsBackward(play_inc),
+                    i);
+            stream_.sched_next = Interval(p.jitter);
+            // At most one start per sample
+            stream_.sched_phase
+                = std::min(stream_.sched_phase, double(stream_.sched_next));
         }
     }
 
@@ -245,14 +183,15 @@ void Core::Process(const float* const* in, float** out, size_t size)
         ring_.Write(record_input_ * input
                     + record_wet_ * float(M_SQRT1_2) * (l + r));
 
-        out[0][i] = l * wet_gain_ + in_l * dry_gain_;
-        out[1][i] = r * wet_gain_ + in_r * dry_gain_;
+        out[0][i] = kWetGain * l * wet_gain_ + in_l * dry_gain_;
+        out[1][i] = kWetGain * r * wet_gain_ + in_r * dry_gain_;
         limiter_.Process(out[0][i], out[1][i]);
         output_gain_ += output_step;
         out[0][i] *= output_gain_;
         out[1][i] *= output_gain_;
     }
 
+    ended_.store(playhead_.IsStopped(), std::memory_order_relaxed);
     UpdateCapture(size);
 }
 
@@ -269,8 +208,8 @@ void Core::UpdateCapture(size_t size)
         const size_t tap      = size_t(kTapSeconds * sample_rate_);
         const size_t pre_roll = size_t(kPreRollSeconds * sample_rate_);
         capture_back_         = held_ < tap ? held_ : 0;
-        capture_length_
-            = held_ < tap ? buffers_[0].Capacity() : held_ + pre_roll;
+        capture_length_ = held_ < tap ? size_t(kTapKeepSeconds * sample_rate_)
+                                      : held_ + pre_roll;
         capture_ = Capture::Waiting;
     }
     was_record_ = record;
@@ -306,6 +245,7 @@ void Core::UpdateCapture(size_t size)
         if(step == Ring::Step::Done)
         {
             playing_ = 1 - playing_;
+            recording_count_.fetch_add(1, std::memory_order_relaxed);
             Restart();
         }
     }
@@ -343,7 +283,6 @@ void Core::Trigger(const Params& p,
                    double        start,
                    double        length,
                    double        phase,
-                   float         level,
                    bool          backwards,
                    size_t        offset)
 {
@@ -351,51 +290,68 @@ void Core::Trigger(const Params& p,
     if(buffer.Length() == 0)
         return; // nothing recorded: no grains
 
-    Grain* grain = nullptr;
+    Grain* grain  = nullptr;
+    size_t active = 0;
     for(auto& g : grains_)
     {
-        if(!g.IsActive())
-        {
+        if(g.IsActive())
+            active++;
+        else if(!grain)
             grain = &g;
-            break;
-        }
     }
     if(!grain)
         return;
 
     Grain::Latch latch;
     latch.buffer = &buffer;
-    latch.position
-        = start + phase * length + Random() * p.rand_pos * length * 0.5;
-    float ratio = std::exp2(Random() * p.rand_pitch / 12.0f);
-    // Snapped: the nearest partial of the fundamental two octaves below, 1/4 ..
-    // 4 within the +-24 semitones of random pitch
-    if(p.harmonic > 0.0f && 0.5f - 0.5f * Random() <= p.harmonic)
-    {
-        ratio = std::max(1.0f, std::round(4.0f * ratio)) / 4.0f;
-    }
-    latch.pan  = 0.5f + Random() * p.spread * 0.5f;
-    latch.rate = p.pitch * ratio;
-    // Grains read in the playhead's direction, a share of them the other way
-    if(p.reverse > 0.0f && 0.5f - 0.5f * Random() <= p.reverse)
-        backwards = !backwards;
+    // Scatter stays inside what is playing
+    const double span      = double(p.slice_end) - double(p.slice_start);
+    double       scattered = phase + Random() * p.rand_pos * 0.5;
+    scattered -= span * std::floor((scattered - p.slice_start) / span);
+    latch.position = start + scattered * length;
+    // Peaky: the further each grain may go is itself random
+    const float reach
+        = std::min(3.0f * p.rand_pitch * (0.5f - 0.5f * Random()), 1.0f);
+    const float ratio
+        = std::exp2(Random() * reach * kRandPitchSemitones / 12.0f);
+    // Width with the grains sounding and how much they differ: a lone grain
+    // near the centre, most of the others too
+    const float width = 0.5f * float(active + 1) * p.spread;
+    const float scale = 0.5f - 0.5f * Random();
+    latch.pan         = 0.5f + 0.5f * Random() * std::min(width * scale, 1.0f);
+    latch.rate        = p.pitch * ratio;
     if(backwards)
         latch.rate = -latch.rate;
-    latch.gain = level;
     if(p.size_variation > 0.0f)
         latch.size
             = std::exp2(Random() * p.size_variation * kSizeVariationOctaves);
     latch.shape = p.window_shape;
     grain->Start(latch, offset);
+
+    // Keeps voices free for the next grains
+    if(active + 1 + kSafetyVoices <= kNumVoices)
+        return;
+    Grain* furthest = nullptr;
+    for(auto& g : grains_)
+    {
+        if(&g == grain || !g.IsActive() || g.IsFading())
+            continue;
+        if(!furthest || g.Progress() > furthest->Progress())
+            furthest = &g;
+    }
+    if(furthest)
+        furthest->FadeOut(size_t(kFadeSeconds * sample_rate_));
 }
 
 float Core::Interval(float jitter)
 {
-    // Mean 1 at any jitter. Exponential intervals (jitter 1) make Poisson
-    // starts.
-    const float u           = 0.5f - 0.5f * Random(); // (0, 1]
-    const float exponential = -std::log(u);
-    return 1.0f - jitter + jitter * exponential;
+    // Mean 1 at any jitter. Random (jitter 1): nearly Poisson, without the
+    // closest starts and the longest gaps. kMean: of the series on 0.1..1.
+    static constexpr float kMean = 0.883f;
+    const float            x     = 0.1f + 0.9f * (0.5f - 0.5f * Random());
+    const float            random
+        = x * (1.0f + x * (0.5f + x * (0.3333f + x * 0.25f))) / kMean;
+    return 1.0f - jitter + jitter * random;
 }
 
 float Core::Random()

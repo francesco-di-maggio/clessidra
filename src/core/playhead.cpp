@@ -10,14 +10,20 @@ void Playhead::Restart()
     stopped_   = false;
 }
 
-double Playhead::Step(double phase, double inc, End end, double margin)
+double Playhead::Step(double phase,
+                      double inc,
+                      End    end,
+                      double low,
+                      double high,
+                      double margin)
 {
     if(end == End::Loop)
     {
-        direction_        = 1.0;
-        stopped_          = false;
-        const double next = phase + inc;
-        return next - std::floor(next);
+        direction_         = 1.0;
+        stopped_           = false;
+        const double next  = phase + inc;
+        const double width = high - low;
+        return next - width * std::floor((next - low) / width);
     }
 
     const double moving = inc * direction_;
@@ -32,7 +38,7 @@ double Playhead::Step(double phase, double inc, End end, double margin)
 
     const bool   forward = moving >= 0.0;
     const double next    = phase + moving;
-    if(forward ? next < 1.0 - margin : next >= margin)
+    if(forward ? next < high - margin : next >= low + margin)
         return next;
 
     if(end == End::PingPong)

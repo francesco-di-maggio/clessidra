@@ -2,6 +2,7 @@
 // Built and run by tests/run.sh (make test). Each check prints PASS or FAIL.
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <functional>
@@ -152,7 +153,7 @@ void Capture()
 
 void Level()
 {
-    // Noise recorded, then played at density 8: the normaliser keeps the
+    // Noise recorded, then played at 8 grains at once: the normaliser keeps the
     // input's level
     Rig      r;
     uint32_t seed  = 1;
@@ -163,7 +164,7 @@ void Level()
     r.Hold(2.0, noise);
     Core::Params p;
     p.mix     = 1.0f;
-    p.density = 8.0f;
+    p.density = 80.0f;
     r.core.SetParams(p);
     double       in = 0.0, out = 0.0;
     float        l[kBlock], o1[kBlock], o2[kBlock];
@@ -183,17 +184,14 @@ void Level()
         }
     }
     const double db = 10.0 * std::log10(out / in);
-    Check(db > -2.0 && db < 0.5,
-          "density 8: grains at the input's level (dB)",
-          db);
+    Check(
+        db > 4.0 && db < 6.5, "8 grains at once: 6 dB over the input (dB)", db);
 
-    // Heavy: 20 ms grains, density 16, all places, reverb: never above the
-    // limiter
-    p.grain_ms = 20.0f;
-    p.density  = 16.0f;
-    p.place_density.fill(16.0f);
+    // Heavy: 20 ms grains, the most density, reverb: never above the limiter
+    p.grain_ms   = 20.0f;
+    p.density    = Core::kMaxDensity;
     p.reverb     = 0.8f;
-    p.rand_pitch = 12.0f;
+    p.rand_pitch = 0.5f;
     r.core.SetParams(p);
     r.peak = 0.0f;
     r.Run(3.0, Sine);
@@ -248,87 +246,6 @@ void Windows()
 
 // Share of the output's power within 10 Hz of the partials of 55 Hz, from 40 Hz
 // to 1 kHz
-double PartialShare(float harmonic)
-{
-    Rig r;
-    r.Hold(1.0, Sine); // 220 Hz: the 4th partial
-    Core::Params p;
-    p.mix        = 1.0f;
-    p.freeze     = true;
-    p.rand_pitch = 12.0f;
-    p.harmonic   = harmonic;
-    r.core.SetParams(p);
-    std::vector<float> mono;
-    float              l[kBlock], o1[kBlock], o2[kBlock];
-    const float*       ins[2]  = {l, l};
-    float*             outs[2] = {o1, o2};
-    std::fill(l, l + kBlock, 0.0f);
-    for(size_t b = 0; b < 2000; b++)
-    {
-        r.core.Process(ins, outs, kBlock);
-        if(b < 1000)
-            continue;
-        for(size_t i = 0; i < kBlock; i++)
-            mono.push_back(o1[i] + o2[i]);
-    }
-    double near = 0.0, total = 0.0;
-    for(int hz = 40; hz <= 1000; hz++)
-    {
-        // Goertzel
-        const double w = 2.0 * M_PI * hz / kRate, k = 2.0 * std::cos(w);
-        double       s1 = 0.0, s2 = 0.0;
-        for(float x : mono)
-        {
-            const double s0 = x + k * s1 - s2;
-            s2              = s1;
-            s1              = s0;
-        }
-        const double power = s1 * s1 + s2 * s2 - k * s1 * s2;
-        total += power;
-        const double partial = std::round(hz / 55.0) * 55.0;
-        if(std::fabs(hz - partial) <= 10.0)
-            near += power;
-    }
-    return near / total;
-}
-
-// Grains at once on average over 20 s of a 1 s recording
-double MeanActive(float size_variation)
-{
-    Rig r;
-    r.Hold(1.0, Sine);
-    Core::Params p;
-    p.density        = 8.0f;
-    p.jitter         = 1.0f;
-    p.size_variation = size_variation;
-    r.core.SetParams(p);
-    double active = 0.0;
-    size_t blocks = 0;
-    r.Run(20.0, Sine, [&](size_t) {
-        for(const auto& g : r.core.Grains())
-            active += g.IsActive() ? 1.0 : 0.0;
-        blocks++;
-    });
-    return active / double(blocks);
-}
-
-void SizeVariation()
-{
-    const double fixed = MeanActive(0.0f), varied = MeanActive(1.0f);
-    Check(Near(varied, fixed, 0.03 * fixed),
-          "size variation: density kept (grains at once)",
-          varied);
-}
-
-void Harmonic()
-{
-    const double free = PartialShare(0.0f), snapped = PartialShare(1.0f);
-    Check(free < 0.7, "random pitch, free: power near partials (share)", free);
-    Check(snapped > 0.9,
-          "random pitch, harmonic 1: power near partials (share)",
-          snapped);
-}
-
 double Gain(float hz, float cutoff, float q, bool low)
 {
     Svf f;
@@ -365,14 +282,15 @@ void Ends()
     Playhead one_shot;
     double   phase = 0.0;
     for(int i = 0; i < 20; i++)
-        phase = one_shot.Step(phase, 0.1, Playhead::End::OneShot, 0.0);
+        phase
+            = one_shot.Step(phase, 0.1, Playhead::End::OneShot, 0.0, 1.0, 0.0);
     Check(one_shot.IsStopped() && phase < 1.0,
           "one-shot: stops at the end",
           phase);
     const double stopped = phase;
-    phase = one_shot.Step(phase, 0.1, Playhead::End::OneShot, 0.0);
+    phase = one_shot.Step(phase, 0.1, Playhead::End::OneShot, 0.0, 1.0, 0.0);
     Check(phase == stopped, "one-shot: stays stopped", phase);
-    phase = one_shot.Step(phase, -0.1, Playhead::End::OneShot, 0.0);
+    phase = one_shot.Step(phase, -0.1, Playhead::End::OneShot, 0.0, 1.0, 0.0);
     Check(!one_shot.IsStopped() && phase < stopped,
           "one-shot: flipped, it falls back",
           phase);
@@ -384,7 +302,8 @@ void Ends()
     bool   back  = false;
     for(int i = 0; i < 100; i++)
     {
-        phase = ping_pong.Step(phase, 0.03, Playhead::End::PingPong, 0.1);
+        phase = ping_pong.Step(
+            phase, 0.03, Playhead::End::PingPong, 0.0, 1.0, 0.1);
         least = std::min(least, phase);
         most  = std::max(most, phase);
         back  = back || ping_pong.IsBackward(0.03);
@@ -394,7 +313,9 @@ void Ends()
           most);
 
     Playhead loop;
-    Check(Near(loop.Step(0.95, 0.1, Playhead::End::Loop, 0.1), 0.05, 1e-9),
+    Check(Near(loop.Step(0.95, 0.1, Playhead::End::Loop, 0.0, 1.0, 0.0),
+               0.05,
+               1e-9),
           "loop: wraps",
           0.05);
 
@@ -417,6 +338,125 @@ void Ends()
     r.Run(0.05, Silence);
     Check(
         sounding() > 0, "one-shot: restart sounds again (grains)", sounding());
+
+    // Every slice lasts the same
+    auto duration = [&r, &p, &sounding](float start) {
+        p.slice_start = start;
+        p.slice_end   = start + 1.0f / 7.0f;
+        r.core.SetParams(p);
+        r.core.Restart();
+        double seconds = 0.0;
+        for(int i = 0; i < 300 && (i < 2 || sounding() > 0); i++)
+        {
+            r.Run(0.01, Silence);
+            seconds += 0.01;
+        }
+        return seconds;
+    };
+    const double first = duration(0.0f);
+    const double last  = duration(6.0f / 7.0f);
+    Check(Near(first, last, 0.02),
+          "one-shot: first and last slice last the same (s)",
+          last - first);
+}
+
+// L/R correlation of grains from different parts of the sound
+double Width(float density, float spread)
+{
+    Rig r;
+    r.Hold(2.0, Sine);
+    Core::Params p;
+    p.density  = density;
+    p.rand_pos = 1.0f;
+    p.spread   = spread;
+    p.mix      = 1.0f;
+    r.core.SetParams(p);
+    r.Run(0.5, Silence);
+    float        in[kBlock] = {}, l[kBlock], o[kBlock];
+    const float* inputs[2]  = {in, in};
+    float*       outputs[2] = {l, o};
+    double       ll = 0.0, rr = 0.0, lr = 0.0;
+    for(size_t b = 0; b < size_t(2 * kRate / kBlock); b++)
+    {
+        r.core.Process(inputs, outputs, kBlock);
+        for(size_t i = 0; i < kBlock; i++)
+        {
+            ll += l[i] * l[i];
+            rr += o[i] * o[i];
+            lr += l[i] * o[i];
+        }
+    }
+    return lr / std::sqrt(ll * rr);
+}
+
+void Pan()
+{
+    Check(Width(130.0f, 0.0f) > 0.999,
+          "spread 0: grains at the centre (L/R correlation)",
+          Width(130.0f, 0.0f));
+    const double lone = Width(10.0f, 1.0f);
+    const double full = Width(130.0f, 1.0f);
+    Check(full < 0.8 && lone > full + 0.1,
+          "spread 1: wider with more grains (L/R correlation)",
+          full);
+}
+
+void Voices()
+{
+    Rig r;
+    r.Hold(1.0, Sine);
+    Core::Params p;
+    p.density  = Core::kMaxDensity;
+    p.grain_ms = 4000.0f;
+    p.jitter   = 1.0f;
+    r.core.SetParams(p);
+    size_t most = 0;
+    double sum  = 0.0;
+    r.Run(3.0, Silence, [&](size_t) {
+        size_t n = 0;
+        for(const auto& grain : r.core.Grains())
+            n += grain.IsActive();
+        most = std::max(most, n);
+        sum += r.core.GrainLevel();
+    });
+    Check(most < Core::kNumVoices,
+          "the most density, long grains: a voice stays free (most sounding)",
+          double(most));
+    Check(sum / (3.0 * kRate / kBlock) > 10.0,
+          "the most density, long grains: whole windows (mean of the windows)",
+          sum / (3.0 * kRate / kBlock));
+    Check(r.finite, "the most density, long grains: output finite", 1.0);
+}
+
+void Onsets()
+{
+    // Clicks on silence: an edge at each, within 10 ms, first to last
+    std::vector<float>          clicks(4 * kRate, 0.0f);
+    const std::array<double, 6> times = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+    for(double t : times)
+    {
+        for(size_t i = 0; i < 480; i++)
+            clicks[size_t(t * kRate) + i] = 0.5f * (i % 2 ? 1.0f : -1.0f);
+    }
+    const auto edges = FindSlices(clicks.data(), clicks.size(), kRate);
+    bool       found = edges[0] == 0.0f && edges[kNumSlices] == 1.0f;
+    for(size_t i = 0; i < times.size(); i++)
+        found = found && Near(edges[i + 1] * 4.0, times[i], 0.01);
+    Check(found,
+          "onsets: an edge at each click (second edge, s)",
+          edges[1] * 4.0);
+
+    // A sustained sound: slices all the same
+    std::vector<float> sine(4 * kRate);
+    for(size_t i = 0; i < sine.size(); i++)
+        sine[i] = Sine(double(i) / kRate);
+    const auto even   = FindSlices(sine.data(), sine.size(), kRate);
+    bool       rising = true;
+    for(size_t i = 0; i < kNumSlices; i++)
+        rising = rising && even[i + 1] > even[i];
+    Check(rising && even[kNumSlices] == 1.0f,
+          "onsets: none found, the slices still rise to the end",
+          even[1]);
 }
 
 void Mapping()
@@ -426,8 +466,9 @@ void Mapping()
     Controls c;
     c.knobs.fill(0.5f);
     c.knobs[Controls::S30] = 0.0f;
-    c.knobs[Controls::S34] = 1.0f;
+    c.knobs[Controls::S32] = 0.0f;
     c.knobs[Controls::S35] = 1.0f;
+    c.knobs[Controls::S36] = 0.75f;
     c.knobs[Controls::S37] = 0.0f;
     c.switches             = {Controls::Up, Controls::Up};
     ui.Process(c, r.core);
@@ -436,16 +477,45 @@ void Mapping()
           "S31 centre: grain size (ms)",
           p.grain_ms);
     Check(Near(p.pitch, 1.0, 1e-6), "S33 centre: pitch (ratio)", p.pitch);
-    Check(Near(p.speed, 1.0, 1e-6), "S36 centre: speed", p.speed);
-    Check(Near(p.rand_pitch, 24.0, 1e-4),
-          "S34 top: random pitch (semitones)",
-          p.rand_pitch);
-    Check(p.density == 0.0f, "S37 bottom: playhead density off", p.density);
-    Check(Near(p.tone, 0.0, 1e-6), "P11 + S35 default: tone off", p.tone);
-
+    Check(Near(p.speed, 1.0, 1e-6) && !p.freeze,
+          "S36 half way up: speed 1",
+          p.speed);
+    Check(p.density == 0.0f, "S37 bottom: density off", p.density);
+    Check(Near(p.tone, 0.0, 1e-6), "P11 + S34 default: tone off", p.tone);
+    Check(p.jitter == 0.0f && p.rand_pos == 0.0f && p.rand_pitch == 0.0f
+              && p.spread == 0.0f,
+          "S32 bottom: plain",
+          p.jitter);
     Check(p.end == Playhead::End::OneShot, "S07 up: one-shot", int(p.end));
-    Check(
-        Near(p.jitter, 0.5, 1e-6), "S32 centre: half random starts", p.jitter);
+
+    c.knobs[Controls::S36] = 0.25f;
+    ui.Process(c, r.core);
+    Check(Near(p.speed, -1.0, 1e-6), "S36 half way down: speed -1", p.speed);
+    c.knobs[Controls::S36] = 0.5f;
+    ui.Process(c, r.core);
+    Check(p.freeze, "S36 centre: stop", p.speed);
+    c.knobs[Controls::S36] = 0.75f;
+
+    c.knobs[Controls::S33] = 0.5f + 2.0f / 14.0f; // on the 1 semitone stop
+    ui.Process(c, r.core);
+    Check(Near(p.pitch, std::exp2(1.0 / 12.0), 1e-3),
+          "S33: a stop at 1 semitone",
+          p.pitch);
+    c.knobs[Controls::S33] = 1.0f;
+    ui.Process(c, r.core);
+    Check(Near(p.pitch, 4.0, 1e-3), "S33 top: +2 octaves", p.pitch);
+    c.knobs[Controls::S33] = 0.5f;
+
+    c.knobs[Controls::S32] = 0.5f;
+    ui.Process(c, r.core);
+    Check(p.jitter == 0.5f && p.rand_pitch == 0.0f,
+          "S32 centre: half random, pitch still plain",
+          p.jitter);
+    c.knobs[Controls::S32] = 1.0f;
+    ui.Process(c, r.core);
+    Check(p.rand_pitch == 1.0f, "S32 top: random pitch", p.rand_pitch);
+    c.knobs[Controls::S32] = 0.0f;
+
     c.switches[Controls::S07] = Controls::Down;
     ui.Process(c, r.core);
     Check(p.end == Playhead::End::Loop, "S07 down: loop", int(p.end));
@@ -468,64 +538,69 @@ void Mapping()
     const float led = ui.Led(ms + 1000, r.core);
     Check(Near(led, 0.6 * 0.6 * 0.6, 0.01), "LED: dim glow with grains", led);
 
-    // P11 held and S35 turned: the second layer changes, the main layer doesn't
-    const float tone_before = ui.SecondLayer(Controls::S35);
-    press(CoreUI::kShiftPad, true);
+    // P11 held and S34 turned: the tone changes, the shape doesn't
+    const float shape_before = p.window_shape;
+    const float tone_before  = ui.Effect(CoreUI::kToneKnob);
+    press(CoreUI::kEffectsPad, true);
     for(int i = 1; i <= 20; i++)
     {
-        c.knobs[Controls::S35] = 1.0f - 0.02f * float(i);
+        c.knobs[Controls::S34] = 0.5f + 0.02f * float(i);
         ui.Process(c, r.core);
     }
-    press(CoreUI::kShiftPad, false);
-    Check(ui.SecondLayer(Controls::S35) < tone_before - 0.2f,
-          "P11 + S35: tone turned down",
-          ui.SecondLayer(Controls::S35));
-    Check(Near(r.core.CurrentParams().length, 1.0, 1e-6),
-          "P11 + S35: selection end unchanged",
-          r.core.CurrentParams().length);
+    press(CoreUI::kEffectsPad, false);
+    Check(ui.Effect(CoreUI::kToneKnob) > tone_before + 0.2f,
+          "P11 + S34: tone turned up",
+          ui.Effect(CoreUI::kToneKnob));
+    Check(p.window_shape == shape_before,
+          "P11 + S34: shape unchanged",
+          p.window_shape);
+    c.knobs[Controls::S34] = 0.5f;
+    ui.Process(c, r.core);
 
-    // Grain size ends; a place pressed half way
+    // Grain size ends; a slice pressed firmly
     c.knobs[Controls::S31] = 0.0f;
     ui.Process(c, r.core);
-    Check(Near(r.core.CurrentParams().grain_ms, 10.0, 0.01),
+    Check(Near(p.grain_ms, 10.0, 0.01),
           "S31 bottom: grain size (ms)",
-          r.core.CurrentParams().grain_ms);
+          p.grain_ms);
     c.knobs[Controls::S31] = 1.0f;
     ui.Process(c, r.core);
-    Check(Near(r.core.CurrentParams().grain_ms, 500.0 * r.Seconds(), 0.1),
+    Check(Near(p.grain_ms, 500.0 * r.Seconds(), 0.1),
           "S31 top: half the recording (ms)",
-          r.core.CurrentParams().grain_ms);
-    const float  density = r.core.CurrentParams().density;
-    const size_t place   = CoreUI::kPlacePads[0];
-    c.pressure[place]    = 0.5f;
+          p.grain_ms);
+    const float  density = p.density;
+    const size_t place   = CoreUI::kSlicePads[3];
+    c.pressure[place]    = 0.3f;
     press(place, true);
-    const Core::Params& pressed = r.core.CurrentParams();
-    Check(pressed.place_density[0] == density
-              && Near(pressed.level, std::sqrt(0.5), 1e-4)
-              && Near(pressed.place_level[0], std::sqrt(0.5), 1e-4),
-          "place pressed half: its density, equal-power crossfade",
-          pressed.level);
-    press(CoreUI::kStopPad, true);
-    Check(r.core.CurrentParams().place_density[0] == 0.0f,
-          "P02 held: places stopped",
-          r.core.CurrentParams().place_density[0]);
-    press(CoreUI::kStopPad, false);
-
+    Check(p.density == density,
+          "slice touched lightly: density unchanged",
+          p.density);
+    r.Run(0.001, Silence);
+    Check(Near(r.core.PlayheadPhase(), p.slice_start, 0.01),
+          "slice touched: the playhead moves to its start (phase)",
+          r.core.PlayheadPhase());
+    c.pressure[place] = 1.0f;
+    ui.Process(c, r.core);
+    Check(Near(p.density, Core::kMaxDensity, 0.01),
+          "slice pressed hard: the most density",
+          p.density);
     press(place, false);
+    Check(p.slice_end == 1.0f,
+          "released, in loop: the whole selection",
+          p.slice_end);
 
-    // P00 held and S37 down: output down; the main layer's density unchanged
-    const float density_before = r.core.CurrentParams().density;
-    press(CoreUI::kLevelsPad, true);
-    for(int i = 1; i <= 40; i++)
+    // P11 held and S37 down: output down; the main layer's density unchanged
+    const float density_before = p.density;
+    press(CoreUI::kEffectsPad, true);
+    for(int i = 1; i <= 50; i++)
     {
-        c.knobs[Controls::S37] = 0.8f - 0.02f * float(i);
+        c.knobs[Controls::S37] = 1.0f - 0.02f * float(i);
         ui.Process(c, r.core);
     }
-    const float output = r.core.CurrentParams().output;
-    press(CoreUI::kLevelsPad, false);
-    Check(output < 0.01f
-              && Near(r.core.CurrentParams().density, density_before, 1e-4),
-          "P00 + S37 down: output off, density kept",
+    const float output = p.output;
+    press(CoreUI::kEffectsPad, false);
+    Check(output < 0.01f && Near(p.density, density_before, 1e-4),
+          "P11 + S37 down: output off, density kept",
           output);
 
     // Detent pulse: on reaching the centre, renewed while turned within it
@@ -543,24 +618,6 @@ void Mapping()
     Check(reached == 1.0f && renewed == 1.0f && ended < 1.0f,
           "LED: pulse at pitch unison, renewed while turned",
           renewed);
-
-    // P01 tapped: defaults, then the knob takes over from there
-    c.knobs[Controls::S33] = 0.9f;
-    ui.Process(c, r.core);
-    const float pitch_before = r.core.CurrentParams().pitch;
-    press(CoreUI::kResetPad, true);
-    press(CoreUI::kResetPad, false);
-    const float pitch_reset = r.core.CurrentParams().pitch;
-    c.knobs[Controls::S33]  = 0.95f;
-    ui.Process(c, r.core);
-    const float pitch_after = r.core.CurrentParams().pitch;
-    Check(pitch_before > 1.5f && pitch_reset == 1.0f && pitch_after > 1.0f
-              && pitch_after < pitch_before,
-          "P01: pitch back to unison, knob takes over",
-          pitch_after);
-    Check(r.core.CurrentParams().output < 0.01f,
-          "P01: output level kept",
-          r.core.CurrentParams().output);
 }
 
 } // namespace
@@ -570,10 +627,11 @@ int main()
     Capture();
     Level();
     Windows();
-    Harmonic();
-    SizeVariation();
     Tone();
     Ends();
+    Pan();
+    Voices();
+    Onsets();
     Mapping();
     std::printf("%s\n",
                 failures ? "Some checks failed." : "All checks passed.");

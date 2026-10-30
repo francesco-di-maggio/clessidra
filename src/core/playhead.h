@@ -18,10 +18,15 @@ class Playhead
     // After a freeze: the phase may have moved away from the end
     void Resume() { stopped_ = false; }
 
-    // One sample. inc: phase per sample, negative = backward. margin: of the
-    // span, kept clear at each end so the last grains stay inside it. Not for
-    // Loop.
-    double Step(double phase, double inc, End end, double margin);
+    // One sample, within low..high of the span. inc: phase per sample, negative
+    // = backward. margin: kept clear at each end so the last grains stay
+    // inside. Not for Loop.
+    double Step(double phase,
+                double inc,
+                End    end,
+                double low,
+                double high,
+                double margin);
 
     bool IsStopped() const { return stopped_; }
     bool IsBackward(double inc) const { return inc * direction_ < 0.0; }

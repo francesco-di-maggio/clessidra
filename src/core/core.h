@@ -22,18 +22,22 @@ class Core
     Core(const Core&) = delete;
     Core& operator=(const Core&) = delete;
 
-    // grains sounding at once, per source
-    static constexpr float kMaxDensity = 16.0f;
-    // above kMaxDensity: random starts can cluster
-    static constexpr size_t kNumVoices = 32;
+    // grains per second, three octaves above middle C
+    static constexpr float  kMaxDensity = 130.81278f;
+    static constexpr size_t kNumVoices  = 32;
+    // Voices kept free: over this many sounding, the furthest along fades out,
+    // so a new grain always starts
+    static constexpr size_t kSafetyVoices = 8;
+    static constexpr float  kFadeSeconds  = 0.005f;
+    // the furthest a grain's pitch goes at Params.rand_pitch 1
+    static constexpr float kRandPitchSemitones = 24.0f;
     // smoothing of the gain measurements
     static constexpr float kNormSeconds = 0.005f;
+    // +6 dB on the grains against the dry signal: at equal power they sound
+    // softer
+    static constexpr float kWetGain = 2.0f;
     // at most: each grain from half to twice the size
     static constexpr float kSizeVariationOctaves = 1.0f;
-    // The selection divided into equal places, each a grain source of its own
-    static constexpr size_t kNumPlaces = 7;
-    // the playhead, then the places
-    static constexpr size_t kNumSources = 1 + kNumPlaces;
     // Reverb on the grains: equal-power crossfade up to kReverbMaxAmount, decay
     // (T60) rising with it, exponentially
     static constexpr float kReverbMaxAmount = 0.5f;  // equal parts
@@ -53,11 +57,12 @@ class Core
     static constexpr float kToneFade      = 0.1f;
     static constexpr float kToneSeconds   = 0.01f; // smoothing of Params.tone
     // Recording. The input goes to a ring all the time. On release, a touch
-    // shorter than kTapSeconds takes what came before it, a longer one the
+    // shorter than kTapSeconds takes the last kTapKeepSeconds, a longer one the
     // touch from kPreRollSeconds before it; copied to the buffer not playing,
     // which then plays.
     static constexpr size_t kNumBuffers     = 2;
     static constexpr float  kTapSeconds     = 0.3f;
+    static constexpr float  kTapKeepSeconds = 8.0f;
     static constexpr float  kPreRollSeconds = 0.05f;
     static constexpr size_t kCopyPerBlock = 1024; // samples: 21 times real time
     // ring written on during the copy
@@ -67,36 +72,29 @@ class Core
     {
         float start  = 0.0f; // selection start, 0..1 of the recording
         float length = 1.0f; // selection length, 0..1 of the recording
-        float speed  = 1.0f; // every source, 1 = real time, negative = reverse
-        // what the playhead does at the end of the selection
+        float speed  = 1.0f; // 1 = real time, negative = reverse
+        // where the playhead moves, in selections from its start: a slice can
+        // lie outside the selection
+        float slice_start = 0.0f;
+        float slice_end   = 1.0f;
+        // what the playhead does at the end of the slice
         Playhead::End end = Playhead::End::Loop;
-        bool freeze = false; // every source held where it was, speed ignored
-        // while frozen, moves every source through its span by its change
-        float position = 0.0f;
+        bool  freeze   = false; // the playhead held where it was, speed ignored
         float grain_ms = 100.0f; // grain size
         // 0..1: each grain's size random up to kSizeVariationOctaves either way
         float size_variation = 0.0f;
         float pitch          = 1.0f; // grain playback rate
-        // playhead: grains sounding at once on average, up to kMaxDensity
-        float density = 8.0f;
-        // the same per place, 0 = off
-        std::array<float, kNumPlaces> place_density{};
-        float                         level = 1.0f; // playhead gain
-        // gain per place
-        std::array<float, kNumPlaces> place_level = [] {
-            std::array<float, kNumPlaces> a;
-            a.fill(1.0f);
-            return a;
-        }();
-        float jitter = 0.0f; // 0 periodic .. 1 random (Poisson) grain starts
-        // 0..1, position spread: up to half the source's span
+        // grains per second on average, up to kMaxDensity
+        float density = 80.0f;
+        float jitter  = 0.0f; // 0 periodic .. 1 random (Poisson) grain starts
+        // 0..1, position spread: up to half the selection either way, inside
+        // the slice
         float rand_pos = 0.0f;
-        // semitones: each grain's pitch up to this far up or down
+        // 0..1: most grains near the pitch, a few up to kRandPitchSemitones off
         float rand_pitch = 0.0f;
-        // 0..1, share of grains whose random pitch snaps to a partial
-        float harmonic = 0.0f;
-        float spread   = 0.5f; // 0..1, stereo spread: random pan
-        float reverse  = 0.0f; // 0..1, share of grains read backwards
+        // 0..1, how much the grains differ: with the grains sounding, the pan
+        // width
+        float spread = 0.0f;
         // 0 reverse percussive, 0.5 Hann, 1 percussive
         float window_shape = 0.5f;
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
@@ -126,9 +124,16 @@ class Core
     // Main loop. Fields are copied one by one: a block may see a mix of old and
     // new.
     void SetParams(const Params& p) { params_ = p; }
-    // Main loop. The playhead from the start of the selection, at the next
-    // block. Also after each new recording.
+    // Main loop, after SetParams(). The playhead from the start of the slice,
+    // at the next block. Also after each new recording.
     void Restart() { restart_.store(true, std::memory_order_relaxed); }
+    // The playhead stopped at the end, in one-shot
+    bool HasEnded() const { return ended_.load(std::memory_order_relaxed); }
+    // Rises with each new recording
+    uint32_t RecordingCount() const
+    {
+        return recording_count_.load(std::memory_order_relaxed);
+    }
 
     bool IsRecording() const { return record_.load(std::memory_order_relaxed); }
     float RecordedSeconds() const
@@ -141,25 +146,21 @@ class Core
         return grain_level_.load(std::memory_order_relaxed);
     }
 
-    // For tests, between blocks: the recording playing, the grains and the
-    // parameters in use
+    // The recording playing
     const Buffer& Recording() const { return buffers_[playing_]; }
+    // For tests, between blocks: the grains and the parameters in use
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
+    double        PlayheadPhase() const { return stream_.phase; }
 
   private:
-    // A source of grains: the playhead over the selection, or a place
+    // The playhead over the selection
     struct Stream
     {
-        double phase = 0.0; // through its span, 0..1
-        // phase at the freeze, or at a place's start while frozen
-        double frozen      = 0.0;
+        double phase       = 0.0;  // through its span, 0..1
         double sched_phase = 0.0;  // grain starts, 1 = mean interval
         float  sched_next  = 1.0f; // phase of the next start
-        bool   on          = false;
     };
-    static constexpr size_t kNumStreams = 1 + kNumPlaces; // playhead first
-    static_assert(kNumStreams == kNumSources);
 
     enum class Capture
     {
@@ -169,12 +170,11 @@ class Core
     };
 
     // Starts a grain on a free voice at sample offset of the block, reading the
-    // span at phase, at level. All voices busy: dropped.
+    // span at phase
     void Trigger(const Params& p,
                  double        start,
                  double        length,
                  double        phase,
-                 float         level,
                  bool          backwards,
                  size_t        offset);
     // Updates norm_ from the mean powers of the last block
@@ -209,14 +209,14 @@ class Core
 
     // Grains. Running positions in double: float steps reach 1/32 sample at 8
     // s.
-    std::array<Grain, kNumVoices>   grains_;
-    std::array<Stream, kNumStreams> streams_;
-    Playhead                        playhead_;
-    std::atomic<bool>               restart_{false};
-    uint32_t                        seed_ = 1;
-    float              freeze_position_ = 0.0f; // Params.position at the freeze
-    bool               was_freeze_      = false;
-    std::atomic<float> grain_level_{0.0f};
+    std::array<Grain, kNumVoices> grains_;
+    Stream                        stream_;
+    Playhead                      playhead_;
+    std::atomic<bool>             restart_{false};
+    std::atomic<bool>             ended_{false};
+    std::atomic<uint32_t>         recording_count_{0};
+    uint32_t                      seed_ = 1;
+    std::atomic<float>            grain_level_{0.0f};
 
     // Level. Mean powers, smoothed: grains taken separately, their stereo sum,
     // their windows.

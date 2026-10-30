@@ -19,7 +19,7 @@ class Grain
         float         pan      = 0.5f; // 0 left .. 1 right
         // window: 0 reverse percussive, 0.5 Hann, 1 percussive
         float shape = 0.5f;
-        float gain  = 1.0f; // the source's level
+        float gain  = 1.0f;
         float size  = 1.0f; // of the grain size passed to Render()
     };
 
@@ -30,6 +30,10 @@ class Grain
     const Buffer* Source() const { return latch_.buffer; }
     // offset: first sample of the grain in the next Render()
     void Start(const Latch& latch, size_t offset);
+    // Ends the grain within samples, without a click, to free its voice
+    void   FadeOut(size_t samples);
+    bool   IsFading() const { return fade_step_ > 0.0f; }
+    double Progress() const { return phase_; } // through the window, 0..1
 
     // Sums over all grains and samples of a block
     struct Sums
@@ -55,11 +59,13 @@ class Grain
     static float Lookup(const float* table, float x);
 
     Latch  latch_;
-    double phase_  = 0.0;
-    double read_   = 0.0; // samples read since Start()
-    size_t offset_ = 0;
-    float  gain_l_ = 0.0f;
-    float  gain_r_ = 0.0f;
+    double phase_     = 0.0;
+    double read_      = 0.0; // samples read since Start()
+    size_t offset_    = 0;
+    float  gain_l_    = 0.0f;
+    float  gain_r_    = 0.0f;
+    float  fade_      = 1.0f;
+    float  fade_step_ = 0.0f;
     // Window: rises to its peak, then decays as Hann blended to the percussive
     // decay
     float peak_       = 0.5f; // of the grain

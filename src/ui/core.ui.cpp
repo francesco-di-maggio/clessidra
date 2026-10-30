@@ -20,10 +20,10 @@ namespace
         return 0.5f;
     }
 
-    // S37: off at the bottom of travel, then 0.1 .. 16 grains at once,
-    // exponential
+    // S37: off at the bottom of travel, then 0.3 .. kMaxDensity grains per
+    // second, exponential
     constexpr float kDensityOff = 0.02f;
-    constexpr float kDensityMin = 0.1f;
+    constexpr float kDensityMin = 0.3f;
 
     float Density(float x)
     {
@@ -34,13 +34,6 @@ namespace
                           (x - kDensityOff) / (1.0f - kDensityOff));
     }
 
-    float DensityKnob(float density)
-    {
-        return kDensityOff
-               + (1.0f - kDensityOff) * std::log(density / kDensityMin)
-                     / std::log(Core::kMaxDensity / kDensityMin);
-    }
-
     // 10 ms .. top_ms, exponential in each half: centre = 100 ms
     float GrainMs(float x, float top_ms)
     {
@@ -49,66 +42,39 @@ namespace
                         : 100.0f * std::pow(top_ms / 100.0f, 2.0f * x - 1.0f);
     }
 
-    // -24 .. +24 semitones over equal knob segments between musical intervals,
-    // flat near each interval
+    // +-24 semitones with stops at musical intervals, flat for the first third
+    // of each segment, smooth between them
     float Semitones(float x)
     {
         static constexpr float kIntervals[]
-            = {-24.0f, -12.0f, -7.0f, 0.0f, 7.0f, 12.0f, 24.0f};
-        static constexpr size_t kSegments = 6;
-        static constexpr float  kFlat     = 0.15f; // of a segment, on each side
-        const float  pos = std::clamp(x, 0.0f, 1.0f) * float(kSegments);
-        const size_t i   = std::min(size_t(pos), kSegments - 1);
-        const float  t   = std::clamp(
-            (pos - float(i) - kFlat) / (1.0f - 2.0f * kFlat), 0.0f, 1.0f);
-        return kIntervals[i] + t * (kIntervals[i + 1] - kIntervals[i]);
+            = {0.0f, 0.1f, 1.0f, 3.0f, 4.0f, 7.0f, 12.0f, 24.0f, 24.0f};
+        const float  centred  = 2.0f * std::clamp(x, 0.0f, 1.0f) - 1.0f;
+        const float  position = std::fabs(centred) * 7.0f;
+        const size_t i        = size_t(position);
+        const float  t
+            = std::max((position - float(i) - 1.0f / 3.0f) * 1.5f, 0.0f);
+        const float smooth = t * t * (3.0f - 2.0f * t);
+        const float value
+            = kIntervals[i] + smooth * (kIntervals[i + 1] - kIntervals[i]);
+        return centred < 0.0f ? -value : value;
     }
 
 } // namespace
 
 CoreUI::CoreUI()
 {
-    Controls c;
-    Reset(c);
-    // Levels at unity
-    levels_.values[Controls::S36] = Takeover(0.5f);
-    levels_.values[Controls::S37] = Takeover(1.0f);
-    shift_shown_.Update(shift_);
-    shift_shown_.knob = Controls::S36;
-    levels_shown_.Update(levels_);
-    levels_shown_.knob = Controls::S37;
-}
-
-void CoreUI::Reset(const Controls& c)
-{
-    // At the core defaults: the recording played as it is
-    const Core::Params                           d;
-    const std::array<float, Controls::kNumKnobs> main
-        = {d.start,
-           0.5f /* 100 ms */,
-           0.0f /* rand_pos */,
-           0.5f /* unison */,
-           0.0f /* rand_pitch */,
-           d.start + d.length,
-           0.5f /* speed 1 */,
-           DensityKnob(d.density)};
-    const std::array<float, Controls::kNumKnobs> shift = {d.reverse,
-                                                          d.window_shape,
-                                                          d.size_variation,
-                                                          d.reverb,
-                                                          d.harmonic,
-                                                          0.5f + 0.5f * d.tone,
-                                                          d.mix,
-                                                          d.resample};
-    for(size_t i = 0; i < Controls::kNumKnobs; i++)
-    {
-        // While frozen S36 scrubs: the speed resumes at 1 instead
-        if(!(frozen_ && i == Controls::S36))
-            main_.values[i] = Takeover(main[i]);
-        shift_.values[i] = Takeover(shift[i]);
-    }
-    speed_ = 0.5f;
-    layer_->Engage(c);
+    const Core::Params d;
+    effects_.values[kInputKnob]    = Takeover(0.5f); // unity
+    effects_.values[kOutputKnob]   = Takeover(1.0f);
+    effects_.values[kMixKnob]      = Takeover(d.mix);
+    effects_.values[kReverbKnob]   = Takeover(d.reverb);
+    effects_.values[kResampleKnob] = Takeover(d.resample);
+    effects_.values[kToneKnob]     = Takeover(0.5f + 0.5f * d.tone);
+    shown_.Update(effects_);
+    shown_.knob = kMixKnob;
+    for(size_t i = 0; i < kNumSlices; i++)
+        slices_[i] = float(i) / float(kNumSlices);
+    slices_[kNumSlices] = 1.0f;
 }
 
 void CoreUI::Shown::Update(const Layer& layer)
@@ -142,6 +108,15 @@ void CoreUI::Process(const Controls& c, Core& core)
     recording_ = recording;
     core.SetRecording(recording);
 
+    // A new recording: its slices
+    const uint32_t recordings = core.RecordingCount();
+    if(recordings != recordings_seen_)
+    {
+        const Buffer& buffer = core.Recording();
+        slices_ = FindSlices(buffer.Data(), buffer.Length(), kSampleRateHz);
+        recordings_seen_ = recordings;
+    }
+
     if(!started_)
     {
         // The main layer starts where its knobs are, and follows them exactly
@@ -149,94 +124,62 @@ void CoreUI::Process(const Controls& c, Core& core)
             main_.values[i] = Takeover(c.knobs[i]);
         started_ = true;
     }
-    // P11 held: second layer. P00 held: levels.
-    const bool shifted = c.touched[kShiftPad];
-    const bool levels  = !shifted && c.touched[kLevelsPad];
-    Layer*     layer   = shifted ? &shift_ : levels ? &levels_ : &main_;
+    // P11 held: effects
+    const bool effects = c.touched[kEffectsPad];
+    Layer*     layer   = effects ? &effects_ : &main_;
     if(layer != layer_)
         layer->Engage(c);
-    layer_     = layer;
-    shifted_   = shifted;
-    levels_on_ = levels;
+    layer_      = layer;
+    effects_on_ = effects;
     layer->Process(c);
-
-    // P01 tapped: defaults, the knobs taking over from there
-    const bool reset = c.touched[kResetPad];
-    if(reset && !reset_touched_)
-    {
-        Reset(c);
-        pulse_until_ = c.now_ms + kPulseMs;
-    }
-    reset_touched_ = reset;
-
-    shift_shown_.Update(shift_);
-    levels_shown_.Update(levels_);
+    shown_.Update(effects_);
 
     Core::Params p;
+    bool         restart = false;
 
-    const float a = main_[Controls::S30];
-    const float b = main_[Controls::S35];
-    p.start       = std::min(a, b);
-    p.length      = std::fabs(b - a);
+    // S30, S35: the selection, wrapping past the end of the recording, so
+    // position is alive at any length
+    const float seconds = core.RecordedSeconds();
+    p.length            = std::max(main_[Controls::S35], kMinLength);
+    p.start             = main_[Controls::S30];
 
-    // Grain size: up to half the recording
-    const float top_ms     = std::max(100.0f, 500.0f * core.RecordedSeconds());
+    // Grain size: up to half the recording, and kMaxGrainMs
+    const float top_ms     = std::clamp(500.0f * seconds, 100.0f, kMaxGrainMs);
     p.grain_ms             = GrainMs(main_[Controls::S31], top_ms);
     const bool size_centre = Detent(main_[Controls::S31], 0.05f) == 0.5f;
 
-    const float rand_pos = main_[Controls::S32];
-    p.rand_pos           = rand_pos * rand_pos * rand_pos * rand_pos;
+    // S32: from periodic and plain to random starts, positions and sizes, and
+    // above the centre pitch. Position in seconds, cubic: fine near 0.
+    const float scatter = main_[Controls::S32];
+    p.jitter            = scatter;
+    p.size_variation    = scatter;
+    p.spread            = scatter;
+    const float scatter_seconds
+        = kMaxScatterSeconds * scatter * scatter * scatter;
+    p.rand_pos
+        = seconds > 0.0f
+              ? std::min(2.0f * scatter_seconds / (p.length * seconds), 1.0f)
+              : 0.0f;
+    const float above = std::max(2.0f * scatter - 1.0f, 0.0f);
+    p.rand_pitch      = above * above * above;
 
     const float semitones = Semitones(main_[Controls::S33]);
     const bool  unison    = semitones == 0.0f;
     p.pitch               = std::exp2(semitones / 12.0f);
 
-    // S34: random pitch, 0 .. +-24 semitones, cubic: fine near 0
-    const float rand_pitch = main_[Controls::S34];
-    p.rand_pitch           = 24.0f * rand_pitch * rand_pitch * rand_pitch;
+    // Shape: centre detent Hann
+    const float shape        = Detent(main_[Controls::S34], 0.05f);
+    const bool  shape_centre = shape == 0.5f;
+    p.window_shape           = shape;
 
-    // S09: up forward, centre freeze, down reverse. S36 sets the speed; while
-    // frozen it scrubs, and the speed resumes after the freeze with a takeover.
-    const Controls::Position mode   = c.switches[Controls::S09];
-    const bool               frozen = mode == Controls::Centre;
-    if(frozen && !frozen_)
-        speed_ = main_[Controls::S36];
-    if(!frozen && frozen_)
-    {
-        main_.values[Controls::S36] = Takeover(speed_);
-        main_.values[Controls::S36].Engage(c.knobs[Controls::S36]);
-    }
-    frozen_           = frozen;
-    const float speed = Detent(frozen ? speed_ : main_[Controls::S36], 0.05f);
-    const bool  speed_centre = !frozen && speed == 0.5f;
-    p.speed    = (mode == Controls::Down ? -4.0f : 4.0f) * speed * speed;
-    p.freeze   = frozen;
-    p.position = main_[Controls::S36];
-
-    // S37: playhead density
-    p.density = Density(main_[Controls::S37]);
-
-    // A touched place pours at the playhead's density, or the default with the
-    // playhead off. Pressure crossfades, equal power: the place up, the
-    // playhead down under the strongest press.
-    static_assert(std::size(kPlacePads) == Core::kNumPlaces);
-    const float place_density
-        = p.density > 0.0f ? p.density : Core::Params{}.density;
-    float press = 0.0f;
-    for(size_t i = 0; i < Core::kNumPlaces; i++)
-    {
-        const size_t pad = kPlacePads[i];
-        if(!c.touched[pad])
-        {
-            p.place_density[i] = 0.0f;
-            continue;
-        }
-        const float pressure = std::clamp(c.pressure[pad], 0.0f, 1.0f);
-        p.place_density[i]   = place_density;
-        p.place_level[i]     = std::sin(HALFPI_F * pressure);
-        press                = std::max(press, pressure);
-    }
-    p.level = std::cos(HALFPI_F * press);
+    // S36: centre stop, up forward, down backward, further faster. Speed 1 half
+    // way, with a detent.
+    const float tilt     = 2.0f * main_[Controls::S36] - 1.0f;
+    const float amount   = std::fabs(tilt);
+    p.freeze             = amount < kStopWidth;
+    const float speed    = Detent(amount, 0.05f);
+    p.speed              = (tilt < 0.0f ? -4.0f : 4.0f) * speed * speed;
+    const bool speed_one = speed == 0.5f;
 
     // S07: up one-shot, centre ping-pong, down loop
     const Controls::Position end = c.switches[Controls::S07];
@@ -245,59 +188,72 @@ void CoreUI::Process(const Controls& c, Core& core)
                 : end == Controls::Centre ? Playhead::End::PingPong
                                           : Playhead::End::Loop;
 
-    // S32: random starts with random position, from periodic at 0
-    p.jitter = rand_pos;
-
-    // P02 held: no new grains. Those playing and the reverb ring out; time
-    // keeps running.
-    const bool stop = c.touched[kStopPad];
-    if(stop)
+    // A touched slice: the playhead moves inside it, from its start. Released,
+    // the whole selection again, once a one-shot has finished its slice.
+    float press   = 0.0f;
+    bool  touched = false;
+    for(size_t i = 0; i < kNumSlices; i++)
     {
-        p.density = 0.0f;
-        p.place_density.fill(0.0f);
+        const size_t pad = kSlicePads[i];
+        if(c.touched[pad] && !slice_touched_[i])
+        {
+            slice_  = i;
+            restart = true;
+        }
+        slice_touched_[i] = c.touched[pad];
+        if(c.touched[pad])
+        {
+            touched = true;
+            press   = std::max(press, c.pressure[pad]);
+        }
     }
-    if(!stop && stop_touched_ && p.end == Playhead::End::OneShot)
-        core.Restart();
-    stop_touched_ = stop;
+    const bool finishing = p.end == Playhead::End::OneShot && !core.HasEnded();
+    if(recording || (!touched && !finishing))
+        slice_ = kNumSlices;
+    if(slice_ < kNumSlices)
+    {
+        p.slice_start = (slices_[slice_] - p.start) / p.length;
+        p.slice_end   = (slices_[slice_ + 1] - p.start) / p.length;
+    }
 
-    // P11 layer
-    p.reverse = shift_[Controls::S30];
-    // Shape: centre detent Hann
-    const float shape        = Detent(shift_[Controls::S31], 0.05f);
-    const bool  shape_centre = shape == 0.5f;
-    p.window_shape           = shape;
-    p.size_variation         = shift_[Controls::S32];
-    p.reverb                 = shift_[Controls::S33];
-    p.harmonic               = shift_[Controls::S34];
-    // Tone: centre detent off
-    const float tone        = Detent(shift_[Controls::S35], 0.05f);
-    const bool  tone_centre = tone == 0.5f;
-    p.tone                  = 2.0f * tone - 1.0f;
-    p.mix                   = shift_[Controls::S36];
-    p.resample              = shift_[Controls::S37];
+    // S37: a touch only starts the slice, a firm press adds density
+    const float pour
+        = std::clamp((press - kPourFrom) / (1.0f - kPourFrom), 0.0f, 1.0f);
+    const float density = main_[Controls::S37];
+    p.density           = Density(density + pour * pour * (1.0f - density));
 
-    // Levels: input, centre detent unity. Output, fader law.
-    const float input        = Detent(levels_[Controls::S36], 0.05f);
+    // Effects
+    const float tone         = Detent(effects_[kToneKnob], 0.05f);
+    const bool  tone_centre  = tone == 0.5f;
+    p.tone                   = 2.0f * tone - 1.0f;
+    p.mix                    = effects_[kMixKnob];
+    p.reverb                 = effects_[kReverbKnob];
+    p.resample               = effects_[kResampleKnob];
+    const float input        = Detent(effects_[kInputKnob], 0.05f);
     const bool  input_centre = input == 0.5f;
     p.input                  = kMaxInput * input * input;
-    const float output       = levels_[Controls::S37];
+    const float output       = effects_[kOutputKnob];
     p.output                 = output * output;
 
     core.SetParams(p);
+    if(restart)
+        core.Restart();
 
     // Reaching a detent, or turning within it: a pulse
     const std::array<bool, kNumDetents>  at    = {unison,
-                                              speed_centre,
+                                              p.freeze,
+                                              speed_one,
                                               size_centre,
-                                              tone_centre,
                                               shape_centre,
+                                              tone_centre,
                                               input_centre};
     const std::array<float, kNumDetents> knobs = {main_[Controls::S33],
                                                   main_[Controls::S36],
+                                                  main_[Controls::S36],
                                                   main_[Controls::S31],
-                                                  shift_[Controls::S35],
-                                                  shift_[Controls::S31],
-                                                  levels_[Controls::S36]};
+                                                  main_[Controls::S34],
+                                                  effects_[kToneKnob],
+                                                  effects_[kInputKnob]};
     if(!detents_ready_)
     {
         // Power-up: no pulse
@@ -316,7 +272,7 @@ void CoreUI::Process(const Controls& c, Core& core)
     }
 }
 
-// First that applies: recording flash, detent pulse, second layer (steady,
+// First that applies: recording flash, detent pulse, effects (steady,
 // brightness = value last turned), grains (dim glow that follows their windows)
 float CoreUI::Led(uint32_t now, const Core& core) const
 {
@@ -331,13 +287,9 @@ float CoreUI::Led(uint32_t now, const Core& core) const
     {
         brightness = 1.0f;
     }
-    else if(shifted_)
+    else if(effects_on_)
     {
-        brightness = shift_[shift_shown_.knob];
-    }
-    else if(levels_on_)
-    {
-        brightness = levels_[levels_shown_.knob];
+        brightness = effects_[shown_.knob];
     }
     else
     {
