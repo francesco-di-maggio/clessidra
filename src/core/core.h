@@ -3,175 +3,232 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include "Effects/reverbsc.h"
-#include "Utility/dcblock.h"
+#include <Effects/reverbsc.h>
+#include <Utility/dcblock.h>
 #include "grain.h"
 #include "limiter.h"
-#include "nocopy.h"
 #include "ring.h"
 #include "svf.h"
 
-namespace clessidra {
-
+namespace clessidra
+{
 // The instrument's signal path. No hardware code here.
-class Core {
-public:
-    Core() = default;
+class Core
+{
+  public:
+    Core()            = default;
+    Core(const Core&) = delete;
+    Core& operator=(const Core&) = delete;
 
-    static constexpr float kMaxDensity = 16.0f; // grains sounding at once, per source
-    static constexpr size_t kNumVoices = 32; // above kMaxDensity: random starts can cluster
-    static constexpr float kNormSeconds = 0.005f; // smoothing of the gain measurements
-    static constexpr float kSizeVariationOctaves = 1.0f; // at most: each grain from half to twice the size
+    // grains sounding at once, per source
+    static constexpr float kMaxDensity = 16.0f;
+    // above kMaxDensity: random starts can cluster
+    static constexpr size_t kNumVoices = 32;
+    // smoothing of the gain measurements
+    static constexpr float kNormSeconds = 0.005f;
+    // at most: each grain from half to twice the size
+    static constexpr float kSizeVariationOctaves = 1.0f;
     // The selection divided into equal places, each a grain source of its own
     static constexpr size_t kNumPlaces = 7;
-    static constexpr size_t kNumSources = 1 + kNumPlaces; // the playhead, then the places
-    // Reverb on the grains: equal-power crossfade up to kReverbMaxAmount, decay (T60)
-    // rising with it, exponentially
-    static constexpr float kReverbMaxAmount = 0.5f; // equal parts
-    static constexpr float kReverbDecayMin = 0.5f;  // seconds
-    static constexpr float kReverbDecayMax = 16.0f; // seconds
-    static constexpr float kReverbLowpassHz = 10000.0f; // damping in the reverb's loop
-    // Tone on the grains, before the reverb. From off, exponential to the ends; resonance
-    // rising with it from flat (Butterworth). Fades in over the first kToneFade of each side.
-    static constexpr float kLowpassOffHz = 20000.0f;
-    static constexpr float kLowpassMinHz = 200.0f;
+    // the playhead, then the places
+    static constexpr size_t kNumSources = 1 + kNumPlaces;
+    // Reverb on the grains: equal-power crossfade up to kReverbMaxAmount, decay
+    // (T60) rising with it, exponentially
+    static constexpr float kReverbMaxAmount = 0.5f;  // equal parts
+    static constexpr float kReverbDecayMin  = 0.5f;  // seconds
+    static constexpr float kReverbDecayMax  = 16.0f; // seconds
+    // damping in the reverb's loop
+    static constexpr float kReverbLowpassHz = 10000.0f;
+    // Tone on the grains, before the reverb. From off, exponential to the ends;
+    // resonance rising with it from flat (Butterworth). Fades in over the first
+    // kToneFade of each side.
+    static constexpr float kLowpassOffHz  = 20000.0f;
+    static constexpr float kLowpassMinHz  = 200.0f;
     static constexpr float kHighpassOffHz = 20.0f;
     static constexpr float kHighpassMaxHz = 2000.0f;
-    static constexpr float kToneQMin = 0.707f;
-    static constexpr float kToneQMax = 1.5f;
-    static constexpr float kToneFade = 0.1f;
-    static constexpr float kToneSeconds = 0.01f; // smoothing of Params.tone
-    // Recording. The input goes to a ring all the time. On release, a touch shorter than
-    // kTapSeconds takes what came before it, a longer one the touch from kPreRollSeconds
-    // before it; copied to the buffer not playing, which then plays.
-    static constexpr size_t kNumBuffers = 2;
-    static constexpr float kTapSeconds = 0.3f;
-    static constexpr float kPreRollSeconds = 0.05f;
-    static constexpr size_t kCopyPerBlock = 1024;    // samples: 21 times real time
-    static constexpr float kCopyMarginSeconds = 0.5f; // ring written on during the copy
+    static constexpr float kToneQMin      = 0.707f;
+    static constexpr float kToneQMax      = 1.5f;
+    static constexpr float kToneFade      = 0.1f;
+    static constexpr float kToneSeconds   = 0.01f; // smoothing of Params.tone
+    // Recording. The input goes to a ring all the time. On release, a touch
+    // shorter than kTapSeconds takes what came before it, a longer one the
+    // touch from kPreRollSeconds before it; copied to the buffer not playing,
+    // which then plays.
+    static constexpr size_t kNumBuffers     = 2;
+    static constexpr float  kTapSeconds     = 0.3f;
+    static constexpr float  kPreRollSeconds = 0.05f;
+    static constexpr size_t kCopyPerBlock = 1024; // samples: 21 times real time
+    // ring written on during the copy
+    static constexpr float kCopyMarginSeconds = 0.5f;
 
-    struct Params {
-        float start = 0.0f;        // selection start, 0..1 of the recording
-        float length = 1.0f;       // selection length, 0..1 of the recording
-        float speed = 1.0f;        // every source, 1 = real time, negative = reverse
-        bool freeze = false;       // every source held where it was, speed ignored
-        float position = 0.0f;     // while frozen, moves every source through its span by its change
-        float grain_ms = 100.0f;   // grain size
-        float size_variation = 0.0f; // 0..1: each grain's size random up to kSizeVariationOctaves either way
-        float pitch = 1.0f;        // grain playback rate
-        float density = 8.0f;      // playhead: grains sounding at once on average, up to kMaxDensity
-        std::array<float, kNumPlaces> place_density{}; // the same per place, 0 = off
-        float level = 1.0f;        // playhead gain
-        std::array<float, kNumPlaces> place_level = [] { std::array<float, kNumPlaces> a; a.fill(1.0f); return a; }(); // gain per place
-        float jitter = 0.0f;       // 0 periodic .. 1 random (Poisson) grain starts
-        float rand_pos = 0.0f;     // 0..1, position spread: up to half the source's span
-        float rand_pitch = 0.0f;   // semitones: each grain's pitch up to this far up or down
-        float harmonic = 0.0f;     // 0..1, share of grains whose random pitch snaps to a partial
-        float spread = 0.5f;       // 0..1, stereo spread: random pan
-        float reverse = 0.0f;      // 0..1, share of grains read backwards
-        float window_shape = 0.5f; // 0 reverse percussive, 0.5 Hann, 1 percussive
-        float reverb = 0.0f;       // 0 none .. 1 most and longest, on the grains
-        float tone = 0.0f;         // -1 lowpass .. 0 off .. 1 highpass, on the grains
-        float mix = 0.5f;          // 0 input only .. 1 grains only, equal power
-        float resample = 0.0f;     // recorded: 0 input .. 1 wet (after tone and reverb), equal power
-        float input = 1.0f;        // gain on the input, before the recording and the dry signal
-        float output = 1.0f;       // gain after the limiter, 0..1
+    struct Params
+    {
+        float start  = 0.0f;  // selection start, 0..1 of the recording
+        float length = 1.0f;  // selection length, 0..1 of the recording
+        float speed  = 1.0f;  // every source, 1 = real time, negative = reverse
+        bool  freeze = false; // every source held where it was, speed ignored
+        // while frozen, moves every source through its span by its change
+        float position = 0.0f;
+        float grain_ms = 100.0f; // grain size
+        // 0..1: each grain's size random up to kSizeVariationOctaves either way
+        float size_variation = 0.0f;
+        float pitch          = 1.0f; // grain playback rate
+        // playhead: grains sounding at once on average, up to kMaxDensity
+        float density = 8.0f;
+        // the same per place, 0 = off
+        std::array<float, kNumPlaces> place_density{};
+        float                         level = 1.0f; // playhead gain
+        // gain per place
+        std::array<float, kNumPlaces> place_level = [] {
+            std::array<float, kNumPlaces> a;
+            a.fill(1.0f);
+            return a;
+        }();
+        float jitter = 0.0f; // 0 periodic .. 1 random (Poisson) grain starts
+        // 0..1, position spread: up to half the source's span
+        float rand_pos = 0.0f;
+        // semitones: each grain's pitch up to this far up or down
+        float rand_pitch = 0.0f;
+        // 0..1, share of grains whose random pitch snaps to a partial
+        float harmonic = 0.0f;
+        float spread   = 0.5f; // 0..1, stereo spread: random pan
+        float reverse  = 0.0f; // 0..1, share of grains read backwards
+        // 0 reverse percussive, 0.5 Hann, 1 percussive
+        float window_shape = 0.5f;
+        float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
+        float tone   = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
+        float mix    = 0.5f; // 0 input only .. 1 grains only, equal power
+        // recorded: 0 input .. 1 wet (after tone and reverb), equal power
+        float resample = 0.0f;
+        // gain on the input, before the recording and the dry signal
+        float input  = 1.0f;
+        float output = 1.0f; // gain after the limiter, 0..1
     };
 
-    // ring: ring_size floats; buffers: kNumBuffers of buffer_size floats, the longest
-    // recording. All allocated by the caller. The ring holds the tap, pre-roll and
-    // copy margin beyond buffer_size.
-    void Init(float sample_rate, float* ring, size_t ring_size, float* const* buffers, size_t buffer_size);
+    // ring: ring_size floats; buffers: kNumBuffers of buffer_size floats, the
+    // longest recording. All allocated by the caller. The ring holds the tap,
+    // pre-roll and copy margin beyond buffer_size.
+    void Init(float         sample_rate,
+              float*        ring,
+              size_t        ring_size,
+              float* const* buffers,
+              size_t        buffer_size);
     void Process(const float* const* in, float** out, size_t size);
 
-    // Main loop. Applied at the next audio block: on release, the recording replaces
-    // the playing one unless it is silent. Silence at both ends is cut.
-    void SetRecording(bool on) { _record = on; }
-    // Main loop. Fields are copied one by one: a block may see a mix of old and new.
-    void SetParams(const Params& p) { _params = p; }
+    // Main loop. Applied at the next audio block: on release, the recording
+    // replaces the playing one unless it is silent. Silence at both ends is
+    // cut.
+    void SetRecording(bool on) { record_ = on; }
+    // Main loop. Fields are copied one by one: a block may see a mix of old and
+    // new.
+    void SetParams(const Params& p) { params_ = p; }
 
-    bool IsRecording() const { return _record; }
-    float RecordedSeconds() const { return float(_buffers[_playing].Length()) / _sample_rate; }
+    bool  IsRecording() const { return record_; }
+    float RecordedSeconds() const
+    {
+        return float(buffers_[playing_].Length()) / sample_rate_;
+    }
     // Grain windows summed, mean over the last block: 1 = one grain at its peak
-    float GrainLevel() const { return _grain_level; }
+    float GrainLevel() const { return grain_level_; }
 
-    // For tests, between blocks: the recording playing, the grains and the parameters in use
-    const Buffer& Recording() const { return _buffers[_playing]; }
-    const std::array<Grain, kNumVoices>& Grains() const { return _grains; }
-    const Params& CurrentParams() const { return _params; }
+    // For tests, between blocks: the recording playing, the grains and the
+    // parameters in use
+    const Buffer& Recording() const { return buffers_[playing_]; }
+    const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
+    const Params& CurrentParams() const { return params_; }
 
-private:
-    NOCOPY(Core)
+  private:
     // A source of grains: the playhead over the selection, or a place
-    struct Stream {
-        double phase = 0.0;       // through its span, 0..1
-        double frozen = 0.0;      // phase at the freeze, or at a place's start while frozen
-        double sched_phase = 0.0; // grain starts, 1 = mean interval
-        float sched_next = 1.0f;  // phase of the next start
-        bool on = false;
+    struct Stream
+    {
+        double phase = 0.0; // through its span, 0..1
+        // phase at the freeze, or at a place's start while frozen
+        double frozen      = 0.0;
+        double sched_phase = 0.0;  // grain starts, 1 = mean interval
+        float  sched_next  = 1.0f; // phase of the next start
+        bool   on          = false;
     };
     static constexpr size_t kNumStreams = 1 + kNumPlaces; // playhead first
     static_assert(kNumStreams == kNumSources);
 
-    enum class Capture { Idle, Waiting, Copying };
+    enum class Capture
+    {
+        Idle,
+        Waiting,
+        Copying
+    };
 
-    // Starts a grain on a free voice at sample offset of the block, reading the span at
-    // phase, at level. All voices busy: dropped.
-    void _trigger(const Params& p, double start, double length, double phase, float level, size_t offset);
-    // Updates _norm from the mean powers of the last block
-    void _normalise(float power_grains, float power_sum, float window_power, size_t size);
-    // End of Process(), after the ring is written: on release, copies the recording to
-    // the buffer not playing once its grains have ended, then plays it.
-    void _update_capture(size_t size);
-    float _interval(float jitter); // to the next start, 1 = mean
-    float _random(); // uniform -1..1
+    // Starts a grain on a free voice at sample offset of the block, reading the
+    // span at phase, at level. All voices busy: dropped.
+    void Trigger(const Params& p,
+                 double        start,
+                 double        length,
+                 double        phase,
+                 float         level,
+                 size_t        offset);
+    // Updates norm_ from the mean powers of the last block
+    void Normalise(float  power_grains,
+                   float  power_sum,
+                   float  window_power,
+                   size_t size);
+    // End of Process(), after the ring is written: on release, copies the
+    // recording to the buffer not playing once its grains have ended, then
+    // plays it.
+    void  UpdateCapture(size_t size);
+    float Interval(float jitter); // to the next start, 1 = mean
+    float Random();               // uniform -1..1
 
-    Params _params;
-    float _sample_rate = 48000.0f;
+    Params params_;
+    float  sample_rate_ = 48000.0f;
 
     // Recording
-    daisysp::DcBlock _dc_block; // input: DC in a recording would sound as thumps at the grain rate
-    Ring _ring;
-    size_t _ring_size = 0;
-    std::array<Buffer, kNumBuffers> _buffers;
-    size_t _playing = 0;
-    Capture _capture = Capture::Idle;
-    size_t _held = 0;            // samples since the touch
-    size_t _capture_back = 0;    // samples from the recording's end to the next write
-    size_t _capture_length = 0;
-    volatile bool _record = false;
-    bool _was_record = false;
+    // input: DC in a recording would sound as thumps at the grain rate
+    daisysp::DcBlock                dc_block_;
+    Ring                            ring_;
+    size_t                          ring_size_ = 0;
+    std::array<Buffer, kNumBuffers> buffers_;
+    size_t                          playing_ = 0;
+    Capture                         capture_ = Capture::Idle;
+    size_t                          held_    = 0; // samples since the touch
+    // samples from the recording's end to the next write
+    size_t        capture_back_   = 0;
+    size_t        capture_length_ = 0;
+    volatile bool record_         = false;
+    bool          was_record_     = false;
 
-    // Grains. Running positions in double: float steps reach 1/32 sample at 8 s.
-    std::array<Grain, kNumVoices> _grains;
-    std::array<Stream, kNumStreams> _streams;
-    uint32_t _seed = 1;
-    float _freeze_position = 0.0f; // Params.position at the freeze
-    bool _was_freeze = false;
-    volatile float _grain_level = 0.0f;
+    // Grains. Running positions in double: float steps reach 1/32 sample at 8
+    // s.
+    std::array<Grain, kNumVoices>   grains_;
+    std::array<Stream, kNumStreams> streams_;
+    uint32_t                        seed_ = 1;
+    float          freeze_position_ = 0.0f; // Params.position at the freeze
+    bool           was_freeze_      = false;
+    volatile float grain_level_     = 0.0f;
 
-    // Level. Mean powers, smoothed: grains taken separately, their stereo sum, their windows.
-    float _power_grains = 0.0f;
-    float _power_sum = 0.0f;
-    float _window_power = 0.0f;
-    float _coherence_gain = 1.0f; // brings a correlated sum down to the power of its grains
-    float _norm = 0.0f;           // grain gain
+    // Level. Mean powers, smoothed: grains taken separately, their stereo sum,
+    // their windows.
+    float power_grains_ = 0.0f;
+    float power_sum_    = 0.0f;
+    float window_power_ = 0.0f;
+    // brings a correlated sum down to the power of its grains
+    float coherence_gain_ = 1.0f;
+    float norm_           = 0.0f; // grain gain
 
     // Tone, reverb, output
-    std::array<Svf, 2> _tone_filter;
-    float _tone = 0.0f; // Params.tone, smoothed
-    daisysp::ReverbSc _reverb;
-    Limiter _limiter;
+    std::array<Svf, 2> tone_filter_;
+    float              tone_ = 0.0f; // Params.tone, smoothed
+    daisysp::ReverbSc  reverb_;
+    Limiter            limiter_;
     // Gains at the end of the last block
-    float _norm_gain = 0.0f;
-    float _wet_gain = 0.0f;
-    float _dry_gain = 0.0f;
-    float _record_input = 1.0f;
-    float _record_wet = 0.0f;
-    float _reverb_dry = 1.0f;
-    float _reverb_wet = 0.0f;
-    float _input_gain = 1.0f;
-    float _output_gain = 1.0f;
+    float norm_gain_    = 0.0f;
+    float wet_gain_     = 0.0f;
+    float dry_gain_     = 0.0f;
+    float record_input_ = 1.0f;
+    float record_wet_   = 0.0f;
+    float reverb_dry_   = 1.0f;
+    float reverb_wet_   = 0.0f;
+    float input_gain_   = 1.0f;
+    float output_gain_  = 1.0f;
 };
 
 } // namespace clessidra

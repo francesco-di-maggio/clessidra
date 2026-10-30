@@ -2,7 +2,7 @@
 TARGET = Clessidra
 
 # Sources
-CPP_SOURCES = main.cpp app.cpp $(wildcard src/common/*.cpp) $(wildcard src/hw/*.cpp) $(wildcard src/core/*.cpp) $(wildcard src/ui/*.cpp)
+CPP_SOURCES = Clessidra.cpp $(wildcard src/common/*.cpp) $(wildcard src/hw/*.cpp) $(wildcard src/core/*.cpp) $(wildcard src/ui/*.cpp)
 C_INCLUDES += -Isrc
 
 # Library Locations
