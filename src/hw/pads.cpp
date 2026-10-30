@@ -68,7 +68,7 @@ void Pads::Process()
 {
     const uint16_t touched = mpr_.Touched();
     touched_               = 0;
-    for(size_t p = 0; p < kNumPads; p++)
+    for(size_t p = 0; p < Controls::kNumPads; p++)
     {
         const int32_t delta
             = int32_t(mpr_.BaselineData(p)) - int32_t(mpr_.FilteredData(p));

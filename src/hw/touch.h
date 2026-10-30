@@ -52,9 +52,9 @@ class Touch
         for(size_t k = 0; k < Controls::kNumKnobs; k++)
             c.knobs[k] = knobs_.Value(k);
         c.switches[Controls::S09]
-            = Controls::Position(switches_.Position(Switches::S09));
+            = Controls::Position(switches_.Position(Controls::S09));
         c.switches[Controls::S07]
-            = Controls::Position(switches_.Position(Switches::S07));
+            = Controls::Position(switches_.Position(Controls::S07));
         for(size_t p = 0; p < Controls::kNumPads; p++)
         {
             c.touched[p]  = pads_.IsTouched(p);

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <daisy_seed.h>
+#include "controls.h"
 
 namespace clessidra
 {
@@ -9,8 +10,6 @@ namespace clessidra
 class Pads
 {
   public:
-    static constexpr size_t kNumPads = 12;
-
     // Delta counts (baseline - filtered). Measured: a press 200-590, cross-talk
     // on a neighbouring pad up to 9, release tails up to 13.
     static constexpr uint8_t kTouchThreshold   = 40;
@@ -34,9 +33,9 @@ class Pads
   private:
     void Configure();
 
-    daisy::Mpr121I2C            mpr_;
-    uint16_t                    touched_ = 0;
-    std::array<float, kNumPads> pressure_{};
+    daisy::Mpr121I2C                      mpr_;
+    uint16_t                              touched_ = 0;
+    std::array<float, Controls::kNumPads> pressure_{};
 };
 
 } // namespace clessidra

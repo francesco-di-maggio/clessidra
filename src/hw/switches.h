@@ -2,6 +2,7 @@
 
 #include <array>
 #include <daisy_seed.h>
+#include "controls.h"
 
 namespace clessidra
 {
@@ -10,13 +11,6 @@ namespace clessidra
 class Switches
 {
   public:
-    enum Switch : size_t
-    {
-        S09,
-        S07,
-        kNumSwitches
-    };
-
     void Init();
     void Process();
 
@@ -24,8 +18,8 @@ class Switches
     int Position(size_t s) const { return positions_[s]; }
 
   private:
-    std::array<daisy::Switch3, kNumSwitches> switches_;
-    std::array<int, kNumSwitches>            positions_{};
+    std::array<daisy::Switch3, Controls::kNumSwitches> switches_;
+    std::array<int, Controls::kNumSwitches>            positions_{};
 };
 
 } // namespace clessidra
