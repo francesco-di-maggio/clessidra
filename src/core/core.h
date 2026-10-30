@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <Effects/reverbsc.h>
@@ -118,18 +119,21 @@ class Core
     // Main loop. Applied at the next audio block: on release, the recording
     // replaces the playing one unless it is silent. Silence at both ends is
     // cut.
-    void SetRecording(bool on) { record_ = on; }
+    void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
     // Main loop. Fields are copied one by one: a block may see a mix of old and
     // new.
     void SetParams(const Params& p) { params_ = p; }
 
-    bool  IsRecording() const { return record_; }
+    bool IsRecording() const { return record_.load(std::memory_order_relaxed); }
     float RecordedSeconds() const
     {
         return float(buffers_[playing_].Length()) / sample_rate_;
     }
     // Grain windows summed, mean over the last block: 1 = one grain at its peak
-    float GrainLevel() const { return grain_level_; }
+    float GrainLevel() const
+    {
+        return grain_level_.load(std::memory_order_relaxed);
+    }
 
     // For tests, between blocks: the recording playing, the grains and the
     // parameters in use
@@ -191,19 +195,19 @@ class Core
     Capture                         capture_ = Capture::Idle;
     size_t                          held_    = 0; // samples since the touch
     // samples from the recording's end to the next write
-    size_t        capture_back_   = 0;
-    size_t        capture_length_ = 0;
-    volatile bool record_         = false;
-    bool          was_record_     = false;
+    size_t            capture_back_   = 0;
+    size_t            capture_length_ = 0;
+    std::atomic<bool> record_{false};
+    bool              was_record_ = false;
 
     // Grains. Running positions in double: float steps reach 1/32 sample at 8
     // s.
     std::array<Grain, kNumVoices>   grains_;
     std::array<Stream, kNumStreams> streams_;
     uint32_t                        seed_ = 1;
-    float          freeze_position_ = 0.0f; // Params.position at the freeze
-    bool           was_freeze_      = false;
-    volatile float grain_level_     = 0.0f;
+    float              freeze_position_ = 0.0f; // Params.position at the freeze
+    bool               was_freeze_      = false;
+    std::atomic<float> grain_level_{0.0f};
 
     // Level. Mean powers, smoothed: grains taken separately, their stereo sum,
     // their windows.
