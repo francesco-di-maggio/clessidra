@@ -20,13 +20,15 @@ class Playhead
 
     // One sample, within low..high of the span. inc: phase per sample, negative
     // = backward. margin: kept clear at each end so the last grains stay
-    // inside. Not for Loop.
+    // inside. Not for Loop. drift: how fast the span itself moves on, phase per
+    // sample, while the sound is written.
     double Step(double phase,
                 double inc,
                 End    end,
                 double low,
                 double high,
-                double margin);
+                double margin,
+                double drift = 0.0);
 
     bool IsStopped() const { return stopped_; }
     bool IsBackward(double inc) const { return inc * direction_ < 0.0; }

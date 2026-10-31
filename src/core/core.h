@@ -7,9 +7,9 @@
 #include <Effects/reverbsc.h>
 #include <Utility/dcblock.h>
 #include "grain.h"
+#include "buffer.h"
 #include "limiter.h"
 #include "playhead.h"
-#include "ring.h"
 #include "svf.h"
 
 namespace clessidra
@@ -31,11 +31,13 @@ class Core
     static constexpr float  kFadeSeconds  = 0.005f;
     // the furthest a grain's pitch goes at Params.rand_pitch 1
     static constexpr float kRandPitchSemitones = 24.0f;
+    // One jack or two: -3 dB on one, +3 dB on two in phase, not -6 and 0
+    static constexpr float kInputSum = 0.7071f;
+    // +6 dB after the grains, into the limiter: at equal power they sound
+    // softer
+    static constexpr float kOutputGain = 2.0f;
     // smoothing of the gain measurements
     static constexpr float kNormSeconds = 0.005f;
-    // +6 dB on the grains against the dry signal: at equal power they sound
-    // softer
-    static constexpr float kWetGain = 2.0f;
     // at most: each grain from half to twice the size
     static constexpr float kSizeVariationOctaves = 1.0f;
     // Reverb on the grains: equal-power crossfade up to kReverbMaxAmount, decay
@@ -56,27 +58,24 @@ class Core
     static constexpr float kToneQMax      = 1.5f;
     static constexpr float kToneFade      = 0.1f;
     static constexpr float kToneSeconds   = 0.01f; // smoothing of Params.tone
-    // Recording. The input goes to a ring all the time. On release, a touch
-    // shorter than kTapSeconds takes the last kTapKeepSeconds, a longer one the
-    // touch from kPreRollSeconds before it; copied to the buffer not playing,
-    // which then plays.
-    static constexpr size_t kNumBuffers     = 2;
-    static constexpr float  kTapSeconds     = 0.3f;
-    static constexpr float  kTapKeepSeconds = 8.0f;
-    static constexpr float  kPreRollSeconds = 0.05f;
-    static constexpr size_t kCopyPerBlock = 1024; // samples: 21 times real time
-    // ring written on during the copy
-    static constexpr float kCopyMarginSeconds = 0.5f;
+    // How far behind the write point the sound is read while it comes in
+    static constexpr float kStartLagSeconds = 0.05f;
 
     struct Params
     {
-        float start  = 0.0f; // selection start, 0..1 of the recording
-        float length = 1.0f; // selection length, 0..1 of the recording
+        // Selection, 0..1 of the sound. start: how far back from the held
+        // end its end lies. Grains that follow the input read the same length
+        // behind the write point.
+        float start  = 0.0f;
+        float length = 1.0f;
         float speed  = 1.0f; // 1 = real time, negative = reverse
         // where the playhead moves, in selections from its start: a slice can
         // lie outside the selection
         float slice_start = 0.0f;
         float slice_end   = 1.0f;
+        // the same, for the grains that follow the input
+        float live_slice_start = 0.0f;
+        float live_slice_end   = 1.0f;
         // what the playhead does at the end of the slice
         Playhead::End end = Playhead::End::Loop;
         bool  freeze   = false; // the playhead held where it was, speed ignored
@@ -99,28 +98,18 @@ class Core
         float window_shape = 0.5f;
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
         float tone   = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
-        float mix    = 0.5f; // 0 input only .. 1 grains only, equal power
-        // recorded: 0 input .. 1 wet (after tone and reverb), equal power
-        float resample = 0.0f;
+        // 0 the buffer sealed .. 1 only the input: what replaces the sound as
+        // the write point passes, and the share of grains that follow it
+        float fill = 0.0f;
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
     };
 
-    // ring: ring_size floats; buffers: kNumBuffers of buffer_size floats, the
-    // longest recording. All allocated by the caller. The ring holds the tap,
-    // pre-roll and copy margin beyond buffer_size.
-    void Init(float         sample_rate,
-              float*        ring,
-              size_t        ring_size,
-              float* const* buffers,
-              size_t        buffer_size);
+    // buffer: buffer_size floats, allocated by the caller
+    void Init(float sample_rate, float* buffer, size_t buffer_size);
     void Process(const float* const* in, float** out, size_t size);
 
-    // Main loop. Applied at the next audio block: on release, the recording
-    // replaces the playing one unless it is silent. Silence at both ends is
-    // cut.
-    void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
     // Main loop. Fields are copied one by one: a block may see a mix of old and
     // new.
     void SetParams(const Params& p) { params_ = p; }
@@ -129,92 +118,84 @@ class Core
     void Restart() { restart_.store(true, std::memory_order_relaxed); }
     // The playhead stopped at the end, in one-shot
     bool HasEnded() const { return ended_.load(std::memory_order_relaxed); }
-    // Rises with each new recording
-    uint32_t RecordingCount() const
+    // What has come in, at most the buffer
+    size_t SoundSamples() const
     {
-        return recording_count_.load(std::memory_order_relaxed);
+        return sound_samples_.load(std::memory_order_relaxed);
     }
-
-    bool IsRecording() const { return record_.load(std::memory_order_relaxed); }
-    float RecordedSeconds() const
-    {
-        return float(buffers_[playing_].Length()) / sample_rate_;
-    }
+    // Where the held sound ends, in samples of the buffer
+    size_t HeldEnd() const { return held_end_.load(std::memory_order_relaxed); }
     // Grain windows summed, mean over the last block: 1 = one grain at its peak
     float GrainLevel() const
     {
         return grain_level_.load(std::memory_order_relaxed);
     }
 
-    // The recording playing
-    const Buffer& Recording() const { return buffers_[playing_]; }
+    const Buffer& Sound() const { return buffer_; }
     // For tests, between blocks: the grains and the parameters in use
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
     double        PlayheadPhase() const { return stream_.phase; }
+    double        LivePhase() const { return stream_.live_phase; }
 
   private:
-    // The playhead over the selection
+    // The playhead over the selection, and behind the write point
     struct Stream
     {
-        double phase       = 0.0;  // through its span, 0..1
+        double phase       = 0.0; // through its span, 0..1
+        double live_phase  = 0.0;
         double sched_phase = 0.0;  // grain starts, 1 = mean interval
         float  sched_next  = 1.0f; // phase of the next start
     };
 
-    enum class Capture
+    // Where a grain reads
+    struct Source
     {
-        Idle,
-        Waiting,
-        Copying
+        double start;     // of the span, samples
+        double length;    // of the span, samples
+        double phase;     // through the span
+        double low, high; // of the span, where it may scatter
+        bool   backwards;
+        double newest; // the newest sound it may reach
+        double wrap;   // reads inside this many samples, 0: the whole buffer
     };
 
-    // Starts a grain on a free voice at sample offset of the block, reading the
-    // span at phase
+    // Starts a grain on a free voice at sample offset of the block
     void Trigger(const Params& p,
-                 double        start,
-                 double        length,
-                 double        phase,
-                 bool          backwards,
-                 size_t        offset);
+                 const Source& source,
+                 size_t        offset,
+                 double        grain_samples);
     // Updates norm_ from the mean powers of the last block
-    void Normalise(float  power_grains,
-                   float  power_sum,
-                   float  window_power,
-                   size_t size);
-    // End of Process(), after the ring is written: on release, copies the
-    // recording to the buffer not playing once its grains have ended, then
-    // plays it.
-    void  UpdateCapture(size_t size);
+    void  Normalise(float  power_grains,
+                    float  power_sum,
+                    float  window_power,
+                    size_t size);
     float Interval(float jitter); // to the next start, 1 = mean
     float Random();               // uniform -1..1
 
     Params params_;
     float  sample_rate_ = 48000.0f;
 
-    // Recording
-    // input: DC in a recording would sound as thumps at the grain rate
-    daisysp::DcBlock                dc_block_;
-    Ring                            ring_;
-    size_t                          ring_size_ = 0;
-    std::array<Buffer, kNumBuffers> buffers_;
-    size_t                          playing_ = 0;
-    Capture                         capture_ = Capture::Idle;
-    size_t                          held_    = 0; // samples since the touch
-    // samples from the recording's end to the next write
-    size_t            capture_back_   = 0;
-    size_t            capture_length_ = 0;
-    std::atomic<bool> record_{false};
-    bool              was_record_ = false;
+    // The sound. Input: DC in the buffer would sound as thumps at the grain
+    // rate
+    daisysp::DcBlock dc_block_;
+    Buffer           buffer_;
+    size_t           write_ = 0;
+    float fill_gain_        = 0.0f;  // Params.fill at the end of the last block
+    bool  filled_           = false; // sound has come in
+    bool  wrapped_          = false; // the write point has gone all the way
+    bool  was_writing_      = false;
+    std::atomic<size_t> sound_samples_{0};
+    std::atomic<size_t> held_end_{0};
 
     // Grains. Running positions in double: float steps reach 1/32 sample at 8
     // s.
     std::array<Grain, kNumVoices> grains_;
     Stream                        stream_;
     Playhead                      playhead_;
+    Playhead                      live_playhead_;
     std::atomic<bool>             restart_{false};
     std::atomic<bool>             ended_{false};
-    std::atomic<uint32_t>         recording_count_{0};
     uint32_t                      seed_ = 1;
     std::atomic<float>            grain_level_{0.0f};
 
@@ -233,15 +214,11 @@ class Core
     daisysp::ReverbSc  reverb_;
     Limiter            limiter_;
     // Gains at the end of the last block
-    float norm_gain_    = 0.0f;
-    float wet_gain_     = 0.0f;
-    float dry_gain_     = 0.0f;
-    float record_input_ = 1.0f;
-    float record_wet_   = 0.0f;
-    float reverb_dry_   = 1.0f;
-    float reverb_wet_   = 0.0f;
-    float input_gain_   = 1.0f;
-    float output_gain_  = 1.0f;
+    float norm_gain_   = 0.0f;
+    float reverb_dry_  = 1.0f;
+    float reverb_wet_  = 0.0f;
+    float input_gain_  = 1.0f;
+    float output_gain_ = 1.0f;
 };
 
 } // namespace clessidra

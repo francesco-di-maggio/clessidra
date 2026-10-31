@@ -8,35 +8,21 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 
 | Control | Function |
 |---|---|
-| S36 | Speed: centre stop, up forward, down backward, up to 4 times. Speed 1 half way |
-| S37 | Density: off, 0.3–130 grains per second |
-| S30 | Position of the selection in the recording |
+| S36 | Tilt: centre stops, up forward, down backward, up to 4 times. Speed 1 half way |
+| S37 | Pour: closed, single percussive drops in reverb, a stream, a wide cloud of long grains. Up to 130 grains per second |
+| S30 | Position: how far back the selection lies from where the sound ends |
 | S35 | Length of the selection |
-| S31 | Grain size, 10 ms – half the recording, up to 4 s |
+| S31 | Grain size, 2 octaves either way from what Pour sets |
 | S32 | Scatter: from periodic and plain to random starts, positions and sizes. Above the centre, random pitch |
 | S33 | Pitch, ±2 octaves, stops at 0, 0.1, 1, 3, 4, 7, 12 and 24 semitones |
-| S34 | Shape: reverse percussive / Hann / percussive |
-| S07 | End: one-shot / ping-pong / loop |
-| P03–P09 | Slices at the sound's onsets. A touch plays one, a firm press adds density |
-| P10 | Tap: keep the last 8 s. Hold: record, up to 60 s |
-| P11 | Hold: effects |
-
-Effects, P11 held:
-
-| Control | Function |
-|---|---|
-| S36 | Input level, centre unity, up to +12 dB |
-| S37 | Output level |
-| S35 | Dry / wet |
-| S32 | Reverb |
-| S33 | Resample: what P10 records, input to grains |
-| S34 | Tone: lowpass 200 Hz / off / highpass 2 kHz |
+| S34 | Fill: how much of the input replaces the sound, and the odds that a grain follows the input. Down: sealed, the sound stays. Up: you hear the input through the grains, about 50 ms late |
+| S07 | End: one-shot / turn / loop |
+| P03–P09 | Slices at the sound's onsets. A touch plays one, a firm press opens Pour |
 
 | LED | |
 |---|---|
 | Glow | Grains playing |
 | Pulse | A control at or turning within its centre |
-| Flashing | P10 touched |
 | Steady | P11 or P00 held: brightness shows the value |
 
 ## Install

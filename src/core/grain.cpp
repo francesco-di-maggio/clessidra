@@ -61,7 +61,9 @@ void Grain::Render(double inc,
                    float* left,
                    float* right,
                    size_t size,
-                   Sums&  sums)
+                   Sums&  sums,
+                   double write,
+                   bool   writing)
 {
     if(!active_)
         return;
@@ -93,7 +95,16 @@ void Grain::Render(double inc,
         window *= fade;
         fade -= fade_step_;
 
-        const float s = buffer.Read(latch_.position + read) * window * gain;
+        const double position = latch_.position + read;
+        float        s        = buffer.Read(position) * window * gain;
+        if(writing)
+        {
+            const double length = double(buffer.Length());
+            double       from   = position - (write + double(n));
+            from = std::fabs(from - length * std::round(from / length));
+            if(from < kHeadSamples)
+                s *= float(from / kHeadSamples);
+        }
         left[n] += s * gain_l_;
         right[n] += s * gain_r_;
         power += s * s;

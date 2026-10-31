@@ -44,11 +44,19 @@ class Grain
     };
 
     // Adds the grain to left and right while active. inc: window phase per
-    // sample.
-    void Render(double inc, float* left, float* right, size_t size, Sums& sums);
+    // sample. write: where the buffer is being written at the block's start, if
+    // writing: the grain fades passing it, where old sound meets new.
+    void Render(double inc,
+                float* left,
+                float* right,
+                size_t size,
+                Sums&  sums,
+                double write   = 0.0,
+                bool   writing = false);
 
   private:
-    static constexpr size_t kWindowSize = 512;
+    static constexpr size_t kWindowSize  = 512;
+    static constexpr double kHeadSamples = 256.0; // fade around the write point
     // percussive decay: e^-5 at the end, -43 dB
     static constexpr float kDecay   = 5.0f;
     static constexpr float kMinPeak = 0.01f; // percussive peak, of the grain

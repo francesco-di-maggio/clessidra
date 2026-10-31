@@ -7,21 +7,15 @@
 namespace clessidra
 {
 // Mono recording in external memory, read by the grains. Filled by
-// Ring::Copy(), with short fades at both ends so it has no clicks at its edges.
+// The sound the grains read, a circle of samples.
 class Buffer
 {
   public:
-    static constexpr float kFadeSeconds = 0.005f;
+    // mem: length floats, zeroed here (SDRAM content is undefined at boot)
+    void Init(float* mem, size_t length);
 
-    // mem: capacity floats, zeroed here (SDRAM content is undefined at boot)
-    void Init(float* mem, size_t capacity, float sample_rate);
-
-    // After writing length samples to Data(): sets the length and fades the
-    // ends
-    void         Finish(size_t length);
     float*       Data() { return mem_; }
     const float* Data() const { return mem_; }
-    size_t       Capacity() const { return capacity_; }
 
     // Linear interpolation. pos wraps within Length().
     float Read(double pos) const;
@@ -29,10 +23,8 @@ class Buffer
     size_t Length() const { return length_; }
 
   private:
-    float* mem_          = nullptr;
-    size_t capacity_     = 0;
-    size_t length_       = 0;
-    size_t fade_samples_ = 1;
+    float* mem_    = nullptr;
+    size_t length_ = 0;
 };
 
 // Inline: called per grain per sample

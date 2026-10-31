@@ -21,8 +21,7 @@ namespace
     constexpr uint32_t kLoopMs    = 3;   // pad scan interval
     constexpr uint32_t kLogMs     = 250; // serial log interval (DEBUG=1)
 
-    float DSY_SDRAM_BSS ring[kRingSamples];
-    float DSY_SDRAM_BSS buffers[Core::kNumBuffers][kRecordSamples];
+    float DSY_SDRAM_BSS sound[kBufferSamples];
 
     Touch               touch;
     Core                core;
@@ -58,10 +57,6 @@ namespace
         {
             seed.Print(" %3d", Percent(c.pressure[p]));
         }
-        seed.Print(" | rec %d len %d.%d s",
-                   core.IsRecording(),
-                   static_cast<int>(core.RecordedSeconds()),
-                   static_cast<int>(core.RecordedSeconds() * 10.0f) % 10);
         seed.PrintLine(" | cpu avg %d max %d",
                        Percent(cpu.GetAvgCpuLoad()),
                        Percent(cpu.GetMaxCpuLoad()));
@@ -74,14 +69,7 @@ namespace
     {
         touch.Init(kSampleRate, kBlockSize);
         daisy::DaisySeed& seed = touch.seed;
-        float*            buffer_ptrs[Core::kNumBuffers];
-        for(size_t b = 0; b < Core::kNumBuffers; b++)
-            buffer_ptrs[b] = buffers[b];
-        core.Init(seed.AudioSampleRate(),
-                  ring,
-                  kRingSamples,
-                  buffer_ptrs,
-                  kRecordSamples);
+        core.Init(seed.AudioSampleRate(), sound, kBufferSamples);
         cpu.Init(seed.AudioSampleRate(), seed.AudioBlockSize());
 #if DEBUG
         seed.StartLog(false);

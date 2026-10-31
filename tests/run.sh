@@ -5,10 +5,12 @@ cd "$(dirname "$0")/.."
 
 DAISYSP=lib/DaisySP
 mkdir -p build/tests
+# A failed build stops here: never the tests of the last one
 c++ -std=c++17 -O2 -Wall -Wextra -Isrc \
     -I"$DAISYSP/Source" -I"$DAISYSP/Source/Utility" -I"$DAISYSP/DaisySP-LGPL/Source" \
-    tests/core.cpp src/common/*.cpp src/ui/*.cpp src/core/*.cpp \
+    tests/core.cpp src/ui/*.cpp src/core/*.cpp \
     "$DAISYSP/Source/Utility/dcblock.cpp" "$DAISYSP/DaisySP-LGPL/Source/Effects/reverbsc.cpp" \
-    -o build/tests/core 2>&1 | grep -v "DaisySP" || true
+    -o build/tests/core 2> build/tests/compile.log || { cat build/tests/compile.log; exit 1; }
+grep -v "DaisySP" build/tests/compile.log || true
 echo "== Core and mapping"
 build/tests/core

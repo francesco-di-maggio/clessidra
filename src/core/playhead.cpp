@@ -15,18 +15,22 @@ double Playhead::Step(double phase,
                       End    end,
                       double low,
                       double high,
-                      double margin)
+                      double margin,
+                      double drift)
 {
     if(end == End::Loop)
     {
-        direction_         = 1.0;
-        stopped_           = false;
-        const double next  = phase + inc;
+        direction_          = 1.0;
+        stopped_            = false;
+        const double moving = inc - drift;
+        if(moving == 0.0)
+            return phase; // keeping up with the span
+        const double next  = phase + moving;
         const double width = high - low;
         return next - width * std::floor((next - low) / width);
     }
 
-    const double moving = inc * direction_;
+    const double moving = inc * direction_ - drift;
     if(stopped_)
     {
         // Flipped, moving back into the span: it falls again
@@ -35,6 +39,9 @@ double Playhead::Step(double phase,
             return phase;
         stopped_ = false;
     }
+
+    if(moving == 0.0)
+        return phase; // keeping up with the span
 
     const bool   forward = moving >= 0.0;
     const double next    = phase + moving;
