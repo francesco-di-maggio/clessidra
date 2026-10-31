@@ -159,8 +159,13 @@ void Core::Process(const float* const* in, float** out, size_t size)
     std::fill(out[1], out[1] + size, 0.0f);
     Grain::Sums sums;
     for(auto& grain : grains_)
-        grain.Render(
-            grain_inc, out[0], out[1], size, sums, double(write_), writing);
+        grain.Render(grain_inc,
+                     out[0],
+                     out[1],
+                     size,
+                     sums,
+                     double(write_),
+                     writing ? 1.0 : 0.0);
     float power_sum = 0.0f;
     for(size_t i = 0; i < size; i++)
         power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];

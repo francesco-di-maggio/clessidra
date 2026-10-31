@@ -44,15 +44,15 @@ class Grain
     };
 
     // Adds the grain to left and right while active. inc: window phase per
-    // sample. write: where the buffer is being written at the block's start, if
-    // writing: the grain fades passing it, where old sound meets new.
+    // sample. write: the write point at the block's start, moving write_step per
+    // sample: the grain fades passing it, where old sound meets new.
     void Render(double inc,
                 float* left,
                 float* right,
                 size_t size,
                 Sums&  sums,
-                double write   = 0.0,
-                bool   writing = false);
+                double write      = 0.0,
+                double write_step = 0.0);
 
   private:
     static constexpr size_t kWindowSize  = 512;
