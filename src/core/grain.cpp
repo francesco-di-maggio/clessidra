@@ -78,6 +78,15 @@ void Grain::Render(double inc,
     float window_sum   = 0.0f;
     float window_power = 0.0f;
     float fade         = fade_;
+    // Far from the write point for the whole block: no fade to work out
+    const double length = double(buffer.Length());
+    if(writing)
+    {
+        double from = latch_.position + read - write;
+        from        = std::fabs(from - length * std::round(from / length));
+        writing     = from < double(kHeadSamples)
+                             + double(size) * (std::fabs(latch_.rate) + 1.0);
+    }
     for(size_t n = offset_; n < size; n++)
     {
         const float x = mirrored_ ? 1.0f - float(phase) : float(phase);
@@ -89,8 +98,9 @@ void Grain::Render(double inc,
         else
         {
             const float fall = std::min(1.0f, (x - peak_) * fall_scale_);
-            const float hann = Lookup(rise_, 1.0f - fall);
-            window = hann + percussive_ * (Lookup(decay_, fall) - hann);
+            window           = Lookup(rise_, 1.0f - fall);
+            if(percussive_ > 0.0f)
+                window += percussive_ * (Lookup(decay_, fall) - window);
         }
         window *= fade;
         fade -= fade_step_;
@@ -99,9 +109,8 @@ void Grain::Render(double inc,
         float        s        = buffer.Read(position) * window * gain;
         if(writing)
         {
-            const double length = double(buffer.Length());
-            double       from   = position - (write + double(n));
-            from = std::fabs(from - length * std::round(from / length));
+            double from = position - (write + double(n));
+            from        = std::fabs(from - length * std::round(from / length));
             if(from < kHeadSamples)
                 s *= float(from / kHeadSamples);
         }
