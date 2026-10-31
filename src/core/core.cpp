@@ -22,7 +22,7 @@ void Core::Init(float sample_rate, float* buffer, size_t buffer_size)
 
 void Core::Process(const float* const* in, float** out, size_t size)
 {
-    const Params p       = params_;
+    const Params p       = slots_[slot_.load(std::memory_order_acquire)];
     const bool   writing = p.fill > 0.0f || fill_gain_ > 0.0f;
     const size_t sound   = wrapped_ ? buffer_.Length() : write_;
     const double len     = double(writing ? buffer_.Length() : sound);

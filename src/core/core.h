@@ -110,9 +110,15 @@ class Core
     void Init(float sample_rate, float* buffer, size_t buffer_size);
     void Process(const float* const* in, float** out, size_t size);
 
-    // Main loop. Fields are copied one by one: a block may see a mix of old and
-    // new.
-    void SetParams(const Params& p) { params_ = p; }
+    // Main loop. A block sees one set whole: written to the slot not in use,
+    // then published. The audio callback interrupts this and never the reverse.
+    void SetParams(const Params& p)
+    {
+        params_           = p;
+        const size_t next = 1 - slot_.load(std::memory_order_relaxed);
+        slots_[next]      = p;
+        slot_.store(next, std::memory_order_release);
+    }
     // Main loop, after SetParams(). The playhead from the start of the slice,
     // at the next block. Also after each new recording.
     void Restart() { restart_.store(true, std::memory_order_relaxed); }
@@ -173,8 +179,10 @@ class Core
     float Interval(float jitter); // to the next start, 1 = mean
     float Random();               // uniform -1..1
 
-    Params params_;
-    float  sample_rate_ = 48000.0f;
+    Params                params_; // the last set, main loop only
+    std::array<Params, 2> slots_;
+    std::atomic<size_t>   slot_{0};
+    float                 sample_rate_ = 48000.0f;
 
     // The sound. Input: DC in the buffer would sound as thumps at the grain
     // rate

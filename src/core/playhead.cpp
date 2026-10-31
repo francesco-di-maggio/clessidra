@@ -27,6 +27,8 @@ double Playhead::Step(double phase,
             return phase; // keeping up with the span
         const double next  = phase + moving;
         const double width = high - low;
+        if(width <= 0.0)
+            return low; // a NaN here would stay in the reverb
         return next - width * std::floor((next - low) / width);
     }
 

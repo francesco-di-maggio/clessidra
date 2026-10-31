@@ -521,6 +521,35 @@ void Held()
     ends.Run(4.0, Silence);
     Check(ends.rig.core.HasEnded(), "fill 5 %: one-shot still ends", 1.0);
 
+    // Sealed: grains crossing where newest meets oldest fade, no jump. A tone
+    // that doesn't fit the buffer, so the two don't line up.
+    {
+        Panel seam;
+        auto  tone = [](double t) {
+            return 0.25f * float(std::sin(2.0 * M_PI * 221.7 * t));
+        };
+        seam.c.knobs[Controls::S34]    = 1.0f;
+        seam.c.knobs[Controls::S37]    = 1.0f;
+        seam.c.switches[Controls::S07] = Controls::Down;
+        seam.Run(8.3, tone);
+        seam.c.knobs[Controls::S34] = 0.0f;
+        seam.Run(1.0, tone);
+        float        l[kBlock] = {}, o1[kBlock], o2[kBlock];
+        const float* in[2]     = {l, l};
+        float*       out[2]    = {o1, o2};
+        float        last = 0.0f, jump = 0.0f;
+        for(size_t b = 0; b < size_t(12.0 * kRate / kBlock); b++)
+        {
+            seam.rig.core.Process(in, out, kBlock);
+            for(size_t i = 0; i < kBlock; i++)
+            {
+                jump = std::max(jump, std::fabs(o1[i] - last));
+                last = o1[i];
+            }
+        }
+        Check(jump < 0.035, "sealed: no jump at the seam (largest step)", jump);
+    }
+
     // A slice at the top of Fill: back to what comes in once released
     for(auto end : {Controls::Up, Controls::Centre, Controls::Down})
     {
@@ -596,6 +625,38 @@ void Fuzz()
     Check(most < Core::kNumVoices,
           "every control at random: a voice stays free",
           double(most));
+
+    // After all that, it still plays: heard at once, gone soon, sealed stays
+    panel.c.knobs[Controls::S30]    = 0.0f;
+    panel.c.knobs[Controls::S31]    = 0.5f;
+    panel.c.knobs[Controls::S32]    = 0.0f;
+    panel.c.knobs[Controls::S33]    = 0.5f;
+    panel.c.knobs[Controls::S34]    = 1.0f;
+    panel.c.knobs[Controls::S35]    = 1.0f;
+    panel.c.knobs[Controls::S36]    = 0.75f;
+    panel.c.knobs[Controls::S37]    = 0.75f;
+    panel.c.switches[Controls::S07] = Controls::Down;
+    panel.c.touched.fill(false);
+    panel.c.pressure.fill(0.0f);
+    panel.Run(0.05, Sine);
+    const double heard = PanelRms(panel, 0.3, Sine);
+    Check(heard > 0.05, "after it all: the input heard at once (rms)", heard);
+    panel.Run(4.0, Sine);
+    panel.c.knobs[Controls::S34] = 0.0f;
+    panel.Run(0.3, Sine);
+    const double kept = PanelRms(panel, 2.0, Silence);
+    Check(kept > 0.05, "after it all: sealed, the sound stays (rms)", kept);
+
+    // A slice without width, as a torn parameter copy gave: nothing breaks
+    Rig          zero(1.0);
+    Core::Params none;
+    zero.Fill(Sine);
+    none.slice_start = none.slice_end = 0.5f;
+    none.live_slice_start = none.live_slice_end = 0.5f;
+    none.fill                                   = 0.5f;
+    zero.core.SetParams(none);
+    zero.Run(0.5, Sine);
+    Check(zero.finite, "a slice without width: output finite", 1.0);
 }
 
 // One grain of 1000 samples over a buffer of ones: its window, sample by
