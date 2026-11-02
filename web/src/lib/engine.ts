@@ -12,8 +12,8 @@ export const SLICE_PADS = [3, 4, 8, 5, 6, 9, 7]; // CoreUI::kSlicePads
 export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, slice: 4, edges: 5 } as const;
 export const VIEW_SIZE = VIEW.edges + NUM_SLICES + 1;
 // cl_params, in the core's units
-export const PARAM = { speed: 0, freeze: 1, end: 2, density: 3, grainMs: 4, pitch: 5, reverb: 6, jitter: 7, randPitch: 8, shape: 9, start: 10, length: 11, mix: 12 } as const;
-export const PARAM_SIZE = 13;
+export const PARAM = { speed: 0, freeze: 1, end: 2, density: 3, grainMs: 4, pitch: 5, reverb: 6, jitter: 7, randPitch: 8, shape: 9, start: 10, length: 11, mix: 12, octaves: 13 } as const;
+export const PARAM_SIZE = 14;
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window shape, pan
 export const GRAIN_FIELDS = 4;
 

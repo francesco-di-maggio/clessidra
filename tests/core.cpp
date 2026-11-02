@@ -629,6 +629,33 @@ void Pan()
           full);
 }
 
+// Random pitch in octaves: every grain's rate a power of two
+void Octaves()
+{
+    Rig r(1.0);
+    r.Fill(Sine);
+    Core::Params p;
+    p.density    = Core::kMaxDensity;
+    p.rand_pitch = 1.0f;
+    p.octaves    = true;
+    r.core.SetParams(p);
+    bool   whole = true;
+    size_t off   = 0;
+    r.Run(1.0, Silence, [&](size_t) {
+        for(const auto& grain : r.core.Grains())
+        {
+            if(!grain.IsActive())
+                continue;
+            const double octave = std::log2(std::fabs(grain.Settings().rate));
+            whole = whole && Near(octave, std::round(octave), 1e-4);
+            off += octave != 0.0;
+        }
+    });
+    Check(whole && off > 0,
+          "random pitch in octaves: whole octaves",
+          double(off));
+}
+
 void Voices()
 {
     Rig r(1.0);
@@ -772,13 +799,24 @@ void Mapping()
 
     c.knobs[Controls::S32] = 0.5f;
     ui.Process(c, r.core);
-    Check(p.jitter == 0.5f && p.rand_pitch == 0.0f,
-          "S32 centre: half random, pitch still plain",
+    Check(p.jitter == 0.5f && p.size_variation == 0.5f && p.spread == 0.5f,
+          "S32 centre: starts, sizes and pan half random",
           p.jitter);
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.rand_pitch == 1.0f, "S32 top: random pitch", p.rand_pitch);
-    c.knobs[Controls::S32] = 0.0f;
+    Check(p.rand_pitch == 0.0f, "S32 top, S09 up: pitch plain", p.rand_pitch);
+    c.switches[Controls::S09] = Controls::Down;
+    ui.Process(c, r.core);
+    Check(p.rand_pitch == 1.0f && !p.octaves,
+          "S32 top, S09 down: free random pitch",
+          p.rand_pitch);
+    c.switches[Controls::S09] = Controls::Centre;
+    ui.Process(c, r.core);
+    Check(p.rand_pitch == 1.0f && p.octaves,
+          "S32 top, S09 centre: random pitch in octaves",
+          p.rand_pitch);
+    c.switches[Controls::S09] = Controls::Up;
+    c.knobs[Controls::S32]    = 0.0f;
 
     c.switches[Controls::S07] = Controls::Down;
     ui.Process(c, r.core);
@@ -847,6 +885,7 @@ int main()
     Ends();
     Pan();
     Voices();
+    Octaves();
     Onsets();
     Mapping();
     std::printf("%s\n",

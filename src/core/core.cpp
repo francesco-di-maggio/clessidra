@@ -302,8 +302,8 @@ void Core::Trigger(const Params& p,
     // Peaky: the further each grain may go is itself random
     const float reach
         = std::min(3.0f * p.rand_pitch * (0.5f - 0.5f * Random()), 1.0f);
-    const float ratio
-        = std::exp2(Random() * reach * kRandPitchSemitones / 12.0f);
+    const float octaves = Random() * reach * kRandPitchSemitones / 12.0f;
+    const float ratio   = std::exp2(p.octaves ? std::round(octaves) : octaves);
     // Width with the grains sounding and how much they differ: a lone grain
     // near the centre, most of the others too
     const float width = 0.5f * float(active + 1) * p.spread;

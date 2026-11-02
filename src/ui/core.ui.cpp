@@ -173,8 +173,8 @@ void CoreUI::Process(const Controls& c, Core& core)
                      10.0f,
                      top_ms);
 
-    // S32, Shake: from periodic and plain to random starts, positions and
-    // sizes, and above the centre pitch. Position in seconds, cubic: fine near
+    // S32, Scatter: from periodic and plain to random starts, positions, sizes
+    // and pan. Position in seconds, cubic: fine near
     // 0. The top of Pour shakes by itself, or the grains would be copies.
     const float scatter = std::max(
         c.knobs[Controls::S32], kCloudScatter * Ramp(pour, kCloudFrom, 1.0f));
@@ -187,8 +187,12 @@ void CoreUI::Process(const Controls& c, Core& core)
         = seconds > 0.0f
               ? std::min(2.0f * scatter_seconds / (p.length * seconds), 1.0f)
               : 0.0f;
-    const float above = std::max(2.0f * scatter - 1.0f, 0.0f);
-    p.rand_pitch      = above * above * above;
+    // S09, random pitch with Scatter: up off, centre whole octaves, down free.
+    // Cubic: fine near 0.
+    const Controls::Position random = c.switches[Controls::S09];
+    const float              shake  = c.knobs[Controls::S32];
+    p.rand_pitch = random == Controls::Up ? 0.0f : shake * shake * shake;
+    p.octaves    = random == Controls::Centre;
 
     core.SetParams(p);
     if(restart)

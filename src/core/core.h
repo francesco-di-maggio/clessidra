@@ -96,6 +96,7 @@ class Core
         float rand_pos = 0.0f;
         // 0..1: most grains near the pitch, a few up to kRandPitchSemitones off
         float rand_pitch = 0.0f;
+        bool  octaves    = false; // random pitch in whole octaves
         // 0..1, how much the grains differ: with the grains sounding, the pan
         // width
         float spread = 0.0f;
