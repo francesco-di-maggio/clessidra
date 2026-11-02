@@ -105,6 +105,9 @@ void CoreUI::Process(const Controls& c, Core& core)
     const bool  unison    = semitones == 0.0f;
     p.pitch               = std::exp2(semitones / 12.0f);
 
+    // S34: dry and wet
+    p.mix = c.knobs[Controls::S34];
+
     // S36, Tilt: centre stop, up forward, down backward, further faster. Speed
     // 1 half way, with a detent.
     const float tilt     = 2.0f * c.knobs[Controls::S36] - 1.0f;

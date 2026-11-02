@@ -63,6 +63,7 @@ enum Param : size_t
     kWindowShape,
     kStart,
     kLength,
+    kMix,
     kNumParams
 };
 float params[kNumParams];
@@ -216,5 +217,6 @@ EXPORT const float* cl_params()
     params[kWindowShape]  = p.window_shape;
     params[kStart]        = p.start;
     params[kLength]       = p.length;
+    params[kMix]          = p.mix;
     return params;
 }

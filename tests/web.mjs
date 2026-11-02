@@ -60,6 +60,7 @@ w.cl_knob(KNOB.S33, 0.5);
 w.cl_knob(KNOB.S30, 0);
 w.cl_knob(KNOB.S35, 1);
 w.cl_knob(KNOB.S37, 0.6);
+w.cl_knob(KNOB.S34, 1);
 
 let r = run(3);
 check(r.finite && r.peak === 0, "nothing recorded: silent", r.peak.toFixed(3));
@@ -94,7 +95,7 @@ w.cl_knob(KNOB.S35, 0.25);
 run(1, silence);
 v = view();
 check(Math.abs(v[V.selStart] / v[V.sound] - 0.25) < 1e-3 && Math.abs(v[V.selLength] / v[V.sound] - 0.5) < 1e-3, "S30 above S35: the selection between them");
-const grainSamples = (f32(w.cl_params(), 12)[4] / 1000) * RATE;
+const grainSamples = (f32(w.cl_params(), 13)[4] / 1000) * RATE;
 const held = grains();
 const inside = held.every((x) => {
   const at = x * v[V.sound];
@@ -102,7 +103,7 @@ const inside = held.every((x) => {
 });
 check(held.length > 0 && inside, "grains inside the selection", held.length);
 
-const params = f32(w.cl_params(), 12);
+const params = f32(w.cl_params(), 13);
 check(Math.abs(params[0] - 1) < 1e-6, "Tilt at three quarters: speed 1", params[0]);
 check(w.cl_led(Math.floor(now)) >= 0, "LED in range");
 

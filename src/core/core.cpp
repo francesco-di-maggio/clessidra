@@ -143,6 +143,13 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float input_step = (std::max(p.input, 0.0f) - input_gain_) / n;
     const float output_step
         = (std::clamp(p.output, 0.0f, 1.0f) - output_gain_) / n;
+    // Dry and wet, equal power, exact at the ends
+    const float mix       = std::clamp(p.mix, 0.0f, 1.0f);
+    const float mix_angle = HALFPI_F * mix;
+    const float dry       = mix >= 1.0f ? 0.0f : std::cos(mix_angle);
+    const float wet       = mix <= 0.0f ? 0.0f : std::sin(mix_angle);
+    const float dry_step  = (dry - dry_gain_) / n;
+    const float wet_step  = (wet - wet_gain_) / n;
     for(size_t i = 0; i < size; i++)
     {
         reverb_dry_ += reverb_dry_step;
@@ -163,11 +170,14 @@ void Core::Process(const float* const* in, float** out, size_t size)
 
         // The input, always into the ring
         input_gain_ += input_step;
-        ring_.Write(
-            dc_block_.Process(kInputSum * (in[0][i] + in[1][i]) * input_gain_));
+        const float in_l = in[0][i] * input_gain_;
+        const float in_r = in[1][i] * input_gain_;
+        ring_.Write(dc_block_.Process(kInputSum * (in_l + in_r)));
 
-        out[0][i] *= kOutputGain;
-        out[1][i] *= kOutputGain;
+        dry_gain_ += dry_step;
+        wet_gain_ += wet_step;
+        out[0][i] = out[0][i] * kOutputGain * wet_gain_ + in_l * dry_gain_;
+        out[1][i] = out[1][i] * kOutputGain * wet_gain_ + in_r * dry_gain_;
         limiter_.Process(out[0][i], out[1][i]);
         output_gain_ += output_step;
         out[0][i] *= output_gain_;

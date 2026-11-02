@@ -103,6 +103,7 @@ class Core
         float window_shape = 0.5f;
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
         float tone   = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
+        float mix    = 1.0f; // 0 dry .. 1 wet, equal power
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
@@ -249,6 +250,8 @@ class Core
     float reverb_wet_  = 0.0f;
     float input_gain_  = 1.0f;
     float output_gain_ = 1.0f;
+    float dry_gain_    = 0.0f;
+    float wet_gain_    = 1.0f;
 };
 
 } // namespace clessidra

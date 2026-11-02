@@ -170,6 +170,7 @@ struct Panel
         c.knobs.fill(0.5f);
         c.knobs[Controls::S30] = 0.0f;
         c.knobs[Controls::S32] = 0.0f;
+        c.knobs[Controls::S34] = 1.0f;
         c.knobs[Controls::S35] = 1.0f;
         c.knobs[Controls::S36] = 0.75f;
         c.knobs[Controls::S37] = 0.75f;
@@ -311,6 +312,20 @@ void Record()
           "silence at both ends: trimmed (s)",
           Seconds(trim.rig.core));
 
+    // S34: dry passes the input as it is, wet only the grains
+    auto  level = [](double) { return 0.25f; };
+    Panel dry;
+    dry.c.knobs[Controls::S34] = 0.0f;
+    dry.Run(0.5, level);
+    const double through = PanelRms(dry, 0.5, level);
+    Check(Near(through, 0.25, 0.001),
+          "S34 down: the input, dry, at its level (rms)",
+          through);
+    Panel wet;
+    wet.Run(0.5, Sine);
+    const double none = PanelRms(wet, 0.5, Sine);
+    Check(none < 1e-6, "S34 up, nothing recorded: no dry signal (rms)", none);
+
     // A new recording: the LED flashes while held, the playhead restarts
     Panel led;
     led.c.touched[CoreUI::kRecordPad] = true;
@@ -389,6 +404,7 @@ void Fuzz()
 
     // After all that, it still records and plays
     panel.c.knobs[Controls::S30]    = 0.0f;
+    panel.c.knobs[Controls::S34]    = 1.0f;
     panel.c.knobs[Controls::S31]    = 0.5f;
     panel.c.knobs[Controls::S32]    = 0.0f;
     panel.c.knobs[Controls::S33]    = 0.5f;
