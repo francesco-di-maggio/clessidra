@@ -54,9 +54,12 @@ for (const w of parts.values()) {
   else set(w.c, w.c.initial ?? 0, false);
 }
 hint();
-document.querySelector(".rack")!.addEventListener("pointerleave", () => {
-  if (!document.activeElement?.closest(".rack")) hint();
-});
+// Leaving the controls, nothing focused in them: the hint again
+for (const panel of document.querySelectorAll(".strip, .slices")) {
+  panel.addEventListener("pointerleave", () => {
+    if (!document.activeElement?.closest(".strip, .slices")) hint();
+  });
+}
 
 function set(c: Control, value: number, show = true) {
   const w = parts.get(c.id)!;

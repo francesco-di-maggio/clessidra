@@ -151,10 +151,10 @@ export function segmented(c: Control, parent: Element, options: [number, string]
   };
 }
 
-// A level as a column of dots, -48 to 0 dBFS, lit from the bottom. The top
+// A level as a column of dots, -48 to 0 dBFS, 6 dB each, lit from the bottom. The top
 // dot turns orange at full scale. Falls back slowly, as a meter does.
 export function meter(parent: Element, label: string) {
-  const DOTS = 12;
+  const DOTS = 8;
   const root = html("div", { class: "meter", role: "meter", "aria-label": label, "aria-valuemin": -48, "aria-valuemax": 0 }, parent);
   const dots = Array.from({ length: DOTS }, () => html("i", {}, root)).reverse();
   let shown = 0;

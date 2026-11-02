@@ -49,8 +49,9 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
 .switch .segmented button { height: 20px; font-size: 10px; letter-spacing: 0.04em; }
 .switch .segmented button + button { border-left: 0; border-top: 1px solid var(--line); }
 
-.level { display: flex; align-items: flex-start; gap: 2px; }
-.meter { display: grid; gap: 3px; padding-top: 18px; }
+/* A meter beside its knob's dial, not widening the knob */
+.level { position: relative; }
+.meter { position: absolute; top: 18px; right: -4px; display: grid; gap: 2px; }
 .meter i { width: 4px; height: 4px; border-radius: 1px; background: var(--line); }
 .meter i.on { background: var(--ink); }
 .meter i.clip { background: var(--accent); }
