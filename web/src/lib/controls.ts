@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { LAYER_PAD, PARAM, RATE, RECORD_PAD, RESTART_PAD, SLICE_PADS } from "./engine";
+import { FX_PAD, LAYER, PARAM, RANDOM_PAD, RATE, RECORD_PAD, RESTART_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -26,7 +26,7 @@ export interface Control {
   bipolar?: boolean; // drawn from its centre
   slice?: number;
   free?: boolean;
-  second?: boolean; // the knob's function while P11 is held
+  layer?: number; // the knob's function while a pad holds this layer (LAYER)
   short?: string; // its label under its knob, where the name repeats it
   board?: string; // where it is on the board, if not its id
   does?: string;
@@ -111,16 +111,28 @@ export const CONTROLS: Control[] = [
     ["S32", "Shape", PARAM.randShape],
     ["S33", "Pitch", PARAM.randPitch],
   ] as const).map(([knob, of, param], index): Control => ({
-    id: `P11+${knob}`, type: "knob", index, x: 0, y: 0, name: `${of} Random`, short: "Random", initial: 0.5, bipolar: true, second: true, board: `P11 + ${knob}`,
+    id: `P11+${knob}`, type: "knob", index, x: 0, y: 0, name: `${of} Random`, short: "Random", initial: 0.5, bipolar: true, layer: LAYER.random, board: `P11 + ${knob}`,
     does: `Randomness of ${of.toLowerCase()} per grain: off at the centre, up an even spread, down a long tail.`,
     value: (p) => random(p[param]),
   })),
+  // While P00 is held: the FX, in the order the sound goes through them
   {
-    id: "P11+S34", type: "knob", index: 4, x: 0, y: 0, name: "Reverb", initial: 0.25, second: true, board: "P11 + S34",
+    id: "P00+S31", type: "knob", index: 1, x: 0, y: 0, name: "Filter", initial: 0.5, bipolar: true, layer: LAYER.fx, board: "P00 + S31",
+    does: "Low-pass to the left, 20 kHz to 200 Hz, off at the centre, high-pass to the right, to 2 kHz.",
+    value: (p) => {
+      const t = p[PARAM.filter];
+      if (t === 0) return "Off";
+      const hz = t < 0 ? 20000 * (200 / 20000) ** -t : 20 * (2000 / 20) ** t;
+      return `${t < 0 ? "LP" : "HP"} ${hz < 1000 ? Math.round(hz) : (hz / 1000).toFixed(1) + "k"}`;
+    },
+  },
+  {
+    id: "P00+S32", type: "knob", index: 2, x: 0, y: 0, name: "Reverb", initial: 0.25, layer: LAYER.fx, board: "P00 + S32",
     does: "Reverb on the grains: more and longer, 0.5 to 16 s.",
     value: (p) => percent(p[PARAM.reverb]),
   },
-  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer, S30 to S33 randomness, S34 reverb. Each knob picks up its value." },
+  { id: "P11", type: "pad", index: RANDOM_PAD, ...padAt(RANDOM_PAD), name: "Random", does: "Held: S30 to S33 set the randomness of position, size, shape and pitch. Knobs pick up." },
+  { id: "P00", type: "pad", index: FX_PAD, ...padAt(FX_PAD), name: "FX", does: "Held: S31 sets the filter, S32 the reverb. Each knob picks up its value." },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Trigger", initial: POSITION.up,
     does: "A slice pad plays once to its end (up), while held (centre), or looped while held (down).",
@@ -130,7 +142,7 @@ export const CONTROLS: Control[] = [
     id: "P02", type: "pad", index: RESTART_PAD, ...padAt(RESTART_PAD), name: "Restart",
     does: "The playhead from the start of the selection.",
   },
-  ...[0, 1].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
+  ...[1].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
 ];
 
 export const byId = (id: string) => CONTROLS.find((c) => c.id === id)!;
@@ -140,7 +152,7 @@ export const LED: [string, string][] = [
   ["Glow", "Grains playing"],
   ["Flashing", "Recording"],
   ["Pulse", "A control at or turning within its centre: pitch unison, speed 1×, size at its centre, density off"],
-  ["Steady", "P11 held: the value of the knob last turned"],
+  ["Steady", "P11 or P00 held: the value of the knob last turned"],
 ];
 
 // Browser only: the level into the firmware and out of it. The board has its

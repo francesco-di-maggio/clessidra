@@ -19,7 +19,7 @@ export class Preview {
   apply(m: Control) {
     const w = this.w;
     if (m.type === "knob") w.cl_knob(m.index, m.value);
-    else if (m.type === "second") w.cl_second(m.index, m.value);
+    else if (m.type === "layer") w.cl_layer(m.layer, m.index, m.value);
     else if (m.type === "switch") w.cl_switch(m.index, m.position);
   }
 

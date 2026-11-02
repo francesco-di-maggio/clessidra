@@ -1,8 +1,9 @@
 /* Play: one screen in the family's column. Transport and levels, the incoming
-   strip, the buffer, then the board as it is: faders at the edges, knobs and
-   switches between, the 12 pads. A readout line. Orange only for what is on. */
+   strip, the buffer, the controls in the order the sound goes (playhead, grain,
+   FX, mix), the switches and the 12 pads, a readout line. Orange only for what
+   is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
-body.app main { min-height: 0; display: grid; grid-template-rows: auto 56px minmax(120px, 1fr) auto auto auto; gap: 10px; }
+body.app main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 56px minmax(120px, 1fr) auto auto auto; gap: 10px; }
 .mark .slash { margin: 0 2px; }
 .led { display: flex; align-items: center; gap: 6px; }
 .led .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--accent) calc(var(--led, 0) * 100%), transparent); }
@@ -31,18 +32,17 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 56px minm
 .held { position: absolute; top: 8px; right: 12px; font-variant-numeric: tabular-nums; pointer-events: none; }
 .held.on { color: var(--accent); }
 
-/* The board: faders at the edges, S31-S34 above, S30 and S35 below with the
-   switches between. Each knob with P11's beside it, small. */
-.board { padding: 12px 6px; }
-.board-grid { display: grid; grid-template-columns: 56px repeat(4, minmax(0, 1fr)) 56px; grid-template-areas: "speed size shape pitch mix density" "speed position direction trigger length density";
-              row-gap: 14px; justify-items: center; align-items: start; }
-.area.pair { display: grid; grid-template-columns: 56px 40px; align-items: end; width: 96px; }
-.knob.small { width: 40px; }
-.knob.small svg { width: 28px; height: 28px; }
-.knob.small .label { color: var(--dim); }
-.knob.small .value { font-size: 10px; }
-.shifted .board .knob:not(.small) { opacity: 0.35; }
-.shifted .board .knob.small .label { color: var(--ink); }
+/* Controls: sections split by hairlines, two rows. A randomness small, below
+   its own. A held layer pad dims what it does not reach. */
+.strip { display: flex; align-items: stretch; padding: 10px 4px 12px; }
+.cluster { display: flex; flex-direction: column; align-items: stretch; gap: 8px; flex: auto; padding: 0 4px; }
+.cluster + .cluster { border-left: 1px solid var(--line); }
+.cluster .head { font: 500 10px/14px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); text-align: center; }
+.cluster .body { display: grid; grid-template-rows: auto auto; grid-auto-flow: column; justify-content: space-evenly; justify-items: center; gap: 10px 4px; }
+.cell.tall { grid-row: span 2; display: flex; }
+.cell.below .knob svg { width: 32px; height: 32px; }
+.cell.below .label { color: var(--dim); }
+.layer-random .strip .knob:not(.random), .layer-fx .strip .knob:not(.fx) { opacity: 0.3; }
 
 .knob { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 56px; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
 .knob .label, .switch .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; white-space: nowrap; }
@@ -54,7 +54,6 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 56px minm
 .knob line.track, .knob line.fill { stroke-width: 3; }
 .knob .cap { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
 .knob.dragging { cursor: ns-resize; }
-.area:has(> .fader) { align-self: stretch; display: flex; }
 .knob.fader { height: 100%; }
 .knob.fader svg { flex: 1; width: 24px; height: auto; min-height: 0; }
 .knob .value { font: 500 11px/16px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
@@ -77,14 +76,16 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 56px minm
 .meter i.on { background: var(--ink); }
 .meter i.clip { background: var(--accent); }
 
-/* The 12 pads in one row: record and shift, P00, P01 and restart, the slices */
-.pads { display: flex; gap: 10px; padding: 10px; }
-.pads .group { display: grid; grid-auto-flow: column; grid-auto-columns: 48px; gap: 6px; padding-right: 10px; border-right: 1px solid var(--line); }
-.pads .slices { flex: 1; grid-auto-columns: minmax(0, 1fr); padding-right: 0; border-right: 0; }
-.pads .pad { height: 44px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
+/* Switches, then the 12 pads in two rows: record, the layers, P01 and
+   restart above, the slices below. As tall as the switches. */
+.pads { display: flex; gap: 10px; padding: 10px; align-items: flex-end; }
+.pads .group { display: flex; gap: 8px; padding-right: 10px; border-right: 1px solid var(--line); }
+.pads .grid { flex: 1; display: grid; gap: 6px; }
+.pads .pad-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; }
+.pads .pad { height: 37px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
 .pad:disabled { color: var(--dim); opacity: 0.5; cursor: default; }
 .pads .pad .sub { text-transform: none; white-space: nowrap; letter-spacing: 0; }
-.pads .group:not(.slices) .pad .sub { display: none; }
+#functions .pad .sub { display: none; }
 .pad { display: grid; place-content: center; gap: 2px; width: 100%; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { font-size: 10px; color: var(--dim); font-variant-numeric: tabular-nums; }
@@ -106,8 +107,9 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 56px minm
 @media (max-width: 600px) {
   .transport { grid-template-columns: 1fr 2fr; }
   .levels { grid-column: 1 / -1; }
-  .board { overflow-x: auto; }
-  .board-grid { width: 560px; }
+  .strip { flex-wrap: wrap; row-gap: 12px; }
+  .cluster { flex-basis: 100%; }
+  .cluster + .cluster { border-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
   .pads { flex-wrap: wrap; }
   .pads .group { border-right: 0; padding: 0; }
   .readout { height: auto; }

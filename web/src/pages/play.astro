@@ -25,13 +25,18 @@ import "../styles/play.css";
     <canvas id="buffer" role="img" aria-label="The recording: the selection, the playhead, the slices and the grains"></canvas>
   </section>
 
-  <section class="panel board" aria-label="Faders, knobs and switches, as on the board. P11's knobs small, beside their own">
-    <div id="board" class="board-grid"></div>
+  <section class="panel strip" aria-label="Controls in the order the sound goes. Each randomness small, below its own">
+    <div class="cluster"><span class="head">Playhead</span><div id="playhead" class="body"></div></div>
+    <div class="cluster"><span class="head">Grain</span><div id="grain" class="body"></div></div>
+    <div class="cluster"><span class="head">FX</span><div id="fx" class="body"></div></div>
+    <div class="cluster"><span class="head">Mix</span><div id="mix" class="body"></div></div>
   </section>
-  <section class="panel pads" aria-label="The board's 12 pads">
-    <div id="pads-top" class="group" aria-label="Record and shift"></div>
-    <div id="pads-mid" class="group" aria-label="P00, P01 and restart"></div>
-    <div id="slices" class="group slices" aria-label="Slices"></div>
+  <section class="panel pads" aria-label="Switches and the 12 pads">
+    <div id="switches" class="group" aria-label="Switches"></div>
+    <div class="grid">
+      <div id="functions" class="pad-row" aria-label="Record, layers and restart"></div>
+      <div id="slices" class="pad-row" aria-label="Slices"></div>
+    </div>
   </section>
 
   <p class="readout" aria-live="polite"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span><span id="readout-does" class="does"></span></p>
