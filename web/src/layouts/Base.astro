@@ -8,7 +8,7 @@ interface Props {
   title?: string;
   description?: string;
   app?: boolean;
-  wide?: boolean; // a table beside the panel
+  wide?: boolean; // two columns where there is room
 }
 
 const { title, app = false, wide = false, description = "A granular instrument inspired by the hourglass, for the Synthux Simple Touch. Play it in the browser, download the firmware, send feedback." } = Astro.props;
@@ -16,8 +16,9 @@ const pageTitle = title ? `${title} · Clessidra` : "Clessidra";
 const path = Astro.url.pathname;
 const nav = [
   { path: "play/", title: "Play" },
-  { path: "design/", title: "Design" },
+  { path: "sessions/", title: "Sessions" },
   { path: "mapping/", title: "Mapping" },
+  { path: "design/", title: "Design" },
   { path: "download/", title: "Download" },
   { path: "feedback/", title: "Feedback" },
 ];
