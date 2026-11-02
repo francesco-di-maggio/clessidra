@@ -36,9 +36,9 @@ export interface Control {
 const seconds = (samples: number) => `${(samples / RATE).toFixed(samples < RATE ? 2 : 1)} s`;
 const percent = (x: number) => `${Math.round(x * 100)} %`;
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
-// The selection's ends, the lower first: S30 and S35 work in either order
-const from = (p: Float32Array, v: Live) => seconds(p[PARAM.start] * v.sound);
-const to = (p: Float32Array, v: Live) => seconds((p[PARAM.start] + p[PARAM.length]) * v.sound);
+// A randomness, -1..1: up an even spread, down mostly near with a long tail
+const random = (x: number) => (x === 0 ? "Off" : `${signed(x * 100, 0)} %`);
+const RANDOM = "Off at the centre. Up: each grain moved by the amount towards a random value, an even spread. Down: by a random part of three times it, mostly near with a long tail.";
 
 const PAD_AT: Record<number, [number, number]> = {
   0: [150, 620], 1: [310, 610], 2: [412, 625], 3: [48, 800], 4: [170, 765], 5: [285, 795],
@@ -61,14 +61,14 @@ export const CONTROLS: Control[] = [
     },
   },
   {
-    id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Start", initial: 0,
-    does: "One end of the selection. The playhead moves between Start and End, in either order.",
-    value: from,
+    id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
+    does: "Where the selection sits, from the start of the recording to its end. The playhead moves through it.",
+    value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
-    id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "End", initial: 1,
-    does: "The other end of the selection.",
-    value: to,
+    id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
+    does: "How much of the recording the selection holds, all of it at the top.",
+    value: (p, v) => seconds(p[PARAM.length] * v.sound),
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true,
@@ -105,43 +105,23 @@ export const CONTROLS: Control[] = [
     does: "Each plays its slice with its own grains, on top of the playhead, as Trigger sets. Press harder for more grains.",
     value: (_, v) => (v.slices[i] ? seconds(v.slices[i]) : ""),
   })),
-  // While P11 is held: each grain parameter's randomness, reverb and filter
-  {
-    id: "P11+S30", type: "knob", index: 0, x: 0, y: 0, name: "Spray", initial: 0, second: true, board: "P11 + S30",
-    does: "Position randomness: each grain up to ±2 s from the playhead, inside the selection.",
-    value: (p, v) => (p[PARAM.randPos] === 0 ? "Off" : `±${seconds((p[PARAM.randPos] * p[PARAM.length] * v.sound) / 2)}`),
-  },
-  {
-    id: "P11+S31", type: "knob", index: 1, x: 0, y: 0, name: "Size Random", short: "Random", initial: 0, second: true, board: "P11 + S31",
-    does: "Size randomness: each grain from the size up to ½ to 2×.",
-    value: (p) => percent(p[PARAM.randSize]),
-  },
-  {
-    id: "P11+S32", type: "knob", index: 2, x: 0, y: 0, name: "Shape Random", short: "Random", initial: 0, second: true, board: "P11 + S32",
-    does: "Shape randomness: most grains near the shape, a few any shape.",
-    value: (p) => percent(p[PARAM.randShape]),
-  },
-  {
-    id: "P11+S33", type: "knob", index: 3, x: 0, y: 0, name: "Pitch Random", short: "Random", initial: 0, second: true, board: "P11 + S33",
-    does: "Pitch randomness: most grains near the pitch, a few up to ±2 octaves.",
-    value: (p) => percent(Math.cbrt(p[PARAM.randPitch])),
-  },
+  // While P11 is held: the randomness of each grain parameter, and reverb
+  ...([
+    ["S30", "Position", PARAM.randPos],
+    ["S31", "Size", PARAM.randSize],
+    ["S32", "Shape", PARAM.randShape],
+    ["S33", "Pitch", PARAM.randPitch],
+  ] as const).map(([knob, of, param], index): Control => ({
+    id: `P11+${knob}`, type: "knob", index, x: 0, y: 0, name: `${of} Random`, short: "Random", initial: 0.5, bipolar: true, second: true, board: `P11 + ${knob}`,
+    does: `${of} randomness, grain by grain. ${RANDOM}`,
+    value: (p) => random(p[param]),
+  })),
   {
     id: "P11+S34", type: "knob", index: 4, x: 0, y: 0, name: "Reverb", initial: 0.25, second: true, board: "P11 + S34",
     does: "Reverb on the grains: more and longer, 0.5 to 16 s.",
     value: (p) => percent(p[PARAM.reverb]),
   },
-  {
-    id: "P11+S35", type: "knob", index: 5, x: 0, y: 0, name: "Filter", initial: 0.5, bipolar: true, second: true, board: "P11 + S35",
-    does: "Low-pass to the left (20 kHz to 200 Hz), off at the centre, high-pass to the right (20 Hz to 2 kHz).",
-    value: (p) => {
-      const t = p[PARAM.filter];
-      if (t === 0) return "Off";
-      const hz = t < 0 ? 20000 * (200 / 20000) ** -t : 20 * (2000 / 20) ** t;
-      return `${t < 0 ? "LP" : "HP"} ${hz < 1000 ? Math.round(hz) : (hz / 1000).toFixed(1) + "k"}`;
-    },
-  },
-  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S30 spray, S31 to S33 the randomness of size, shape and pitch, S34 reverb, S35 filter. Each knob takes over once it reaches the value." },
+  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S30 to S33 the randomness of position, size, shape and pitch, S34 reverb. Each knob takes over once it reaches the value." },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Trigger", initial: POSITION.up,
     does: "What a slice pad plays: its slice once (up), while held (centre), or round its slice while held (down).",

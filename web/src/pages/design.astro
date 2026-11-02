@@ -49,11 +49,12 @@ import Base from "../layouts/Base.astro";
 <h2 class="label" id="grain">A Grain</h2>
 <div class="panel table"><table>
   <tbody>
-    <tr><td>Position</td><td>The playhead's point, plus Spray (P11 + S30): up to ±2 s, cubic. Stays inside what is playing, mirrored at its ends</td></tr>
-    <tr><td>Pitch</td><td>S33. Its randomness, P11 + S33: most grains near the pitch, a few up to ±24 semitones</td></tr>
-    <tr><td>Size</td><td>S31. Its randomness, P11 + S31: each up to half to twice</td></tr>
-    <tr><td>Window</td><td>S32. Its randomness, P11 + S32: most grains near the shape, a few any shape</td></tr>
+    <tr><td>Position</td><td>The playhead's point in the selection. Its randomness, P11 + S30: anywhere in what is playing</td></tr>
+    <tr><td>Pitch</td><td>S33. Its randomness, P11 + S33: up to ±24 semitones</td></tr>
+    <tr><td>Size</td><td>S31. Its randomness, P11 + S31: anywhere from 10 ms to 4 s</td></tr>
+    <tr><td>Window</td><td>S32. Its randomness, P11 + S32: any shape</td></tr>
     <tr><td>Pan</td><td>Equal power, as Beads: the width grows with the grains sounding and with all the randomness, random starts included</td></tr>
+    <tr><td>Randomness</td><td>As Beads' attenuverters. Off at the centre. Up: each grain moved by the amount towards a random value, an even spread. Down: by a random part of three times it, mostly near with a long tail</td></tr>
     <tr><td>Direction</td><td>The playhead's</td></tr>
     <tr><td>Duration</td><td>The same at any pitch</td></tr>
   </tbody>

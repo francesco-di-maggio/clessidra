@@ -16,9 +16,10 @@ import "../styles/play.css";
     <input id="file" type="file" accept="audio/*" hidden>
   </div>
 
-  <section class="panel incoming" aria-label="Incoming, the last 8 s">
-    <span class="label tag">In · 8 s</span>
+  <section class="panel io" aria-label="Input and output">
+    <div id="io-in" class="end"></div>
     <canvas id="incoming" role="img" aria-label="The input over the last 8 seconds"></canvas>
+    <div id="io-out" class="end"></div>
   </section>
 
   <section class="panel view" aria-label="Buffer">
@@ -26,15 +27,14 @@ import "../styles/play.css";
     <canvas id="buffer" role="img" aria-label="The recording: the selection, the playhead, the slices and the grains"></canvas>
   </section>
 
-  <section class="panel strip" aria-label="Controls, P11's layer below each knob">
-    <div id="time" class="cluster" aria-label="Time and levels"></div>
-    <div id="selection" class="cluster" aria-label="Selection"></div>
-    <div id="grain" class="cluster" aria-label="Grain"></div>
-    <div id="pitch" class="cluster" aria-label="Pitch"></div>
-    <div id="mix" class="cluster" aria-label="Mix"></div>
+  <section class="panel strip" aria-label="Knobs, in the order the sound goes, P11's layer below each">
+    <div class="cluster"><span class="head">Playhead</span><div id="playhead" class="body"></div></div>
+    <div class="cluster"><span class="head">Grain</span><div id="grain" class="body"></div></div>
+    <div class="cluster"><span class="head">FX</span><div id="fx" class="body"></div></div>
+    <div class="cluster"><span class="head">Mix</span><div id="mix" class="body"></div></div>
   </section>
-  <section class="panel pads" aria-label="Pads">
-    <div id="trigger" class="cluster" aria-label="Trigger and restart"></div>
+  <section class="panel pads" aria-label="Switches and pads">
+    <div id="switches" class="group" aria-label="Switches and restart"></div>
     <div class="column wide"><span class="label">Slices</span><div id="slices" class="slices" aria-label="Slices"></div></div>
   </section>
 

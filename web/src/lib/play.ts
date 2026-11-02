@@ -58,8 +58,8 @@ const parts = new Map<string, Widget>();
 const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
 const add = (w: Widget) => parts.set(w.c.id, w);
 add(pad(byId("P10"), $("record"), "Rec", on));
-// Two rows: the knobs, and P11's layer under each; In and Out, browser only,
-// under Speed and Direction
+// Knobs in the order the sound goes, P11's layer below each. In and Out, the
+// browser's own, either side of the incoming strip.
 function cell(parent: HTMLElement, below = false) {
   const e = document.createElement("div");
   e.className = below ? "cell below" : "cell";
@@ -72,30 +72,33 @@ function level(l: Level, parent: HTMLElement) {
   add(knob(l, at, on));
   return meter(at, l.name);
 }
-add(knob(byId("S36"), cell($("time")), on));
-const inMeter = level(LEVELS[0], $("time"));
-add(segmented(byId("S09"), cell($("time")), [[POSITION.up, "Fwd"], [POSITION.centre, "Frz"], [POSITION.down, "Rev"]], on));
-const outMeter = level(LEVELS[1], $("time"));
+const inMeter = level(LEVELS[0], $("io-in"));
+const outMeter = level(LEVELS[1], $("io-out"));
 const COLUMNS: [string, string[]][] = [
-  ["selection", ["S30", "S35"]],
-  ["grain", ["S37", "S31", "S32"]],
-  ["pitch", ["S33"]],
+  ["playhead", ["S30", "S35", "S36"]],
+  ["grain", ["S37", "S31", "S32", "S33"]],
+  ["fx", ["P11+S34"]],
   ["mix", ["S34"]],
 ];
 for (const [cluster, ids] of COLUMNS) {
   for (const id of ids) {
     add(knob(byId(id), cell($(cluster)), on));
-    const second = CONTROLS.find((c) => c.id === `P11+${id}`);
-    if (second) add(knob(second, cell($(cluster), true), on));
-    else cell($(cluster), true);
+    const below = cell($(cluster), true);
+    const second = CONTROLS.find((c) => c.id === `P11+${id}` && c.short);
+    if (second) add(knob(second, below, on));
   }
 }
-add(segmented(byId("S07"), $("trigger"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
-const restart = document.createElement("div");
-restart.className = "column";
-restart.innerHTML = `<span class="label">Restart</span>`;
-$("trigger").append(restart);
-add(pad(byId("P02"), restart, "↺", on));
+// The board's lower half: its switches, then the pads
+const column = (label: string) => {
+  const e = document.createElement("div");
+  e.className = "column";
+  e.innerHTML = `<span class="label">${label}</span>`;
+  $("switches").append(e);
+  return e;
+};
+add(segmented(byId("S09"), $("switches"), [[POSITION.up, "Fwd"], [POSITION.centre, "Frz"], [POSITION.down, "Rev"]], on));
+add(segmented(byId("S07"), $("switches"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
+add(pad(byId("P02"), column("Restart"), "↺", on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
 
 for (const w of parts.values()) {
@@ -104,9 +107,9 @@ for (const w of parts.values()) {
 }
 hint();
 // Leaving the controls, nothing focused in them: the hint again
-for (const panel of document.querySelectorAll(".strip, .pads")) {
+for (const panel of document.querySelectorAll(".io, .strip, .pads")) {
   panel.addEventListener("pointerleave", () => {
-    if (!document.activeElement?.closest(".strip, .pads")) hint();
+    if (!document.activeElement?.closest(".io, .strip, .pads")) hint();
   });
 }
 
