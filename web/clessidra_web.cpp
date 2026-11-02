@@ -64,7 +64,6 @@ enum Param : size_t
     kStart,
     kLength,
     kMix,
-    kSteps,
     kNumParams
 };
 float params[kNumParams];
@@ -225,6 +224,5 @@ EXPORT const float* cl_params()
     params[kStart]        = p.start;
     params[kLength]       = p.length;
     params[kMix]          = p.mix;
-    params[kSteps]        = float(p.pitch_steps);
     return params;
 }

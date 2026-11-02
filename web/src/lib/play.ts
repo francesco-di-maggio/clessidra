@@ -37,7 +37,6 @@ add(segmented(byId("S07"), $("time"), [[POSITION.up, "Off"], [POSITION.centre, "
 for (const id of ["S30", "S35"]) add(knob(byId(id), $("selection"), on));
 for (const id of ["S37", "S31", "P11+S31", "S32", "P11+S34"]) add(knob(byId(id), $("grain"), on));
 for (const id of ["S33", "P11+S33"]) add(knob(byId(id), $("pitch"), on));
-add(segmented(byId("S09"), $("pitch"), [[POSITION.up, "Oct"], [POSITION.centre, "5th"], [POSITION.down, "Free"]], on));
 // Levels: In, Dry/Wet, Out, in the order the signal goes
 function level(l: Level) {
   const cell = document.createElement("div");

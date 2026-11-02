@@ -302,9 +302,8 @@ void Core::Trigger(const Params& p,
     // Peaky: the further each grain may go is itself random
     const float reach
         = std::min(3.0f * p.rand_pitch * (0.5f - 0.5f * Random()), 1.0f);
-    const float semitones
-        = Step(Random() * reach * kRandPitchSemitones, p.pitch_steps);
-    const float ratio = std::exp2(semitones / 12.0f);
+    const float ratio
+        = std::exp2(Random() * reach * kRandPitchSemitones / 12.0f);
     // Width with the grains sounding and how much they differ: a lone grain
     // near the centre, most of the others too
     const float width = 0.5f * float(active + 1) * p.spread;
@@ -332,22 +331,6 @@ void Core::Trigger(const Params& p,
     }
     if(furthest)
         furthest->FadeOut(size_t(kFadeSeconds * sample_rate_));
-}
-
-float Core::Step(float semitones, Steps steps)
-{
-    if(steps == Steps::Octaves)
-        return 12.0f * std::round(semitones / 12.0f);
-    if(steps == Steps::Free)
-        return semitones;
-    // The nearest of 0, 7, 12, 19 and 24, either way
-    static constexpr float kFifths[] = {0.0f, 7.0f, 12.0f, 19.0f, 24.0f};
-    const float            size      = std::fabs(semitones);
-    float                  nearest   = 0.0f;
-    for(float f : kFifths)
-        if(std::fabs(size - f) < std::fabs(size - nearest))
-            nearest = f;
-    return std::copysign(nearest, semitones);
 }
 
 float Core::Interval(float jitter)

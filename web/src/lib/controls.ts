@@ -7,7 +7,6 @@ import { LAYER_PAD, PARAM, RATE, RECORD_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 export const END = ["Off", "Ping-pong", "On"]; // Playhead::End, by S07
-export const STEPS = ["Free", "5th", "Oct"]; // Core::Steps
 
 // What a readout knows besides the parameters
 export interface Live {
@@ -102,11 +101,6 @@ export const CONTROLS: Control[] = [
     does: "Slices at the sound's onsets. A touch plays one, a firm press raises Density.",
     value: (_, v) => (v.slice === i ? "Playing" : ""),
   })),
-  {
-    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Steps", initial: POSITION.up,
-    does: "The steps of pitch scatter: octaves (up), fifths and octaves (centre), free (down).",
-    value: (p) => STEPS[p[PARAM.steps]],
-  },
   // While P11 is held, three knobs do something else
   {
     id: "P11+S31", type: "knob", index: 1, x: 0, y: 0, name: "Shape", initial: 0.5, bipolar: true, second: true, board: "P11 + S31",
@@ -115,7 +109,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P11+S33", type: "knob", index: 3, x: 0, y: 0, name: "Scatter", initial: 0, second: true, board: "P11 + S33",
-    does: "Pitch scatter: most grains stay near the pitch, a few go up to ±2 octaves, on the steps S09 sets.",
+    does: "Pitch scatter: most grains stay near the pitch, a few go up to ±2 octaves.",
     value: (p) => percent(Math.cbrt(p[PARAM.randPitch])),
   },
   {
@@ -124,6 +118,7 @@ export const CONTROLS: Control[] = [
     value: (p) => percent(p[PARAM.reverb]),
   },
   { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S31 shape, S33 pitch scatter, S34 reverb. Each knob takes over once it reaches the value." },
+  { id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Free", free: true, initial: POSITION.centre },
   ...[0, 1, 2].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
 ];
 

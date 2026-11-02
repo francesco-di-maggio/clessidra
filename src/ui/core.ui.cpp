@@ -176,15 +176,9 @@ void CoreUI::Process(const Controls& c, Core& core)
         = seconds > 0.0f
               ? std::min(2.0f * scatter_seconds / (p.length * seconds), 1.0f)
               : 0.0f;
-    // P11 + S33: pitch scatter, cubic: fine near 0. S09, its steps: up
-    // octaves, centre fifths and octaves, down free.
+    // P11 + S33: pitch scatter, cubic: fine near 0
     const float pitch_scatter = layers_.Second(Controls::S33);
     p.rand_pitch              = pitch_scatter * pitch_scatter * pitch_scatter;
-    const Controls::Position steps = c.switches[Controls::S09];
-    p.pitch_steps                  = steps == Controls::Up
-                        ? Core::Steps::Octaves
-                        : steps == Controls::Centre ? Core::Steps::Fifths
-                                                    : Core::Steps::Free;
 
     core.SetParams(p);
     if(restart)

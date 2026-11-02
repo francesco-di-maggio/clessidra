@@ -629,33 +629,6 @@ void Pan()
           full);
 }
 
-// Random pitch in octaves: every grain's rate a power of two
-void Octaves()
-{
-    Rig r(1.0);
-    r.Fill(Sine);
-    Core::Params p;
-    p.density     = Core::kMaxDensity;
-    p.rand_pitch  = 1.0f;
-    p.pitch_steps = Core::Steps::Octaves;
-    r.core.SetParams(p);
-    bool   whole = true;
-    size_t off   = 0;
-    r.Run(1.0, Silence, [&](size_t) {
-        for(const auto& grain : r.core.Grains())
-        {
-            if(!grain.IsActive())
-                continue;
-            const double octave = std::log2(std::fabs(grain.Settings().rate));
-            whole = whole && Near(octave, std::round(octave), 1e-4);
-            off += octave != 0.0;
-        }
-    });
-    Check(whole && off > 0,
-          "random pitch in octaves: whole octaves",
-          double(off));
-}
-
 void Voices()
 {
     Rig r(1.0);
@@ -848,15 +821,6 @@ void Mapping()
     ui.Process(c, r.core);
     Check(
         p.rand_pitch == 1.0f, "S32: pitch scatter stays its own", p.rand_pitch);
-    c.switches[Controls::S09] = Controls::Up;
-    ui.Process(c, r.core);
-    Check(p.pitch_steps == Core::Steps::Octaves, "S09 up: octaves", 0);
-    c.switches[Controls::S09] = Controls::Centre;
-    ui.Process(c, r.core);
-    Check(p.pitch_steps == Core::Steps::Fifths, "S09 centre: fifths", 1);
-    c.switches[Controls::S09] = Controls::Down;
-    ui.Process(c, r.core);
-    Check(p.pitch_steps == Core::Steps::Free, "S09 down: free", 2);
     c.knobs[Controls::S32] = 0.0f;
 
     c.switches[Controls::S07] = Controls::Down;
@@ -926,7 +890,6 @@ int main()
     Ends();
     Pan();
     Voices();
-    Octaves();
     Onsets();
     Mapping();
     std::printf("%s\n",
