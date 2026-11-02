@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { LAYER_PAD, PARAM, RATE, RECORD_PAD, SLICE_PADS } from "./engine";
+import { LAYER_PAD, PARAM, RATE, RECORD_PAD, RESTART_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -73,7 +73,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Scatter", initial: 0,
-    does: "Randomness, grain by grain: start times, position (up to ±2 s), size (½ to 2×) and pan.",
+    does: "Randomness, grain by grain: position (up to ±2 s), size (½ to 2×) and pan.",
     value: (p) => percent(p[PARAM.jitter]),
   },
   {
@@ -98,7 +98,7 @@ export const CONTROLS: Control[] = [
   },
   ...SLICE_PADS.map((pad, i): Control => ({
     id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Slice ${i + 1}`, slice: i,
-    does: "Each plays its slice once, its own grains on top of the playhead. Press harder for more grains.",
+    does: "Each plays its slice with its own grains, on top of the playhead, as Strike sets. Press harder for more grains.",
     value: (_, v) => (v.slices[i] ? seconds(v.slices[i]) : ""),
   })),
   // While P11 is held, three knobs do something else
@@ -127,9 +127,22 @@ export const CONTROLS: Control[] = [
     does: "Reverb on the grains: more and longer, 0.5 to 16 s.",
     value: (p) => percent(p[PARAM.reverb]),
   },
-  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S31 shape, S32 filter, S33 pitch scatter, S34 reverb. Each knob takes over once it reaches the value." },
-  { id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Free", free: true, initial: POSITION.centre },
-  ...[0, 1, 2].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
+  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S31 shape, S32 filter, S33 pitch scatter, S34 reverb, S37 regularity. Each knob takes over once it reaches the value." },
+  {
+    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Strike", initial: POSITION.up,
+    does: "What a slice pad plays: its slice once (up), while held (centre), or round its slice while held (down).",
+    value: () => "",
+  },
+  {
+    id: "P02", type: "pad", index: RESTART_PAD, ...padAt(RESTART_PAD), name: "Restart",
+    does: "The playhead from the start of the selection.",
+  },
+  {
+    id: "P11+S37", type: "fader", index: 7, x: 0, y: 0, name: "Regularity", initial: 0, second: true, board: "P11 + S37",
+    does: "Grain starts: periodic at 0, random at the top. For the playhead and the strikes.",
+    value: (p) => (p[PARAM.jitter] === 0 ? "Periodic" : percent(p[PARAM.jitter])),
+  },
+  ...[0, 1].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
 ];
 
 export const byId = (id: string) => CONTROLS.find((c) => c.id === id)!;

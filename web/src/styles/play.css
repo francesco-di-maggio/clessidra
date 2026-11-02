@@ -61,8 +61,11 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 64px minm
 .meter i.on { background: var(--ink); }
 .meter i.clip { background: var(--accent); }
 
-/* Slices */
-.slices { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 10px; }
+/* Pads: strike mode and restart, then the slices */
+.pads { display: flex; align-items: center; gap: 10px; padding: 10px; }
+.pads .cluster { flex: none; gap: 8px; padding: 0 10px 0 0; border-right: 1px solid var(--line); align-items: center; }
+.pads .cluster .pad { width: 48px; font-size: 16px; }
+.slices { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .pad { display: grid; place-content: center; gap: 2px; width: 100%; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { font-size: 10px; color: var(--dim); font-variant-numeric: tabular-nums; }

@@ -61,7 +61,7 @@ add(pad(byId("P10"), $("record"), "Rec", on));
 add(knob(byId("S36"), $("time"), on));
 add(segmented(byId("S09"), $("time"), [[POSITION.up, "Fwd"], [POSITION.centre, "Frz"], [POSITION.down, "Rev"]], on));
 for (const id of ["S30", "S35", "S32"]) add(knob(byId(id), $("selection"), on));
-for (const id of ["S37", "S31", "P11+S31"]) add(knob(byId(id), $("grain"), on));
+for (const id of ["S37", "P11+S37", "S31", "P11+S31"]) add(knob(byId(id), $("grain"), on));
 for (const id of ["S33", "P11+S33"]) add(knob(byId(id), $("pitch"), on));
 for (const id of ["P11+S32", "P11+S34"]) add(knob(byId(id), $("color"), on));
 // Levels: In, Dry/Wet, Out, in the order the signal goes
@@ -75,6 +75,8 @@ function level(l: Level) {
 const inMeter = level(LEVELS[0]);
 add(knob(byId("S34"), $("output"), on));
 const outMeter = level(LEVELS[1]);
+add(segmented(byId("S07"), $("strike"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
+add(pad(byId("P02"), $("strike"), "↺", on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
 
 for (const w of parts.values()) {
@@ -83,9 +85,9 @@ for (const w of parts.values()) {
 }
 hint();
 // Leaving the controls, nothing focused in them: the hint again
-for (const panel of document.querySelectorAll(".strip, .slices")) {
+for (const panel of document.querySelectorAll(".strip, .pads")) {
   panel.addEventListener("pointerleave", () => {
-    if (!document.activeElement?.closest(".strip, .slices")) hint();
+    if (!document.activeElement?.closest(".strip, .pads")) hint();
   });
 }
 
