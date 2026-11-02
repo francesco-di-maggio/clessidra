@@ -49,11 +49,11 @@ import Base from "../layouts/Base.astro";
 <h2 class="label" id="grain">A Grain</h2>
 <div class="panel table"><table>
   <tbody>
-    <tr><td>Position</td><td>The playhead's point, plus Scatter's reach: up to ±2 s, cubic. Stays inside what is playing, mirrored at its ends</td></tr>
-    <tr><td>Pitch</td><td>S33. Pitch scatter, P11 + S33: most grains near the pitch, a few up to ±24 semitones</td></tr>
-    <tr><td>Size</td><td>S31. With Scatter, each from half to twice</td></tr>
-    <tr><td>Window</td><td>Shape, P11 + S31</td></tr>
-    <tr><td>Pan</td><td>Equal power. The width grows with the grains sounding and with Scatter</td></tr>
+    <tr><td>Position</td><td>The playhead's point, plus Spray (P11 + S30): up to ±2 s, cubic. Stays inside what is playing, mirrored at its ends</td></tr>
+    <tr><td>Pitch</td><td>S33. Its randomness, P11 + S33: most grains near the pitch, a few up to ±24 semitones</td></tr>
+    <tr><td>Size</td><td>S31. Its randomness, P11 + S31: each up to half to twice</td></tr>
+    <tr><td>Window</td><td>S32. Its randomness, P11 + S32: most grains near the shape, a few any shape</td></tr>
+    <tr><td>Pan</td><td>Equal power, as Beads: the width grows with the grains sounding and with all the randomness, random starts included</td></tr>
     <tr><td>Direction</td><td>The playhead's</td></tr>
     <tr><td>Duration</td><td>The same at any pitch</td></tr>
   </tbody>
@@ -62,7 +62,7 @@ import Base from "../layouts/Base.astro";
 <h2 class="label" id="starts">Starts and Voices</h2>
 <div class="panel table"><table>
   <tbody>
-    <tr><td>Starts</td><td>Grains per second, whatever their size. Scatter at 0: periodic. Up: random intervals, without the closest starts and the longest gaps, at the same mean</td></tr>
+    <tr><td>Starts</td><td>Grains per second, whatever their size. S37 as Beads: off at the centre, periodic below, random above: random intervals, without the closest starts and the longest gaps, at the same mean</td></tr>
     <tr><td>Voices</td><td>32. Over 24 sounding, the one furthest along fades out in 5 ms, so a new grain always starts</td></tr>
     <tr><td>Overlap</td><td>At high density the grains shorten, so 24 voices hold whole windows: 183 ms at 131 grains per second</td></tr>
   </tbody>

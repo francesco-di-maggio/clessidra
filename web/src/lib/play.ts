@@ -2,7 +2,7 @@
 // does.
 
 import { Audio, type Input } from "./audio";
-import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
+import { byId, CONTROLS, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
 import { MAX_RECORD_S, RATE, RECORD_PAD, SLICE_PADS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
@@ -58,23 +58,38 @@ const parts = new Map<string, Widget>();
 const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
 const add = (w: Widget) => parts.set(w.c.id, w);
 add(pad(byId("P10"), $("record"), "Rec", on));
-add(knob(byId("S36"), $("time"), on));
-add(segmented(byId("S09"), $("time"), [[POSITION.up, "Fwd"], [POSITION.centre, "Frz"], [POSITION.down, "Rev"]], on));
-for (const id of ["S30", "S35", "S32"]) add(knob(byId(id), $("selection"), on));
-for (const id of ["S37", "P11+S37", "S31", "P11+S31"]) add(knob(byId(id), $("grain"), on));
-for (const id of ["S33", "P11+S33"]) add(knob(byId(id), $("pitch"), on));
-for (const id of ["P11+S32", "P11+S34"]) add(knob(byId(id), $("color"), on));
-// Levels: In, Dry/Wet, Out, in the order the signal goes
-function level(l: Level) {
-  const cell = document.createElement("div");
-  cell.className = "level";
-  $("output").append(cell);
-  add(knob(l, cell, on));
-  return meter(cell, l.name);
+// Two rows: the knobs, and P11's layer under each; In and Out, browser only,
+// under Speed and Direction
+function cell(parent: HTMLElement) {
+  const e = document.createElement("div");
+  e.className = "cell";
+  parent.append(e);
+  return e;
 }
-const inMeter = level(LEVELS[0]);
-add(knob(byId("S34"), $("output"), on));
-const outMeter = level(LEVELS[1]);
+function level(l: Level, parent: HTMLElement) {
+  const at = cell(parent);
+  at.classList.add("level");
+  add(knob(l, at, on));
+  return meter(at, l.name);
+}
+add(knob(byId("S36"), cell($("time")), on));
+const inMeter = level(LEVELS[0], $("time"));
+add(segmented(byId("S09"), cell($("time")), [[POSITION.up, "Fwd"], [POSITION.centre, "Frz"], [POSITION.down, "Rev"]], on));
+const outMeter = level(LEVELS[1], $("time"));
+const COLUMNS: [string, string[]][] = [
+  ["selection", ["S30", "S35"]],
+  ["grain", ["S37", "S31", "S32"]],
+  ["pitch", ["S33"]],
+  ["mix", ["S34"]],
+];
+for (const [cluster, ids] of COLUMNS) {
+  for (const id of ids) {
+    add(knob(byId(id), cell($(cluster)), on));
+    const second = CONTROLS.find((c) => c.id === `P11+${id}`);
+    if (second) add(knob(second, cell($(cluster)), on));
+    else cell($(cluster));
+  }
+}
 add(segmented(byId("S07"), $("strike"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
 add(pad(byId("P02"), $("strike"), "↺", on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
