@@ -1,0 +1,41 @@
+---
+// The signal chain as a diagram, in two rows: input to the grains, then
+// through the effects to the output. The input also goes straight to the mix,
+// dry. Built once, no script.
+const W = 92; // box
+const H = 50;
+const col = (i: number) => 10 + i * 106;
+const ROW = [24, 134];
+// [label, detail, column, row]
+const STAGES: [string, string, number, number][] = [
+  ["Input", "L + R, mono", 0, 0],
+  ["Ring", "31 s, listening", 1, 0],
+  ["Buffers", "2 × 30 s", 2, 0],
+  ["Grains", "32 voices", 3, 0],
+  ["Normaliser", "input level", 4, 0],
+  ["Filter", "P00 + S31", 5, 0],
+  ["Reverb", "P00 + S32", 5, 1],
+  ["Mix", "S34", 4, 1],
+  ["Limiter", "−0.5 dBFS", 3, 1],
+  ["Output", "stereo", 2, 1],
+];
+const mid = (row: number) => ROW[row] + H / 2;
+---
+<svg class="chain" viewBox="0 0 652 222" role="img" aria-label="Signal chain: input, ring, buffers, grains, normaliser, filter, reverb, mix, limiter, output. The input also goes to the mix, dry.">
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" /></marker>
+  </defs>
+  {STAGES.slice(0, 5).map((_, i) => <line class="flow" x1={col(i) + W} y1={mid(0)} x2={col(i + 1) - 2} y2={mid(0)} marker-end="url(#arrow)" />)}
+  <line class="flow" x1={col(5) + W / 2} y1={ROW[0] + H} x2={col(5) + W / 2} y2={ROW[1] - 2} marker-end="url(#arrow)" />
+  {[5, 4, 3].map((i) => <line class="flow" x1={col(i)} y1={mid(1)} x2={col(i - 1) + W + 2} y2={mid(1)} marker-end="url(#arrow)" />)}
+  <path class="flow dry" d={`M${col(0) + W / 2} ${ROW[0] + H}V${ROW[1] + H + 26}H${col(4) + W / 2}V${ROW[1] + H + 2}`} marker-end="url(#arrow)" />
+  <text class="note" x={col(2) - 7} y={ROW[0] - 8} text-anchor="middle">P10</text>
+  <text class="note" x={col(1) + 30} y={ROW[1] + H + 20}>dry</text>
+  {STAGES.map(([label, detail, c, r]) => (
+    <g>
+      <rect class="stage" x={col(c)} y={ROW[r]} width={W} height={H} rx="8" />
+      <text class="label" x={col(c) + W / 2} y={ROW[r] + 21}>{label}</text>
+      <text class="detail" x={col(c) + W / 2} y={ROW[r] + 37}>{detail}</text>
+    </g>
+  ))}
+</svg>

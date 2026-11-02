@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import SignalChain from "../components/SignalChain.astro";
 ---
 <Base title="Design" description="How Clessidra works: signal path, recording, density, grains, slices, level, with the firmware's values.">
 
@@ -7,18 +8,7 @@ import Base from "../layouts/Base.astro";
 <p class="lead">How the firmware works. Every value is the firmware's.</p>
 
 <h2 class="label" id="signal-path">Signal Path</h2>
-<ol class="panel rows path">
-  <li class="row"><span class="label">01 Input</span><span>Left and right summed to mono, DC removed</span></li>
-  <li class="row"><span class="label">02 Ring</span><span>Always listening, 31 s</span></li>
-  <li class="row"><span class="label">03 Buffers</span><span>Two of 30 s, mono, 48 kHz. P10 fills the one not playing</span></li>
-  <li class="row"><span class="label">04 Grains</span><span>32 voices, up to 131 grains per second</span></li>
-  <li class="row"><span class="label">05 Normaliser</span><span>Back to the input's level</span></li>
-  <li class="row"><span class="label">06 Filter</span><span>On the grains, low- or high-pass, P00 + S31</span></li>
-  <li class="row"><span class="label">07 Reverb</span><span>On the grains, P00 + S32</span></li>
-  <li class="row"><span class="label">08 Mix</span><span>Dry and wet, equal power, S34</span></li>
-  <li class="row"><span class="label">09 Limiter</span><span>Look-ahead 5 ms, ceiling −0.5 dBFS</span></li>
-  <li class="row"><span class="label">10 Output</span><span>Stereo</span></li>
-</ol>
+<figure class="panel figure"><SignalChain /></figure>
 
 <h2 class="label" id="record">Record</h2>
 <div class="prose">
