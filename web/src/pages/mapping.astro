@@ -7,9 +7,13 @@ import { CONTROLS, LED } from "../lib/controls";
 const rows = CONTROLS.filter((c) => !c.free && (c.slice ?? 0) === 0).map((c) =>
   c.slice === 0
     ? { ids: CONTROLS.filter((s) => s.slice !== undefined).map((s) => s.id), label: "P03–P09", name: "Slices", does: c.does }
-    : { ids: c.second ? ["P11", `S${c.id.slice(-2)}`] : [c.id], label: c.board ?? c.id, name: c.name, does: c.does },
+    : { ids: c.layer ? c.id.split("+") : [c.id], label: c.board ?? c.id, name: c.name, does: c.does },
 );
 const free = CONTROLS.filter((c) => c.free).map((c) => c.id);
+// Every fader and knob on each layer: its own, P11 held, P00 held
+const KNOBS = ["S36", "S30", "S35", "S37", "S31", "S32", "S33", "S34"];
+const LAYERS = [["Own", ""], ["P11 Random", "P11+"], ["P00 FX", "P00+"]];
+const nameOf = (id: string) => CONTROLS.find((c) => c.id === id)?.name ?? "–";
 ---
 <Base title="Mapping" wide description="Clessidra's controls on the Synthux Simple Touch: faders, knobs, switches and pads.">
 <h1>Mapping</h1>
@@ -17,6 +21,15 @@ const free = CONTROLS.filter((c) => c.free).map((c) => c.id);
 
 <div class="instrument">
   <div class="stack">
+    <h2 class="label">Layers</h2>
+    <div class="panel table layers"><table>
+      <thead><tr><th>Control</th>{LAYERS.map(([name]) => <th>{name}</th>)}</tr></thead>
+      <tbody>
+        {KNOBS.map((k) => <tr data-ids={k}><td>{k}</td>{LAYERS.map(([, pad]) => <td class={nameOf(pad + k) === "–" ? "free" : ""}>{nameOf(pad + k)}</td>)}</tr>)}
+      </tbody>
+    </table></div>
+
+    <h2 class="label">Every Control</h2>
     <div class="panel table mapping"><table>
       <thead><tr><th>Control</th><th>Name</th><th>Does</th></tr></thead>
       <tbody>

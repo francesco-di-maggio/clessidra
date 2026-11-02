@@ -90,3 +90,6 @@ ol.rows { gap: 6px; padding: 14px; }
 .table tbody td:first-child { color: var(--ink); }
 .table table:not(:has(thead)) td:first-child { width: 112px; font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
+.layers td:first-child { font: 500 13px/20px var(--mono); }
+.layers td.free { color: var(--dim); }
+.layers tr.active td { color: var(--ink); background: var(--bg); }
