@@ -315,7 +315,7 @@ void Core::Trigger(const Params& p,
 
     Grain::Latch latch;
     latch.buffer = sound;
-    // Scatter stays inside what is playing, mirrored at its ends
+    // Spray stays inside what is playing, mirrored at its ends
     const double low       = source.low;
     const double high      = source.high;
     double       scattered = source.phase + Random() * p.rand_pos * 0.5;
@@ -337,10 +337,16 @@ void Core::Trigger(const Params& p,
     latch.rate        = p.pitch * ratio;
     if(source.backwards)
         latch.rate = -latch.rate;
-    if(p.size_variation > 0.0f)
-        latch.size
-            = std::exp2(Random() * p.size_variation * kSizeVariationOctaves);
+    if(p.rand_size > 0.0f)
+        latch.size = std::exp2(Random() * p.rand_size * kSizeVariationOctaves);
     latch.shape = p.window_shape;
+    // As Beads: a peaky blend towards a random shape
+    if(p.rand_shape > 0.0f)
+    {
+        const float blend
+            = std::min(3.0f * p.rand_shape * (0.5f - 0.5f * Random()), 1.0f);
+        latch.shape += blend * (0.5f - 0.5f * Random() - p.window_shape);
+    }
     grain->Start(latch, offset);
 
     // Keeps voices free for the next grains

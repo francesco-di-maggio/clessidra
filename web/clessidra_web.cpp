@@ -64,6 +64,9 @@ enum Param : size_t
     kLength,
     kMix,
     kTone,
+    kRandPos,
+    kRandSize,
+    kRandShape,
     kNumParams
 };
 float params[kNumParams];
@@ -231,5 +234,8 @@ EXPORT const float* cl_params()
     params[kLength]       = p.length;
     params[kMix]          = p.mix;
     params[kTone]         = p.tone;
+    params[kRandPos]      = p.rand_pos;
+    params[kRandSize]     = p.rand_size;
+    params[kRandShape]    = p.rand_shape;
     return params;
 }

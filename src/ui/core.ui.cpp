@@ -20,17 +20,12 @@ namespace
         return 0.5f;
     }
 
-    // S37, Density: off at the bottom, then grains per second, exponential
-    constexpr float kDensityOff = 0.02f;
+    // Grains per second at amount 0..1, exponential
     constexpr float kDensityMin = 0.3f;
 
-    float Density(float x)
+    float Rate(float amount)
     {
-        if(x < kDensityOff)
-            return 0.0f;
-        return kDensityMin
-               * std::pow(Core::kMaxDensity / kDensityMin,
-                          (x - kDensityOff) / (1.0f - kDensityOff));
+        return kDensityMin * std::pow(Core::kMaxDensity / kDensityMin, amount);
     }
 
     // +-24 semitones with stops at musical intervals, flat for the first third
@@ -55,11 +50,13 @@ namespace
 CoreUI::CoreUI()
 {
     EqualSlices();
-    layers_.Add(Controls::S31, kShapeStart);
-    layers_.Add(Controls::S32, kToneStart);
+    // Each grain parameter's randomness, then reverb and tone
+    layers_.Add(Controls::S30, 0.0f);
+    layers_.Add(Controls::S31, 0.0f);
+    layers_.Add(Controls::S32, 0.0f);
     layers_.Add(Controls::S33, 0.0f);
     layers_.Add(Controls::S34, kReverbStart);
-    layers_.Add(Controls::S37, 0.0f); // regularity: periodic
+    layers_.Add(Controls::S35, kToneStart);
 }
 
 void CoreUI::EqualSlices()
@@ -111,10 +108,16 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.freeze = way == Controls::Centre || speed == 0.0f;
     p.speed  = (way == Controls::Down ? -4.0f : 4.0f) * speed * speed;
 
-    // S37, Density: the playhead's grains per second. P11 + S37, regularity:
-    // periodic to random starts, for the playhead and the strikes.
-    p.density = Density(knob(Controls::S37));
-    p.jitter  = layers_.Second(Controls::S37);
+    // S37, Density, as Beads: off at the centre, periodic grains below it,
+    // random above, more towards the ends. The strikes start theirs alike.
+    const float density     = knob(Controls::S37);
+    const float from_centre = std::fabs(density - 0.5f);
+    const bool  density_off = from_centre <= kDensityStop;
+    p.density
+        = density_off
+              ? 0.0f
+              : Rate((from_centre - kDensityStop) / (0.5f - kDensityStop));
+    p.jitter = density > 0.5f ? 1.0f : 0.0f;
 
     // P02: the playhead from the start of the selection
     if(c.touched[kRestartPad] && !restart_touched_)
@@ -150,13 +153,13 @@ void CoreUI::Process(const Controls& c, Core& core)
                                               / (1.0f - kPressFrom),
                                           0.0f,
                                           1.0f);
-            strike.density = Density(kStrikeFrom + (1.0f - kStrikeFrom) * firm);
+            strike.density   = Rate(kStrikeFrom + (1.0f - kStrikeFrom) * firm);
         }
     }
     p.strikes = strikes_;
 
     // S31: grain size, exponential, kMinGrainMs to kMaxGrainMs, at most half
-    // the sound. P11 + S31: window shape.
+    // the sound. P11 + S31: its randomness.
     const float size_knob   = Detent(knob(Controls::S31), 0.05f);
     const bool  size_centre = size_knob == 0.5f;
     const float top_ms      = std::clamp(500.0f * seconds, 100.0f, kMaxGrainMs);
@@ -164,33 +167,41 @@ void CoreUI::Process(const Controls& c, Core& core)
         kMinGrainMs * std::pow(kMaxGrainMs / kMinGrainMs, size_knob),
         kMinGrainMs,
         top_ms);
-    p.window_shape = layers_.Second(Controls::S31);
+    p.rand_size = layers_.Second(Controls::S31);
 
-    // S32, Scatter: random positions, sizes and pan. Position in seconds,
-    // cubic: fine near 0.
-    const float scatter = knob(Controls::S32);
-    p.size_variation    = scatter;
-    p.spread            = scatter;
-    const float scatter_seconds
-        = kMaxScatterSeconds * scatter * scatter * scatter;
+    // S32: window shape. P11 + S32: its randomness.
+    p.window_shape = knob(Controls::S32);
+    p.rand_shape   = layers_.Second(Controls::S32);
+
+    // P11 + S30, spray: random positions, in seconds, cubic: fine near 0
+    const float spray         = layers_.Second(Controls::S30);
+    const float spray_seconds = kMaxSpraySeconds * spray * spray * spray;
     p.rand_pos
         = seconds > 0.0f
-              ? std::min(2.0f * scatter_seconds / (p.length * seconds), 1.0f)
+              ? std::min(2.0f * spray_seconds / (p.length * seconds), 1.0f)
               : 0.0f;
-    // P11 + S32: tone, low-pass down, high-pass up, off at the centre
-    p.tone = 2.0f * Detent(layers_.Second(Controls::S32), 0.05f) - 1.0f;
 
-    // P11 + S33: pitch scatter, cubic: fine near 0
-    const float pitch_scatter = layers_.Second(Controls::S33);
-    p.rand_pitch              = pitch_scatter * pitch_scatter * pitch_scatter;
+    // P11 + S33: pitch randomness, cubic: fine near 0
+    const float pitch_random = layers_.Second(Controls::S33);
+    p.rand_pitch             = pitch_random * pitch_random * pitch_random;
+
+    // Pan, as Beads: as wide as the grains differ, in every way
+    p.spread = std::min(
+        spray + p.rand_size + p.rand_shape + pitch_random + p.jitter, 1.0f);
+
+    // P11 + S35: tone, low-pass down, high-pass up, off at the centre
+    p.tone = 2.0f * Detent(layers_.Second(Controls::S35), 0.05f) - 1.0f;
 
     core.SetParams(p);
 
 
     // Reaching a detent, or turning within it: a pulse
-    const std::array<bool, kNumDetents>  at = {unison, speed_one, size_centre};
-    const std::array<float, kNumDetents> knobs
-        = {knob(Controls::S33), knob(Controls::S36), knob(Controls::S31)};
+    const std::array<bool, kNumDetents> at
+        = {unison, speed_one, size_centre, density_off};
+    const std::array<float, kNumDetents> knobs = {knob(Controls::S33),
+                                                  knob(Controls::S36),
+                                                  knob(Controls::S31),
+                                                  knob(Controls::S37)};
     if(!detents_ready_)
     {
         // Power-up: no pulse

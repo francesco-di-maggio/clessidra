@@ -99,8 +99,8 @@ class Core
         bool  freeze   = false; // the playhead held where it was, speed ignored
         float grain_ms = 100.0f; // grain size
         // 0..1: each grain's size random up to kSizeVariationOctaves either way
-        float size_variation = 0.0f;
-        float pitch          = 1.0f; // grain playback rate
+        float rand_size = 0.0f;
+        float pitch     = 1.0f; // grain playback rate
         // grains per second on average, up to kMaxDensity
         float density = 80.0f;
         float jitter  = 0.0f; // 0 periodic .. 1 random (Poisson) grain starts
@@ -114,9 +114,11 @@ class Core
         float spread = 0.0f;
         // 0 reverse percussive, 0.5 Hann, 1 percussive
         float window_shape = 0.5f;
-        float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
-        float tone   = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
-        float mix    = 1.0f; // 0 dry .. 1 wet, equal power
+        // 0..1, as Beads: most grains near the shape, a few any shape
+        float rand_shape = 0.0f;
+        float reverb     = 0.0f; // 0 none .. 1 most and longest, on the grains
+        float tone = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
+        float mix  = 1.0f; // 0 dry .. 1 wet, equal power
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
@@ -193,7 +195,7 @@ class Core
         double start;     // of the span, samples
         double length;    // of the span, samples
         double phase;     // through the span
-        double low, high; // of the span, where it may scatter
+        double low, high; // of the span, where it may spray
         bool   backwards;
     };
 

@@ -13,7 +13,7 @@
 namespace clessidra
 {
 // Maps the Simple Touch's controls to the core's parameters and recording, and
-// drives the LED. One layer: every control does one thing. No hardware code: the board and
+// drives the LED. P11 held: each grain parameter's randomness, reverb and tone. No hardware code: the board and
 // the host tests run the same mapping.
 class CoreUI
 {
@@ -32,12 +32,13 @@ class CoreUI
     static constexpr float kMinLength  = 0.01f;
     static constexpr float kMinGrainMs = 10.0f;
     static constexpr float kMaxGrainMs = 4000.0f;
-    // Second layer at power-up: Hann, some reverb
-    static constexpr float kShapeStart  = 0.5f;
-    static constexpr float kToneStart   = 0.5f; // off
+    // Second layer at power-up: no randomness, some reverb, tone off
     static constexpr float kReverbStart = 0.25f;
-    // S32 at the top: grains this far either way from the playhead
-    static constexpr float kMaxScatterSeconds = 2.0f;
+    static constexpr float kToneStart   = 0.5f;
+    // P11 + S30 at the top: grains this far either way from the playhead
+    static constexpr float kMaxSpraySeconds = 2.0f;
+    // S37: distance from the centre that is off, as Beads
+    static constexpr float kDensityStop = 0.02f;
     // S36: distance from the centre, of half its travel, that stops
     static constexpr float kStopWidth = 0.04f;
     // pad pressure above a light touch (Pads: measured 0.3-0.5)
@@ -84,9 +85,9 @@ class CoreUI
     Layers                               layers_;
     // LED. Times in ms, shown until they pass.
     uint32_t pulse_until_ = 0;
-    // Pitch unison, speed 1, grain size centre: there, and the knob when the
-    // pulse last started
-    static constexpr size_t        kNumDetents = 3;
+    // Pitch unison, speed 1, grain size centre, density off: there, and the
+    // knob when the pulse last started
+    static constexpr size_t        kNumDetents = 4;
     std::array<bool, kNumDetents>  at_detent_{};
     std::array<float, kNumDetents> detent_knob_{};
     bool                           detents_ready_ = false;

@@ -52,14 +52,14 @@ const view = () => f32(w.cl_view(), 19);
 const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_grain_fields() + g * 16, 4)[0]);
 const silence = () => 0;
 
-// Panel: speed 1, size at its centre, pitch unison, whole selection, Pour in
-// the middle
+// Panel: speed 1, size at its centre, pitch unison, whole selection, random
+// grains, 36 a second
 w.cl_knob(KNOB.S36, 0.5);
 w.cl_knob(KNOB.S31, 0.5);
 w.cl_knob(KNOB.S33, 0.5);
 w.cl_knob(KNOB.S30, 0);
 w.cl_knob(KNOB.S35, 1);
-w.cl_knob(KNOB.S37, 0.6);
+w.cl_knob(KNOB.S37, 0.9);
 w.cl_knob(KNOB.S34, 1);
 
 let r = run(3);
@@ -88,8 +88,7 @@ run(0.5);
 v = view();
 check(w.cl_recordings() === 2 && Math.abs(v[V.sound] / RATE - 8) < 0.02, "tap: the last 8 s", (v[V.sound] / RATE).toFixed(2));
 
-// S30 above S35: the selection between them. Grains inside, with Scatter at 0
-// and Pour below the cloud, where the grains scatter by themselves
+// S30 above S35: the selection between them. Grains inside, with no spray
 w.cl_knob(KNOB.S30, 0.75);
 w.cl_knob(KNOB.S35, 0.25);
 run(1, silence);
