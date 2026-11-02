@@ -10,33 +10,6 @@ h2.label { scroll-margin-top: 16px; }
 /* Facts: a key column and its value, as in the family's facts panel */
 .meta dt { color: var(--dim); font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
 
-/* Tables keep their columns on phones: they scroll inside the panel, the page does not */
-.table { overflow-x: auto; padding: 0 14px; }
-.table table { min-width: 100%; }
-.table td:first-child, .table th:first-child { white-space: nowrap; }
-.table code { white-space: nowrap; }
-.table td.num, .table th.num { text-align: right; font-variant-numeric: tabular-nums; }
-.caption.after { margin: -2px 0 0; }
-
-/* Diagrams: inline SVG in ink and grey, the accent only for what is on */
-.figure { margin: 0; padding: 14px; }
-.figure svg { display: block; width: 100%; height: auto; overflow: visible; }
-.figure text { font: 500 11px var(--mono); letter-spacing: 0.06em; fill: var(--dim); }
-.figure text.name { font: 600 13px var(--sans); letter-spacing: 0; fill: var(--ink); }
-.figure .box { fill: var(--surface); stroke: var(--ink); stroke-width: 1.2; }
-.figure .box.on { fill: var(--ink); }
-.figure .box.on + text.name, .figure text.name.inv { fill: var(--surface); }
-.figure .line { fill: none; stroke: var(--ink); stroke-width: 1.2; }
-.figure .dim { fill: none; stroke: var(--dim); stroke-width: 1; }
-.figure .dash { stroke-dasharray: 3 3; }
-.figure .fillink { fill: var(--ink); stroke: none; }
-.figure .filldim { fill: var(--line); stroke: none; }
-.figure .accent { stroke: var(--accent); }
-.figure .fillaccent { fill: var(--accent); stroke: none; }
-.figure figcaption, .figure .caption { margin-top: 10px; }
-
-/* Wide pages, About: two columns where there is room */
-body.wide { max-width: 1120px; }
 .stack { display: grid; gap: 10px; min-width: 0; }
 
 /* The panel: the Simple Touch as a drawing, every control where it sits on the board */
@@ -85,14 +58,7 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 ol.rows { gap: 6px; padding: 14px; }
 .row { display: grid; grid-template-columns: 112px 1fr; gap: 12px; font-size: 15px; line-height: 20px; }
 .row .label { line-height: 20px; }
-.table tbody td:first-child { color: var(--ink); }
-.table table:not(:has(thead)) td:first-child { width: 112px; font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
-
-/* About: Play beside the sessions */
-.pair { display: grid; gap: 10px; }
-@media (min-width: 600px) { .pair { grid-template-columns: 1fr 1fr; } }
-.pair .primary { height: auto; }
 
 /* A file to download: its type on a page */
 .file { width: 28px; height: 28px; flex: none; }
@@ -122,17 +88,6 @@ ol.rows { gap: 6px; padding: 14px; }
 .segmented button:disabled { opacity: 0.5; cursor: default; }
 .segmented [aria-pressed="true"], .segmented [aria-checked="true"] { color: var(--ink); background: var(--surface); }
 .segmented [aria-pressed="true"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-
-/* Design: the signal chain */
-.chain { display: block; width: 100%; height: auto; }
-.chain .stage { fill: var(--bg); stroke: var(--line); stroke-width: 1; }
-.chain .stage.core { stroke: var(--accent); stroke-width: 1.5; }
-.chain .label { font: 500 10px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; fill: var(--ink); text-anchor: middle; }
-.chain .detail { font: 400 10px var(--sans); fill: var(--dim); text-anchor: middle; }
-.chain .flow { fill: none; stroke: var(--dim); stroke-width: 1.2; }
-.chain .dry { stroke-dasharray: 3 3; }
-.chain marker path { fill: var(--dim); }
-.chain .note { font: 500 9px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; fill: var(--dim); }
 
 /* Feedback: a form whose answers go to a GitHub issue or an email */
 .form { display: grid; gap: 16px; }

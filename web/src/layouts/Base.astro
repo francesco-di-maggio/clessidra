@@ -8,16 +8,14 @@ interface Props {
   title?: string;
   description?: string;
   app?: boolean;
-  wide?: boolean; // two columns where there is room
 }
 
-const { title, app = false, wide = false, description = "A granular instrument inspired by the hourglass, for the Synthux Simple Touch. Play it in the browser, download the firmware, send feedback." } = Astro.props;
+const { title, app = false, description = "A granular instrument inspired by the hourglass, for the Synthux Simple Touch." } = Astro.props;
 const pageTitle = title ? `${title} · Clessidra` : "Clessidra";
 const path = Astro.url.pathname;
 const nav = [
   { path: "play/", title: "Play" },
   { path: "mapping/", title: "Mapping" },
-  { path: "design/", title: "Design" },
   { path: "download/", title: "Download" },
   { path: "feedback/", title: "Feedback" },
 ];
@@ -55,7 +53,7 @@ const mark = `<svg viewBox="-9 -9 18 18" aria-hidden="true"><path d="M-5.5-7.5h1
 <script is:inline type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6e2758b8af12449988c12df6253593af"}'></script>
 <slot name="head" />
 </head>
-<body class={app ? "app" : wide ? "wide" : undefined}>
+<body class={app ? "app" : undefined}>
 <header>
   {app ? (
     <span class="mark"><a href={url()} aria-label="Clessidra"><Fragment set:html={mark} /><span class="wide">Clessidra</span></a><span class="slash wide" aria-hidden="true">/</span><span>{title}</span></span>
