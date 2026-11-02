@@ -26,21 +26,22 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
 .held { font-variant-numeric: tabular-nums; }
 .held.on { color: var(--accent); }
 
-/* Rack: panels group the controls, each control carries its name */
-.rack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "record time selection" "grain grain output" "slices slices slices"; gap: 10px; }
-.record { grid-area: record; }
-.time { grid-area: time; }
-.selection { grid-area: selection; }
-.grain { grid-area: grain; }
-.output { grid-area: output; }
-.slices { grid-area: slices; }
-.group { display: grid; grid-template-rows: auto 1fr; gap: 4px; min-width: 0; padding: 10px 12px 12px; }
+/* Rack: panels group the controls, each sized to what it holds */
+.rack { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 10px; }
+.record { grid-column: span 3; }
+.time { grid-column: span 3; }
+.selection { grid-column: span 3; }
+.output { grid-column: span 3; }
+.grain { grid-column: span 7; }
+.pitch { grid-column: span 5; }
+.slices { grid-column: span 12; }
+.group { display: grid; grid-template-rows: auto 1fr; gap: 4px; min-width: 0; padding: 10px 8px 12px; }
 .group h2.label, .view h2.label { margin: 0; text-align: center; }
-.controls { display: flex; align-items: center; justify-content: space-around; gap: 4px; min-height: 86px; }
+.controls { display: flex; align-items: flex-start; justify-content: space-around; gap: 4px; min-height: 86px; padding-top: 6px; }
 
-.knob { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 64px; cursor: ns-resize; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
+.knob { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 56px; cursor: ns-resize; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
 .knob .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; white-space: nowrap; }
-.knob svg { width: 48px; height: 48px; }
+.knob svg { width: 44px; height: 44px; }
 .knob .track, .knob .fill { fill: none; stroke-width: 2.5; stroke-linecap: round; }
 .knob .track { stroke: var(--line); }
 .knob .fill { stroke: var(--ink); }
@@ -52,12 +53,12 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
 .switch { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .switch .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; white-space: nowrap; }
 .switch.focus .label { color: var(--ink); }
-.group .segmented { height: auto; grid-auto-flow: row; width: 84px; }
+.group .segmented { height: auto; grid-auto-flow: row; width: 56px; }
 .group .segmented button { height: 22px; font-size: 10px; letter-spacing: 0.04em; }
 .group .segmented button + button { border-left: 0; border-top: 1px solid var(--line); }
 
-.level { display: flex; align-items: center; gap: 2px; }
-.meter { display: grid; gap: 3px; padding: 14px 0 16px; }
+.level { display: flex; align-items: flex-start; gap: 2px; }
+.meter { display: grid; gap: 3px; padding-top: 18px; }
 .meter i { width: 4px; height: 4px; border-radius: 1px; background: var(--line); }
 .meter i.on { background: var(--ink); }
 .meter i.clip { background: var(--accent); }
@@ -66,7 +67,7 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
        font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad.playing { border-color: var(--ink); }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
-#record .pad { width: 72px; height: 72px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+#record .pad { width: 56px; height: 56px; margin-top: 8px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
 .slices .controls { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; min-height: 0; }
 
 .readout { display: flex; align-items: baseline; gap: 12px; height: 20px; margin: 0; overflow: hidden; white-space: nowrap; font-size: 13px; line-height: 20px; }
@@ -80,6 +81,7 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
   body.app main { grid-template-rows: auto 200px auto auto; }
 }
 @media (max-width: 480px) {
-  .rack { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "record time" "selection output" "grain grain" "slices slices"; }
+  .rack > * { grid-column: span 6; }
+  .grain, .pitch, .slices { grid-column: span 12; }
   .readout { height: auto; white-space: normal; flex-wrap: wrap; }
 }

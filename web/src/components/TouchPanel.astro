@@ -27,7 +27,7 @@ const leverY = (p: number) => (p === POSITION.up ? -26 : p === POSITION.down ? 8
   {[[118, "IN"], [196, "OUT"]].map(([y, label]) => (
     <g><circle class="jack" cx="34" cy={y} r="13" /><text class="code" x="34" y={Number(y) + 34}>{label}</text></g>
   ))}
-  {CONTROLS.map((c) => {
+  {CONTROLS.filter((c) => !c.second).map((c) => {
     const v = c.initial ?? 0;
     const cls = `ctl ${c.type}${c.free ? " free" : ""}`;
     if (c.type === "knob") {

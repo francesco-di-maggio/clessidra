@@ -31,10 +31,11 @@ const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
 const add = (w: Widget) => parts.set(w.c.id, w);
 add(pad(byId("P11"), $("record"), "Rec", on));
 add(knob(byId("S36"), $("time"), on));
-add(segmented(byId("S07"), $("time"), [[POSITION.up, "One-shot"], [POSITION.centre, "Ping-pong"], [POSITION.down, "Loop"]], on));
+add(segmented(byId("S07"), $("time"), [[POSITION.up, "Off"], [POSITION.centre, "Pong"], [POSITION.down, "On"]], on));
 for (const id of ["S30", "S35"]) add(knob(byId(id), $("selection"), on));
-for (const id of ["S37", "S31", "S32", "S33"]) add(knob(byId(id), $("grain"), on));
-add(segmented(byId("S09"), $("grain"), [[POSITION.up, "Off"], [POSITION.centre, "Oct"], [POSITION.down, "Free"]], on));
+for (const id of ["S37", "S31", "P10+S31", "S32", "P10+S34"]) add(knob(byId(id), $("grain"), on));
+for (const id of ["S33", "P10+S33"]) add(knob(byId(id), $("pitch"), on));
+add(segmented(byId("S09"), $("pitch"), [[POSITION.up, "Oct"], [POSITION.centre, "5th"], [POSITION.down, "Free"]], on));
 add(knob(byId("S34"), $("output"), on));
 // In beside Record: it is what gets recorded. Out after Mix.
 const meters = LEVELS.map((l) => {
@@ -66,7 +67,8 @@ function set(c: Control, value: number, show = true) {
     if (show) focus(c);
     return;
   }
-  if (c.type === "switch") audio.send({ type: "switch", index: c.index, position: value });
+  if (c.second) audio.send({ type: "second", index: c.index, value });
+  else if (c.type === "switch") audio.send({ type: "switch", index: c.index, position: value });
   else audio.send({ type: "knob", index: c.index, value });
   if (show) focus(c);
 }
@@ -152,7 +154,7 @@ function hint() {
 function focus(c: Control) {
   focused = c;
   for (const w of parts.values()) w.root.classList.toggle("focus", w.c === c);
-  readout.name.textContent = `${c.id} ${c.name}`;
+  readout.name.textContent = `${c.board ?? c.id} ${c.name}`;
   readout.does.textContent = c.does ?? "";
   show();
 }
