@@ -19,8 +19,8 @@ class CoreUI
 {
   public:
     // Pads
-    static constexpr size_t kRecordPad = 11;
-    static constexpr size_t kLayerPad  = 10; // held: the second layer
+    static constexpr size_t kRecordPad = 10;
+    static constexpr size_t kLayerPad  = 11; // held: the second layer
     // Slices, first to last in the buffer: pads left to right on the
     // faceplate, top to bottom within a column
     static constexpr size_t kSlicePads[] = {3, 4, 8, 5, 6, 9, 7};

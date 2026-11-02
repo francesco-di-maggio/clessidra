@@ -72,12 +72,12 @@ void CoreUI::Process(const Controls& c, Core& core)
     Core::Params p;
     bool         restart = false;
 
-    // P10 held: the second layer
+    // P11 held: the second layer
     layer_ = c.touched[kLayerPad];
     layers_.Process(c.knobs, layer_);
     const auto knob = [this](Controls::Knob k) { return layers_.First(k); };
 
-    // P11: record while held. A new recording: its slices.
+    // P10: record while held. A new recording: its slices.
     record_ = c.touched[kRecordPad];
     core.SetRecording(record_);
     if(core.Recordings() != recordings_)
@@ -98,7 +98,7 @@ void CoreUI::Process(const Controls& c, Core& core)
     const bool  unison    = semitones == 0.0f;
     p.pitch               = std::exp2(semitones / 12.0f);
 
-    // S34: dry and wet. P10 + S34: reverb on the grains.
+    // S34: dry and wet. P11 + S34: reverb on the grains.
     p.mix    = knob(Controls::S34);
     p.reverb = layers_.Second(Controls::S34);
 
@@ -154,7 +154,7 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.density         = Density(fader + firm * firm * (1.0f - fader));
 
     // S31: grain size, exponential, kMinGrainMs to kMaxGrainMs, at most half
-    // the sound. P10 + S31: window shape.
+    // the sound. P11 + S31: window shape.
     const float size_knob   = Detent(knob(Controls::S31), 0.05f);
     const bool  size_centre = size_knob == 0.5f;
     const float top_ms      = std::clamp(500.0f * seconds, 100.0f, kMaxGrainMs);
@@ -176,7 +176,7 @@ void CoreUI::Process(const Controls& c, Core& core)
         = seconds > 0.0f
               ? std::min(2.0f * scatter_seconds / (p.length * seconds), 1.0f)
               : 0.0f;
-    // P10 + S33: pitch scatter, cubic: fine near 0. S09, its steps: up
+    // P11 + S33: pitch scatter, cubic: fine near 0. S09, its steps: up
     // octaves, centre fifths and octaves, down free.
     const float pitch_scatter = layers_.Second(Controls::S33);
     p.rand_pitch              = pitch_scatter * pitch_scatter * pitch_scatter;

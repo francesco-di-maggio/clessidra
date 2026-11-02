@@ -777,7 +777,7 @@ void Mapping()
     c.knobs[Controls::S31] = 0.5f;
     ui.Process(c, r.core);
 
-    // P10: the second layer, each knob picked up where its value is
+    // P11: the second layer, each knob picked up where its value is
     Check(p.window_shape == CoreUI::kShapeStart
               && p.reverb == CoreUI::kReverbStart && p.rand_pitch == 0.0f,
           "second layer at power-up: Hann, some reverb, plain pitch",
@@ -786,35 +786,35 @@ void Mapping()
     c.knobs[Controls::S34]       = 0.9f; // far from the reverb's value
     ui.Process(c, r.core);
     Check(p.reverb == CoreUI::kReverbStart && Near(p.mix, 0.5, 1e-6),
-          "P10 + S34 away from the reverb: nothing moves",
+          "P11 + S34 away from the reverb: nothing moves",
           p.reverb);
     c.knobs[Controls::S34] = 0.2f; // across it
     ui.Process(c, r.core);
     c.knobs[Controls::S34] = 0.6f;
     ui.Process(c, r.core);
     Check(Near(p.reverb, 0.6, 1e-6) && Near(p.mix, 0.5, 1e-6),
-          "P10 + S34 picked up: reverb, dry/wet stays",
+          "P11 + S34 picked up: reverb, dry/wet stays",
           p.reverb);
     c.knobs[Controls::S31] = 0.0f; // across Hann
     ui.Process(c, r.core);
     c.knobs[Controls::S31] = 1.0f;
     ui.Process(c, r.core);
     Check(p.window_shape == 1.0f && Near(p.grain_ms, 200.0, 0.5),
-          "P10 + S31: shape, size stays",
+          "P11 + S31: shape, size stays",
           p.window_shape);
     c.knobs[Controls::S33] = 0.0f; // at its value
     ui.Process(c, r.core);
     c.knobs[Controls::S33] = 1.0f;
     ui.Process(c, r.core);
     Check(p.rand_pitch == 1.0f && p.pitch == 1.0f,
-          "P10 + S33: pitch scatter, pitch stays",
+          "P11 + S33: pitch scatter, pitch stays",
           p.rand_pitch);
     const float shown = ui.Led(0, r.core);
-    Check(shown == 1.0f, "P10 held: the LED shows the knob last turned", shown);
+    Check(shown == 1.0f, "P11 held: the LED shows the knob last turned", shown);
     c.touched[CoreUI::kLayerPad] = false;
     ui.Process(c, r.core);
     Check(p.pitch == 1.0f && Near(p.mix, 0.5, 1e-6),
-          "P10 released, knobs away: first layer unchanged",
+          "P11 released, knobs away: first layer unchanged",
           p.pitch);
     c.knobs[Controls::S31] = 0.5f;
     c.knobs[Controls::S33] = 0.5f;
