@@ -11,6 +11,7 @@ export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Sw
 export interface Live {
   sound: number; // samples recorded
   strikes: boolean[]; // each slice pad's strike sounding
+  slices: number[]; // each slice's length, samples
   recording: number; // seconds P10 has been held, 0 when not
 }
 
@@ -98,7 +99,7 @@ export const CONTROLS: Control[] = [
   ...SLICE_PADS.map((pad, i): Control => ({
     id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Slice ${i + 1}`, slice: i,
     does: "Each plays its slice once, its own grains on top of the playhead. Press harder for more grains.",
-    value: (_, v) => (v.strikes[i] ? "Playing" : ""),
+    value: (_, v) => (v.slices[i] ? seconds(v.slices[i]) : ""),
   })),
   // While P11 is held, three knobs do something else
   {
@@ -107,7 +108,7 @@ export const CONTROLS: Control[] = [
     value: (p) => (Math.abs(p[PARAM.shape] - 0.5) < 0.01 ? "Hann" : `${p[PARAM.shape] > 0.5 ? "Perc" : "Rev"} ${percent(Math.abs(p[PARAM.shape] - 0.5) * 2)}`),
   },
   {
-    id: "P11+S32", type: "knob", index: 2, x: 0, y: 0, name: "Tone", initial: 0.5, bipolar: true, second: true, board: "P11 + S32",
+    id: "P11+S32", type: "knob", index: 2, x: 0, y: 0, name: "Filter", initial: 0.5, bipolar: true, second: true, board: "P11 + S32",
     does: "Low-pass to the left (20 kHz to 200 Hz), off at the centre, high-pass to the right (20 Hz to 2 kHz).",
     value: (p) => {
       const t = p[PARAM.tone];
@@ -126,7 +127,7 @@ export const CONTROLS: Control[] = [
     does: "Reverb on the grains: more and longer, 0.5 to 16 s.",
     value: (p) => percent(p[PARAM.reverb]),
   },
-  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S31 shape, S32 tone, S33 pitch scatter, S34 reverb. Each knob takes over once it reaches the value." },
+  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S31 shape, S32 filter, S33 pitch scatter, S34 reverb. Each knob takes over once it reaches the value." },
   { id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Free", free: true, initial: POSITION.centre },
   ...[0, 1, 2].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
 ];

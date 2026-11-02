@@ -3,8 +3,9 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { MAX_RECORD_S, RATE, RECORD_PAD, SLICE_PADS, VIEW, type Frame, type FromWorklet } from "./engine";
+import { MAX_RECORD_S, RATE, RECORD_PAD, SLICE_PADS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
+import { Preview } from "./preview";
 import { Waveform } from "./waveform";
 import { knob, meter, pad, segmented, type Handlers, type Widget } from "./widgets";
 
@@ -21,6 +22,31 @@ const held = $("held");
 const readout = { name: $("readout-name"), value: $("readout-value"), does: $("readout-does") };
 
 const audio = new Audio(onMessage);
+// Until Start, the values come from a silent copy of the firmware on the page
+const controls = new Map<string, Message>(); // the last of each control
+let preview: Preview | null = null;
+Preview.load().then((p) => {
+  if (audio.ctx) return;
+  preview = p;
+  for (const m of controls.values()) p.apply(m);
+  refresh();
+});
+
+function send(m: Message) {
+  controls.set(`${m.type}${m.index}`, m);
+  audio.send(m);
+  if (!preview) return;
+  preview.apply(m);
+  refresh();
+}
+
+// The preview's values in the readouts
+function refresh() {
+  if (!preview) return;
+  const { params, view } = preview.read();
+  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), params, view };
+  show();
+}
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 let last: Frame | null = null;
@@ -70,13 +96,13 @@ function set(c: Control, value: number, show = true) {
     const level = c as Level;
     LEVELS_VALUE.set(c.id, value);
     audio.setGain(c.id === "IN" ? "input" : "output", level.gain(value));
-    w.value?.(level.value!(new Float32Array(0), { sound: 0, strikes: [], recording: 0 }));
+    w.value?.(level.value!(new Float32Array(0), { sound: 0, strikes: [], slices: [], recording: 0 }));
     if (show) focus(c);
     return;
   }
-  if (c.second) audio.send({ type: "second", index: c.index, value });
-  else if (c.type === "switch") audio.send({ type: "switch", index: c.index, position: value });
-  else audio.send({ type: "knob", index: c.index, value });
+  if (c.second) send({ type: "second", index: c.index, value });
+  else if (c.type === "switch") send({ type: "switch", index: c.index, position: value });
+  else send({ type: "knob", index: c.index, value });
   if (show) focus(c);
 }
 
@@ -169,7 +195,8 @@ function focus(c: Control) {
 function show() {
   if (!last) return;
   const strikes = SLICE_PADS.map((_, i) => last!.view[VIEW.strikes + i] >= 0);
-  const v: Live = { sound: last.view[VIEW.sound], strikes, recording: recording() };
+  const slices = SLICE_PADS.map((_, i) => last!.view[VIEW.edges + i + 1] - last!.view[VIEW.edges + i]);
+  const v: Live = { sound: last.view[VIEW.sound], strikes, slices, recording: recording() };
   for (const w of parts.values()) if (w.c.index >= 0) w.value?.(w.c.value?.(last.params, v) ?? "");
   if (focused) readout.value.textContent = focused.value?.(last.params, v) ?? "";
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
@@ -212,6 +239,7 @@ start.addEventListener("click", async () => {
       return;
     }
     waveform.started = true;
+    preview = null;
     start.disabled = false;
   } else await audio.pause(audio.running);
   start.textContent = audio.running ? "Pause" : "Start";

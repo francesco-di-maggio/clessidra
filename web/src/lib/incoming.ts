@@ -35,8 +35,9 @@ export class Incoming {
     const css = getComputedStyle(document.documentElement);
     const pad = 14;
     const cols = Math.floor((W - 2 * pad) / DOT);
-    const rows = Math.floor((H - 8) / 2 / DOT);
-    const mid = H / 2;
+    const top = 18; // the tag above
+    const rows = Math.floor((H - top - 6) / 2 / DOT);
+    const mid = top + (H - top) / 2;
     const held = Math.min(this.recording / INCOMING_SECONDS, 1); // share of the strip, from the right
     const quiet = new Path2D();
     const loud = new Path2D();

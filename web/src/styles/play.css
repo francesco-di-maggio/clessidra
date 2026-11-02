@@ -1,7 +1,7 @@
 /* Play: one screen in the family's column. Transport, the buffer, two strips
    of controls, the slices, a readout line. Orange only for what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
-body.app main { min-height: 0; display: grid; grid-template-rows: auto 52px minmax(120px, 1fr) auto auto auto auto; gap: 10px; }
+body.app main { min-height: 0; display: grid; grid-template-rows: auto 64px minmax(120px, 1fr) auto auto auto auto; gap: 10px; }
 .mark .slash { margin: 0 2px; }
 .led { display: flex; align-items: center; gap: 6px; }
 .led .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--accent) calc(var(--led, 0) * 100%), transparent); }
@@ -25,7 +25,7 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 52px minm
 /* Incoming: the last 8 s of input, what a tap keeps */
 .incoming { position: relative; padding: 0; overflow: hidden; }
 .incoming canvas { display: block; width: 100%; height: 100%; }
-.tag { position: absolute; top: 4px; left: 12px; font-size: 10px; pointer-events: none; }
+.tag { position: absolute; top: 6px; left: 12px; font-size: 10px; line-height: 14px; pointer-events: none; }
 
 /* The buffer, its status in the corner */
 .view { position: relative; padding: 0; overflow: hidden; }
@@ -56,31 +56,36 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 52px minm
 
 /* A meter beside its knob's dial, not widening the knob */
 .level { position: relative; }
-.meter { position: absolute; top: 18px; right: -4px; display: grid; gap: 2px; }
+.meter { position: absolute; top: 16px; right: -4px; height: 44px; display: flex; flex-direction: column; justify-content: space-between; }
 .meter i { width: 4px; height: 4px; border-radius: 1px; background: var(--line); }
 .meter i.on { background: var(--ink); }
 .meter i.clip { background: var(--accent); }
 
 /* Slices */
 .slices { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 10px; }
-.pad { display: grid; place-items: center; width: 100%; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
+.pad { display: grid; place-content: center; gap: 2px; width: 100%; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.pad .sub { font-size: 10px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.pad.on .sub { color: inherit; opacity: 0.8; }
+.transport .pad .sub { display: none; }
 .pad.playing { border-color: var(--ink); }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 
-.readout { display: flex; align-items: baseline; gap: 12px; height: 20px; margin: 0; overflow: hidden; white-space: nowrap; font-size: 13px; line-height: 20px; }
-.readout .label { color: var(--ink); }
-.readout .value { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; }
-.readout .does { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
+/* Readout: the control and its value on the left, what it does beside them */
+.readout { display: grid; grid-template-columns: 144px 1fr; column-gap: 16px; height: 40px; margin: 0; padding: 0 2px; font-size: 13px; line-height: 20px; }
+.readout .label { grid-column: 1; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.readout .value { grid-column: 1; font: 500 13px/20px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.readout .does { grid-column: 2; grid-row: 1 / span 2; color: var(--dim); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
 /* Short or narrow screens: the page scrolls rather than squeezing the controls */
 @media (max-height: 640px), (max-width: 600px) {
   body.app { height: auto; min-height: 100dvh; overflow: auto; }
-  body.app main { grid-template-rows: auto 52px 200px auto auto auto auto; }
+  body.app main { grid-template-rows: auto 64px 200px auto auto auto auto; }
 }
 @media (max-width: 600px) {
   .strip { flex-wrap: wrap; row-gap: 12px; }
   .cluster { flex-basis: 100%; }
   .cluster + .cluster { border-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
-  .readout { height: auto; white-space: normal; flex-wrap: wrap; }
+  .readout { height: auto; grid-template-columns: 1fr; }
+  .readout .does { grid-column: 1; grid-row: auto; }
 }

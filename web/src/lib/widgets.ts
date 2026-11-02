@@ -101,7 +101,8 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
 // A pad: held while pressed, by pointer, or by Space and Enter
 export function pad(c: Control, parent: Element, label: string, h: Handlers): Widget {
   const root = html("button", { class: "pad", type: "button", "aria-label": c.name }, parent);
-  root.textContent = label;
+  html("span", { class: "num" }, root).textContent = label;
+  const sub = html("span", { class: "sub" }, root);
   root.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     root.setPointerCapture(e.pointerId);
@@ -126,6 +127,7 @@ export function pad(c: Control, parent: Element, label: string, h: Handlers): Wi
       root.classList.toggle("on", pressure > 0);
       root.style.setProperty("--pressure", String(pressure));
     },
+    value: (text) => (sub.textContent = text),
   };
 }
 
