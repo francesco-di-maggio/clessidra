@@ -33,7 +33,7 @@ const mid = (row: number) => ROW[row] + H / 2;
   <text class="note" x={col(1) + 30} y={ROW[1] + H + 20}>dry</text>
   {STAGES.map(([label, detail, c, r]) => (
     <g>
-      <rect class="stage" x={col(c)} y={ROW[r]} width={W} height={H} rx="8" />
+      <rect class={label === "Grains" ? "stage core" : "stage"} x={col(c)} y={ROW[r]} width={W} height={H} rx="8" />
       <text class="label" x={col(c) + W / 2} y={ROW[r] + 21}>{label}</text>
       <text class="detail" x={col(c) + W / 2} y={ROW[r] + 37}>{detail}</text>
     </g>

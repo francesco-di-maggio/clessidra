@@ -53,6 +53,7 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
 
   function describe(id: string) {
     pointed = id;
+    for (const g of panel.querySelectorAll(".ctl")) g.classList.toggle("active", (g as SVGGElement).dataset.id === id);
     const n = current();
     const layered = /^S3\d$/.test(id) && n > 0;
     const h = help[layered ? PREFIX[n] + id : id];

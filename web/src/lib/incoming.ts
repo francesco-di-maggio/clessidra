@@ -34,11 +34,15 @@ export class Incoming {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     const css = getComputedStyle(document.documentElement);
-    const pad = 4;
-    const axis = H - 12; // its scale below
-    const cols = Math.floor((W - 2 * pad) / DOT);
-    const rows = Math.floor((axis - 12) / 2 / DOT);
-    const mid = (axis + 4) / 2;
+    // Inset as the buffer view, its scale below as there: a tick a second
+    const pad = 14;
+    const axis = H - 12;
+    const width = W - 2 * pad;
+    const cols = Math.floor(width / DOT);
+    const top = 8;
+    const bottom = axis - 12;
+    const rows = Math.floor((bottom - top) / 2 / DOT);
+    const mid = (top + bottom) / 2;
     const held = Math.min(this.recording / INCOMING_SECONDS, 1); // share of the strip, from the right
     const quiet = new Path2D();
     const loud = new Path2D();
@@ -59,12 +63,23 @@ export class Incoming {
     ctx.fill(loud);
     ctx.fillStyle = css.getPropertyValue("--accent");
     ctx.fill(rec);
+    ctx.strokeStyle = css.getPropertyValue("--line");
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad, axis - 7.5);
+    ctx.lineTo(W - pad, axis - 7.5);
+    for (let s = 0; s <= INCOMING_SECONDS; s++) {
+      const x = Math.round(pad + (s / INCOMING_SECONDS) * width) + 0.5;
+      ctx.moveTo(x, axis - 7.5);
+      ctx.lineTo(x, axis - 3.5);
+    }
+    ctx.stroke();
     ctx.font = `500 10px ${css.getPropertyValue("--mono")}`;
     ctx.textBaseline = "middle";
     ctx.fillStyle = css.getPropertyValue("--dim");
     ctx.textAlign = "left";
-    ctx.fillText(`−${INCOMING_SECONDS} S`, pad, axis);
+    ctx.fillText(`−${INCOMING_SECONDS} s`, pad, axis + 3);
     ctx.textAlign = "right";
-    ctx.fillText("NOW", W - pad, axis);
+    ctx.fillText("now", W - pad, axis + 3);
   }
 }

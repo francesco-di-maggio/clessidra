@@ -10,14 +10,20 @@ import Base from "../layouts/Base.astro";
 </div>
 
 <dl class="panel meta">
-  <dt>Status</dt><dd>In progress</dd>
+  <dt>Status</dt><dd class="live">In progress</dd>
   <dt>Made at</dt><dd><a href="https://www.synthux.academy/residency">Synthux Design Residency 2026</a></dd>
   <dt>Hardware</dt><dd><a href="https://www.synthux.academy/">Synthux Simple Touch</a>, <a href="https://daisy.audio/">Electrosmith Daisy Seed</a></dd>
   <dt>Licence</dt><dd>MIT</dd>
 </dl>
 
-<a class="panel primary" href="play/">
-  <span><span class="label">Browser · same firmware</span><span class="title">Play</span><span class="caption">The firmware runs in your browser. Play the panel and see what every grain reads.</span></span>
-  <span class="arrow" aria-hidden="true">→</span>
-</a>
+<div class="pair">
+  <a class="panel primary" href="play/">
+    <span><span class="label">Browser · same firmware</span><span class="title">Play</span><span class="caption">The firmware in your browser, every grain shown.</span></span>
+    <span class="arrow" aria-hidden="true">→</span>
+  </a>
+  <ul class="panel lists list sessions" aria-label="Sessions">
+    <li><a href="https://www.youtube.com/watch?v=QP1ccBcmeWY"><span class="text"><b>Session 2</b><span class="sub">29 Oct 2026 · 1 min</span></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+    <li><a href="https://www.youtube.com/watch?v=KIGoq4tIQo0"><span class="text"><b>Session 1</b><span class="sub">5 Oct 2026 · Max prototype</span></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
 </Base>
