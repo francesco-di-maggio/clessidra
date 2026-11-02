@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 const RATE = 48000;
 const BLOCK = 128;
 const KNOB = { S30: 0, S31: 1, S32: 2, S33: 3, S34: 4, S35: 5, S36: 6, S37: 7 };
-const RECORD = 11;
+const RECORD = 10; // CoreUI::kRecordPad
 const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, slice: 4, edges: 5 };
 
 let failed = 0;
