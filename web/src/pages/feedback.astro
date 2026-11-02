@@ -5,8 +5,46 @@ import Base from "../layouts/Base.astro";
 <h1>Feedback</h1>
 <p class="lead">What you played, what you heard, what you would change.</p>
 
-<ul class="panel lists list">
-  <li><a href="https://github.com/francesco-di-maggio/clessidra/issues/new?template=feedback.yml"><span class="text"><b>Send Feedback</b><span class="sub">What you played, what you heard, what you would change</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
-  <li><a href="mailto:f.di.maggio@tue.nl?subject=Clessidra"><span class="text"><b>Email</b><span class="sub">Without a GitHub account</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
-</ul>
+<form id="feedback" class="panel form">
+  <fieldset class="field">
+    <legend class="label">Played on</legend>
+    <div class="segmented" role="radiogroup">
+      <label><input type="radio" name="where" value="Browser" checked><span>Browser</span></label>
+      <label><input type="radio" name="where" value="Simple Touch"><span>Simple Touch</span></label>
+    </div>
+  </fieldset>
+  <label class="field"><span class="label">What you played</span><textarea name="played" rows="3" required placeholder="The controls you used and the sound going in"></textarea></label>
+  <label class="field"><span class="label">What you heard, and what you expected</span><textarea name="heard" rows="3" required></textarea></label>
+  <label class="field"><span class="label">What you would change</span><textarea name="change" rows="2"></textarea></label>
+  <div class="actions">
+    <button class="control primary" type="submit">Send on GitHub</button>
+    <button id="email" class="control" type="button">Send by Email</button>
+  </div>
+  <p class="caption">Opens a new GitHub issue, or your email, with your words filled in. Nothing is sent from this page.</p>
+</form>
 </Base>
+
+<script>
+  // The answers as text, sent as a GitHub issue or an email. Nothing leaves the
+  // page until you send it there.
+  const REPO = "https://github.com/francesco-di-maggio/clessidra/issues/new";
+  const ADDRESS = "f.di.maggio@tue.nl";
+  const form = document.getElementById("feedback") as HTMLFormElement;
+
+  function text() {
+    const data = new FormData(form);
+    const part = (title: string, name: string) => `### ${title}\n\n${String(data.get(name) ?? "").trim() || "–"}`;
+    return [part("Played on", "where"), part("What you played", "played"), part("What you heard, and what you expected", "heard"), part("What you would change", "change")].join("\n\n");
+  }
+  const title = () => `Feedback: ${String(new FormData(form).get("played") ?? "").trim().slice(0, 60)}`;
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = new URLSearchParams({ labels: "feedback", title: title(), body: text() });
+    open(`${REPO}?${q}`, "_blank", "noopener");
+  });
+  document.getElementById("email")!.addEventListener("click", () => {
+    if (!form.reportValidity()) return;
+    location.href = `mailto:${ADDRESS}?subject=${encodeURIComponent(title())}&body=${encodeURIComponent(text())}`;
+  });
+</script>
