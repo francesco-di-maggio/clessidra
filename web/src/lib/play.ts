@@ -29,13 +29,15 @@ const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
 const add = (w: Widget) => parts.set(w.c.id, w);
 add(pad(byId("P11"), $("record"), "Rec", on));
 add(knob(byId("S36"), $("time"), on));
-add(segmented(byId("S07"), $("time"), [[POSITION.up, "One-shot"], [POSITION.centre, "Turn"], [POSITION.down, "Loop"]], on));
+add(segmented(byId("S07"), $("time"), [[POSITION.up, "One-shot"], [POSITION.centre, "Ping-pong"], [POSITION.down, "Loop"]], on));
 for (const id of ["S30", "S35"]) add(knob(byId(id), $("selection"), on));
 for (const id of ["S37", "S31", "S32", "S33"]) add(knob(byId(id), $("grain"), on));
+add(knob(byId("S34"), $("output"), on));
+// In beside Record: it is what gets recorded. Out after Mix.
 const meters = LEVELS.map((l) => {
   const cell = document.createElement("div");
   cell.className = "level";
-  $("levels").append(cell);
+  $(l.id === "IN" ? "record" : "output").append(cell);
   add(knob(l, cell, on));
   return meter(cell, l.name);
 });

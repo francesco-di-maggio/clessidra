@@ -6,7 +6,7 @@
 import { PARAM, RATE, RECORD_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
-export const END = ["One-shot", "Turn", "Loop"]; // Playhead::End
+export const END = ["One-shot", "Ping-pong", "Loop"]; // Playhead::End
 
 // What a readout knows besides the parameters
 export interface Live {
@@ -43,13 +43,13 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 
 export const CONTROLS: Control[] = [
   {
-    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Tilt", initial: 0.75, bipolar: true,
-    does: "Centre stops, up forward, down backward, up to 4 times. Speed 1 half way.",
+    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.75, bipolar: true,
+    does: "Centre stops. Up forward, down backward, up to 4×. 1× half way.",
     value: (p) => (p[PARAM.freeze] ? "Stopped" : `${p[PARAM.speed] > 0 ? "→" : "←"} ${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
   },
   {
-    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Pour", initial: 0.6,
-    does: "Closed, single percussive drops in reverb, a stream, a wide cloud of long grains. Up to 130 grains per second.",
+    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.6,
+    does: "Grains per second, 0.3 to 131. Size, window and reverb follow: short percussive drops at the bottom, long soft grains at the top.",
     value: (p) => (p[PARAM.density] === 0 ? "Closed" : `${p[PARAM.density].toFixed(p[PARAM.density] < 10 ? 1 : 0)}/s`),
   },
   {
@@ -64,7 +64,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true,
-    does: "Grain size, 2 octaves either way from what Pour sets.",
+    does: "Grain size, 2 octaves either way from what Density sets.",
     value: (p) => `${Math.round(p[PARAM.grainMs])} ms`,
   },
   {
@@ -78,21 +78,25 @@ export const CONTROLS: Control[] = [
     value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
   },
   {
+    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Mix", initial: 0.5,
+    does: "Dry to wet, equal power.",
+    value: (p) => (p[PARAM.mix] === 0 ? "Dry" : p[PARAM.mix] === 1 ? "Wet" : `${Math.round(p[PARAM.mix] * 100)}\u00a0% wet`),
+  },
+  {
     id: "P11", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
     does: "Tap: keeps the last 8 s. Hold: records until you let go, up to 30 s. The glass always listens.",
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
-    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Run Out", initial: POSITION.centre,
-    does: "What the playhead does at the end of the selection: one-shot (up), turn (centre), loop (down).",
+    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Mode", initial: POSITION.centre,
+    does: "What the playhead does at the end of the selection: one-shot (up), ping-pong (centre), loop (down).",
     value: (p) => END[p[PARAM.end]],
   },
   ...SLICE_PADS.map((pad, i): Control => ({
     id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Slice ${i + 1}`, slice: i,
-    does: "Slices at the sound's onsets. A touch plays one, a firm press opens Pour.",
+    does: "Slices at the sound's onsets. A touch plays one, a firm press raises Density.",
     value: (_, v) => (v.slice === i ? "Playing" : ""),
   })),
-  { id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Free", free: true, initial: 0 },
   { id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Free", free: true, initial: POSITION.centre },
   ...[0, 1, 2, 10].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
 ];
@@ -103,7 +107,7 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 export const LED: [string, string][] = [
   ["Glow", "Grains playing"],
   ["Flashing", "Recording"],
-  ["Pulse", "A control at or turning within its centre: pitch unison, Tilt stopped or at speed 1, size at its centre"],
+  ["Pulse", "A control at or turning within its centre: pitch unison, speed stopped or 1×, size at its centre"],
 ];
 
 // Browser only: the level into the firmware and out of it. The board has its

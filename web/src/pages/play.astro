@@ -21,12 +21,12 @@ import "../styles/play.css";
   </section>
 
   <div class="rack">
-    <section class="panel group record"><h2 class="label">Record</h2><div id="record" class="controls"></div></section>
-    <section class="panel group time"><h2 class="label">Time</h2><div id="time" class="controls"></div></section>
-    <section class="panel group levels"><h2 class="label">Levels</h2><div id="levels" class="controls"></div></section>
-    <section class="panel group selection"><h2 class="label">Selection</h2><div id="selection" class="controls"></div></section>
-    <section class="panel group grain"><h2 class="label">Grain</h2><div id="grain" class="controls"></div></section>
-    <section class="panel group slices"><h2 class="label">Slices</h2><div id="slices" class="controls pads"></div></section>
+    <section class="panel group record" aria-label="Record" id="record"></section>
+    <section class="panel group time" aria-label="Time" id="time"></section>
+    <section class="panel group selection" aria-label="Selection" id="selection"></section>
+    <section class="panel group grain" aria-label="Grain" id="grain"></section>
+    <section class="panel group output" aria-label="Output" id="output"></section>
+    <section class="panel group slices pads" aria-label="Slices" id="slices"></section>
   </div>
 
   <p class="readout" aria-live="polite"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span><span id="readout-does" class="does"></span></p>

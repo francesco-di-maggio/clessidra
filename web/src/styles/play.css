@@ -24,17 +24,15 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
 .held { font-variant-numeric: tabular-nums; }
 .held.on { color: var(--accent); }
 
-/* Rack: three across, Grain wide, Slices the full row */
-.rack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "record time levels" "selection grain grain" "slices slices slices"; gap: 10px; }
+/* Rack: panels group the controls, each control carries its name */
+.rack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "record time selection" "grain grain output" "slices slices slices"; gap: 10px; }
 .record { grid-area: record; }
 .time { grid-area: time; }
-.levels { grid-area: levels; }
 .selection { grid-area: selection; }
 .grain { grid-area: grain; }
+.output { grid-area: output; }
 .slices { grid-area: slices; }
-.group { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 10px 12px 12px; }
-.group h2.label { margin: 0; }
-.controls { display: flex; flex: 1; align-items: center; justify-content: space-around; gap: 4px; }
+.group { display: flex; align-items: center; justify-content: space-around; gap: 4px; min-width: 0; min-height: 112px; padding: 12px; }
 
 .knob { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 64px; cursor: ns-resize; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
 .knob .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; white-space: nowrap; }
@@ -62,7 +60,7 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
 .pad.playing { border-color: var(--ink); }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 #record .pad { width: 72px; height: 72px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
-.pads { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.group.pads { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; min-height: 0; }
 
 .readout { display: flex; align-items: baseline; gap: 12px; height: 20px; margin: 0; overflow: hidden; white-space: nowrap; font-size: 13px; line-height: 20px; }
 .readout .label { color: var(--ink); }
@@ -75,6 +73,6 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
   body.app main { grid-template-rows: auto 200px auto auto; }
 }
 @media (max-width: 480px) {
-  .rack { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "record time" "levels selection" "grain grain" "slices slices"; }
+  .rack { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "record time" "selection output" "grain grain" "slices slices"; }
   .readout { height: auto; white-space: normal; flex-wrap: wrap; }
 }
