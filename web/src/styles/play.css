@@ -1,20 +1,17 @@
-/* Play: one screen in the family's column, top to bottom as the sound goes:
-   transport, input and output, the buffer, the knobs (playhead, grain, FX,
-   mix, P11's layer below each), the switches and pads, a readout line. Orange
-   only for what is on. */
+/* Play: one screen in the family's column. Transport and levels, the incoming
+   strip, the buffer, then the board as it is: faders at the edges, knobs and
+   switches between, the 12 pads. A readout line. Orange only for what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
-body.app main { min-height: 0; display: grid; grid-template-rows: auto 88px minmax(120px, 1fr) auto auto auto; gap: 10px; }
+body.app main { min-height: 0; display: grid; grid-template-rows: auto 56px minmax(120px, 1fr) auto auto auto; gap: 10px; }
 .mark .slash { margin: 0 2px; }
 .led { display: flex; align-items: center; gap: 6px; }
 .led .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--accent) calc(var(--led, 0) * 100%), transparent); }
 
-/* Transport: five equal cells */
-.transport { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-.transport #input { grid-column: span 3; }
+/* Transport: Start, the source, In and Out */
+.transport { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 10px; align-items: center; }
 .control.primary { justify-content: center; background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .control.primary.on { background: var(--bg); border-color: var(--line); color: var(--ink); }
-.transport .pad { width: 100%; height: 44px; font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
-.transport .pad.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.levels { display: flex; gap: 14px; padding-left: 4px; }
 
 .segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); overflow: hidden; background: var(--bg); }
 .segmented button { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 0 6px; border: 0; background: none; color: var(--dim);
@@ -24,10 +21,9 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 88px minm
 .segmented [aria-pressed="true"], .segmented [aria-checked="true"] { color: var(--ink); background: var(--surface); }
 .segmented [aria-pressed="true"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 
-/* Input and output: In, the last 8 s of input (what a tap keeps), Out */
-.io { display: grid; grid-template-columns: 80px minmax(0, 1fr) 80px; grid-template-rows: minmax(0, 1fr); align-items: center; padding: 0; overflow: hidden; }
-.io canvas { display: block; width: 100%; height: 100%; min-height: 0; }
-.io .end { display: flex; justify-content: center; }
+/* Incoming: the last 8 s of input, what a tap keeps */
+.incoming { padding: 0; overflow: hidden; }
+.incoming canvas { display: block; width: 100%; height: 100%; }
 
 /* The buffer, its status in the corner */
 .view { position: relative; padding: 0; overflow: hidden; }
@@ -35,12 +31,18 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 88px minm
 .held { position: absolute; top: 8px; right: 12px; font-variant-numeric: tabular-nums; pointer-events: none; }
 .held.on { color: var(--accent); }
 
-/* Knobs: sections split by hairlines, each two rows, P11's layer below */
-.strip { display: flex; align-items: stretch; padding: 10px 4px 12px; }
-.cluster { display: flex; flex-direction: column; align-items: stretch; gap: 8px; flex: auto; padding: 0 6px; }
-.cluster + .cluster { border-left: 1px solid var(--line); }
-.cluster .head { font: 500 10px/14px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); text-align: center; }
-.cluster .body { display: grid; grid-template-rows: auto auto; grid-auto-flow: column; justify-content: space-evenly; justify-items: center; gap: 10px 2px; }
+/* The board: faders at the edges, S31-S34 above, S30 and S35 below with the
+   switches between. Each knob with P11's beside it, small. */
+.board { padding: 12px 6px; }
+.board-grid { display: grid; grid-template-columns: 56px repeat(4, minmax(0, 1fr)) 56px; grid-template-areas: "speed size shape pitch mix density" "speed position direction trigger length density";
+              row-gap: 14px; justify-items: center; align-items: start; }
+.area.pair { display: grid; grid-template-columns: 56px 40px; align-items: end; width: 96px; }
+.knob.small { width: 40px; }
+.knob.small svg { width: 28px; height: 28px; }
+.knob.small .label { color: var(--dim); }
+.knob.small .value { font-size: 10px; }
+.shifted .board .knob:not(.small) { opacity: 0.35; }
+.shifted .board .knob.small .label { color: var(--ink); }
 
 .knob { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 56px; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
 .knob .label, .switch .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; white-space: nowrap; }
@@ -52,43 +54,41 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 88px minm
 .knob line.track, .knob line.fill { stroke-width: 3; }
 .knob .cap { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
 .knob.dragging { cursor: ns-resize; }
-.cell.tall { grid-row: span 2; display: flex; }
+.area:has(> .fader) { align-self: stretch; display: flex; }
 .knob.fader { height: 100%; }
 .knob.fader svg { flex: 1; width: 24px; height: auto; min-height: 0; }
 .knob .value { font: 500 11px/16px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
 .knob.focus .label, .knob:focus-visible .label, .switch.focus .label { color: var(--ink); }
 .knob:focus-visible svg { outline: 1.5px solid var(--accent); outline-offset: -2px; border-radius: 50%; }
 .knob.fader:focus-visible svg { outline-offset: 0; border-radius: var(--radius-control); }
-.cell.below svg { width: 32px; height: 32px; }
-.cell.below .label { color: var(--dim); }
 
 .switch { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .switch .segmented { height: auto; grid-auto-flow: row; width: 56px; }
 .switch .segmented button { height: 20px; font-size: 10px; letter-spacing: 0.04em; }
 .switch .segmented button + button { border-left: 0; border-top: 1px solid var(--line); }
 
-/* A meter beside its knob's dial, not widening the knob */
-.level { position: relative; }
-.meter { position: absolute; top: 16px; right: -4px; height: 32px; display: flex; flex-direction: column; justify-content: space-between; }
+/* In and Out: a small dial, its name and value beside it, then a meter */
+.level { display: flex; align-items: center; gap: 6px; }
+.level .knob { display: grid; grid-template-columns: 28px auto; grid-template-rows: auto auto; column-gap: 6px; width: auto; align-items: center; }
+.level .knob svg { grid-row: 1 / 3; width: 28px; height: 28px; }
+.level .knob .label, .level .knob .value { justify-self: start; }
+.meter { height: 28px; display: flex; flex-direction: column; justify-content: space-between; }
 .meter i { width: 4px; height: 4px; border-radius: 1px; background: var(--line); }
 .meter i.on { background: var(--ink); }
 .meter i.clip { background: var(--accent); }
 
-/* The board's lower half: Direction, Trigger and Restart, then the slices,
-   their labels on one line and as tall as a switch */
-.pads { display: flex; align-items: flex-start; gap: 10px; padding: 12px 10px; }
-.pads .group { display: flex; flex: none; gap: 8px; padding: 0 10px 0 0; border-right: 1px solid var(--line); }
-.pads .pad { height: 62px; }
-.pads .group .pad { width: 56px; font-size: 16px; }
-.column { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.column > .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; }
-.column.wide { flex: 1; align-items: stretch; text-align: center; }
-.slices { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+/* The 12 pads in one row: record and shift, P00, P01 and restart, the slices */
+.pads { display: flex; gap: 10px; padding: 10px; }
+.pads .group { display: grid; grid-auto-flow: column; grid-auto-columns: 48px; gap: 6px; padding-right: 10px; border-right: 1px solid var(--line); }
+.pads .slices { flex: 1; grid-auto-columns: minmax(0, 1fr); padding-right: 0; border-right: 0; }
+.pads .pad { height: 44px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
+.pad:disabled { color: var(--dim); opacity: 0.5; cursor: default; }
+.pads .pad .sub { text-transform: none; white-space: nowrap; letter-spacing: 0; }
+.pads .group:not(.slices) .pad .sub { display: none; }
 .pad { display: grid; place-content: center; gap: 2px; width: 100%; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { font-size: 10px; color: var(--dim); font-variant-numeric: tabular-nums; }
 .pad.on .sub { color: inherit; opacity: 0.8; }
-.transport .pad .sub { display: none; }
 .pad.playing { border-color: var(--ink); }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 
@@ -101,14 +101,15 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 88px minm
 /* Short or narrow screens: the page scrolls rather than squeezing the controls */
 @media (max-height: 640px), (max-width: 600px) {
   body.app { height: auto; min-height: 100dvh; overflow: auto; }
-  body.app main { grid-template-rows: auto 88px 200px auto auto auto; }
+  body.app main { grid-template-rows: auto 56px 200px auto auto auto; }
 }
 @media (max-width: 600px) {
-  .strip { flex-wrap: wrap; row-gap: 12px; }
-  .cluster { flex-basis: 100%; }
+  .transport { grid-template-columns: 1fr 2fr; }
+  .levels { grid-column: 1 / -1; }
+  .board { overflow-x: auto; }
+  .board-grid { width: 560px; }
   .pads { flex-wrap: wrap; }
   .pads .group { border-right: 0; padding: 0; }
-  .cluster + .cluster { border-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
   .readout { height: auto; }
   .readout .does { white-space: normal; }
 }

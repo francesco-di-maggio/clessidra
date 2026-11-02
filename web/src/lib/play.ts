@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, CONTROLS, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { MAX_RECORD_S, RATE, RECORD_PAD, SLICE_PADS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { LAYER_PAD, MAX_RECORD_S, RATE, RECORD_PAD, SLICE_PADS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { Waveform } from "./waveform";
@@ -57,55 +57,57 @@ const parts = new Map<string, Widget>();
 
 const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
 const add = (w: Widget) => parts.set(w.c.id, w);
-add(pad(byId("P10"), $("record"), "Rec", on));
-// Knobs in the order the sound goes, P11's layer below each. In and Out, the
-// browser's own, either side of the incoming strip.
-function cell(parent: HTMLElement, below = false) {
-  const e = document.createElement("div");
-  e.className = below ? "cell below" : "cell";
-  parent.append(e);
-  return e;
-}
-function level(l: Level, parent: HTMLElement) {
-  const at = cell(parent, true);
-  at.classList.add("level");
+// In and Out, the browser's own, beside the source
+function level(l: Level) {
+  const at = document.createElement("div");
+  at.className = "level";
+  $("levels").append(at);
   add(knob(l, at, on));
   return meter(at, l.name);
 }
-const inMeter = level(LEVELS[0], $("io-in"));
-const outMeter = level(LEVELS[1], $("io-out"));
-const COLUMNS: [string, string[]][] = [
-  ["playhead", ["S30", "S35", "S36"]],
-  ["grain", ["S37", "S31", "S32", "S33"]],
-  ["fx", ["P11+S34"]],
-  ["mix", ["S34"]],
+const inMeter = level(LEVELS[0]);
+const outMeter = level(LEVELS[1]);
+
+// The board's faders, knobs and switches where they sit on it: faders at the
+// edges, S31-S34 above, S30 and S35 below with the switches between. P11's
+// knob small, at the lower right of its own.
+const board = $("board");
+function area(name: string) {
+  const e = document.createElement("div");
+  e.className = "area";
+  e.style.gridArea = name;
+  board.append(e);
+  return e;
+}
+const BOARD: [string, string][] = [
+  ["speed", "S36"], ["density", "S37"],
+  ["size", "S31"], ["shape", "S32"], ["pitch", "S33"], ["mix", "S34"],
+  ["position", "S30"], ["length", "S35"],
 ];
-for (const [cluster, ids] of COLUMNS) {
-  for (const id of ids) {
-    const c = byId(id);
-    const at = cell($(cluster));
-    add(knob(c, at, on));
-    // A fader takes both rows
-    if (c.type === "fader") {
-      at.classList.add("tall");
-      continue;
-    }
-    const below = cell($(cluster), true);
-    const second = CONTROLS.find((c) => c.id === `P11+${id}` && c.short);
-    if (second) add(knob(second, below, on));
+for (const [name, id] of BOARD) {
+  const c = byId(id);
+  const at = area(name);
+  add(knob(c, at, on));
+  if (c.type === "fader") continue;
+  at.classList.add("pair");
+  const second = CONTROLS.find((s) => s.id === `P11+${id}`);
+  if (second) {
+    add(knob(second, at, on));
+    parts.get(second.id)!.root.classList.add("small");
   }
 }
-// The board's lower half: its switches, then the pads
-const column = (label: string) => {
-  const e = document.createElement("div");
-  e.className = "column";
-  e.innerHTML = `<span class="label">${label}</span>`;
-  $("switches").append(e);
-  return e;
-};
-add(segmented(byId("S09"), $("switches"), [[POSITION.up, "Fwd"], [POSITION.centre, "Frz"], [POSITION.down, "Rev"]], on));
-add(segmented(byId("S07"), $("switches"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
-add(pad(byId("P02"), column("Restart"), "↺", on));
+add(segmented(byId("S09"), area("direction"), [[POSITION.up, "Fwd"], [POSITION.centre, "Frz"], [POSITION.down, "Rev"]], on));
+add(segmented(byId("S07"), area("trigger"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
+
+// The 12 pads in one row: record and shift, the free two and restart, the
+// slices
+add(pad(byId("P10"), $("pads-top"), "Rec", on));
+add(pad(byId("P11"), $("pads-top"), "Shift", on));
+for (const id of ["P00", "P01"]) {
+  add(pad(byId(id), $("pads-mid"), id, on));
+  (parts.get(id)!.root as HTMLButtonElement).disabled = true;
+}
+add(pad(byId("P02"), $("pads-mid"), "↺", on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
 
 for (const w of parts.values()) {
@@ -114,9 +116,9 @@ for (const w of parts.values()) {
 }
 hint();
 // Leaving the controls, nothing focused in them: the hint again
-for (const panel of document.querySelectorAll(".io, .strip, .pads")) {
+for (const panel of document.querySelectorAll(".levels, .board, .pads")) {
   panel.addEventListener("pointerleave", () => {
-    if (!document.activeElement?.closest(".io, .strip, .pads")) hint();
+    if (!document.activeElement?.closest(".levels, .board, .pads")) hint();
   });
 }
 
@@ -149,6 +151,7 @@ const touches = new Map<number, Touch>(); // by pad index
 function press(c: Control, down: boolean, e: { pointerId?: number | string; pointerType?: string; pressure?: number }) {
   const who = e.pointerId ?? "key";
   let t = touches.get(c.index);
+  if (c.index === LAYER_PAD) document.body.classList.toggle("shifted", down);
   if (down) {
     if (!t) touches.set(c.index, (t = { since: performance.now(), pointers: new Set(), pen: null, c }));
     t.pointers.add(who);
@@ -163,7 +166,7 @@ function press(c: Control, down: boolean, e: { pointerId?: number | string; poin
   touches.delete(c.index);
   const off = () => {
     if (touches.has(c.index)) return;
-    audio.send({ type: "pad", index: c.index, touched: false, pressure: 0 });
+    if (c.index !== LAYER_PAD) audio.send({ type: "pad", index: c.index, touched: false, pressure: 0 });
     parts.get(c.id)!.draw(0);
   };
   const late = MIN_TOUCH_MS - (performance.now() - t.since);
@@ -173,7 +176,9 @@ function press(c: Control, down: boolean, e: { pointerId?: number | string; poin
 
 function sendPad(t: Touch) {
   const p = t.pen ?? Math.min(1, LIGHT + ((performance.now() - t.since) / 1000 / FIRM_S) * (1 - LIGHT));
-  audio.send({ type: "pad", index: t.c.index, touched: true, pressure: p });
+  // Shift, P11: every second function has its own knob here, so it only shows
+  // them. Sent, the firmware would take the knobs over as the board does.
+  if (t.c.index !== LAYER_PAD) audio.send({ type: "pad", index: t.c.index, touched: true, pressure: p });
   parts.get(t.c.id)!.draw(p);
 }
 
