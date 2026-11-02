@@ -129,11 +129,13 @@ export function pad(c: Control, parent: Element, label: string, h: Handlers): Wi
   };
 }
 
-// A three-way switch as one row of buttons
+// A three-way switch: its name over a column of buttons
 export function segmented(c: Control, parent: Element, options: [number, string][], h: Handlers): Widget {
-  const root = html("div", { class: "segmented", role: "radiogroup", "aria-label": c.name }, parent);
+  const root = html("div", { class: "switch" }, parent);
+  html("span", { class: "label" }, root).textContent = c.name;
+  const group = html("div", { class: "segmented", role: "radiogroup", "aria-label": c.name }, root);
   const buttons = options.map(([position, text]): [number, HTMLButtonElement] => {
-    const b = html("button", { type: "button", role: "radio" }, root);
+    const b = html("button", { type: "button", role: "radio" }, group);
     b.textContent = text;
     b.addEventListener("click", () => h.onInput(c, position));
     b.addEventListener("pointerenter", () => h.onFocus(c));

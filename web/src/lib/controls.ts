@@ -69,7 +69,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Scatter", initial: 0,
-    does: "From periodic and plain to random starts, positions and sizes. Above the centre, random pitch.",
+    does: "Randomness, grain by grain: start times, position (up to ±2 s), size (½ to 2×) and pan. Random pitch joins it when switched on.",
     value: (p) => percent(p[PARAM.jitter]),
   },
   {
@@ -97,7 +97,11 @@ export const CONTROLS: Control[] = [
     does: "Slices at the sound's onsets. A touch plays one, a firm press raises Density.",
     value: (_, v) => (v.slice === i ? "Playing" : ""),
   })),
-  { id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Free", free: true, initial: POSITION.centre },
+  {
+    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Random Pitch", initial: POSITION.up,
+    does: "Random pitch with Scatter: off (up), whole octaves (centre), free up to ±2 octaves (down). Most grains stay near the pitch, a few go far.",
+    value: (p) => (p[PARAM.randPitch] === 0 ? "Off" : `${p[PARAM.octaves] ? "Octaves" : "Free"} ${percent(Math.cbrt(p[PARAM.randPitch]))}`),
+  },
   ...[0, 1, 2, 10].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
 ];
 
