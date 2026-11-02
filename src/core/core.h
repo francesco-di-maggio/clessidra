@@ -71,17 +71,24 @@ class Core
     // ring written on during the copy
     static constexpr float kCopyMarginSeconds = 0.5f;
 
+    // Pads: each plays a slice once, as its own stream of grains, on top of
+    // the playhead
+    static constexpr size_t kNumStrikes = 7;
+    struct Strike
+    {
+        float    start   = 0.0f; // of the sound, 0..1
+        float    end     = 0.0f;
+        float    density = 0.0f; // grains per second
+        uint32_t id      = 0;    // a new id plays it again from its start
+    };
+
     struct Params
     {
         // Selection, 0..1 of the sound
         float start  = 0.0f;
         float length = 1.0f;
         float speed  = 1.0f; // 1 = real time, negative = reverse
-        // where the playhead moves, in selections from its start: a slice can
-        // lie outside the selection
-        float slice_start = 0.0f;
-        float slice_end   = 1.0f;
-        // what the playhead does at the end of the slice
+        // what the playhead does at the end of the selection
         Playhead::End end = Playhead::End::Loop;
         bool  freeze   = false; // the playhead held where it was, speed ignored
         float grain_ms = 100.0f; // grain size
@@ -91,8 +98,8 @@ class Core
         // grains per second on average, up to kMaxDensity
         float density = 80.0f;
         float jitter  = 0.0f; // 0 periodic .. 1 random (Poisson) grain starts
-        // 0..1, position spread: up to half the selection either way, inside
-        // the slice
+        // 0..1, position spread: up to half the selection or slice either
+        // way, inside it
         float rand_pos = 0.0f;
         // 0..1: most grains near the pitch, a few up to kRandPitchSemitones off
         float rand_pitch = 0.0f;
@@ -107,6 +114,7 @@ class Core
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
+        std::array<Strike, kNumStrikes> strikes{};
     };
 
     // ring: ring_size floats. buffers: kNumBuffers of buffer_size floats, the
@@ -128,8 +136,8 @@ class Core
         slots_[next]      = p;
         slot_.store(next, std::memory_order_release);
     }
-    // Main loop, after SetParams(). The playhead from the start of the slice,
-    // at the next block.
+    // Main loop, after SetParams(). The playhead from the start of the
+    // selection, at the next block.
     void Restart() { restart_.store(true, std::memory_order_relaxed); }
     // Main loop: true while the record pad is held
     void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
@@ -157,14 +165,22 @@ class Core
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
     double        PlayheadPhase() const { return stream_.phase; }
+    // A strike sounding, and where it is in its slice, 0..1
+    bool   StrikeOn(size_t i) const { return strikes_[i].on; }
+    double StrikePhase(size_t i) const { return strikes_[i].phase; }
 
   private:
-    // The playhead over the selection
+    // The playhead over the selection, or a strike over its slice
     struct Stream
     {
         double phase       = 0.0;  // through its span, 0..1
         double sched_phase = 0.0;  // grain starts, 1 = mean interval
         float  sched_next  = 1.0f; // phase of the next start
+    };
+    struct StrikeStream : Stream
+    {
+        uint32_t id = 0;
+        bool     on = false;
     };
 
     // Where a grain reads
@@ -193,6 +209,8 @@ class Core
     // recording to the buffer not playing once its grains have ended, then
     // plays it
     void UpdateCapture(size_t size);
+    // Advances a stream's grain starts by one sample; true when a grain starts
+    bool Due(Stream& s, double sched_inc, float jitter);
     // Updates norm_ from the mean powers of the last block
     void  Normalise(float  power_grains,
                     float  power_sum,
@@ -222,13 +240,14 @@ class Core
 
     // Grains. Running positions in double: float steps reach 1/32 sample at 8
     // s.
-    std::array<Grain, kNumVoices> grains_;
-    Stream                        stream_;
-    Playhead                      playhead_;
-    std::atomic<bool>             restart_{false};
-    std::atomic<bool>             ended_{false};
-    uint32_t                      seed_ = 1;
-    std::atomic<float>            grain_level_{0.0f};
+    std::array<Grain, kNumVoices>         grains_;
+    Stream                                stream_;
+    std::array<StrikeStream, kNumStrikes> strikes_;
+    Playhead                              playhead_;
+    std::atomic<bool>                     restart_{false};
+    std::atomic<bool>                     ended_{false};
+    uint32_t                              seed_ = 1;
+    std::atomic<float>                    grain_level_{0.0f};
 
     // Level. Mean powers, smoothed: grains taken separately, their stereo sum,
     // their windows.

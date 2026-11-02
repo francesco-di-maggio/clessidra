@@ -6,7 +6,7 @@ const RATE = 48000;
 const BLOCK = 128;
 const KNOB = { S30: 0, S31: 1, S32: 2, S33: 3, S34: 4, S35: 5, S36: 6, S37: 7 };
 const RECORD = 10; // CoreUI::kRecordPad
-const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, slice: 4, edges: 5 };
+const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, edges: 4, strikes: 12 };
 
 let failed = 0;
 function check(ok, what, value) {
@@ -48,13 +48,13 @@ function run(seconds, input = pluck) {
   return { peak, finite };
 }
 
-const view = () => f32(w.cl_view(), 13);
+const view = () => f32(w.cl_view(), 19);
 const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_grain_fields() + g * 16, 4)[0]);
 const silence = () => 0;
 
 // Panel: speed 1, size at its centre, pitch unison, whole selection, Pour in
 // the middle
-w.cl_knob(KNOB.S36, 0.75);
+w.cl_knob(KNOB.S36, 0.5);
 w.cl_knob(KNOB.S31, 0.5);
 w.cl_knob(KNOB.S33, 0.5);
 w.cl_knob(KNOB.S30, 0);
@@ -95,7 +95,7 @@ w.cl_knob(KNOB.S35, 0.25);
 run(1, silence);
 v = view();
 check(Math.abs(v[V.selStart] / v[V.sound] - 0.25) < 1e-3 && Math.abs(v[V.selLength] / v[V.sound] - 0.5) < 1e-3, "S30 above S35: the selection between them");
-const grainSamples = (f32(w.cl_params(), 13)[4] / 1000) * RATE;
+const grainSamples = (f32(w.cl_params(), 14)[4] / 1000) * RATE;
 const held = grains();
 const inside = held.every((x) => {
   const at = x * v[V.sound];
@@ -103,8 +103,16 @@ const inside = held.every((x) => {
 });
 check(held.length > 0 && inside, "grains inside the selection", held.length);
 
-const params = f32(w.cl_params(), 13);
-check(Math.abs(params[0] - 1) < 1e-6, "Tilt at three quarters: speed 1", params[0]);
+const params = f32(w.cl_params(), 14);
+check(Math.abs(params[0] - 1) < 1e-6, "Speed at the centre: 1", params[0]);
+
+// A slice pad: its strike sounds inside its slice
+w.cl_pad(3, 1, 0.8);
+run(0.1, silence);
+v = view();
+const at = v[V.strikes];
+check(at >= v[V.edges] && at <= v[V.edges + 1], "P03: a strike in slice 1", (at / RATE).toFixed(2));
+w.cl_pad(3, 0, 0);
 check(w.cl_led(Math.floor(now)) >= 0, "LED in range");
 
 if (failed) {

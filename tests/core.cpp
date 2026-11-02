@@ -172,7 +172,7 @@ struct Panel
         c.knobs[Controls::S32] = 0.0f;
         c.knobs[Controls::S34] = 1.0f;
         c.knobs[Controls::S35] = 1.0f;
-        c.knobs[Controls::S36] = 0.75f;
+        c.knobs[Controls::S36] = 0.5f;
         c.knobs[Controls::S37] = 0.75f;
         c.switches             = {Controls::Up, Controls::Centre};
     }
@@ -409,7 +409,7 @@ void Fuzz()
     panel.c.knobs[Controls::S32]    = 0.0f;
     panel.c.knobs[Controls::S33]    = 0.5f;
     panel.c.knobs[Controls::S35]    = 1.0f;
-    panel.c.knobs[Controls::S36]    = 0.75f;
+    panel.c.knobs[Controls::S36]    = 0.5f;
     panel.c.knobs[Controls::S37]    = 0.75f;
     panel.c.switches[Controls::S07] = Controls::Down;
     panel.c.touched.fill(false);
@@ -423,10 +423,12 @@ void Fuzz()
     Rig          zero(1.0);
     Core::Params none;
     zero.Fill(Sine);
-    none.slice_start = none.slice_end = 0.5f;
+    none.strikes[0] = {0.5f, 0.5f, Core::kMaxDensity, 1};
     zero.core.SetParams(none);
     zero.Run(0.5, Sine);
-    Check(zero.finite, "a slice without width: output finite", 1.0);
+    Check(zero.finite && !zero.core.StrikeOn(0),
+          "a slice without width: silent, output finite",
+          1.0);
 }
 
 // One grain of 1000 samples over a buffer of ones: its window, sample by
@@ -568,25 +570,26 @@ void Ends()
     Check(
         sounding() > 0, "one-shot: restart sounds again (grains)", sounding());
 
-    // Every slice lasts the same
-    auto duration = [&r, &p, &sounding](float start) {
-        p.slice_start = start;
-        p.slice_end   = start + 1.0f / 7.0f;
+    // A strike plays its slice once, at the playhead's speed: 1/7 of 1 s
+    p.end         = Playhead::End::Loop;
+    p.density     = 0.0f;
+    auto duration = [&r, &p](float start, uint32_t id) {
+        p.strikes[0] = {start, start + 1.0f / 7.0f, 50.0f, id};
         r.core.SetParams(p);
-        r.core.Restart();
         double seconds = 0.0;
-        for(int i = 0; i < 300 && (i < 2 || sounding() > 0); i++)
+        r.Run(0.01, Silence);
+        while(r.core.StrikeOn(0) && seconds < 1.0)
         {
-            r.Run(0.01, Silence);
-            seconds += 0.01;
+            r.Run(0.001, Silence);
+            seconds += 0.001;
         }
-        return seconds;
+        return seconds + 0.01;
     };
-    const double first = duration(0.0f);
-    const double last  = duration(6.0f / 7.0f);
-    Check(Near(first, last, 0.02),
-          "one-shot: first and last slice last the same (s)",
-          last - first);
+    const double first = duration(0.0f, 1);
+    const double last  = duration(6.0f / 7.0f, 2);
+    Check(Near(first, 1.0 / 7.0, 0.005) && Near(last, first, 0.002),
+          "strike: once through its slice, each as long (s)",
+          first);
 }
 
 // L/R correlation of grains from different parts of the sound
@@ -697,7 +700,7 @@ void Mapping()
     c.knobs[Controls::S30] = 0.0f;
     c.knobs[Controls::S32] = 0.0f;
     c.knobs[Controls::S35] = 1.0f;
-    c.knobs[Controls::S36] = 0.75f;
+    c.knobs[Controls::S36] = 0.5f;
     c.knobs[Controls::S37] = 0.0f;
     c.switches             = {Controls::Up, Controls::Up};
     ui.Process(c, r.core);
@@ -705,7 +708,7 @@ void Mapping()
     Check(p.density == 0.0f, "S37 bottom: closed", p.density);
     Check(Near(p.pitch, 1.0, 1e-6), "S33 centre: pitch (ratio)", p.pitch);
     Check(Near(p.speed, 1.0, 1e-6) && !p.freeze,
-          "S36 half way up: speed 1",
+          "S36 centre, S09 up: speed 1 forward",
           p.speed);
     Check(p.jitter == 0.0f && p.rand_pos == 0.0f && p.rand_pitch == 0.0f
               && p.spread == 0.0f,
@@ -725,7 +728,7 @@ void Mapping()
     c.knobs[Controls::S30] = 0.0f;
     c.knobs[Controls::S35] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.end == Playhead::End::OneShot, "S07 up: one-shot", int(p.end));
+    Check(p.end == Playhead::End::Loop, "the playhead loops", int(p.end));
 
     c.knobs[Controls::S37] = 0.1f;
     ui.Process(c, r.core);
@@ -794,13 +797,20 @@ void Mapping()
     c.knobs[Controls::S34] = 0.5f;
     ui.Process(c, r.core);
 
-    c.knobs[Controls::S36] = 0.25f;
+    c.knobs[Controls::S36] = 1.0f;
     ui.Process(c, r.core);
-    Check(Near(p.speed, -1.0, 1e-6), "S36 half way down: speed -1", p.speed);
-    c.knobs[Controls::S36] = 0.5f;
+    Check(Near(p.speed, 4.0, 1e-6), "S36 top: 4 times", p.speed);
+    c.knobs[Controls::S36] = 0.0f;
     ui.Process(c, r.core);
-    Check(p.freeze, "S36 centre: stop", p.speed);
-    c.knobs[Controls::S36] = 0.75f;
+    Check(p.freeze, "S36 bottom: stopped", p.speed);
+    c.knobs[Controls::S36]    = 0.5f;
+    c.switches[Controls::S09] = Controls::Down;
+    ui.Process(c, r.core);
+    Check(Near(p.speed, -1.0, 1e-6), "S09 down: reverse", p.speed);
+    c.switches[Controls::S09] = Controls::Centre;
+    ui.Process(c, r.core);
+    Check(p.freeze, "S09 centre: freeze", p.speed);
+    c.switches[Controls::S09] = Controls::Up;
 
     c.knobs[Controls::S33] = 0.5f + 2.0f / 14.0f; // on the 1 semitone stop
     ui.Process(c, r.core);
@@ -823,9 +833,23 @@ void Mapping()
         p.rand_pitch == 1.0f, "S32: pitch scatter stays its own", p.rand_pitch);
     c.knobs[Controls::S32] = 0.0f;
 
-    c.switches[Controls::S07] = Controls::Down;
+    // P11 + S32: tone, off at the centre, picked up there
+    c.knobs[Controls::S32] = 0.0f;
     ui.Process(c, r.core);
-    Check(p.end == Playhead::End::Loop, "S07 down: loop", int(p.end));
+    c.touched[CoreUI::kLayerPad] = true;
+    c.knobs[Controls::S32]       = 0.5f;
+    ui.Process(c, r.core);
+    c.knobs[Controls::S32] = 0.0f;
+    ui.Process(c, r.core);
+    Check(p.tone == -1.0f && p.jitter == 0.0f,
+          "P11 + S32 down: low-pass, scatter stays",
+          p.tone);
+    c.knobs[Controls::S32] = 0.5f;
+    ui.Process(c, r.core);
+    Check(p.tone == 0.0f, "P11 + S32 centre: tone off", p.tone);
+    c.touched[CoreUI::kLayerPad] = false;
+    c.knobs[Controls::S32]       = 0.0f;
+    ui.Process(c, r.core);
 
     // The LED glows with the grains
     c.knobs[Controls::S37] = 0.8f;
@@ -839,27 +863,37 @@ void Mapping()
     const float led = ui.Led(ms + 1000, r.core);
     Check(Near(led, 0.6 * 0.6 * 0.6, 0.01), "LED: dim glow with grains", led);
 
-    // A slice: a light touch only starts it, a firm press opens Pour
+    // A slice pad: a strike of its own, the playhead untouched. Pressure sets
+    // its density.
     const float  density = p.density;
+    const double phase   = r.core.PlayheadPhase();
     const size_t place   = CoreUI::kSlicePads[3];
     c.pressure[place]    = 0.3f;
     press(place, true);
-    Check(p.density == density,
-          "slice touched lightly: pour unchanged",
-          p.density);
     r.Run(0.001, Silence);
-    Check(Near(r.core.PlayheadPhase(), p.slice_start, 0.01),
-          "slice touched: the playhead moves to its start (phase)",
+    Check(p.density == density && r.core.StrikeOn(3)
+              && p.strikes[3].density > 0.0f && p.strikes[3].density < 10.0f,
+          "slice touched lightly: a sparse strike, the playhead as it was",
+          p.strikes[3].density);
+    Check(std::fabs(r.core.PlayheadPhase() - phase) < 0.01,
+          "slice touched: the playhead goes on",
           r.core.PlayheadPhase());
     c.pressure[place] = 1.0f;
     ui.Process(c, r.core);
-    Check(Near(p.density, Core::kMaxDensity, 0.01),
-          "slice pressed hard: pour wide open",
-          p.density);
+    Check(Near(p.strikes[3].density, Core::kMaxDensity, 0.01),
+          "slice pressed hard: the strike at the most density",
+          p.strikes[3].density);
     press(place, false);
-    Check(p.slice_end == 1.0f,
-          "released, in loop: the whole selection",
-          p.slice_end);
+    Check(p.strikes[3].density > 0.0f,
+          "released: the strike goes on to its end",
+          p.strikes[3].density);
+    c.switches[Controls::S09] = Controls::Centre;
+    ui.Process(c, r.core);
+    Check(p.strikes[3].density == 0.0f,
+          "released while frozen: the strike stops",
+          p.strikes[3].density);
+    c.switches[Controls::S09] = Controls::Up;
+    ui.Process(c, r.core);
 
     // Detent pulse: on reaching the centre, renewed while turned within it
     c.knobs[Controls::S33] = 0.4f;

@@ -47,23 +47,32 @@ void Core::Process(const float* const* in, float** out, size_t size)
 
     if(p.freeze)
         playhead_.Resume();
-    const double low  = p.slice_start;
-    const double high = p.slice_end;
     if(restart_.exchange(false, std::memory_order_relaxed))
     {
         playhead_.Restart();
-        stream_.phase = p.speed < 0.0f ? std::nextafter(high, low) : low;
+        stream_.phase = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
         // With a grain at once
         stream_.sched_phase = stream_.sched_next;
     }
+    // A new strike: from the start of its slice, with a grain at once
+    for(size_t s = 0; s < kNumStrikes; s++)
+    {
+        const Strike& strike = p.strikes[s];
+        StrikeStream& state  = strikes_[s];
+        if(strike.id == state.id)
+            continue;
+        state.id          = strike.id;
+        state.on          = strike.end > strike.start && len > 0.0;
+        state.phase       = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
+        state.sched_phase = state.sched_next;
+    }
 
-    // Outside Loop, the last grains stay inside the slice
-    const double margin = std::min(grain_samples * std::fabs(p.pitch) / sel_len,
-                                   0.25 * (high - low));
+    // Outside Loop, the last grains stay inside the selection
+    const double margin
+        = std::min(grain_samples * std::fabs(p.pitch) / sel_len, 0.25);
     const double play_inc
         = p.freeze ? 0.0 : p.speed / sel_len; // phase per sample
-    // grain starts per sample
-    const double sched_inc = density / sample_rate_;
+    const bool backwards = !p.freeze && playhead_.IsBackward(play_inc);
 
     // Grain starts in this block, at the sample they fall on. A voice that ends
     // in this block is free from the next.
@@ -71,25 +80,41 @@ void Core::Process(const float* const* in, float** out, size_t size)
     {
         if(!p.freeze)
             stream_.phase = playhead_.Step(
-                stream_.phase, play_inc, p.end, low, high, margin);
-        if(playhead_.IsStopped())
-            continue;
-
-        stream_.sched_phase += sched_inc;
-        if(stream_.sched_phase >= stream_.sched_next)
+                stream_.phase, play_inc, p.end, 0.0, 1.0, margin);
+        if(!playhead_.IsStopped()
+           && Due(stream_, density / sample_rate_, p.jitter))
         {
-            stream_.sched_phase -= stream_.sched_next;
-            const Source source = {sel_start,
-                                   sel_len,
-                                   stream_.phase,
-                                   low,
-                                   high,
-                                   !p.freeze && playhead_.IsBackward(play_inc)};
+            const Source source
+                = {sel_start, sel_len, stream_.phase, 0.0, 1.0, backwards};
             Trigger(p, source, &sound, i);
-            stream_.sched_next = Interval(p.jitter);
-            // At most one start per sample
-            stream_.sched_phase
-                = std::min(stream_.sched_phase, double(stream_.sched_next));
+        }
+
+        // Strikes: once through their slice, at the playhead's speed
+        for(size_t s = 0; s < kNumStrikes; s++)
+        {
+            StrikeStream& state = strikes_[s];
+            if(!state.on)
+                continue;
+            const Strike& strike = p.strikes[s];
+            const double  slice
+                = std::max(double(strike.end - strike.start) * len, 1.0);
+            state.phase += p.freeze ? 0.0 : p.speed / slice;
+            if(state.phase < 0.0 || state.phase >= 1.0)
+            {
+                state.on = false;
+                continue;
+            }
+            const float strike_density
+                = std::clamp(strike.density, 0.0f, kMaxDensity);
+            if(!Due(state, strike_density / sample_rate_, p.jitter))
+                continue;
+            const Source source = {double(strike.start) * len,
+                                   slice,
+                                   state.phase,
+                                   0.0,
+                                   1.0,
+                                   p.speed < 0.0f};
+            Trigger(p, source, &sound, i);
         }
     }
 
@@ -331,6 +356,18 @@ void Core::Trigger(const Params& p,
     }
     if(furthest)
         furthest->FadeOut(size_t(kFadeSeconds * sample_rate_));
+}
+
+bool Core::Due(Stream& s, double sched_inc, float jitter)
+{
+    s.sched_phase += sched_inc;
+    if(s.sched_phase < s.sched_next)
+        return false;
+    s.sched_phase -= s.sched_next;
+    s.sched_next = Interval(jitter);
+    // At most one start per sample
+    s.sched_phase = std::min(s.sched_phase, double(s.sched_next));
+    return true;
 }
 
 float Core::Interval(float jitter)

@@ -25,6 +25,7 @@ class CoreUI
     // faceplate, top to bottom within a column
     static constexpr size_t kSlicePads[] = {3, 4, 8, 5, 6, 9, 7};
     static_assert(std::size(kSlicePads) == kNumSlices);
+    static_assert(kNumSlices == Core::kNumStrikes);
 
     // of the recording: the shortest selection
     static constexpr float kMinLength  = 0.01f;
@@ -32,6 +33,7 @@ class CoreUI
     static constexpr float kMaxGrainMs = 4000.0f;
     // Second layer at power-up: Hann, some reverb
     static constexpr float kShapeStart  = 0.5f;
+    static constexpr float kToneStart   = 0.5f; // off
     static constexpr float kReverbStart = 0.25f;
     // S32 at the top: grains this far either way from the playhead
     static constexpr float kMaxScatterSeconds = 2.0f;
@@ -39,6 +41,8 @@ class CoreUI
     static constexpr float kStopWidth = 0.04f;
     // pad pressure above a light touch (Pads: measured 0.3-0.5)
     static constexpr float kPressFrom = 0.5f;
+    // A strike's density: Density's travel at a light touch, the top when firm
+    static constexpr float kStrikeFrom = 0.5f;
 
     // LED
     // brightness while grains play, below the pulse
@@ -63,25 +67,24 @@ class CoreUI
     {
         layers_.SetSecond(knob, value);
     }
-    // For displays: slice edges, of the recording, and the slice playing
+    // For displays: slice edges, of the recording
     const std::array<float, kNumSlices + 1>& Slices() const { return slices_; }
-    size_t Slice() const { return slice_; } // kNumSlices: the whole selection
 
   private:
     void EqualSlices();
 
-    std::array<bool, kNumSlices> slice_touched_{};
-    size_t                       slice_ = kNumSlices; // the whole selection
-    std::array<float, kNumSlices + 1> slices_{};      // edges, of the recording
-    uint32_t                          recordings_ = 0;
-    bool                              record_     = false;
-    bool                              layer_      = false;
-    Layers                            layers_;
+    std::array<bool, kNumSlices>         slice_touched_{};
+    std::array<Core::Strike, kNumSlices> strikes_{};
+    std::array<float, kNumSlices + 1>    slices_{}; // edges, of the recording
+    uint32_t                             recordings_ = 0;
+    bool                                 record_     = false;
+    bool                                 layer_      = false;
+    Layers                               layers_;
     // LED. Times in ms, shown until they pass.
     uint32_t pulse_until_ = 0;
-    // Pitch unison, stop, speed 1, grain size centre: there, and the knob when
-    // the pulse last started
-    static constexpr size_t        kNumDetents = 4;
+    // Pitch unison, speed 1, grain size centre: there, and the knob when the
+    // pulse last started
+    static constexpr size_t        kNumDetents = 3;
     std::array<bool, kNumDetents>  at_detent_{};
     std::array<float, kNumDetents> detent_knob_{};
     bool                           detents_ready_ = false;

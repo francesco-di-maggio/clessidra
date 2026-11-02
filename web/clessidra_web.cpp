@@ -38,9 +38,9 @@ enum View : size_t
     kSelectionStart,
     kSelectionLength,
     kPlayhead,
-    kSlice, // kNumSlices: the whole selection
     kSliceEdges,
-    kNumView = kSliceEdges + kNumSlices + 1
+    kStrikes = kSliceEdges + kNumSlices + 1, // where each is, -1 when silent
+    kNumView = kStrikes + Core::kNumStrikes
 };
 float view[kNumView];
 
@@ -64,6 +64,7 @@ enum Param : size_t
     kStart,
     kLength,
     kMix,
+    kTone,
     kNumParams
 };
 float params[kNumParams];
@@ -176,9 +177,16 @@ EXPORT const float* cl_view()
     view[kSelectionStart]  = float(sel_start);
     view[kSelectionLength] = float(sel_length);
     view[kPlayhead] = float(sel_start + core.PlayheadPhase() * sel_length);
-    view[kSlice]    = float(ui.Slice());
     for(size_t i = 0; i <= kNumSlices; i++)
         view[kSliceEdges + i] = float(ui.Slices()[i] * sound);
+    for(size_t i = 0; i < Core::kNumStrikes; i++)
+    {
+        const Core::Strike& s = p.strikes[i];
+        view[kStrikes + i]
+            = core.StrikeOn(i) ? float(
+                  (s.start + core.StrikePhase(i) * (s.end - s.start)) * sound)
+                               : -1.0f;
+    }
     return view;
 }
 
@@ -224,5 +232,6 @@ EXPORT const float* cl_params()
     params[kStart]        = p.start;
     params[kLength]       = p.length;
     params[kMix]          = p.mix;
+    params[kTone]         = p.tone;
     return params;
 }

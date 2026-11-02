@@ -56,6 +56,7 @@ CoreUI::CoreUI()
 {
     EqualSlices();
     layers_.Add(Controls::S31, kShapeStart);
+    layers_.Add(Controls::S32, kToneStart);
     layers_.Add(Controls::S33, 0.0f);
     layers_.Add(Controls::S34, kReverbStart);
 }
@@ -70,7 +71,6 @@ void CoreUI::EqualSlices()
 void CoreUI::Process(const Controls& c, Core& core)
 {
     Core::Params p;
-    bool         restart = false;
 
     // P11 held: the second layer
     layer_ = c.touched[kLayerPad];
@@ -102,56 +102,44 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.mix    = knob(Controls::S34);
     p.reverb = layers_.Second(Controls::S34);
 
-    // S36, Tilt: centre stop, up forward, down backward, further faster. Speed
-    // 1 half way, with a detent.
-    const float tilt     = 2.0f * knob(Controls::S36) - 1.0f;
-    const float amount   = std::fabs(tilt);
-    p.freeze             = amount < kStopWidth;
-    const float speed    = Detent(amount, 0.05f);
-    p.speed              = (tilt < 0.0f ? -4.0f : 4.0f) * speed * speed;
-    const bool speed_one = speed == 0.5f;
+    // S36, speed: 0 to 4 times, 1 at the centre, with a detent. S09,
+    // direction: up forward, centre freeze, down reverse.
+    const float              speed     = Detent(knob(Controls::S36), 0.05f);
+    const bool               speed_one = speed == 0.5f;
+    const Controls::Position way       = c.switches[Controls::S09];
+    p.freeze = way == Controls::Centre || speed == 0.0f;
+    p.speed  = (way == Controls::Down ? -4.0f : 4.0f) * speed * speed;
+    p.end    = Playhead::End::Loop;
 
-    // S07: up one-shot, centre turn, down loop
-    const Controls::Position end = c.switches[Controls::S07];
-    p.end                        = end == Controls::Up
-                ? Playhead::End::OneShot
-                : end == Controls::Centre ? Playhead::End::PingPong
-                                          : Playhead::End::Loop;
+    // S37, Density: the playhead's grains per second
+    p.density = Density(knob(Controls::S37));
 
-    // A touched slice: the playhead moves inside it, from its start. Released,
-    // the whole selection again, once a one-shot has finished its slice.
-    float press   = 0.0f;
-    bool  touched = false;
+    // P03-P09: each touch plays its slice once, its own stream of grains.
+    // Pressure sets its density. Released, it goes on to the end of its
+    // slice, unless frozen.
     for(size_t i = 0; i < kNumSlices; i++)
     {
-        const size_t pad = kSlicePads[i];
+        const size_t  pad    = kSlicePads[i];
+        Core::Strike& strike = strikes_[i];
         if(c.touched[pad] && !slice_touched_[i])
         {
-            slice_  = i;
-            restart = true;
+            strike.id++;
+            strike.start = slices_[i];
+            strike.end   = slices_[i + 1];
         }
         slice_touched_[i] = c.touched[pad];
         if(c.touched[pad])
         {
-            touched = true;
-            press   = std::max(press, c.pressure[pad]);
+            const float firm = std::clamp((c.pressure[pad] - kPressFrom)
+                                              / (1.0f - kPressFrom),
+                                          0.0f,
+                                          1.0f);
+            strike.density = Density(kStrikeFrom + (1.0f - kStrikeFrom) * firm);
         }
+        else if(p.freeze)
+            strike.density = 0.0f;
     }
-    const bool finishing = p.end == Playhead::End::OneShot && !core.HasEnded();
-    if(!touched && !finishing)
-        slice_ = kNumSlices;
-    if(slice_ < kNumSlices)
-    {
-        // At the sound's onsets, in selections from the selection's start
-        p.slice_start = (slices_[slice_] - p.start) / p.length;
-        p.slice_end   = (slices_[slice_ + 1] - p.start) / p.length;
-    }
-
-    // S37, Density, raised further by a firm press on a slice
-    const float firm
-        = std::clamp((press - kPressFrom) / (1.0f - kPressFrom), 0.0f, 1.0f);
-    const float fader = knob(Controls::S37);
-    p.density         = Density(fader + firm * firm * (1.0f - fader));
+    p.strikes = strikes_;
 
     // S31: grain size, exponential, kMinGrainMs to kMaxGrainMs, at most half
     // the sound. P11 + S31: window shape.
@@ -176,21 +164,20 @@ void CoreUI::Process(const Controls& c, Core& core)
         = seconds > 0.0f
               ? std::min(2.0f * scatter_seconds / (p.length * seconds), 1.0f)
               : 0.0f;
+    // P11 + S32: tone, low-pass down, high-pass up, off at the centre
+    p.tone = 2.0f * Detent(layers_.Second(Controls::S32), 0.05f) - 1.0f;
+
     // P11 + S33: pitch scatter, cubic: fine near 0
     const float pitch_scatter = layers_.Second(Controls::S33);
     p.rand_pitch              = pitch_scatter * pitch_scatter * pitch_scatter;
 
     core.SetParams(p);
-    if(restart)
-        core.Restart();
+
 
     // Reaching a detent, or turning within it: a pulse
-    const std::array<bool, kNumDetents> at
-        = {unison, p.freeze, speed_one, size_centre};
-    const std::array<float, kNumDetents> knobs = {knob(Controls::S33),
-                                                  knob(Controls::S36),
-                                                  knob(Controls::S36),
-                                                  knob(Controls::S31)};
+    const std::array<bool, kNumDetents>  at = {unison, speed_one, size_centre};
+    const std::array<float, kNumDetents> knobs
+        = {knob(Controls::S33), knob(Controls::S36), knob(Controls::S31)};
     if(!detents_ready_)
     {
         // Power-up: no pulse
