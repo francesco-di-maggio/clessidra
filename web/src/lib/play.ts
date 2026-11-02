@@ -82,7 +82,14 @@ const COLUMNS: [string, string[]][] = [
 ];
 for (const [cluster, ids] of COLUMNS) {
   for (const id of ids) {
-    add(knob(byId(id), cell($(cluster)), on));
+    const c = byId(id);
+    const at = cell($(cluster));
+    add(knob(c, at, on));
+    // A fader takes both rows
+    if (c.type === "fader") {
+      at.classList.add("tall");
+      continue;
+    }
     const below = cell($(cluster), true);
     const second = CONTROLS.find((c) => c.id === `P11+${id}` && c.short);
     if (second) add(knob(second, below, on));

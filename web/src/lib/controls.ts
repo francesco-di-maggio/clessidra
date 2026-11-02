@@ -48,7 +48,7 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 export const CONTROLS: Control[] = [
   {
     id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.5,
-    does: "How fast the playhead moves, 0 to 4×, 1× at the centre.",
+    does: "How fast the playhead moves, 0 to 4×, 1× at the centre, a tape stop at the bottom.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
   },
   {

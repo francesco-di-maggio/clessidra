@@ -50,9 +50,9 @@ function arc(from: number, to: number) {
 // click for the starting value. Bipolar knobs fill from their centre. A fader
 // on the board is drawn as one.
 export function knob(c: Control, parent: Element, h: Handlers): Widget {
-  const root = html("div", { class: "knob", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
+  const root = html("div", { class: c.type === "fader" ? "knob fader" : "knob", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
   html("span", { class: "label" }, root).textContent = c.short ?? c.name;
-  const dial = svg("svg", { viewBox: "0 0 56 56", "aria-hidden": "true" }, root);
+  const dial = svg("svg", { viewBox: c.type === "fader" ? `0 0 24 ${FADER.height}` : "0 0 56 56", "aria-hidden": "true" }, root);
   const value = html("span", { class: "value" }, root);
   value.textContent = "–";
   let v = c.initial ?? 0;
@@ -93,17 +93,19 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
   return { c, root, draw: show, value: (text) => (value.textContent = text) };
 }
 
-// A fader: its slot, filled from the bottom or, bipolar, the centre (marked),
-// and a cap
-const FADER = { top: 8, bottom: 48 };
+// A fader, as tall as a knob and its second layer: its slot, filled from the
+// bottom or, bipolar, the centre, and a cap. The centre marked: both faders
+// stop there (Speed 1×, Density off).
+const FADER = { height: 112, top: 6, bottom: 106 };
 function faderDrawing(c: Control, dial: SVGSVGElement) {
-  svg("line", { class: "track", x1: 28, x2: 28, y1: FADER.top, y2: FADER.bottom }, dial);
-  if (c.bipolar) svg("line", { class: "track", x1: 21, x2: 35, y1: 28, y2: 28 }, dial);
-  const fill = svg("line", { class: "fill", x1: 28, x2: 28 }, dial);
-  const cap = svg("rect", { class: "cap", x: 18, width: 20, height: 7, rx: 2 }, dial);
+  const mid = (FADER.top + FADER.bottom) / 2;
+  svg("line", { class: "track", x1: 12, x2: 12, y1: FADER.top, y2: FADER.bottom }, dial);
+  svg("line", { class: "track", x1: 4, x2: 20, y1: mid, y2: mid }, dial);
+  const fill = svg("line", { class: "fill", x1: 12, x2: 12 }, dial);
+  const cap = svg("rect", { class: "cap", x: 2, width: 20, height: 7, rx: 2 }, dial);
   return (x: number) => {
     const y = FADER.bottom - x * (FADER.bottom - FADER.top);
-    const from = c.bipolar ? (FADER.top + FADER.bottom) / 2 : FADER.bottom;
+    const from = c.bipolar ? mid : FADER.bottom;
     fill.setAttribute("y1", String(from));
     fill.setAttribute("y2", String(y));
     cap.setAttribute("y", String(y - 3.5));
