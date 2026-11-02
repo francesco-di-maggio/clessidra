@@ -44,4 +44,9 @@ web: wasm
 web-dev: wasm
 	npm --prefix web run dev
 
-.PHONY: test wasm web web-dev
+# The manual: the manual page of the built site, printed to
+# web/public/clessidra-manual.pdf. Run after changing the controls, then make web.
+manual: web
+	@node web/manual.mjs
+
+.PHONY: test wasm web web-dev manual
