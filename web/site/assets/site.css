@@ -1,0 +1,116 @@
+/* Clessidra: the site's own parts. The family's shared base comes from francescodimaggio.nl/style/v1/. */
+.mark svg path { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
+nav a[aria-current] { color: var(--ink); }
+h2.label { scroll-margin-top: 16px; }
+.lead { text-wrap: pretty; }
+
+/* Facts: a key column and its value, as in the family's facts panel */
+.meta dt { color: var(--dim); font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* Tables keep their columns on phones: they scroll inside the panel, the page does not */
+.table { overflow-x: auto; padding: 0 14px; }
+.table table { min-width: 100%; }
+.table td:first-child, .table th:first-child { white-space: nowrap; }
+.table code { white-space: nowrap; }
+.table td.num, .table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.caption.after { margin: -2px 0 0; }
+
+/* Diagrams: inline SVG in ink and grey, the accent only for what is on */
+.figure { margin: 0; padding: 14px; }
+.figure svg { display: block; width: 100%; height: auto; overflow: visible; }
+.figure text { font: 500 11px var(--mono); letter-spacing: 0.06em; fill: var(--dim); }
+.figure text.name { font: 600 13px var(--sans); letter-spacing: 0; fill: var(--ink); }
+.figure .box { fill: var(--surface); stroke: var(--ink); stroke-width: 1.2; }
+.figure .box.on { fill: var(--ink); }
+.figure .box.on + text.name, .figure text.name.inv { fill: var(--surface); }
+.figure .line { fill: none; stroke: var(--ink); stroke-width: 1.2; }
+.figure .dim { fill: none; stroke: var(--dim); stroke-width: 1; }
+.figure .dash { stroke-dasharray: 3 3; }
+.figure .fillink { fill: var(--ink); stroke: none; }
+.figure .filldim { fill: var(--line); stroke: none; }
+.figure .accent { stroke: var(--accent); }
+.figure .fillaccent { fill: var(--accent); stroke: none; }
+.figure figcaption, .figure .caption { margin-top: 10px; }
+
+/* Play: the view and the panel side by side where there is room */
+body.wide { max-width: 1120px; }
+.instrument { display: grid; gap: 10px; align-items: start; }
+@media (min-width: 960px) {
+  .instrument { grid-template-columns: minmax(0, 1fr) 420px; grid-template-areas: "stack side" "notes side"; }
+  .instrument > .stack:first-child { grid-area: stack; }
+  .instrument .notes { grid-area: notes; }
+  .instrument .side { grid-area: side; position: sticky; top: 12px; }
+}
+.notes > h2.label:first-child { margin-top: 0; }
+.stack { display: grid; gap: 10px; min-width: 0; }
+.view { padding: 0; overflow: hidden; }
+.view canvas { display: block; width: 100%; height: 260px; touch-action: pan-y; }
+.view .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; height: 40px; padding: 0 14px; border-bottom: 1px solid var(--line); }
+.view .bar .label { display: flex; align-items: center; gap: 8px; }
+.led { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--line); background: var(--accent); opacity: 0; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); }
+.dot.on { background: var(--accent); }
+
+.transport { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 560px) { .transport { grid-template-columns: 160px minmax(0, 1fr); } }
+.control.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); justify-content: center; gap: 10px; }
+.control:disabled { opacity: 0.5; cursor: default; }
+.segmented { display: grid; grid-template-columns: repeat(3, 1fr); height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); overflow: hidden; }
+.segmented button { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; padding: 0 8px; border: 0; background: var(--bg); color: var(--dim);
+                    font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+.segmented button + button { border-left: 1px solid var(--line); }
+.segmented button[aria-pressed="true"] { color: var(--ink); }
+.segmented button[aria-pressed="true"]::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.segmented button:disabled { cursor: default; opacity: 0.5; }
+
+.readout { display: grid; gap: 2px; min-height: 86px; }
+.readout .head { display: flex; justify-content: space-between; gap: 12px; }
+.readout b { font-size: 15px; line-height: 20px; }
+.readout .value { font: 500 13px/20px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.readout p { margin: 0; font-size: 15px; line-height: 20px; color: var(--dim); }
+
+/* The panel: the Simple Touch as a drawing, every control where it sits on the board */
+.panel.touch { padding: 10px; }
+.touch svg { display: block; width: 100%; height: auto; max-height: calc(100dvh - 120px); margin: 0 auto; user-select: none; -webkit-user-select: none; touch-action: none; }
+.touch .plate { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
+.touch .hole { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
+.touch .ctl { cursor: pointer; outline: none; }
+.touch .ctl .hit { fill: transparent; }
+.touch .ring { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.touch .arc { fill: none; stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+.touch .track { fill: none; stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
+.touch .travel { fill: none; stroke: var(--ink); stroke-width: 6; stroke-linecap: round; }
+.touch .cap { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.touch .tick { stroke: var(--dim); stroke-width: 2; }
+.touch .pad { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.touch .pad.press { fill: var(--accent); stroke: var(--accent); }
+.touch .slot { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.touch .lever { fill: var(--ink); }
+.touch .code { font: 600 15px var(--mono); letter-spacing: 0.04em; fill: var(--dim); text-anchor: middle; pointer-events: none; }
+.touch .name { font: 500 16px var(--sans); fill: var(--ink); text-anchor: middle; pointer-events: none; }
+.touch .free .ring, .touch .free .pad, .touch .free .slot { stroke: var(--line); }
+.touch .free .name { fill: var(--dim); font-weight: 400; }
+.touch .free { cursor: default; }
+.touch .ctl:focus-visible .ring, .touch .ctl:focus-visible .pad, .touch .ctl:focus-visible .cap, .touch .ctl:focus-visible .slot { stroke: var(--accent); }
+.touch .ctl.active .ring, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke-width: 3; }
+.touch .jack { fill: none; stroke: var(--dim); stroke-width: 2; }
+
+/* Mapping: a row lights on the panel as it is pointed at */
+.mapping tr[data-id] { cursor: default; }
+.mapping tr.active td { color: var(--ink); background: var(--bg); }
+.mapping td:first-child { font: 500 13px/20px var(--mono); }
+
+@media print {
+  header, nav, footer, .noprint { display: none !important; }
+  body { max-width: none; padding: 0; background: #fff; color: #111; font-size: 11pt; }
+  .panel { border: 0; padding: 0; background: none; }
+  h2.label { break-after: avoid; }
+  .panel, figure { break-inside: avoid; }
+}
+
+/* Rows: a key and a short line, as on the mqtt-max landing page */
+ol.rows { gap: 6px; padding: 14px; }
+.row { display: grid; grid-template-columns: 112px 1fr; gap: 12px; font-size: 15px; line-height: 20px; }
+.row .label { line-height: 20px; }
+.table tbody td:first-child { color: var(--ink); }
+.table table:not(:has(thead)) td:first-child { width: 112px; font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }

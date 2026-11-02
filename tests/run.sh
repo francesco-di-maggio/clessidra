@@ -14,3 +14,12 @@ c++ -std=c++17 -O2 -Wall -Wextra -Isrc \
 grep -v "DaisySP" build/tests/compile.log || true
 echo "== Core and mapping"
 build/tests/core
+
+# The web build, where Emscripten is installed
+if command -v em++ > /dev/null; then
+    sh web/build.sh > /dev/null
+    echo "== Web"
+    node tests/web.mjs
+else
+    echo "== Web: skipped, no em++"
+fi

@@ -29,8 +29,15 @@ libs:
 
 .PHONY: libs
 
-# Host tests, no board: the core and the mapping
+# Host tests, no board: the core, the mapping and the web build
 test:
 	@sh tests/run.sh
 
-.PHONY: test
+# The web page in build/web, served at http://localhost:8000
+web:
+	@sh web/build.sh
+
+serve: web
+	python3 -m http.server 8000 -d build/web
+
+.PHONY: test web serve

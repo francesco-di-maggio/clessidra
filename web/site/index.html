@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A granular instrument inspired by the hourglass, for the Synthux Simple Touch. Play it in the browser, download the firmware, send feedback.">
+<meta name="theme-color" content="#f2f2f0" data-auto="#f2f2f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0c" data-auto="#0b0b0c" media="(prefers-color-scheme: dark)">
+<script>
+  // The chosen theme is set before the first paint
+  try {
+    const theme = localStorage.getItem("theme");
+    if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  } catch {}
+</script>
+<title>Clessidra</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Clessidra">
+<meta property="og:description" content="A granular instrument inspired by the hourglass.">
+<meta property="og:url" content="https://francescodimaggio.nl/clessidra/">
+<meta property="og:image" content="https://francescodimaggio.nl/clessidra/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Cloudflare Web Analytics: no cookies; one count per page. -->
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6e2758b8af12449988c12df6253593af"}'></script>
+<link rel="stylesheet" href="https://francescodimaggio.nl/style/v1/tokens.css">
+<link rel="stylesheet" href="https://francescodimaggio.nl/style/v1/base.css">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header>
+  <a class="mark" href="./"><svg viewBox="-9 -9 18 18" aria-hidden="true"><path d="M-5.5-7.5h11M-5.5 7.5h11M-4-7.5C-4-2.5-1-1.5-1 0S-4 2.5-4 7.5M4-7.5C4-2.5 1-1.5 1 0S4 2.5 4 7.5"/><circle class="core ring" cy="4.6" r="1.9"/></svg>Clessidra</a>
+  <button id="theme" type="button" data-state="auto" aria-label="Theme: auto">
+    <svg class="auto" width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>
+    <svg class="light" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <svg class="dark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+  </button>
+</header>
+<nav class="label">
+  <a href="play/">Play</a>
+  <a href="design/">Design</a>
+  <a href="mapping/">Mapping</a>
+  <a href="#download">Download</a>
+  <a href="#feedback">Feedback</a>
+</nav>
+<main>
+
+<h1>Clessidra</h1>
+<p class="lead">Pour grains of sound from single drops into a dense cloud.</p>
+
+<dl class="panel meta">
+  <dt>Hardware</dt><dd>Synthux Simple Touch, Daisy Seed</dd>
+  <dt>Made in</dt><dd>Synthux Instrument Design Residency 2026</dd>
+  <dt>Licence</dt><dd>MIT</dd>
+</dl>
+
+<div class="prose body">
+  <p>Clessidra is a granular instrument inspired by the hourglass. It explores the slow emptying of the glass and the fast trickle of single grains. It lets you capture and bend time through sound, slowing it down, speeding it up, reversing it or freezing it. Broken grains, like sand, are gathered and pieced back together, never quite the same and never fully still.</p>
+</div>
+
+<h2 class="label">Try It</h2>
+<a class="panel primary" href="play/">
+  <span><span class="label">Browser · same firmware</span><span class="title">Play</span><span class="caption">The firmware runs in your browser. Play the panel and see what every grain reads.</span></span>
+  <span class="arrow" aria-hidden="true">→</span>
+</a>
+
+<h2 class="label">Learn It</h2>
+<ul class="panel lists list">
+  <li><a href="design/"><span class="text"><b>Design</b><span class="sub">How it works, with its values</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+  <li><a href="mapping/"><span class="text"><b>Mapping</b><span class="sub">What each control does</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+</ul>
+
+<h2 class="label" id="download">Download</h2>
+<ul class="panel lists list">
+  <li><a href="https://github.com/francesco-di-maggio/clessidra/releases/latest/download/Clessidra.bin"><span class="text"><b>Firmware</b><span class="sub">Latest release, Clessidra.bin</span></span><span class="arrow" aria-hidden="true">↓</span></a></li>
+  <li><a href="https://electro-smith.github.io/Programmer/"><span class="text"><b>Daisy Web Programmer</b><span class="sub">Flashes the firmware over USB, in Chrome or Edge</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+  <li><a href="https://github.com/francesco-di-maggio/clessidra/releases"><span class="text"><b>Releases</b><span class="sub">What changed in each version</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+  <li><a href="https://github.com/francesco-di-maggio/clessidra"><span class="text"><b>Source</b><span class="sub">Build it yourself with the Daisy Toolchain</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+</ul>
+<p class="hint">Flashing: hold BOOT, press and release RESET, release BOOT, then connect in the programmer and choose the file.</p>
+
+<h2 class="label" id="feedback">Feedback</h2>
+<ul class="panel lists list">
+  <li><a href="https://github.com/francesco-di-maggio/clessidra/issues/new?template=feedback.yml"><span class="text"><b>Send Feedback</b><span class="sub">What you played, what you heard, what you would change</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+  <li><a href="mailto:f.di.maggio@tue.nl?subject=Clessidra"><span class="text"><b>Email</b><span class="sub">Without a GitHub account</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+</ul>
+
+<h2 class="label">Sessions</h2>
+<ul class="panel lists list">
+  <li><a href="https://youtu.be/QP1ccBcmeWY"><span class="text"><b>Session 2</b><span class="sub">1 min · firmware v0.2.0</span></span><span class="label">29 Oct 2026</span></a></li>
+  <li><a href="https://www.youtube.com/watch?v=4GYZK3rs2Go"><span class="text"><b>Session 1</b><span class="sub">5 min · Max prototype played from the Touch</span></span><span class="label">5 Oct 2026</span></a></li>
+</ul>
+</main>
+
+<footer class="label">
+  <span>© <span id="year">2026</span> <a href="https://francescodimaggio.nl/">Francesco Di Maggio</a></span>
+  <span class="links">
+    <a href="https://www.linkedin.com/in/francesco-di-maggio/" aria-label="LinkedIn" title="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.125 2.062 2.062 0 0 1 0 4.125zM7.119 20.452H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+    <a href="https://github.com/francesco-di-maggio" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    <a href="mailto:f.di.maggio@tue.nl" aria-label="Email" title="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6 8.5 7 8.5-7"/></svg></a>
+  </span>
+</footer>
+<script type="module" src="js/theme.js"></script>
+</body>
+</html>
