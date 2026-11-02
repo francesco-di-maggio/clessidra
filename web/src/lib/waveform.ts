@@ -1,4 +1,4 @@
-// The sand: the recording playing, the selection the playhead moves through,
+// The buffer: the recording playing, the selection the playhead moves through,
 // the slices, and every grain at the point it reads, high for left and low for
 // right. Laid out to the canvas's size.
 
@@ -29,7 +29,7 @@ interface Colours {
 
 const DOT = 4; // the waveform's grid, px
 
-export class Sand {
+export class Waveform {
   private ctx: CanvasRenderingContext2D;
   private frame: Frame | null = null;
   private c!: Colours;

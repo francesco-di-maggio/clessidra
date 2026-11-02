@@ -1,10 +1,10 @@
-// Play: the controls drive the firmware, the sand and the readout show what it
+// Play: the controls drive the firmware, the buffer and the readout show what it
 // does.
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
 import { MAX_RECORD_S, RATE, RECORD_PAD, SLICE_PADS, VIEW, type Frame, type FromWorklet } from "./engine";
-import { Sand } from "./sand";
+import { Waveform } from "./waveform";
 import { knob, meter, pad, segmented, type Handlers, type Widget } from "./widgets";
 
 const LIGHT = 0.35; // a touch, as the board's pads read it (0.3–0.5)
@@ -20,7 +20,7 @@ const held = $("held");
 const readout = { name: $("readout-name"), value: $("readout-value"), does: $("readout-does") };
 
 const audio = new Audio(onMessage);
-const sand = new Sand($<HTMLCanvasElement>("sand"));
+const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
 const HINT = { name: "Play", does: "Drag a knob · Shift for fine steps · Double-click to reset · R records · 1–7 play the slices" };
@@ -172,8 +172,8 @@ function onMessage(m: FromWorklet) {
     led.style.setProperty("--led", String(m.led));
     meters[0](m.input);
     meters[1](m.output);
-    sand.recording = recording();
-    sand.update(m);
+    waveform.recording = recording();
+    waveform.update(m);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);
@@ -196,7 +196,7 @@ start.addEventListener("click", async () => {
       start.disabled = false;
       return;
     }
-    sand.started = true;
+    waveform.started = true;
     for (const b of inputs) b.disabled = false;
     start.disabled = false;
   } else await audio.pause(audio.running);

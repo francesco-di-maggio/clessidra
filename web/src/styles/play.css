@@ -1,4 +1,4 @@
-/* Play: one screen in the family's column. The sand on top, the controls in a
+/* Play: one screen in the family's column. The buffer on top, the controls in a
    rack below, a readout line. Orange only for what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
 body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(120px, 1fr) auto auto; gap: 10px; }
