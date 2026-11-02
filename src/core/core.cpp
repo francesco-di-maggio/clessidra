@@ -26,12 +26,13 @@ void Core::Init(float        sample_rate,
 
 void Core::Process(const float* const* in, float** out, size_t size)
 {
-    const Params  p       = slots_[slot_.load(std::memory_order_acquire)];
-    const Buffer& sound   = buffers_[playing_.load(std::memory_order_relaxed)];
-    const double  len     = double(sound.Length());
-    const double  sel_len = std::max(double(p.length) * len, 1.0);
-    const double  sel_start = double(p.start) * len;
-    const float   density   = std::clamp(p.density, 0.0f, kMaxDensity);
+    const Params  p        = slots_[slot_.load(std::memory_order_acquire)];
+    const Buffer& sound    = buffers_[playing_.load(std::memory_order_relaxed)];
+    const double  len      = double(sound.Length());
+    pass_length_           = LengthOnPass(p);
+    double       sel_len   = std::max(double(pass_length_) * len, 1.0);
+    const double sel_start = double(p.start) * len;
+    const float  density   = std::clamp(p.density, 0.0f, kMaxDensity);
     // A grain lasts grain_samples whatever its pitch, as the starts per second
     // do: no longer than the recording, and short enough for the voices to hold
     // whole windows at this density. Stolen, they would hardly rise.
@@ -44,10 +45,14 @@ void Core::Process(const float* const* in, float** out, size_t size)
                      1.0,
                      std::max(std::min(len, most_samples), 1.0));
     const double grain_inc = 1.0 / grain_samples;
+    // Nothing recorded: no grains, the size as set
+    grain_ms_
+        = len > 0.0 ? float(1000.0 * grain_samples / sample_rate_) : p.grain_ms;
 
     if(restart_.exchange(false, std::memory_order_relaxed))
     {
         stream_.phase = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
+        NewPass();
         // With a grain at once
         stream_.sched_phase = stream_.sched_next;
     }
@@ -64,18 +69,24 @@ void Core::Process(const float* const* in, float** out, size_t size)
         state.sched_phase = state.sched_next;
     }
 
-    const double play_inc
-        = p.freeze ? 0.0 : p.speed / sel_len; // phase per sample
+    double play_inc = p.freeze ? 0.0 : p.speed / sel_len; // phase per sample
     const bool backwards = play_inc < 0.0;
 
     // Grain starts in this block, at the sample they fall on. A voice that ends
     // in this block is free from the next.
     for(size_t i = 0; i < size && len > 0.0; i++)
     {
-        // Round the selection
+        // Round the selection. Each pass: its length.
         stream_.phase += play_inc;
-        stream_.phase -= std::floor(stream_.phase);
-        if(Due(stream_, density / sample_rate_, p.jitter))
+        if(stream_.phase >= 1.0 || stream_.phase < 0.0)
+        {
+            stream_.phase -= std::floor(stream_.phase);
+            NewPass();
+            pass_length_ = LengthOnPass(p);
+            sel_len      = std::max(double(pass_length_) * len, 1.0);
+            play_inc     = p.freeze ? 0.0 : p.speed / sel_len;
+        }
+        if(Due(stream_, density / sample_rate_, p.rand_density))
         {
             const Source source
                 = {sel_start, sel_len, stream_.phase, backwards};
@@ -108,7 +119,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
             }
             const float trigger_density
                 = std::clamp(trigger.density, 0.0f, kMaxDensity);
-            if(!Due(state, trigger_density / sample_rate_, p.jitter))
+            if(!Due(state, trigger_density / sample_rate_, p.rand_density))
                 continue;
             const Source source = {double(trigger.start) * len,
                                    slice,
@@ -360,27 +371,31 @@ void Core::StartGrain(const Params& p,
         furthest->FadeOut(size_t(kFadeSeconds * sample_rate_));
 }
 
-bool Core::Due(Stream& s, double sched_inc, float jitter)
+bool Core::Due(Stream& s, double sched_inc, float rand_density)
 {
     s.sched_phase += sched_inc;
     if(s.sched_phase < s.sched_next)
         return false;
     s.sched_phase -= s.sched_next;
-    s.sched_next = Interval(jitter);
+    s.sched_next = Interval(rand_density);
     // At most one start per sample
     s.sched_phase = std::min(s.sched_phase, double(s.sched_next));
     return true;
 }
 
-float Core::Interval(float jitter)
+float Core::Interval(float rand_density)
 {
-    // Mean 1 at any jitter. Random (jitter 1): nearly Poisson, without the
-    // closest starts and the longest gaps. kMean: of the series on 0.1..1.
+    // Mean 1 at any amount. Up: an even spread. Down, at -1: Beads' random
+    // starts, nearly Poisson without the closest starts and the longest gaps.
+    // kMean: of the series on 0.1..1.
+    if(rand_density >= 0.0f)
+        return 1.0f + std::min(rand_density, 1.0f) * Random();
     static constexpr float kMean = 0.883f;
     const float            x     = 0.1f + 0.9f * (0.5f - 0.5f * Random());
     const float            random
         = x * (1.0f + x * (0.5f + x * (0.3333f + x * 0.25f))) / kMean;
-    return 1.0f - jitter + jitter * random;
+    const float amount = std::min(-rand_density, 1.0f);
+    return 1.0f - amount + amount * random;
 }
 
 float Core::Randomise(float x, float amount)
@@ -393,6 +408,20 @@ float Core::Blend(float amount)
     return amount > 0.0f
                ? std::min(amount, 1.0f)
                : std::min(-3.0f * amount * (0.5f + 0.5f * Random()), 1.0f);
+}
+
+float Core::LengthOnPass(const Params& p) const
+{
+    const float amount = std::clamp(p.rand_length, -1.0f, 1.0f);
+    const float blend
+        = amount >= 0.0f ? amount : std::min(-3.0f * amount * pass_part_, 1.0f);
+    return std::max(p.length + blend * (pass_random_ - p.length), kMinLength);
+}
+
+void Core::NewPass()
+{
+    pass_random_ = 0.5f + 0.5f * Random();
+    pass_part_   = 0.5f + 0.5f * Random();
 }
 
 float Core::Random()

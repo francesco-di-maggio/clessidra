@@ -23,8 +23,10 @@ class Core
     Core& operator=(const Core&) = delete;
 
     // grains per second, three octaves above middle C
-    static constexpr float  kMaxDensity = 130.81278f;
-    static constexpr size_t kNumVoices  = 32;
+    static constexpr float kMaxDensity = 130.81278f;
+    static constexpr float kMinLength
+        = 0.01f; // of the sound: the shortest selection
+    static constexpr size_t kNumVoices = 32;
     // Voices kept free: over this many sounding, the furthest along fades out,
     // so a new grain always starts
     static constexpr size_t kSafetyVoices = 8;
@@ -90,7 +92,8 @@ class Core
 
     struct Params
     {
-        // Selection, 0..1 of the sound
+        // Selection, 0..1 of the sound: from start, length long, round the end
+        // to the beginning past it
         float start    = 0.0f;
         float length   = 1.0f;
         float speed    = 1.0f;  // 1 = real time, negative = reverse
@@ -102,7 +105,6 @@ class Core
         float pitch        = 1.0f; // grain playback rate
         // grains per second on average, up to kMaxDensity
         float density = 80.0f;
-        float jitter  = 0.0f; // 0 periodic .. 1 random (Poisson) grain starts
         // 0 reverse percussive, 0.5 Hann, 1 percussive
         float window_shape = 0.5f;
         // Randomness of each grain, as Beads' attenuverters, -1..1: 0 none.
@@ -114,6 +116,14 @@ class Core
         float rand_size  = 0.0f;
         float rand_shape = 0.0f;
         float rand_pitch = 0.0f;
+        // The randomness of the starts, -1..1: 0 periodic. Above 0, each
+        // interval moved by the amount within 0..2 of the mean: an even
+        // spread. Below, towards Beads' random starts: mostly short, a long
+        // tail.
+        float rand_density = 0.0f;
+        // The randomness of the selection's length, -1..1, as the others, drawn
+        // anew at each pass of the playhead
+        float rand_length = 0.0f;
         // 0..1, how much the grains differ: with the grains sounding, the pan
         // width
         float spread = 0.0f;
@@ -172,6 +182,11 @@ class Core
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
     double        PlayheadPhase() const { return stream_.phase; }
+    // The selection's length on this pass, 0..1 of the sound
+    float PassLength() const { return pass_length_; }
+    // A grain's size in use, ms: grain_ms within the recording and what the
+    // voices hold at this density
+    float GrainMs() const { return grain_ms_; }
     // A trigger sounding, and where it is in its slice, 0..1
     bool   TriggerOn(size_t i) const { return triggers_[i].on; }
     double TriggerPhase(size_t i) const { return triggers_[i].phase; }
@@ -216,18 +231,21 @@ class Core
     // plays it
     void UpdateCapture(size_t size);
     // Advances a stream's grain starts by one sample; true when a grain starts
-    bool Due(Stream& s, double sched_inc, float jitter);
+    bool Due(Stream& s, double sched_inc, float rand_density);
     // Updates norm_ from the mean powers of the last block
     void  Normalise(float  power_grains,
                     float  power_sum,
                     float  window_power,
                     size_t size);
-    float Interval(float jitter); // to the next start, 1 = mean
+    float Interval(float rand_density); // to the next start, 1 = mean
     // A grain's value of x, 0..1, randomised by amount, as Beads
     float Randomise(float x, float amount);
     // How far towards the random value: the amount above 0, below it a
     // random part of three times it
     float Blend(float amount);
+    // The selection's length on this pass, as Randomise with the pass's draws
+    float LengthOnPass(const Params& p) const;
+    void  NewPass();
     float Random(); // uniform -1..1
 
     Params                params_; // the last set, main loop only
@@ -256,7 +274,12 @@ class Core
     std::array<TriggerStream, kNumTriggers> triggers_;
     std::atomic<bool>                       restart_{false};
     uint32_t                                seed_ = 1;
-    std::atomic<float>                      grain_level_{0.0f};
+    // This pass of the playhead: its draws for rand_length, and its length
+    float              pass_random_ = 0.5f;
+    float              pass_part_   = 0.5f;
+    float              pass_length_ = 1.0f;
+    float              grain_ms_    = 0.0f;
+    std::atomic<float> grain_level_{0.0f};
 
     // Level. Mean powers, smoothed: grains taken separately, their stereo sum,
     // their windows.

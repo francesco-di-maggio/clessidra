@@ -13,15 +13,15 @@
 namespace clessidra
 {
 // Maps the Simple Touch's controls to the core's parameters and recording, and
-// drives the LED. Three layers on the knobs: their own, P11 held the randomness
-// of each grain parameter, P00 held the FX. No hardware code: the board and the
+// drives the LED. Three layers on the knobs: their own, P11 (shift) held each
+// one's randomness, P00 held the FX. No hardware code: the board and the
 // host tests run the same mapping.
 class CoreUI
 {
   public:
     // Pads
     static constexpr size_t kRecordPad  = 10;
-    static constexpr size_t kRandomPad  = 11; // held: the randomness layer
+    static constexpr size_t kShiftPad   = 11; // held: the shift layer
     static constexpr size_t kFxPad      = 0;  // held: the FX layer, first
     static constexpr size_t kRestartPad = 2;
     // Slices, first to last in the buffer: pads left to right on the
@@ -30,22 +30,20 @@ class CoreUI
     static_assert(std::size(kSlicePads) == kNumSlices);
     static_assert(kNumSlices == Core::kNumTriggers);
 
-    // of the recording: the shortest selection
-    static constexpr float kMinLength  = 0.01f;
     static constexpr float kMinGrainMs = 10.0f;
     static constexpr float kMaxGrainMs = 4000.0f;
     // Layers on the knobs
     enum Layer : size_t
     {
         kOwn,
-        kRandom,
+        kShift,
         kFx
     };
     // At power-up: randomness off at the centre, filter off, some reverb
-    static constexpr float kRandomStart = 0.5f;
+    static constexpr float kShiftStart  = 0.5f;
     static constexpr float kFilterStart = 0.5f;
     static constexpr float kReverbStart = 0.25f;
-    // S37: distance from the centre that is off, as Beads
+    // S34: the bottom of its travel that is off
     static constexpr float kDensityStop = 0.02f;
     // S36: distance from the centre, of half its travel, that stops
     static constexpr float kStopWidth = 0.04f;
@@ -93,9 +91,9 @@ class CoreUI
     Layers                                layers_;
     // LED. Times in ms, shown until they pass.
     uint32_t pulse_until_ = 0;
-    // Pitch unison, speed 1, grain size centre, density off: there, and the
-    // knob when the pulse last started
-    static constexpr size_t        kNumDetents = 4;
+    // Pitch unison, speed 1, grain size centre: there, and the knob when the
+    // pulse last started
+    static constexpr size_t        kNumDetents = 3;
     std::array<bool, kNumDetents>  at_detent_{};
     std::array<float, kNumDetents> detent_knob_{};
     bool                           detents_ready_ = false;

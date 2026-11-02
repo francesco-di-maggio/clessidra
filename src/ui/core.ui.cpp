@@ -32,8 +32,10 @@ namespace
     // of each segment, smooth between them
     float Semitones(float x)
     {
+        // Unison, a detune, then fourths, fifths and octaves: in tune in any
+        // key
         static constexpr float kIntervals[]
-            = {0.0f, 0.1f, 1.0f, 3.0f, 4.0f, 7.0f, 12.0f, 24.0f, 24.0f};
+            = {0.0f, 0.1f, 5.0f, 7.0f, 12.0f, 17.0f, 19.0f, 24.0f, 24.0f};
         const float  centred  = 2.0f * std::clamp(x, 0.0f, 1.0f) - 1.0f;
         const float  position = std::fabs(centred) * 7.0f;
         const size_t i        = size_t(position);
@@ -50,10 +52,15 @@ namespace
 CoreUI::CoreUI()
 {
     EqualSlices();
-    // P11: the randomness of position, size, shape and pitch. P00: filter and
-    // reverb, in the order the sound goes through them.
-    for(auto k : {Controls::S30, Controls::S31, Controls::S32, Controls::S33})
-        layers_.Add(kRandom, k, kRandomStart);
+    // P11, shift: each knob's randomness. P00: filter and reverb, in the order
+    // the sound goes through them.
+    for(auto k : {Controls::S30,
+                  Controls::S31,
+                  Controls::S32,
+                  Controls::S33,
+                  Controls::S34,
+                  Controls::S35})
+        layers_.Add(kShift, k, kShiftStart);
     layers_.Add(kFx, Controls::S31, kFilterStart);
     layers_.Add(kFx, Controls::S32, kReverbStart);
 }
@@ -70,7 +77,7 @@ void CoreUI::Process(const Controls& c, Core& core)
     Core::Params p;
 
     // P00 held: the FX layer, else P11 held: the randomness
-    layer_ = c.touched[kFxPad] ? kFx : c.touched[kRandomPad] ? kRandom : kOwn;
+    layer_ = c.touched[kFxPad] ? kFx : c.touched[kShiftPad] ? kShift : kOwn;
     layers_.Process(c.knobs, layer_);
     const auto knob
         = [this](Controls::Knob k) { return layers_.Value(kOwn, k); };
@@ -85,18 +92,18 @@ void CoreUI::Process(const Controls& c, Core& core)
         slices_ = FindSlices(sound.Data(), sound.Length(), kSampleRateHz);
     }
 
-    // S35, length of the selection. S30, its position: from the start to the
-    // end of the recording.
+    // S30, position: where the selection starts, anywhere in the recording.
+    // S35, its length, round the end to the beginning past it.
     const float seconds = float(core.SoundSamples()) / float(kSampleRateHz);
-    p.length            = std::max(knob(Controls::S35), kMinLength);
-    p.start             = knob(Controls::S30) * (1.0f - p.length);
+    p.start             = std::min(knob(Controls::S30), 0.999f);
+    p.length            = std::max(knob(Controls::S35), Core::kMinLength);
 
     const float semitones = Semitones(knob(Controls::S33));
     const bool  unison    = semitones == 0.0f;
     p.pitch               = std::exp2(semitones / 12.0f);
 
-    // S34: dry and wet
-    p.mix = knob(Controls::S34);
+    // S37, fader: dry and wet
+    p.mix = knob(Controls::S37);
 
     // P00 + S31: filter, low-pass down, high-pass up, off at the centre.
     // P00 + S32: reverb.
@@ -111,16 +118,12 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.freeze = way == Controls::Centre || speed == 0.0f;
     p.speed  = (way == Controls::Down ? -4.0f : 4.0f) * speed * speed;
 
-    // S37, Density, as Beads: off at the centre, periodic grains below it,
-    // random above, more towards the ends. The triggers start theirs alike.
-    const float density     = knob(Controls::S37);
-    const float from_centre = std::fabs(density - 0.5f);
-    const bool  density_off = from_centre <= kDensityStop;
-    p.density
-        = density_off
-              ? 0.0f
-              : Rate((from_centre - kDensityStop) / (0.5f - kDensityStop));
-    p.jitter = density > 0.5f ? 1.0f : 0.0f;
+    // S34, density: none at the bottom, then more towards the top.
+    // P11 + S34: how random the starts are, the triggers' alike.
+    const float density = knob(Controls::S34);
+    p.density           = density <= kDensityStop
+                    ? 0.0f
+                    : Rate((density - kDensityStop) / (1.0f - kDensityStop));
 
     // P02: the playhead from the start of the selection
     if(c.touched[kRestartPad] && !restart_touched_)
@@ -176,33 +179,32 @@ void CoreUI::Process(const Controls& c, Core& core)
     // S32: window shape
     p.window_shape = knob(Controls::S32);
 
-    // P11 + S30 to S33: the randomness of position, size, shape and pitch, as
-    // Beads' attenuverters: off at the centre, an even spread up, mostly near
-    // with a long tail down
+    // P11 + S30 to S35: the randomness of position, size, shape, pitch,
+    // density and length, as Beads' attenuverters: off at the centre, an even
+    // spread up, mostly near with a long tail down
     const auto random = [this](Controls::Knob k) {
-        return 2.0f * Detent(layers_.Value(kRandom, k), 0.05f) - 1.0f;
+        return 2.0f * Detent(layers_.Value(kShift, k), 0.05f) - 1.0f;
     };
-    p.rand_pos   = random(Controls::S30);
-    p.rand_size  = random(Controls::S31);
-    p.rand_shape = random(Controls::S32);
-    p.rand_pitch = random(Controls::S33);
+    p.rand_pos     = random(Controls::S30);
+    p.rand_size    = random(Controls::S31);
+    p.rand_shape   = random(Controls::S32);
+    p.rand_pitch   = random(Controls::S33);
+    p.rand_density = random(Controls::S34);
+    p.rand_length  = random(Controls::S35);
 
     // Pan, as Beads: as wide as the grains differ, in every way
     p.spread = std::min(std::fabs(p.rand_pos) + std::fabs(p.rand_size)
                             + std::fabs(p.rand_shape) + std::fabs(p.rand_pitch)
-                            + p.jitter,
+                            + std::fabs(p.rand_density),
                         1.0f);
 
     core.SetParams(p);
 
 
     // Reaching a detent, or turning within it: a pulse
-    const std::array<bool, kNumDetents> at
-        = {unison, speed_one, size_centre, density_off};
-    const std::array<float, kNumDetents> knobs = {knob(Controls::S33),
-                                                  knob(Controls::S36),
-                                                  knob(Controls::S31),
-                                                  knob(Controls::S37)};
+    const std::array<bool, kNumDetents>  at = {unison, speed_one, size_centre};
+    const std::array<float, kNumDetents> knobs
+        = {knob(Controls::S33), knob(Controls::S36), knob(Controls::S31)};
     if(!detents_ready_)
     {
         // Power-up: no pulse
