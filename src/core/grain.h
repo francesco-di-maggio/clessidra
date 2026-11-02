@@ -34,6 +34,9 @@ class Grain
     void   FadeOut(size_t samples);
     bool   IsFading() const { return fade_step_ > 0.0f; }
     double Progress() const { return phase_; } // through the window, 0..1
+    // For displays, between blocks: as started, and where it reads now
+    const Latch& Settings() const { return latch_; }
+    double       Position() const { return latch_.position + read_; }
 
     // Sums over all grains and samples of a block
     struct Sums

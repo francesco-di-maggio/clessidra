@@ -143,6 +143,7 @@ class Core
     const Params& CurrentParams() const { return params_; }
     double        PlayheadPhase() const { return stream_.phase; }
     double        LivePhase() const { return stream_.live_phase; }
+    size_t        WritePoint() const { return write_; }
 
   private:
     // The playhead over the selection, and behind the write point

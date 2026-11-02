@@ -51,6 +51,9 @@ class CoreUI
     void Process(const Controls& c, Core& core);
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
     float Led(uint32_t now_ms, const Core& core) const;
+    // For displays: slice edges, of the recording, and the slice playing
+    const std::array<float, kNumSlices + 1>& Slices() const { return slices_; }
+    size_t Slice() const { return slice_; } // kNumSlices: the whole selection
 
   private:
     void EqualSlices();
