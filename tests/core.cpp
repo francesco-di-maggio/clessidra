@@ -635,9 +635,9 @@ void Octaves()
     Rig r(1.0);
     r.Fill(Sine);
     Core::Params p;
-    p.density    = Core::kMaxDensity;
-    p.rand_pitch = 1.0f;
-    p.octaves    = true;
+    p.density     = Core::kMaxDensity;
+    p.rand_pitch  = 1.0f;
+    p.pitch_steps = Core::Steps::Octaves;
     r.core.SetParams(p);
     bool   whole = true;
     size_t off   = 0;
@@ -756,28 +756,70 @@ void Mapping()
 
     c.knobs[Controls::S37] = 0.1f;
     ui.Process(c, r.core);
-    const float drop_ms = p.grain_ms, drop_reverb = p.reverb;
-    Check(p.window_shape == 1.0f && p.density < 2.0f,
-          "S37 low: rare percussive drops",
-          p.density);
+    const Core::Params low = p;
     c.knobs[Controls::S37] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.window_shape == 0.5f && p.grain_ms > 5.0f * drop_ms
-              && p.reverb < drop_reverb && p.jitter > 0.25f && p.spread > 0.25f,
-          "S37 top: long soft grains that differ, less reverb",
-          p.grain_ms);
-    Check(Near(p.density, Core::kMaxDensity, 0.01),
-          "S37 top: the most density",
+    Check(Near(p.density, Core::kMaxDensity, 0.01) && low.density < 1.0f,
+          "S37: grains per second, the most at the top",
           p.density);
+    Check(p.grain_ms == low.grain_ms && p.window_shape == low.window_shape
+              && p.reverb == low.reverb && p.jitter == low.jitter,
+          "S37: density alone",
+          p.grain_ms);
     c.knobs[Controls::S37] = 0.5f;
     ui.Process(c, r.core);
-    const float centre_ms  = p.grain_ms;
-    c.knobs[Controls::S31] = 1.0f;
+    Check(Near(p.grain_ms, 200.0, 0.5), "S31 centre: 200 ms", p.grain_ms);
+    c.knobs[Controls::S31] = 0.0f;
     ui.Process(c, r.core);
-    Check(Near(p.grain_ms, 4.0 * centre_ms, 0.5),
-          "S31 top: 2 octaves longer (ms)",
+    Check(Near(p.grain_ms, CoreUI::kMinGrainMs, 1e-3),
+          "S31 bottom: 10 ms",
           p.grain_ms);
     c.knobs[Controls::S31] = 0.5f;
+    ui.Process(c, r.core);
+
+    // P10: the second layer, each knob picked up where its value is
+    Check(p.window_shape == CoreUI::kShapeStart
+              && p.reverb == CoreUI::kReverbStart && p.rand_pitch == 0.0f,
+          "second layer at power-up: Hann, some reverb, plain pitch",
+          p.reverb);
+    c.touched[CoreUI::kLayerPad] = true;
+    c.knobs[Controls::S34]       = 0.9f; // far from the reverb's value
+    ui.Process(c, r.core);
+    Check(p.reverb == CoreUI::kReverbStart && Near(p.mix, 0.5, 1e-6),
+          "P10 + S34 away from the reverb: nothing moves",
+          p.reverb);
+    c.knobs[Controls::S34] = 0.2f; // across it
+    ui.Process(c, r.core);
+    c.knobs[Controls::S34] = 0.6f;
+    ui.Process(c, r.core);
+    Check(Near(p.reverb, 0.6, 1e-6) && Near(p.mix, 0.5, 1e-6),
+          "P10 + S34 picked up: reverb, dry/wet stays",
+          p.reverb);
+    c.knobs[Controls::S31] = 0.0f; // across Hann
+    ui.Process(c, r.core);
+    c.knobs[Controls::S31] = 1.0f;
+    ui.Process(c, r.core);
+    Check(p.window_shape == 1.0f && Near(p.grain_ms, 200.0, 0.5),
+          "P10 + S31: shape, size stays",
+          p.window_shape);
+    c.knobs[Controls::S33] = 0.0f; // at its value
+    ui.Process(c, r.core);
+    c.knobs[Controls::S33] = 1.0f;
+    ui.Process(c, r.core);
+    Check(p.rand_pitch == 1.0f && p.pitch == 1.0f,
+          "P10 + S33: pitch scatter, pitch stays",
+          p.rand_pitch);
+    const float shown = ui.Led(0, r.core);
+    Check(shown == 1.0f, "P10 held: the LED shows the knob last turned", shown);
+    c.touched[CoreUI::kLayerPad] = false;
+    ui.Process(c, r.core);
+    Check(p.pitch == 1.0f && Near(p.mix, 0.5, 1e-6),
+          "P10 released, knobs away: first layer unchanged",
+          p.pitch);
+    c.knobs[Controls::S31] = 0.5f;
+    c.knobs[Controls::S33] = 0.5f;
+    c.knobs[Controls::S34] = 0.5f;
+    ui.Process(c, r.core);
 
     c.knobs[Controls::S36] = 0.25f;
     ui.Process(c, r.core);
@@ -804,19 +846,18 @@ void Mapping()
           p.jitter);
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.rand_pitch == 0.0f, "S32 top, S09 up: pitch plain", p.rand_pitch);
-    c.switches[Controls::S09] = Controls::Down;
+    Check(
+        p.rand_pitch == 1.0f, "S32: pitch scatter stays its own", p.rand_pitch);
+    c.switches[Controls::S09] = Controls::Up;
     ui.Process(c, r.core);
-    Check(p.rand_pitch == 1.0f && !p.octaves,
-          "S32 top, S09 down: free random pitch",
-          p.rand_pitch);
+    Check(p.pitch_steps == Core::Steps::Octaves, "S09 up: octaves", 0);
     c.switches[Controls::S09] = Controls::Centre;
     ui.Process(c, r.core);
-    Check(p.rand_pitch == 1.0f && p.octaves,
-          "S32 top, S09 centre: random pitch in octaves",
-          p.rand_pitch);
-    c.switches[Controls::S09] = Controls::Up;
-    c.knobs[Controls::S32]    = 0.0f;
+    Check(p.pitch_steps == Core::Steps::Fifths, "S09 centre: fifths", 1);
+    c.switches[Controls::S09] = Controls::Down;
+    ui.Process(c, r.core);
+    Check(p.pitch_steps == Core::Steps::Free, "S09 down: free", 2);
+    c.knobs[Controls::S32] = 0.0f;
 
     c.switches[Controls::S07] = Controls::Down;
     ui.Process(c, r.core);

@@ -64,7 +64,7 @@ enum Param : size_t
     kStart,
     kLength,
     kMix,
-    kOctaves,
+    kSteps,
     kNumParams
 };
 float params[kNumParams];
@@ -139,6 +139,12 @@ EXPORT void cl_pad(int pad, int touched, float pressure)
     const size_t p       = size_t(pad) % Controls::kNumPads;
     controls.touched[p]  = touched != 0;
     controls.pressure[p] = pressure;
+}
+
+// A knob's second function, set directly: the page has a control for each
+EXPORT void cl_second(int knob, float value)
+{
+    ui.SetSecond(Controls::Knob(size_t(knob) % Controls::kNumKnobs), value);
 }
 
 EXPORT float cl_led(uint32_t now_ms)
@@ -219,6 +225,6 @@ EXPORT const float* cl_params()
     params[kStart]        = p.start;
     params[kLength]       = p.length;
     params[kMix]          = p.mix;
-    params[kOctaves]      = p.octaves ? 1.0f : 0.0f;
+    params[kSteps]        = float(p.pitch_steps);
     return params;
 }

@@ -57,6 +57,7 @@ class Clessidra extends AudioWorkletProcessor {
   private apply(m: Control) {
     const w = this.w!;
     if (m.type === "knob") w.cl_knob(m.index, m.value);
+    else if (m.type === "second") w.cl_second(m.index, m.value);
     else if (m.type === "switch") w.cl_switch(m.index, m.position);
     else w.cl_pad(m.index, m.touched ? 1 : 0, m.pressure);
   }

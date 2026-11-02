@@ -71,6 +71,14 @@ class Core
     // ring written on during the copy
     static constexpr float kCopyMarginSeconds = 0.5f;
 
+    // Random pitch: any, the pitch knob's fifths and octaves, or octaves
+    enum class Steps
+    {
+        Free,
+        Fifths,
+        Octaves
+    };
+
     struct Params
     {
         // Selection, 0..1 of the sound
@@ -95,8 +103,8 @@ class Core
         // the slice
         float rand_pos = 0.0f;
         // 0..1: most grains near the pitch, a few up to kRandPitchSemitones off
-        float rand_pitch = 0.0f;
-        bool  octaves    = false; // random pitch in whole octaves
+        float rand_pitch  = 0.0f;
+        Steps pitch_steps = Steps::Free; // of the random pitch
         // 0..1, how much the grains differ: with the grains sounding, the pan
         // width
         float spread = 0.0f;
@@ -200,7 +208,9 @@ class Core
                     float  window_power,
                     size_t size);
     float Interval(float jitter); // to the next start, 1 = mean
-    float Random();               // uniform -1..1
+    // semitones of random pitch, on steps
+    static float Step(float semitones, Steps steps);
+    float        Random(); // uniform -1..1
 
     Params                params_; // the last set, main loop only
     std::array<Params, 2> slots_;
