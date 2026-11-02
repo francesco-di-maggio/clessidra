@@ -7,7 +7,7 @@ import { CONTROLS, LED } from "../lib/controls";
 const rows = CONTROLS.filter((c) => !c.free && (c.slice ?? 0) === 0).map((c) =>
   c.slice === 0
     ? { ids: CONTROLS.filter((s) => s.slice !== undefined).map((s) => s.id), label: "P03–P09", name: "Slices", does: c.does }
-    : { ids: c.second ? ["P10", `S${c.id.slice(-2)}`] : [c.id], label: c.board ?? c.id, name: c.name, does: c.does },
+    : { ids: c.second ? ["P11", `S${c.id.slice(-2)}`] : [c.id], label: c.board ?? c.id, name: c.name, does: c.does },
 );
 const free = CONTROLS.filter((c) => c.free).map((c) => c.id);
 ---

@@ -29,22 +29,24 @@ const parts = new Map<string, Widget>();
 
 const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
 const add = (w: Widget) => parts.set(w.c.id, w);
-add(pad(byId("P11"), $("record"), "Rec", on));
+add(pad(byId("P10"), $("record"), "Rec", on));
 add(knob(byId("S36"), $("time"), on));
 add(segmented(byId("S07"), $("time"), [[POSITION.up, "Off"], [POSITION.centre, "Pong"], [POSITION.down, "On"]], on));
 for (const id of ["S30", "S35"]) add(knob(byId(id), $("selection"), on));
-for (const id of ["S37", "S31", "P10+S31", "S32", "P10+S34"]) add(knob(byId(id), $("grain"), on));
-for (const id of ["S33", "P10+S33"]) add(knob(byId(id), $("pitch"), on));
+for (const id of ["S37", "S31", "P11+S31", "S32", "P11+S34"]) add(knob(byId(id), $("grain"), on));
+for (const id of ["S33", "P11+S33"]) add(knob(byId(id), $("pitch"), on));
 add(segmented(byId("S09"), $("pitch"), [[POSITION.up, "Oct"], [POSITION.centre, "5th"], [POSITION.down, "Free"]], on));
-add(knob(byId("S34"), $("output"), on));
-// In beside Record: it is what gets recorded. Out after Mix.
-const meters = LEVELS.map((l) => {
+// Levels: In, Dry/Wet, Out, in the order the signal goes
+function level(l: Level) {
   const cell = document.createElement("div");
   cell.className = "level";
-  $(l.id === "IN" ? "record" : "output").append(cell);
+  $("output").append(cell);
   add(knob(l, cell, on));
   return meter(cell, l.name);
-});
+}
+const inMeter = level(LEVELS[0]);
+add(knob(byId("S34"), $("output"), on));
+const outMeter = level(LEVELS[1]);
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
 
 for (const w of parts.values()) {
@@ -137,7 +139,7 @@ addEventListener("blur", () => {
   for (const t of [...touches.values()]) for (const who of [...t.pointers]) press(t.c, false, { pointerId: who });
 });
 
-// Seconds P11 has been held, 0 when it isn't
+// Seconds P10 has been held, 0 when it isn't
 function recording() {
   const t = touches.get(RECORD_PAD);
   return t ? Math.min((performance.now() - t.since) / 1000, MAX_RECORD_S) : 0;
@@ -173,8 +175,8 @@ function onMessage(m: FromWorklet) {
   if (m.type === "view") {
     last = m;
     led.style.setProperty("--led", String(m.led));
-    meters[0](m.input);
-    meters[1](m.output);
+    inMeter(m.input);
+    outMeter(m.output);
     waveform.recording = recording();
     waveform.update(m);
     show();

@@ -1,23 +1,13 @@
 ---
 import Base from "../layouts/Base.astro";
 import "../styles/play.css";
-
-// The rack: each panel's label and the id its controls go into
-const groups = [
-  ["record", "Record"],
-  ["time", "Time"],
-  ["selection", "Selection"],
-  ["output", "Output"],
-  ["grain", "Grain"],
-  ["pitch", "Pitch"],
-  ["slices", "Slices"],
-];
 ---
 <Base title="Play" app description="Play Clessidra in the browser: the firmware compiled to WebAssembly, its controls and every grain.">
   <span slot="end" class="label led">LED <span id="led" class="dot"></span></span>
 
-  <div class="bar">
-    <button id="start" class="control" type="button">Start</button>
+  <div class="transport">
+    <button id="start" class="control primary" type="button">Play</button>
+    <div id="record"></div>
     <div id="input" class="segmented" role="group" aria-label="Input">
       <button type="button" data-input="demo" aria-pressed="false" disabled>Demo</button>
       <button type="button" data-input="mic" aria-pressed="false" disabled>Mic</button>
@@ -26,19 +16,21 @@ const groups = [
     <input id="file" type="file" accept="audio/*" hidden>
   </div>
 
-  <section class="panel view" aria-labelledby="buffer-label">
-    <div class="head"><h2 id="buffer-label" class="label">Buffer</h2><span id="held" class="label held">Empty</span></div>
+  <section class="panel view" aria-label="Buffer">
+    <span id="held" class="label held">Empty</span>
     <canvas id="buffer" role="img" aria-label="The recording: the selection, the playhead, the slices and the grains"></canvas>
   </section>
 
-  <div class="rack">
-    {groups.map(([id, label]) => (
-      <section class={`panel group ${id}`} aria-labelledby={`${id}-label`}>
-        <h2 id={`${id}-label`} class="label">{label}</h2>
-        <div id={id} class="controls"></div>
-      </section>
-    ))}
-  </div>
+  <section class="panel strip" aria-label="Playback and levels">
+    <div id="time" class="cluster" aria-label="Time"></div>
+    <div id="selection" class="cluster" aria-label="Selection"></div>
+    <div id="output" class="cluster" aria-label="Levels"></div>
+  </section>
+  <section class="panel strip" aria-label="Grain and pitch">
+    <div id="grain" class="cluster" aria-label="Grain"></div>
+    <div id="pitch" class="cluster" aria-label="Pitch"></div>
+  </section>
+  <section id="slices" class="panel slices" aria-label="Slices"></section>
 
   <p class="readout" aria-live="polite"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span><span id="readout-does" class="does"></span></p>
 </Base>

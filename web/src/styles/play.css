@@ -1,14 +1,18 @@
-/* Play: one screen in the family's column. The buffer on top, the controls in a
-   rack below, a readout line. Orange only for what is on. */
+/* Play: one screen in the family's column. Transport, the buffer, two strips
+   of controls, the slices, a readout line. Orange only for what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
-body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(120px, 1fr) auto auto; gap: 10px; }
+body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(120px, 1fr) auto auto auto auto; gap: 10px; }
 .mark .slash { margin: 0 2px; }
 .led { display: flex; align-items: center; gap: 6px; }
 .led .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--accent) calc(var(--led, 0) * 100%), transparent); }
 
-.bar { display: grid; grid-template-columns: 112px 1fr; gap: 10px; }
-.bar .control { justify-content: center; background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.bar .control.on { background: var(--bg); border-color: var(--line); color: var(--ink); }
+/* Transport: five equal cells */
+.transport { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.transport #input { grid-column: span 3; }
+.control.primary { justify-content: center; background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.control.primary.on { background: var(--bg); border-color: var(--line); color: var(--ink); }
+.transport .pad { width: 100%; height: 44px; font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.transport .pad.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); overflow: hidden; background: var(--bg); }
 .segmented button { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 0 6px; border: 0; background: none; color: var(--dim);
@@ -18,44 +22,32 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
 .segmented [aria-pressed="true"], .segmented [aria-checked="true"] { color: var(--ink); background: var(--surface); }
 .segmented [aria-pressed="true"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 
-.view { display: grid; grid-template-rows: auto minmax(0, 1fr); padding: 0; overflow: hidden; }
-.view .head { display: grid; grid-template-columns: 1fr auto 1fr; padding: 10px 12px 0; }
-.view .head .held { grid-column: 3; justify-self: end; }
-.view .head h2 { grid-column: 2; }
-.view canvas { display: block; width: 100%; height: 100%; min-height: 0; }
-.held { font-variant-numeric: tabular-nums; }
+/* The buffer, its status in the corner */
+.view { position: relative; padding: 0; overflow: hidden; }
+.view canvas { display: block; width: 100%; height: 100%; }
+.held { position: absolute; top: 8px; right: 12px; font-variant-numeric: tabular-nums; pointer-events: none; }
 .held.on { color: var(--accent); }
 
-/* Rack: panels group the controls, each sized to what it holds */
-.rack { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 10px; }
-.record { grid-column: span 3; }
-.time { grid-column: span 3; }
-.selection { grid-column: span 3; }
-.output { grid-column: span 3; }
-.grain { grid-column: span 7; }
-.pitch { grid-column: span 5; }
-.slices { grid-column: span 12; }
-.group { display: grid; grid-template-rows: auto 1fr; gap: 4px; min-width: 0; padding: 10px 8px 12px; }
-.group h2.label, .view h2.label { margin: 0; text-align: center; }
-.controls { display: flex; align-items: flex-start; justify-content: space-around; gap: 4px; min-height: 86px; padding-top: 6px; }
+/* Strips: clusters of controls split by hairlines */
+.strip { display: flex; align-items: stretch; padding: 12px 4px; }
+.cluster { display: flex; flex: auto; justify-content: space-evenly; align-items: flex-start; gap: 2px; padding: 0 6px; }
+.cluster + .cluster { border-left: 1px solid var(--line); }
 
 .knob { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 56px; cursor: ns-resize; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
-.knob .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; white-space: nowrap; }
+.knob .label, .switch .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; white-space: nowrap; }
 .knob svg { width: 44px; height: 44px; }
 .knob .track, .knob .fill { fill: none; stroke-width: 2.5; stroke-linecap: round; }
 .knob .track { stroke: var(--line); }
 .knob .fill { stroke: var(--ink); }
 .knob .tick { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
 .knob .value { font: 500 11px/16px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
-.knob.focus .label, .knob:focus-visible .label { color: var(--ink); }
+.knob.focus .label, .knob:focus-visible .label, .switch.focus .label { color: var(--ink); }
 .knob:focus-visible svg { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 50%; }
 
 .switch { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.switch .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; white-space: nowrap; }
-.switch.focus .label { color: var(--ink); }
-.group .segmented { height: auto; grid-auto-flow: row; width: 56px; }
-.group .segmented button { height: 22px; font-size: 10px; letter-spacing: 0.04em; }
-.group .segmented button + button { border-left: 0; border-top: 1px solid var(--line); }
+.switch .segmented { height: auto; grid-auto-flow: row; width: 56px; }
+.switch .segmented button { height: 20px; font-size: 10px; letter-spacing: 0.04em; }
+.switch .segmented button + button { border-left: 0; border-top: 1px solid var(--line); }
 
 .level { display: flex; align-items: flex-start; gap: 2px; }
 .meter { display: grid; gap: 3px; padding-top: 18px; }
@@ -63,12 +55,12 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
 .meter i.on { background: var(--ink); }
 .meter i.clip { background: var(--accent); }
 
+/* Slices */
+.slices { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 10px; }
 .pad { display: grid; place-items: center; width: 100%; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad.playing { border-color: var(--ink); }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
-#record .pad { width: 56px; height: 56px; margin-top: 8px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
-.slices .controls { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; min-height: 0; }
 
 .readout { display: flex; align-items: baseline; gap: 12px; height: 20px; margin: 0; overflow: hidden; white-space: nowrap; font-size: 13px; line-height: 20px; }
 .readout .label { color: var(--ink); }
@@ -76,12 +68,13 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(12
 .readout .does { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
 
 /* Short or narrow screens: the page scrolls rather than squeezing the controls */
-@media (max-height: 700px), (max-width: 480px) {
+@media (max-height: 640px), (max-width: 600px) {
   body.app { height: auto; min-height: 100dvh; overflow: auto; }
-  body.app main { grid-template-rows: auto 200px auto auto; }
+  body.app main { grid-template-rows: auto 200px auto auto auto auto; }
 }
-@media (max-width: 480px) {
-  .rack > * { grid-column: span 6; }
-  .grain, .pitch, .slices { grid-column: span 12; }
+@media (max-width: 600px) {
+  .strip { flex-wrap: wrap; row-gap: 12px; }
+  .cluster { flex-basis: 100%; }
+  .cluster + .cluster { border-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
   .readout { height: auto; white-space: normal; flex-wrap: wrap; }
 }

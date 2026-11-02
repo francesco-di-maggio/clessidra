@@ -91,7 +91,7 @@ export class Waveform {
     ctx.textAlign = "center";
     if (!f || !sound) {
       ctx.fillStyle = this.recording ? c.accent : c.dim;
-      ctx.fillText(this.recording ? "RECORDING" : this.started ? "LISTENING · TAP OR HOLD REC" : "PRESS START", W / 2, mid);
+      ctx.fillText(this.recording ? "RECORDING" : this.started ? "LISTENING · TAP OR HOLD REC" : "PRESS PLAY", W / 2, mid);
       return;
     }
     const v = f.view;

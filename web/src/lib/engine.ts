@@ -5,8 +5,8 @@ export const RATE = 48000; // config.h kSampleRateHz
 export const BLOCK = 128; // Web Audio's render quantum
 export const NUM_SLICES = 7; // onsets.h kNumSlices
 export const MAX_RECORD_S = 30; // config.h kBufferSeconds
-export const RECORD_PAD = 11; // CoreUI::kRecordPad
-export const LAYER_PAD = 10; // CoreUI::kLayerPad
+export const RECORD_PAD = 10; // CoreUI::kRecordPad
+export const LAYER_PAD = 11; // CoreUI::kLayerPad
 export const SLICE_PADS = [3, 4, 8, 5, 6, 9, 7]; // CoreUI::kSlicePads
 
 // cl_view, in samples of the recording
