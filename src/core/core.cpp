@@ -51,15 +51,15 @@ void Core::Process(const float* const* in, float** out, size_t size)
         // With a grain at once
         stream_.sched_phase = stream_.sched_next;
     }
-    // A new strike: from the start of its slice, with a grain at once
-    for(size_t s = 0; s < kNumStrikes; s++)
+    // A new trigger: from the start of its slice, with a grain at once
+    for(size_t s = 0; s < kNumTriggers; s++)
     {
-        const Strike& strike = p.strikes[s];
-        StrikeStream& state  = strikes_[s];
-        if(strike.id == state.id)
+        const Trigger& trigger = p.triggers[s];
+        TriggerStream& state   = triggers_[s];
+        if(trigger.id == state.id)
             continue;
-        state.id          = strike.id;
-        state.on          = strike.end > strike.start && len > 0.0;
+        state.id          = trigger.id;
+        state.on          = trigger.end > trigger.start && len > 0.0;
         state.phase       = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
         state.sched_phase = state.sched_next;
     }
@@ -79,43 +79,44 @@ void Core::Process(const float* const* in, float** out, size_t size)
         {
             const Source source
                 = {sel_start, sel_len, stream_.phase, 0.0, 1.0, backwards};
-            Trigger(p, source, &sound, i);
+            StartGrain(p, source, &sound, i);
         }
 
-        // Strikes: through their slice at the playhead's speed. Released,
+        // Triggers: through their slice at the playhead's speed. Released,
         // only Once goes on, and not while frozen.
-        for(size_t s = 0; s < kNumStrikes; s++)
+        for(size_t s = 0; s < kNumTriggers; s++)
         {
-            StrikeStream& state = strikes_[s];
+            TriggerStream& state = triggers_[s];
             if(!state.on)
                 continue;
-            const Strike& strike = p.strikes[s];
-            if(!strike.held && (strike.mode != Strike::Mode::Once || p.freeze))
+            const Trigger& trigger = p.triggers[s];
+            if(!trigger.held
+               && (trigger.mode != Trigger::Mode::Once || p.freeze))
             {
                 state.on = false;
                 continue;
             }
             const double slice
-                = std::max(double(strike.end - strike.start) * len, 1.0);
+                = std::max(double(trigger.end - trigger.start) * len, 1.0);
             state.phase += p.freeze ? 0.0 : p.speed / slice;
-            if(strike.mode == Strike::Mode::Loop)
+            if(trigger.mode == Trigger::Mode::Loop)
                 state.phase -= std::floor(state.phase);
             else if(state.phase < 0.0 || state.phase >= 1.0)
             {
                 state.on = false;
                 continue;
             }
-            const float strike_density
-                = std::clamp(strike.density, 0.0f, kMaxDensity);
-            if(!Due(state, strike_density / sample_rate_, p.jitter))
+            const float trigger_density
+                = std::clamp(trigger.density, 0.0f, kMaxDensity);
+            if(!Due(state, trigger_density / sample_rate_, p.jitter))
                 continue;
-            const Source source = {double(strike.start) * len,
+            const Source source = {double(trigger.start) * len,
                                    slice,
                                    state.phase,
                                    0.0,
                                    1.0,
                                    p.speed < 0.0f};
-            Trigger(p, source, &sound, i);
+            StartGrain(p, source, &sound, i);
         }
     }
 
@@ -150,20 +151,20 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float reverb_wet_step
         = (reverb_gain * std::sin(reverb_angle) - reverb_wet_) / n;
 
-    const float tone_coeff
-        = 1.0f - std::exp(-n / (kToneSeconds * sample_rate_));
-    daisysp::fonepole(tone_, std::clamp(p.tone, -1.0f, 1.0f), tone_coeff);
-    const float tone    = std::fabs(tone_);
-    const bool  lowpass = tone_ < 0.0f;
-    const float tone_hz
+    const float filter_coeff
+        = 1.0f - std::exp(-n / (kFilterSeconds * sample_rate_));
+    daisysp::fonepole(filter_, std::clamp(p.filter, -1.0f, 1.0f), filter_coeff);
+    const float amount  = std::fabs(filter_);
+    const bool  lowpass = filter_ < 0.0f;
+    const float filter_hz
         = lowpass
-              ? kLowpassOffHz * std::pow(kLowpassMinHz / kLowpassOffHz, tone)
+              ? kLowpassOffHz * std::pow(kLowpassMinHz / kLowpassOffHz, amount)
               : kHighpassOffHz
-                    * std::pow(kHighpassMaxHz / kHighpassOffHz, tone);
-    const float tone_q   = kToneQMin + tone * (kToneQMax - kToneQMin);
-    const float tone_mix = std::min(1.0f, tone / kToneFade);
-    for(auto& filter : tone_filter_)
-        filter.Set(tone_hz, tone_q, sample_rate_);
+                    * std::pow(kHighpassMaxHz / kHighpassOffHz, amount);
+    const float filter_q   = kFilterQMin + amount * (kFilterQMax - kFilterQMin);
+    const float filter_mix = std::min(1.0f, amount / kFilterFade);
+    for(auto& filter : filters_)
+        filter.Set(filter_hz, filter_q, sample_rate_);
 
     const float norm_step  = (norm_ - norm_gain_) / n;
     const float input_step = (std::max(p.input, 0.0f) - input_gain_) / n;
@@ -183,12 +184,12 @@ void Core::Process(const float* const* in, float** out, size_t size)
         norm_gain_ += norm_step;
         float l = out[0][i] * norm_gain_;
         float r = out[1][i] * norm_gain_;
-        tone_filter_[0].Process(l);
-        tone_filter_[1].Process(r);
-        l += tone_mix
-             * ((lowpass ? tone_filter_[0].Low() : tone_filter_[0].High()) - l);
-        r += tone_mix
-             * ((lowpass ? tone_filter_[1].Low() : tone_filter_[1].High()) - r);
+        filters_[0].Process(l);
+        filters_[1].Process(r);
+        l += filter_mix
+             * ((lowpass ? filters_[0].Low() : filters_[0].High()) - l);
+        r += filter_mix
+             * ((lowpass ? filters_[1].Low() : filters_[1].High()) - r);
         float reverb_l, reverb_r;
         reverb_.Process(l, r, &reverb_l, &reverb_r);
         out[0][i] = l * reverb_dry_ + reverb_l * reverb_wet_;
@@ -296,10 +297,10 @@ void Core::Normalise(float  power_grains,
     norm_ = 0.9f * overlap_gain * coherence_gain_;
 }
 
-void Core::Trigger(const Params& p,
-                   const Source& source,
-                   const Buffer* sound,
-                   size_t        offset)
+void Core::StartGrain(const Params& p,
+                      const Source& source,
+                      const Buffer* sound,
+                      size_t        offset)
 {
     Grain* grain  = nullptr;
     size_t active = 0;

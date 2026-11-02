@@ -126,15 +126,15 @@ export class Waveform {
       const sa = x(v[VIEW.edges + i]);
       const sb = x(v[VIEW.edges + i + 1]);
       if (sb - sa < 14) continue;
-      ctx.fillStyle = v[VIEW.strikes + i] >= 0 ? c.accent : c.dim;
+      ctx.fillStyle = v[VIEW.triggers + i] >= 0 ? c.accent : c.dim;
       ctx.fillText(`${i + 1}`, (sa + sb) / 2, bottom + 22);
     }
 
-    // Strikes sounding: a short orange mark where each is
+    // Triggers sounding: a short orange mark where each is
     ctx.strokeStyle = c.accent;
     ctx.lineWidth = 2;
     for (let i = 0; i < NUM_SLICES; i++) {
-      const at = v[VIEW.strikes + i];
+      const at = v[VIEW.triggers + i];
       if (at >= 0) line(ctx, x(at), bottom - 10, x(at), bottom + 14);
     }
 

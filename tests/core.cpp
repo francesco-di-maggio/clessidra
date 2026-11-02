@@ -422,10 +422,10 @@ void Fuzz()
     Rig          zero(1.0);
     Core::Params none;
     zero.Fill(Sine);
-    none.strikes[0] = {0.5f, 0.5f, Core::kMaxDensity, 1};
+    none.triggers[0] = {0.5f, 0.5f, Core::kMaxDensity, 1};
     zero.core.SetParams(none);
     zero.Run(0.5, Sine);
-    Check(zero.finite && !zero.core.StrikeOn(0),
+    Check(zero.finite && !zero.core.TriggerOn(0),
           "a slice without width: silent, output finite",
           1.0);
 }
@@ -494,60 +494,60 @@ double Gain(float hz, float cutoff, float q, bool low)
     return 10.0 * std::log10(out / in);
 }
 
-void Tone()
+void Filter()
 {
     Check(Near(Gain(4000, 200, 1.5f, true), -52.0, 1.0),
-          "tone: lowpass 200 Hz at 4 kHz (dB)",
+          "filter: lowpass 200 Hz at 4 kHz (dB)",
           Gain(4000, 200, 1.5f, true));
     Check(Near(Gain(200, 2000, 1.5f, false), -40.0, 1.0),
-          "tone: highpass 2 kHz at 200 Hz (dB)",
+          "filter: highpass 2 kHz at 200 Hz (dB)",
           Gain(200, 2000, 1.5f, false));
     Check(std::fabs(Gain(10000, 20000, 0.707f, true)) < 0.05,
-          "tone: off (lowpass 20 kHz) at 10 kHz (dB)",
+          "filter: off (lowpass 20 kHz) at 10 kHz (dB)",
           Gain(10000, 20000, 0.707f, true));
 }
 
-// Strikes: once to the end of their slice, while held, or round it while held
-void Strikes()
+// Triggers: once to the end of their slice, while held, or round it while held
+void Triggers()
 {
     Rig r(1.0);
     r.Fill(Sine);
     Core::Params p;
     p.density = 0.0f;
-    // Seconds a strike sounds over slice 1/7 at speed 1, held for held seconds
-    auto lasts = [&r, &p](Core::Strike::Mode mode, double held, uint32_t id) {
-        p.strikes[0] = {0.0f, 1.0f / 7.0f, 50.0f, id, mode, true};
+    // Seconds a trigger sounds over slice 1/7 at speed 1, held for held seconds
+    auto lasts = [&r, &p](Core::Trigger::Mode mode, double held, uint32_t id) {
+        p.triggers[0] = {0.0f, 1.0f / 7.0f, 50.0f, id, mode, true};
         r.core.SetParams(p);
         double seconds = 0.0;
         while(seconds < 0.6)
         {
-            if(seconds >= held && p.strikes[0].held)
+            if(seconds >= held && p.triggers[0].held)
             {
-                p.strikes[0].held = false;
+                p.triggers[0].held = false;
                 r.core.SetParams(p);
             }
             r.Run(0.001, Silence);
             seconds += 0.001;
-            if(!r.core.StrikeOn(0))
+            if(!r.core.TriggerOn(0))
                 break;
         }
         return seconds;
     };
-    using Mode        = Core::Strike::Mode;
+    using Mode        = Core::Trigger::Mode;
     const double once = lasts(Mode::Once, 0.01, 1);
     Check(Near(once, 1.0 / 7.0, 0.005),
-          "strike once: through its slice, released early (s)",
+          "trigger once: through its slice, released early (s)",
           once);
     const double gate = lasts(Mode::Gate, 0.05, 2);
-    Check(Near(gate, 0.05, 0.003), "strike gate: while held (s)", gate);
+    Check(Near(gate, 0.05, 0.003), "trigger gate: while held (s)", gate);
     const double loop = lasts(Mode::Loop, 0.4, 3);
     Check(Near(loop, 0.4, 0.003),
-          "strike loop: round its slice while held, past its end (s)",
+          "trigger loop: round its slice while held, past its end (s)",
           loop);
     p.freeze          = true;
     const double cold = lasts(Mode::Once, 0.05, 4);
     Check(Near(cold, 0.05, 0.003),
-          "strike once, frozen: stops on release (s)",
+          "trigger once, frozen: stops on release (s)",
           cold);
 
     // The playhead goes round the selection, and starts it again on Restart
@@ -736,8 +736,8 @@ void Mapping()
     ui.Process(c, r.core);
 
     // P11: the second layer, each knob picked up where its value is
-    Check(p.reverb == CoreUI::kReverbStart && p.tone == 0.0f,
-          "second layer at power-up: some reverb, tone off",
+    Check(p.reverb == CoreUI::kReverbStart && p.filter == 0.0f,
+          "second layer at power-up: some reverb, filter off",
           p.reverb);
     c.touched[CoreUI::kLayerPad] = true;
     c.knobs[Controls::S34]       = 0.9f; // far from the reverb's value
@@ -830,12 +830,12 @@ void Mapping()
     ui.Process(c, r.core);
     c.knobs[Controls::S35] = 0.0f;
     ui.Process(c, r.core);
-    Check(p.tone == -1.0f && Near(p.length, 1.0, 1e-6),
+    Check(p.filter == -1.0f && Near(p.length, 1.0, 1e-6),
           "P11 + S35 down: low-pass, end stays",
-          p.tone);
+          p.filter);
     c.knobs[Controls::S35] = 0.5f;
     ui.Process(c, r.core);
-    Check(p.tone == 0.0f, "P11 + S35 centre: tone off", p.tone);
+    Check(p.filter == 0.0f, "P11 + S35 centre: filter off", p.filter);
     for(auto k : {Controls::S30, Controls::S31, Controls::S32, Controls::S33})
     {
         c.knobs[k] = 0.0f;
@@ -861,7 +861,7 @@ void Mapping()
     const float led = ui.Led(ms + 1000, r.core);
     Check(Near(led, 0.6 * 0.6 * 0.6, 0.01), "LED: dim glow with grains", led);
 
-    // A slice pad: a strike of its own, the playhead untouched. Pressure sets
+    // A slice pad: a trigger of its own, the playhead untouched. Pressure sets
     // its density.
     const float  density = p.density;
     const double phase   = r.core.PlayheadPhase();
@@ -869,28 +869,30 @@ void Mapping()
     c.pressure[place]    = 0.3f;
     press(place, true);
     r.Run(0.001, Silence);
-    Check(p.density == density && r.core.StrikeOn(3)
-              && p.strikes[3].density > 0.0f && p.strikes[3].density < 10.0f,
-          "slice touched lightly: a sparse strike, the playhead as it was",
-          p.strikes[3].density);
+    Check(p.density == density && r.core.TriggerOn(3)
+              && p.triggers[3].density > 0.0f && p.triggers[3].density < 10.0f,
+          "slice touched lightly: a sparse trigger, the playhead as it was",
+          p.triggers[3].density);
     Check(std::fabs(r.core.PlayheadPhase() - phase) < 0.01,
           "slice touched: the playhead goes on",
           r.core.PlayheadPhase());
     c.pressure[place] = 1.0f;
     ui.Process(c, r.core);
-    Check(Near(p.strikes[3].density, Core::kMaxDensity, 0.01),
-          "slice pressed hard: the strike at the most density",
-          p.strikes[3].density);
+    Check(Near(p.triggers[3].density, Core::kMaxDensity, 0.01),
+          "slice pressed hard: the trigger at the most density",
+          p.triggers[3].density);
     press(place, false);
-    Check(!p.strikes[3].held && p.strikes[3].mode == Core::Strike::Mode::Once,
+    Check(!p.triggers[3].held
+              && p.triggers[3].mode == Core::Trigger::Mode::Once,
           "S07 up, released: once, it goes on to its end",
           0);
     c.switches[Controls::S07] = Controls::Centre;
     ui.Process(c, r.core);
-    Check(p.strikes[3].mode == Core::Strike::Mode::Gate, "S07 centre: gate", 1);
+    Check(
+        p.triggers[3].mode == Core::Trigger::Mode::Gate, "S07 centre: gate", 1);
     c.switches[Controls::S07] = Controls::Down;
     ui.Process(c, r.core);
-    Check(p.strikes[3].mode == Core::Strike::Mode::Loop, "S07 down: loop", 2);
+    Check(p.triggers[3].mode == Core::Trigger::Mode::Loop, "S07 down: loop", 2);
     c.switches[Controls::S07] = Controls::Up;
 
     // P02: the playhead from the start of the selection
@@ -927,8 +929,8 @@ int main()
     Fuzz();
     Level();
     Windows();
-    Tone();
-    Strikes();
+    Filter();
+    Triggers();
     Pan();
     Voices();
     Onsets();

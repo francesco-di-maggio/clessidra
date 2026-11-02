@@ -90,8 +90,8 @@ for (const [cluster, ids] of COLUMNS) {
     else cell($(cluster));
   }
 }
-add(segmented(byId("S07"), $("strike"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
-add(pad(byId("P02"), $("strike"), "↺", on));
+add(segmented(byId("S07"), $("trigger"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
+add(pad(byId("P02"), $("trigger"), "↺", on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
 
 for (const w of parts.values()) {
@@ -113,7 +113,7 @@ function set(c: Control, value: number, show = true) {
     const level = c as Level;
     LEVELS_VALUE.set(c.id, value);
     audio.setGain(c.id === "IN" ? "input" : "output", level.gain(value));
-    w.value?.(level.value!(new Float32Array(0), { sound: 0, strikes: [], slices: [], recording: 0 }));
+    w.value?.(level.value!(new Float32Array(0), { sound: 0, triggers: [], slices: [], recording: 0 }));
     if (show) focus(c);
     return;
   }
@@ -168,7 +168,7 @@ addEventListener("pointermove", (e) => {
   for (const t of touches.values()) if (t.pointers.has(e.pointerId)) t.pen = e.pressure;
 });
 
-// Keys: R records, 1–7 strike the slices, first to last
+// Keys: R records, 1–7 trigger the slices, first to last
 function keyPad(e: KeyboardEvent) {
   if (e.key === "r" || e.key === "R") return RECORD_PAD;
   const n = Number(e.key);
@@ -211,14 +211,14 @@ function focus(c: Control) {
 
 function show() {
   if (!last) return;
-  const strikes = SLICE_PADS.map((_, i) => last!.view[VIEW.strikes + i] >= 0);
+  const triggers = SLICE_PADS.map((_, i) => last!.view[VIEW.triggers + i] >= 0);
   const slices = SLICE_PADS.map((_, i) => last!.view[VIEW.edges + i + 1] - last!.view[VIEW.edges + i]);
-  const v: Live = { sound: last.view[VIEW.sound], strikes, slices, recording: recording() };
+  const v: Live = { sound: last.view[VIEW.sound], triggers, slices, recording: recording() };
   for (const w of parts.values()) if (w.c.index >= 0) w.value?.(w.c.value?.(last.params, v) ?? "");
   if (focused) readout.value.textContent = focused.value?.(last.params, v) ?? "";
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   held.classList.toggle("on", v.recording > 0);
-  for (const w of parts.values()) if (w.c.slice !== undefined) w.root.classList.toggle("playing", strikes[w.c.slice]);
+  for (const w of parts.values()) if (w.c.slice !== undefined) w.root.classList.toggle("playing", triggers[w.c.slice]);
 }
 
 function onMessage(m: FromWorklet) {

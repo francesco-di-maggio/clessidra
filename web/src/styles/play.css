@@ -64,7 +64,7 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 64px minm
 .meter i.on { background: var(--ink); }
 .meter i.clip { background: var(--accent); }
 
-/* Pads: strike mode and restart, then the slices */
+/* Pads: trigger mode and restart, then the slices */
 .pads { display: flex; align-items: center; gap: 10px; padding: 10px; }
 .pads .cluster { display: flex; flex: none; gap: 8px; padding: 0 10px 0 0; border-right: 1px solid var(--line); align-items: center; }
 .pads .cluster .pad { width: 48px; font-size: 16px; }

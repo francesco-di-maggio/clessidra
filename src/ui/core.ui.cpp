@@ -50,13 +50,13 @@ namespace
 CoreUI::CoreUI()
 {
     EqualSlices();
-    // Each grain parameter's randomness, then reverb and tone
+    // Each grain parameter's randomness, then reverb and filter
     layers_.Add(Controls::S30, 0.0f);
     layers_.Add(Controls::S31, 0.0f);
     layers_.Add(Controls::S32, 0.0f);
     layers_.Add(Controls::S33, 0.0f);
     layers_.Add(Controls::S34, kReverbStart);
-    layers_.Add(Controls::S35, kToneStart);
+    layers_.Add(Controls::S35, kFilterStart);
 }
 
 void CoreUI::EqualSlices()
@@ -109,7 +109,7 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.speed  = (way == Controls::Down ? -4.0f : 4.0f) * speed * speed;
 
     // S37, Density, as Beads: off at the centre, periodic grains below it,
-    // random above, more towards the ends. The strikes start theirs alike.
+    // random above, more towards the ends. The triggers start theirs alike.
     const float density     = knob(Controls::S37);
     const float from_centre = std::fabs(density - 0.5f);
     const bool  density_off = from_centre <= kDensityStop;
@@ -124,39 +124,39 @@ void CoreUI::Process(const Controls& c, Core& core)
         core.Restart();
     restart_touched_ = c.touched[kRestartPad];
 
-    // S07, strike mode: up once, centre while held, down round the slice
-    const Controls::Position mode        = c.switches[Controls::S07];
-    const auto               strike_mode = mode == Controls::Up
-                                 ? Core::Strike::Mode::Once
-                                 : mode == Controls::Centre
-                                       ? Core::Strike::Mode::Gate
-                                       : Core::Strike::Mode::Loop;
+    // S07, trigger mode: up once, centre while held, down round the slice
+    const Controls::Position mode         = c.switches[Controls::S07];
+    const auto               trigger_mode = mode == Controls::Up
+                                  ? Core::Trigger::Mode::Once
+                                  : mode == Controls::Centre
+                                        ? Core::Trigger::Mode::Gate
+                                        : Core::Trigger::Mode::Loop;
 
     // P03-P09: each touch plays its slice, its own stream of grains, as S07
     // sets. Pressure sets its density.
     for(size_t i = 0; i < kNumSlices; i++)
     {
-        const size_t  pad    = kSlicePads[i];
-        Core::Strike& strike = strikes_[i];
+        const size_t   pad     = kSlicePads[i];
+        Core::Trigger& trigger = triggers_[i];
         if(c.touched[pad] && !slice_touched_[i])
         {
-            strike.id++;
-            strike.start = slices_[i];
-            strike.end   = slices_[i + 1];
+            trigger.id++;
+            trigger.start = slices_[i];
+            trigger.end   = slices_[i + 1];
         }
         slice_touched_[i] = c.touched[pad];
-        strike.mode       = strike_mode;
-        strike.held       = c.touched[pad];
+        trigger.mode      = trigger_mode;
+        trigger.held      = c.touched[pad];
         if(c.touched[pad])
         {
             const float firm = std::clamp((c.pressure[pad] - kPressFrom)
                                               / (1.0f - kPressFrom),
                                           0.0f,
                                           1.0f);
-            strike.density   = Rate(kStrikeFrom + (1.0f - kStrikeFrom) * firm);
+            trigger.density = Rate(kTriggerFrom + (1.0f - kTriggerFrom) * firm);
         }
     }
-    p.strikes = strikes_;
+    p.triggers = triggers_;
 
     // S31: grain size, exponential, kMinGrainMs to kMaxGrainMs, at most half
     // the sound. P11 + S31: its randomness.
@@ -189,8 +189,8 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.spread = std::min(
         spray + p.rand_size + p.rand_shape + pitch_random + p.jitter, 1.0f);
 
-    // P11 + S35: tone, low-pass down, high-pass up, off at the centre
-    p.tone = 2.0f * Detent(layers_.Second(Controls::S35), 0.05f) - 1.0f;
+    // P11 + S35: filter, low-pass down, high-pass up, off at the centre
+    p.filter = 2.0f * Detent(layers_.Second(Controls::S35), 0.05f) - 1.0f;
 
     core.SetParams(p);
 

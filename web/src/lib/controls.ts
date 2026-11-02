@@ -10,7 +10,7 @@ export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Sw
 // What a readout knows besides the parameters
 export interface Live {
   sound: number; // samples recorded
-  strikes: boolean[]; // each slice pad's strike sounding
+  triggers: boolean[]; // each slice pad's trigger sounding
   slices: number[]; // each slice's length, samples
   recording: number; // seconds P10 has been held, 0 when not
 }
@@ -97,12 +97,12 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Direction", initial: POSITION.up,
-    does: "Forward (up), freeze (centre) or reverse (down), for the playhead and the strikes.",
+    does: "Forward (up), freeze (centre) or reverse (down), for the playhead and the triggers.",
     value: (p) => (p[PARAM.freeze] ? "Freeze" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   ...SLICE_PADS.map((pad, i): Control => ({
     id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Slice ${i + 1}`, slice: i,
-    does: "Each plays its slice with its own grains, on top of the playhead, as Strike sets. Press harder for more grains.",
+    does: "Each plays its slice with its own grains, on top of the playhead, as Trigger sets. Press harder for more grains.",
     value: (_, v) => (v.slices[i] ? seconds(v.slices[i]) : ""),
   })),
   // While P11 is held: each grain parameter's randomness, reverb and filter
@@ -135,7 +135,7 @@ export const CONTROLS: Control[] = [
     id: "P11+S35", type: "knob", index: 5, x: 0, y: 0, name: "Filter", initial: 0.5, bipolar: true, second: true, board: "P11 + S35",
     does: "Low-pass to the left (20 kHz to 200 Hz), off at the centre, high-pass to the right (20 Hz to 2 kHz).",
     value: (p) => {
-      const t = p[PARAM.tone];
+      const t = p[PARAM.filter];
       if (t === 0) return "Off";
       const hz = t < 0 ? 20000 * (200 / 20000) ** -t : 20 * (2000 / 20) ** t;
       return `${t < 0 ? "LP" : "HP"} ${hz < 1000 ? Math.round(hz) : (hz / 1000).toFixed(1) + "k"}`;
@@ -143,7 +143,7 @@ export const CONTROLS: Control[] = [
   },
   { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S30 spray, S31 to S33 the randomness of size, shape and pitch, S34 reverb, S35 filter. Each knob takes over once it reaches the value." },
   {
-    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Strike", initial: POSITION.up,
+    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Trigger", initial: POSITION.up,
     does: "What a slice pad plays: its slice once (up), while held (centre), or round its slice while held (down).",
     value: () => "",
   },

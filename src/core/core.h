@@ -47,17 +47,17 @@ class Core
     static constexpr float kReverbDecayMax  = 16.0f; // seconds
     // damping in the reverb's loop
     static constexpr float kReverbLowpassHz = 10000.0f;
-    // Tone on the grains, before the reverb. From off, exponential to the ends;
+    // Filter on the grains, before the reverb. From off, exponential to the ends;
     // resonance rising with it from flat (Butterworth). Fades in over the first
-    // kToneFade of each side.
+    // kFilterFade of each side.
     static constexpr float kLowpassOffHz  = 20000.0f;
     static constexpr float kLowpassMinHz  = 200.0f;
     static constexpr float kHighpassOffHz = 20.0f;
     static constexpr float kHighpassMaxHz = 2000.0f;
-    static constexpr float kToneQMin      = 0.707f;
-    static constexpr float kToneQMax      = 1.5f;
-    static constexpr float kToneFade      = 0.1f;
-    static constexpr float kToneSeconds   = 0.01f; // smoothing of Params.tone
+    static constexpr float kFilterQMin    = 0.707f;
+    static constexpr float kFilterQMax    = 1.5f;
+    static constexpr float kFilterFade    = 0.1f;
+    static constexpr float kFilterSeconds = 0.01f; // smoothing of Params.filter
     // Recording. The input goes to the ring all the time. On release, a touch
     // shorter than kTapSeconds keeps the kTapCaptureSeconds before it, a longer
     // one the touch from kPreRollSeconds before it, up to the buffers'
@@ -72,8 +72,8 @@ class Core
 
     // Pads: each plays a slice once, as its own stream of grains, on top of
     // the playhead
-    static constexpr size_t kNumStrikes = 7;
-    struct Strike
+    static constexpr size_t kNumTriggers = 7;
+    struct Trigger
     {
         // Once to the end of the slice; while held; round the slice while held
         enum class Mode
@@ -117,12 +117,12 @@ class Core
         // 0..1, as Beads: most grains near the shape, a few any shape
         float rand_shape = 0.0f;
         float reverb     = 0.0f; // 0 none .. 1 most and longest, on the grains
-        float tone = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
-        float mix  = 1.0f; // 0 dry .. 1 wet, equal power
+        float filter = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
+        float mix    = 1.0f; // 0 dry .. 1 wet, equal power
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
-        std::array<Strike, kNumStrikes> strikes{};
+        std::array<Trigger, kNumTriggers> triggers{};
     };
 
     // ring: ring_size floats. buffers: kNumBuffers of buffer_size floats, the
@@ -171,19 +171,19 @@ class Core
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
     double        PlayheadPhase() const { return stream_.phase; }
-    // A strike sounding, and where it is in its slice, 0..1
-    bool   StrikeOn(size_t i) const { return strikes_[i].on; }
-    double StrikePhase(size_t i) const { return strikes_[i].phase; }
+    // A trigger sounding, and where it is in its slice, 0..1
+    bool   TriggerOn(size_t i) const { return triggers_[i].on; }
+    double TriggerPhase(size_t i) const { return triggers_[i].phase; }
 
   private:
-    // The playhead over the selection, or a strike over its slice
+    // The playhead over the selection, or a trigger over its slice
     struct Stream
     {
         double phase       = 0.0;  // through its span, 0..1
         double sched_phase = 0.0;  // grain starts, 1 = mean interval
         float  sched_next  = 1.0f; // phase of the next start
     };
-    struct StrikeStream : Stream
+    struct TriggerStream : Stream
     {
         uint32_t id = 0;
         bool     on = false;
@@ -207,10 +207,10 @@ class Core
     };
 
     // Starts a grain on a free voice at sample offset of the block
-    void Trigger(const Params& p,
-                 const Source& source,
-                 const Buffer* sound,
-                 size_t        offset);
+    void StartGrain(const Params& p,
+                    const Source& source,
+                    const Buffer* sound,
+                    size_t        offset);
     // End of Process(), after the ring is written: on release, copies the
     // recording to the buffer not playing once its grains have ended, then
     // plays it
@@ -246,12 +246,12 @@ class Core
 
     // Grains. Running positions in double: float steps reach 1/32 sample at 8
     // s.
-    std::array<Grain, kNumVoices>         grains_;
-    Stream                                stream_;
-    std::array<StrikeStream, kNumStrikes> strikes_;
-    std::atomic<bool>                     restart_{false};
-    uint32_t                              seed_ = 1;
-    std::atomic<float>                    grain_level_{0.0f};
+    std::array<Grain, kNumVoices>           grains_;
+    Stream                                  stream_;
+    std::array<TriggerStream, kNumTriggers> triggers_;
+    std::atomic<bool>                       restart_{false};
+    uint32_t                                seed_ = 1;
+    std::atomic<float>                      grain_level_{0.0f};
 
     // Level. Mean powers, smoothed: grains taken separately, their stereo sum,
     // their windows.
@@ -262,9 +262,9 @@ class Core
     float coherence_gain_ = 1.0f;
     float norm_           = 0.0f; // grain gain
 
-    // Tone, reverb, output
-    std::array<Svf, 2> tone_filter_;
-    float              tone_ = 0.0f; // Params.tone, smoothed
+    // Filter, reverb, output
+    std::array<Svf, 2> filters_;
+    float              filter_ = 0.0f; // Params.filter, smoothed
     daisysp::ReverbSc  reverb_;
     Limiter            limiter_;
     // Gains at the end of the last block
