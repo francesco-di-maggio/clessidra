@@ -4,6 +4,7 @@
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
 import { MAX_RECORD_S, RATE, RECORD_PAD, SLICE_PADS, VIEW, type Frame, type FromWorklet } from "./engine";
+import { Incoming } from "./incoming";
 import { Waveform } from "./waveform";
 import { knob, meter, pad, segmented, type Handlers, type Widget } from "./widgets";
 
@@ -21,6 +22,7 @@ const readout = { name: $("readout-name"), value: $("readout-value"), does: $("r
 
 const audio = new Audio(onMessage);
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
+const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
 const HINT = { name: "Play", does: "Drag a knob · Shift for fine steps · Double-click to reset · R records · 1–7 play the slices" };
@@ -180,8 +182,9 @@ function onMessage(m: FromWorklet) {
     led.style.setProperty("--led", String(m.led));
     inMeter(m.input);
     outMeter(m.output);
-    waveform.recording = recording();
+    waveform.recording = incoming.recording = recording();
     waveform.update(m);
+    incoming.update(m.incoming);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);

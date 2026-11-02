@@ -2,7 +2,7 @@
 // runs here, one render quantum at a time. The page sends the controls and
 // gets back what it draws, once per screen frame.
 
-import { BLOCK, GRAIN_FIELDS, PARAM_SIZE, VIEW_SIZE, type Control, type Exports, type FromWorklet } from "./engine";
+import { BLOCK, GRAIN_FIELDS, INCOMING_COLUMNS, INCOMING_SECONDS, PARAM_SIZE, VIEW_SIZE, type Control, type Exports, type FromWorklet } from "./engine";
 
 // The AudioWorkletGlobalScope, as far as this uses it
 declare const sampleRate: number;
@@ -23,6 +23,11 @@ class Clessidra extends AudioWorkletProcessor {
   private peaks = new Float32Array(0);
   private input = 0; // peaks since the last frame
   private output = 0;
+  // The input's peak per column, a ring of the last INCOMING_SECONDS
+  private incoming = new Float32Array(INCOMING_COLUMNS);
+  private column = 0;
+  private columnPeak = 0;
+  private columnSamples = 0;
 
   constructor(options: { processorOptions: { bytes: ArrayBuffer } }) {
     super();
@@ -79,9 +84,17 @@ class Clessidra extends AudioWorkletProcessor {
     w.cl_process(n, now);
     out[0].set(this.io[2].subarray(0, n));
     out[1]?.set(this.io[3].subarray(0, n));
+    const perColumn = (INCOMING_SECONDS * sampleRate) / INCOMING_COLUMNS;
     for (let i = 0; i < n; i++) {
-      this.input = Math.max(this.input, Math.abs(this.io[0][i]), Math.abs(this.io[1][i]));
+      const x = Math.max(Math.abs(this.io[0][i]), Math.abs(this.io[1][i]));
+      this.input = Math.max(this.input, x);
       this.output = Math.max(this.output, Math.abs(this.io[2][i]), Math.abs(this.io[3][i]));
+      this.columnPeak = Math.max(this.columnPeak, x);
+      if (++this.columnSamples >= perColumn) {
+        this.incoming[this.column] = this.columnPeak;
+        this.column = (this.column + 1) % INCOMING_COLUMNS;
+        this.columnPeak = this.columnSamples = 0;
+      }
     }
     if (currentTime >= this.next) {
       this.next = currentTime + FRAME_S;
@@ -97,7 +110,10 @@ class Clessidra extends AudioWorkletProcessor {
     const grains = this.f32(w.cl_grain_fields(), count * GRAIN_FIELDS).slice();
     const params = this.f32(w.cl_params(), PARAM_SIZE).slice();
     const peaks = this.peaks.slice();
-    this.post({ type: "view", led: w.cl_led(now), input: this.input, output: this.output, view, grains, params, peaks }, [view.buffer, grains.buffer, params.buffer, peaks.buffer]);
+    const incoming = new Float32Array(INCOMING_COLUMNS);
+    incoming.set(this.incoming.subarray(this.column));
+    incoming.set(this.incoming.subarray(0, this.column), INCOMING_COLUMNS - this.column);
+    this.post({ type: "view", led: w.cl_led(now), input: this.input, output: this.output, incoming, view, grains, params, peaks }, [view.buffer, grains.buffer, params.buffer, peaks.buffer, incoming.buffer]);
     this.input = this.output = 0;
   }
 }

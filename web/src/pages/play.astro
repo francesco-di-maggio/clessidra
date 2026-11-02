@@ -16,6 +16,11 @@ import "../styles/play.css";
     <input id="file" type="file" accept="audio/*" hidden>
   </div>
 
+  <section class="panel incoming" aria-label="Incoming, the last 8 s">
+    <span class="label tag">In · 8 s</span>
+    <canvas id="incoming" role="img" aria-label="The input over the last 8 seconds"></canvas>
+  </section>
+
   <section class="panel view" aria-label="Buffer">
     <span id="held" class="label held">Empty</span>
     <canvas id="buffer" role="img" aria-label="The recording: the selection, the playhead, the slices and the grains"></canvas>

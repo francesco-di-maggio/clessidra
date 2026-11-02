@@ -36,7 +36,9 @@ export interface Control {
 const seconds = (samples: number) => `${(samples / RATE).toFixed(samples < RATE ? 2 : 1)} s`;
 const percent = (x: number) => `${Math.round(x * 100)} %`;
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
-const span = (p: Float32Array, v: Live) => `${seconds(p[PARAM.start] * v.sound)} – ${seconds((p[PARAM.start] + p[PARAM.length]) * v.sound)}`;
+// The selection's ends, the lower first: S30 and S35 work in either order
+const from = (p: Float32Array, v: Live) => seconds(p[PARAM.start] * v.sound);
+const to = (p: Float32Array, v: Live) => seconds((p[PARAM.start] + p[PARAM.length]) * v.sound);
 
 const PAD_AT: Record<number, [number, number]> = {
   0: [150, 620], 1: [310, 610], 2: [412, 625], 3: [48, 800], 4: [170, 765], 5: [285, 795],
@@ -58,12 +60,12 @@ export const CONTROLS: Control[] = [
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Start", initial: 0,
     does: "One end of the selection. The playhead moves between Start and End, in either order.",
-    value: span,
+    value: from,
   },
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "End", initial: 1,
     does: "The other end of the selection.",
-    value: span,
+    value: to,
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true,

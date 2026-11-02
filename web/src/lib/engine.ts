@@ -8,6 +8,9 @@ export const MAX_RECORD_S = 30; // config.h kBufferSeconds
 export const RECORD_PAD = 10; // CoreUI::kRecordPad
 export const LAYER_PAD = 11; // CoreUI::kLayerPad
 export const SLICE_PADS = [3, 4, 8, 5, 6, 9, 7]; // CoreUI::kSlicePads
+// The incoming strip: the last seconds a tap keeps (Core::kTapCaptureSeconds)
+export const INCOMING_SECONDS = 8;
+export const INCOMING_COLUMNS = 320;
 
 // cl_view, in samples of the recording
 export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, slice: 4, edges: 5 } as const;
@@ -45,6 +48,7 @@ export interface Frame {
   led: number;
   input: number; // peak since the last frame, 0..1
   output: number;
+  incoming: Float32Array; // the input's peaks over INCOMING_SECONDS, oldest first
   view: Float32Array;
   grains: Float32Array;
   params: Float32Array;

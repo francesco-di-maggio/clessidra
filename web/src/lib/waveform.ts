@@ -72,7 +72,7 @@ export class Waveform {
 
     const pad = 14;
     const width = W - 2 * pad;
-    const top = 18;
+    const top = 28; // the status line above
     const axis = H - 14; // seconds
     const bottom = axis - 38; // the slices below it
     const mid = (top + bottom) / 2;
@@ -83,11 +83,6 @@ export class Waveform {
 
     ctx.font = `500 11px ${c.mono}`;
     ctx.textBaseline = "middle";
-    if (this.recording) {
-      ctx.textAlign = "right";
-      ctx.fillStyle = c.accent;
-      ctx.fillText(`● REC ${this.recording.toFixed(1)} S`, W - pad, 9);
-    }
     ctx.textAlign = "center";
     if (!f || !sound) {
       ctx.fillStyle = this.recording ? c.accent : c.dim;
