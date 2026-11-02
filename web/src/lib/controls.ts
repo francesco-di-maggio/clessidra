@@ -38,7 +38,6 @@ const percent = (x: number) => `${Math.round(x * 100)} %`;
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
 // A randomness, -1..1: up an even spread, down mostly near with a long tail
 const random = (x: number) => (x === 0 ? "Off" : `${signed(x * 100, 0)} %`);
-const RANDOM = "Off at the centre. Up: each grain moved by the amount towards a random value, an even spread. Down: by a random part of three times it, mostly near with a long tail.";
 
 const PAD_AT: Record<number, [number, number]> = {
   0: [150, 620], 1: [310, 610], 2: [412, 625], 3: [48, 800], 4: [170, 765], 5: [285, 795],
@@ -54,7 +53,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.85, bipolar: true,
-    does: "Grains per second, 0.3 to 131. Off at the centre, periodic below, random above, more towards the ends.",
+    does: "Grains per second, 0.3 to 131. Periodic below the centre, off at it, random above.",
     value: (p) => {
       const d = p[PARAM.density];
       return d === 0 ? "Off" : `${p[PARAM.jitter] ? "Rnd" : "Per"} ${d.toFixed(d < 10 ? 1 : 0)}/s`;
@@ -62,7 +61,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
-    does: "Where the selection sits, from the start of the recording to its end. The playhead moves through it.",
+    does: "Where the selection sits, from the recording's start to its end.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
@@ -92,17 +91,17 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
-    does: "Tap: keeps the last 8 s. Hold: records until you let go, up to 30 s. The glass always listens.",
+    does: "Tap: the last 8 s. Hold: until you let go, up to 30 s. Always listening.",
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Direction", initial: POSITION.up,
-    does: "Forward (up), freeze (centre) or reverse (down), for the playhead and the triggers.",
+    does: "Up forward, centre freeze, down reverse, for the playhead and the triggers.",
     value: (p) => (p[PARAM.freeze] ? "Freeze" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   ...SLICE_PADS.map((pad, i): Control => ({
     id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Slice ${i + 1}`, slice: i,
-    does: "Each plays its slice with its own grains, on top of the playhead, as Trigger sets. Press harder for more grains.",
+    does: "Plays its slice with its own grains, as Trigger sets. Press harder for more.",
     value: (_, v) => (v.slices[i] ? seconds(v.slices[i]) : ""),
   })),
   // While P11 is held: the randomness of each grain parameter, and reverb
@@ -113,7 +112,7 @@ export const CONTROLS: Control[] = [
     ["S33", "Pitch", PARAM.randPitch],
   ] as const).map(([knob, of, param], index): Control => ({
     id: `P11+${knob}`, type: "knob", index, x: 0, y: 0, name: `${of} Random`, short: "Random", initial: 0.5, bipolar: true, second: true, board: `P11 + ${knob}`,
-    does: `${of} randomness, grain by grain. ${RANDOM}`,
+    does: `Randomness of ${of.toLowerCase()} per grain: off at the centre, up an even spread, down a long tail.`,
     value: (p) => random(p[param]),
   })),
   {
@@ -121,10 +120,10 @@ export const CONTROLS: Control[] = [
     does: "Reverb on the grains: more and longer, 0.5 to 16 s.",
     value: (p) => percent(p[PARAM.reverb]),
   },
-  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S30 to S33 the randomness of position, size, shape and pitch, S34 reverb. Each knob takes over once it reaches the value." },
+  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer, S30 to S33 randomness, S34 reverb. Each knob picks up its value." },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Trigger", initial: POSITION.up,
-    does: "What a slice pad plays: its slice once (up), while held (centre), or round its slice while held (down).",
+    does: "A slice pad plays once to its end (up), while held (centre), or looped while held (down).",
     value: () => "",
   },
   {
@@ -155,7 +154,7 @@ const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.l
 export const LEVELS: Level[] = [
   {
     id: "IN", type: "knob", index: -1, x: 0, y: 0, name: "In", initial: 0.5, bipolar: true,
-    does: "The level into the firmware, ±12 dB. Browser only: on the board, the source sets it.",
+    does: "The level into the firmware, ±12 dB. Browser only: on the board the source sets it.",
     gain: (x) => 10 ** (((x - 0.5) * 24) / 20),
   },
   {

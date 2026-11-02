@@ -47,44 +47,34 @@ function arc(from: number, to: number) {
 }
 
 // A knob: label, dial, value. Drag up and down (Shift: fine), arrows, double
-// click for the starting value. Bipolar knobs fill from their centre.
+// click for the starting value. Bipolar knobs fill from their centre. A fader
+// on the board is drawn as one.
 export function knob(c: Control, parent: Element, h: Handlers): Widget {
   const root = html("div", { class: "knob", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
   html("span", { class: "label" }, root).textContent = c.short ?? c.name;
   const dial = svg("svg", { viewBox: "0 0 56 56", "aria-hidden": "true" }, root);
-  svg("path", { class: "track", d: arc(-SWEEP / 2, SWEEP / 2) }, dial);
-  const fill = svg("path", { class: "fill" }, dial);
-  const tick = svg("line", { class: "tick" }, dial);
   const value = html("span", { class: "value" }, root);
   value.textContent = "–";
   let v = c.initial ?? 0;
-
-  function draw(x: number) {
-    v = x;
-    const deg = -SWEEP / 2 + x * SWEEP;
-    const from = c.bipolar ? 0 : -SWEEP / 2;
-    fill.setAttribute("d", Math.abs(deg - from) > 1 ? arc(Math.min(from, deg), Math.max(from, deg)) : "");
-    const [x0, y0] = polar(deg, R - 9);
-    const [x1, y1] = polar(deg, R);
-    tick.setAttribute("x1", String(x0));
-    tick.setAttribute("y1", String(y0));
-    tick.setAttribute("x2", String(x1));
-    tick.setAttribute("y2", String(y1));
-    root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
-  }
+  const draw = c.type === "fader" ? faderDrawing(c, dial) : dialDrawing(c, dial);
 
   let drag: { y: number; v: number } | null = null;
   root.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     root.setPointerCapture(e.pointerId);
     root.focus({ preventScroll: true });
+    root.classList.add("dragging");
     drag = { y: e.clientY, v };
   });
   root.addEventListener("pointermove", (e) => {
     if (drag) h.onInput(c, clamp(drag.v + ((drag.y - e.clientY) / 180) * (e.shiftKey ? 0.2 : 1)));
   });
-  root.addEventListener("pointerup", () => (drag = null));
-  root.addEventListener("pointercancel", () => (drag = null));
+  const release = () => {
+    drag = null;
+    root.classList.remove("dragging");
+  };
+  root.addEventListener("pointerup", release);
+  root.addEventListener("pointercancel", release);
   root.addEventListener("dblclick", () => h.onInput(c, c.initial ?? 0));
   root.addEventListener("keydown", (e) => {
     const step = ({ ArrowUp: 0.01, ArrowRight: 0.01, ArrowDown: -0.01, ArrowLeft: -0.01, PageUp: 0.1, PageDown: -0.1 } as Record<string, number>)[e.key];
@@ -94,8 +84,48 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
   });
   root.addEventListener("pointerenter", () => h.onFocus(c));
   root.addEventListener("focus", () => h.onFocus(c));
-  draw(v);
-  return { c, root, draw, value: (text) => (value.textContent = text) };
+  const show = (x: number) => {
+    v = x;
+    draw(x);
+    root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
+  };
+  show(v);
+  return { c, root, draw: show, value: (text) => (value.textContent = text) };
+}
+
+// A fader: its slot, filled from the bottom or, bipolar, the centre (marked),
+// and a cap
+const FADER = { top: 8, bottom: 48 };
+function faderDrawing(c: Control, dial: SVGSVGElement) {
+  svg("line", { class: "track", x1: 28, x2: 28, y1: FADER.top, y2: FADER.bottom }, dial);
+  if (c.bipolar) svg("line", { class: "track", x1: 21, x2: 35, y1: 28, y2: 28 }, dial);
+  const fill = svg("line", { class: "fill", x1: 28, x2: 28 }, dial);
+  const cap = svg("rect", { class: "cap", x: 18, width: 20, height: 7, rx: 2 }, dial);
+  return (x: number) => {
+    const y = FADER.bottom - x * (FADER.bottom - FADER.top);
+    const from = c.bipolar ? (FADER.top + FADER.bottom) / 2 : FADER.bottom;
+    fill.setAttribute("y1", String(from));
+    fill.setAttribute("y2", String(y));
+    cap.setAttribute("y", String(y - 3.5));
+  };
+}
+
+// A dial: its arc, filled from the start or, bipolar, the centre, and a tick
+function dialDrawing(c: Control, dial: SVGSVGElement) {
+  svg("path", { class: "track", d: arc(-SWEEP / 2, SWEEP / 2) }, dial);
+  const fill = svg("path", { class: "fill" }, dial);
+  const tick = svg("line", { class: "tick" }, dial);
+  return (x: number) => {
+    const deg = -SWEEP / 2 + x * SWEEP;
+    const from = c.bipolar ? 0 : -SWEEP / 2;
+    fill.setAttribute("d", Math.abs(deg - from) > 1 ? arc(Math.min(from, deg), Math.max(from, deg)) : "");
+    const [x0, y0] = polar(deg, R - 9);
+    const [x1, y1] = polar(deg, R);
+    tick.setAttribute("x1", String(x0));
+    tick.setAttribute("y1", String(y0));
+    tick.setAttribute("x2", String(x1));
+    tick.setAttribute("y2", String(y1));
+  };
 }
 
 // A pad: held while pressed, by pointer, or by Space and Enter
