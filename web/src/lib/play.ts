@@ -22,7 +22,9 @@ const readout = { name: $("readout-name"), value: $("readout-value"), does: $("r
 const audio = new Audio(onMessage);
 const sand = new Sand($<HTMLCanvasElement>("sand"));
 let last: Frame | null = null;
-let focused = byId("P11");
+// Nothing pointed at: the readout shows how to play
+const HINT = { name: "Play", does: "Drag a knob · Shift for fine steps · Double-click to reset · R records · 1–7 play the slices" };
+let focused: Control | null = null;
 const parts = new Map<string, Widget>();
 
 const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
@@ -47,7 +49,10 @@ for (const w of parts.values()) {
   if (w.c.type === "pad") w.draw(0);
   else set(w.c, w.c.initial ?? 0, false);
 }
-focus(focused);
+hint();
+document.querySelector(".rack")!.addEventListener("pointerleave", () => {
+  if (!document.activeElement?.closest(".rack")) hint();
+});
 
 function set(c: Control, value: number, show = true) {
   const w = parts.get(c.id)!;
@@ -135,6 +140,14 @@ function recording() {
   return t ? Math.min((performance.now() - t.since) / 1000, MAX_RECORD_S) : 0;
 }
 
+function hint() {
+  focused = null;
+  for (const w of parts.values()) w.root.classList.remove("focus");
+  readout.name.textContent = HINT.name;
+  readout.value.textContent = "";
+  readout.does.textContent = HINT.does;
+}
+
 function focus(c: Control) {
   focused = c;
   for (const w of parts.values()) w.root.classList.toggle("focus", w.c === c);
@@ -147,7 +160,7 @@ function show() {
   if (!last) return;
   const v: Live = { sound: last.view[VIEW.sound], slice: last.view[VIEW.slice], recording: recording() };
   for (const w of parts.values()) if (w.c.index >= 0) w.value?.(w.c.value?.(last.params, v) ?? "");
-  readout.value.textContent = focused.value?.(last.params, v) ?? "";
+  if (focused) readout.value.textContent = focused.value?.(last.params, v) ?? "";
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   held.classList.toggle("on", v.recording > 0);
   for (const w of parts.values()) if (w.c.slice !== undefined) w.root.classList.toggle("playing", w.c.slice === v.slice);
