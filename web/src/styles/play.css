@@ -58,6 +58,7 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 88px minm
 .knob .value { font: 500 11px/16px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
 .knob.focus .label, .knob:focus-visible .label, .switch.focus .label { color: var(--ink); }
 .knob:focus-visible svg { outline: 1.5px solid var(--accent); outline-offset: -2px; border-radius: 50%; }
+.knob.fader:focus-visible svg { outline-offset: 0; border-radius: var(--radius-control); }
 .cell.below svg { width: 32px; height: 32px; }
 .cell.below .label { color: var(--dim); }
 
