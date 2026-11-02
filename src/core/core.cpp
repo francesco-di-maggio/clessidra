@@ -2,16 +2,20 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <Utility/dsp.h>
 
 namespace clessidra
 {
-void Core::Init(float sample_rate, float* buffer, size_t buffer_size)
+void Core::Init(float        sample_rate,
+                float*       ring,
+                size_t       ring_size,
+                float* const buffers[kNumBuffers],
+                size_t       buffer_size)
 {
     sample_rate_ = sample_rate;
-    buffer_.Init(buffer, buffer_size);
-    write_ = std::min(size_t(kStartLagSeconds * sample_rate), buffer_size - 1);
+    ring_.Init(ring, ring_size, sample_rate);
+    for(size_t i = 0; i < kNumBuffers; i++)
+        buffers_[i].Init(buffers[i], buffer_size, sample_rate);
     dc_block_.Init(sample_rate);
     reverb_.Init(sample_rate);
     reverb_.SetLpFreq(kReverbLowpassHz);
@@ -22,25 +26,12 @@ void Core::Init(float sample_rate, float* buffer, size_t buffer_size)
 
 void Core::Process(const float* const* in, float** out, size_t size)
 {
-    const Params p       = slots_[slot_.load(std::memory_order_acquire)];
-    const bool   writing = p.fill > 0.0f || fill_gain_ > 0.0f;
-    const size_t sound   = wrapped_ ? buffer_.Length() : write_;
-    const double len     = double(writing ? buffer_.Length() : sound);
-    const double lag     = double(size_t(kStartLagSeconds * sample_rate_));
-    // Only what comes in: the held sound ends at it, for when Fill comes down
-    size_t held_end = held_end_.load(std::memory_order_relaxed);
-    if(p.fill >= 1.0f)
-        held_end = write_;
-    // The held sound stays where it is. The grains that follow the input read
-    // just behind the write point.
-    const double sel_len = std::max(p.length * double(sound), 1.0);
-    const double sel_start
-        = double(held_end) - p.start * double(sound) - sel_len;
-    const double live_len   = std::clamp(p.length * double(buffer_.Length()),
-                                       1.0,
-                                       std::max(double(sound) - lag, 1.0));
-    const double live_start = double(write_) - lag - live_len;
-    const float  density    = std::clamp(p.density, 0.0f, kMaxDensity);
+    const Params  p       = slots_[slot_.load(std::memory_order_acquire)];
+    const Buffer& sound   = buffers_[playing_.load(std::memory_order_relaxed)];
+    const double  len     = double(sound.Length());
+    const double  sel_len = std::max(double(p.length) * len, 1.0);
+    const double  sel_start = double(p.start) * len;
+    const float   density   = std::clamp(p.density, 0.0f, kMaxDensity);
     // A grain lasts grain_samples whatever its pitch, as the starts per second
     // do: no longer than the recording, and short enough for the voices to hold
     // whole windows at this density. Stolen, they would hardly rise.
@@ -56,97 +47,45 @@ void Core::Process(const float* const* in, float** out, size_t size)
 
     if(p.freeze)
         playhead_.Resume();
-    const double low       = p.slice_start;
-    const double high      = p.slice_end;
-    const double live_low  = p.live_slice_start;
-    const double live_high = p.live_slice_end;
-    const double live_top  = std::nextafter(live_high, live_low);
-    // Only what comes in: the held sound starts over when Fill comes down
-    const bool restart = restart_.exchange(false, std::memory_order_relaxed);
-    if(restart || p.fill >= 1.0f)
+    const double low  = p.slice_start;
+    const double high = p.slice_end;
+    if(restart_.exchange(false, std::memory_order_relaxed))
     {
         playhead_.Restart();
         stream_.phase = p.speed < 0.0f ? std::nextafter(high, low) : low;
-    }
-    if(restart)
-    {
-        stream_.live_phase = p.speed < 0.0f ? live_top : live_low;
         // With a grain at once
         stream_.sched_phase = stream_.sched_next;
     }
-    // Opening the glass: what comes in, at once
-    if(writing && !was_writing_)
-    {
-        filled_             = true;
-        stream_.live_phase  = live_top;
-        stream_.sched_phase = stream_.sched_next;
-    }
-    was_writing_ = writing;
-    // At speed 1, what comes in now
-    if(writing && !p.freeze && p.speed == 1.0f)
-        stream_.live_phase = live_top;
 
     // Outside Loop, the last grains stay inside the slice
     const double margin = std::min(grain_samples * std::fabs(p.pitch) / sel_len,
                                    0.25 * (high - low));
-
     const double play_inc
         = p.freeze ? 0.0 : p.speed / sel_len; // phase per sample
-    const double live_inc   = p.freeze ? 0.0 : p.speed / live_len;
-    const double live_drift = 1.0 / live_len;
     // grain starts per sample
     const double sched_inc = density / sample_rate_;
 
     // Grain starts in this block, at the sample they fall on. A voice that ends
     // in this block is free from the next.
-    for(size_t i = 0; i < size; i++)
+    for(size_t i = 0; i < size && len > 0.0; i++)
     {
         if(!p.freeze)
             stream_.phase = playhead_.Step(
                 stream_.phase, play_inc, p.end, low, high, margin);
-        // What comes in has no end to reach: it wraps
-        if(writing)
-            stream_.live_phase = live_playhead_.Step(stream_.live_phase,
-                                                     live_inc,
-                                                     Playhead::End::Loop,
-                                                     live_low,
-                                                     live_high,
-                                                     0.0,
-                                                     live_drift);
-        if(playhead_.IsStopped() && !writing)
+        if(playhead_.IsStopped())
             continue;
 
         stream_.sched_phase += sched_inc;
         if(stream_.sched_phase >= stream_.sched_next)
         {
             stream_.sched_phase -= stream_.sched_next;
-            // Each grain falls from what comes in or from what is held: Fill
-            // sets the odds
-            if(0.5f + 0.5f * Random() < p.fill)
-            {
-                const Source live = {live_start + double(i),
-                                     live_len,
-                                     stream_.live_phase,
-                                     live_low,
-                                     live_high,
-                                     live_inc < 0.0,
-                                     double(write_) - lag + double(i),
-                                     0.0};
-                Trigger(p, live, i, grain_samples);
-            }
-            else if(!playhead_.IsStopped())
-            {
-                const Source held
-                    = {sel_start,
-                       sel_len,
-                       stream_.phase,
-                       low,
-                       high,
-                       !p.freeze && playhead_.IsBackward(play_inc),
-                       std::numeric_limits<double>::max(),
-                       wrapped_ ? 0.0 : double(sound)};
-                Trigger(p, held, i, grain_samples);
-            }
+            const Source source = {sel_start,
+                                   sel_len,
+                                   stream_.phase,
+                                   low,
+                                   high,
+                                   !p.freeze && playhead_.IsBackward(play_inc)};
+            Trigger(p, source, &sound, i);
             stream_.sched_next = Interval(p.jitter);
             // At most one start per sample
             stream_.sched_phase
@@ -159,13 +98,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
     std::fill(out[1], out[1] + size, 0.0f);
     Grain::Sums sums;
     for(auto& grain : grains_)
-        grain.Render(grain_inc,
-                     out[0],
-                     out[1],
-                     size,
-                     sums,
-                     double(write_),
-                     writing ? 1.0 : 0.0);
+        grain.Render(grain_inc, out[0], out[1], size, sums);
     float power_sum = 0.0f;
     for(size_t i = 0; i < size; i++)
         power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
@@ -207,12 +140,9 @@ void Core::Process(const float* const* in, float** out, size_t size)
         filter.Set(tone_hz, tone_q, sample_rate_);
 
     const float norm_step  = (norm_ - norm_gain_) / n;
-    const float fill_step  = (std::clamp(p.fill, 0.0f, 1.0f) - fill_gain_) / n;
     const float input_step = (std::max(p.input, 0.0f) - input_gain_) / n;
     const float output_step
         = (std::clamp(p.output, 0.0f, 1.0f) - output_gain_) / n;
-    float* const memory = buffer_.Data();
-    const size_t length = buffer_.Length();
     for(size_t i = 0; i < size; i++)
     {
         reverb_dry_ += reverb_dry_step;
@@ -231,20 +161,10 @@ void Core::Process(const float* const* in, float** out, size_t size)
         out[0][i] = l * reverb_dry_ + reverb_l * reverb_wet_;
         out[1][i] = r * reverb_dry_ + reverb_r * reverb_wet_;
 
-        // The input over what is there. A blend: it can't build up.
+        // The input, always into the ring
         input_gain_ += input_step;
-        fill_gain_ += fill_step;
-        const float input = dc_block_.Process(kInputSum * (in[0][i] + in[1][i])
-                                              * input_gain_);
-        if(writing)
-        {
-            memory[write_] += fill_gain_ * (input - memory[write_]);
-            if(++write_ == length)
-            {
-                write_   = 0;
-                wrapped_ = true;
-            }
-        }
+        ring_.Write(
+            dc_block_.Process(kInputSum * (in[0][i] + in[1][i]) * input_gain_));
 
         out[0][i] *= kOutputGain;
         out[1][i] *= kOutputGain;
@@ -254,10 +174,63 @@ void Core::Process(const float* const* in, float** out, size_t size)
         out[1][i] *= output_gain_;
     }
 
-    held_end_.store(p.fill >= 1.0f ? write_ : held_end,
-                    std::memory_order_relaxed);
     ended_.store(playhead_.IsStopped(), std::memory_order_relaxed);
-    sound_samples_.store(wrapped_ ? length : write_, std::memory_order_relaxed);
+    UpdateCapture(size);
+}
+
+void Core::UpdateCapture(size_t size)
+{
+    const bool record = record_.load(std::memory_order_relaxed);
+    if(record && !was_record_)
+        held_ = 0;
+    if(record)
+        held_ += size;
+    // Release: a new capture replaces one in progress
+    if(!record && was_record_)
+    {
+        const size_t tap      = size_t(kTapSeconds * sample_rate_);
+        const size_t pre_roll = size_t(kPreRollSeconds * sample_rate_);
+        const bool   tapped   = held_ < tap;
+        capture_back_         = tapped ? held_ : 0;
+        capture_length_ = tapped ? size_t(kTapCaptureSeconds * sample_rate_)
+                                 : held_ + pre_roll;
+        capture_ = Capture::Waiting;
+    }
+    was_record_ = record;
+
+    const size_t playing = playing_.load(std::memory_order_relaxed);
+    Buffer&      target  = buffers_[1 - playing];
+    if(capture_ == Capture::Waiting)
+    {
+        // Grains started before the last swap can still read it. Only with
+        // swaps closer than the longest grain.
+        for(const auto& grain : grains_)
+        {
+            if(grain.IsActive() && grain.Source() == &target)
+            {
+                capture_back_ += size;
+                return;
+            }
+        }
+        // Waited long: the oldest part is lost to the writing on
+        const size_t margin = size_t(kCopyMarginSeconds * sample_rate_);
+        const size_t room   = ring_.Capacity() > capture_back_ + margin
+                                ? ring_.Capacity() - capture_back_ - margin
+                                : 0;
+        ring_.Select(capture_back_, std::min(capture_length_, room));
+        capture_ = Capture::Copying;
+    }
+    if(capture_ != Capture::Copying)
+        return;
+    const Ring::Step step = ring_.Copy(target, kCopyPerSample * size);
+    if(step == Ring::Step::Pending)
+        return;
+    capture_ = Capture::Idle;
+    if(step != Ring::Step::Done)
+        return; // silence changes nothing
+    playing_.store(1 - playing, std::memory_order_release);
+    restart_.store(true, std::memory_order_relaxed);
+    recordings_.fetch_add(1, std::memory_order_release);
 }
 
 void Core::Normalise(float  power_grains,
@@ -290,12 +263,9 @@ void Core::Normalise(float  power_grains,
 
 void Core::Trigger(const Params& p,
                    const Source& source,
-                   size_t        offset,
-                   double        grain_samples)
+                   const Buffer* sound,
+                   size_t        offset)
 {
-    if(!filled_)
-        return; // nothing in the buffer: no grains
-
     Grain* grain  = nullptr;
     size_t active = 0;
     for(auto& g : grains_)
@@ -309,9 +279,8 @@ void Core::Trigger(const Params& p,
         return;
 
     Grain::Latch latch;
-    latch.buffer = &buffer_;
-    // Scatter stays inside what is playing, mirrored at its ends: wrapped, the
-    // newest sound would read the oldest
+    latch.buffer = sound;
+    // Scatter stays inside what is playing, mirrored at its ends
     const double low       = source.low;
     const double high      = source.high;
     double       scattered = source.phase + Random() * p.rand_pos * 0.5;
@@ -320,9 +289,6 @@ void Core::Trigger(const Params& p,
     if(scattered < low)
         scattered = std::min(2.0 * low - scattered, high);
     latch.position = source.start + scattered * source.length;
-    if(source.wrap > 0.0)
-        latch.position
-            -= source.wrap * std::floor(latch.position / source.wrap);
     // Peaky: the further each grain may go is itself random
     const float reach
         = std::min(3.0f * p.rand_pitch * (0.5f - 0.5f * Random()), 1.0f);
@@ -339,13 +305,6 @@ void Core::Trigger(const Params& p,
     if(p.size_variation > 0.0f)
         latch.size
             = std::exp2(Random() * p.size_variation * kSizeVariationOctaves);
-    // Reading faster than sound comes in: starts far enough back not to reach
-    // what is being written, where the oldest sound is
-    if(latch.rate > 1.0f)
-        latch.position = std::min(latch.position,
-                                  source.newest
-                                      - grain_samples * double(latch.size)
-                                            * (double(latch.rate) - 1.0));
     latch.shape = p.window_shape;
     grain->Start(latch, offset);
 

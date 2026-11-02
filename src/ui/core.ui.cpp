@@ -84,28 +84,26 @@ void CoreUI::Process(const Controls& c, Core& core)
     Core::Params p;
     bool         restart = false;
 
-    // S30, S35: the selection, from the newest sound held back through the rest,
-    // wrapping, so position is alive at any length
+    // P11: record while held. A new recording: its slices.
+    record_ = c.touched[kRecordPad];
+    core.SetRecording(record_);
+    if(core.Recordings() != recordings_)
+    {
+        recordings_         = core.Recordings();
+        const Buffer& sound = core.Sound();
+        slices_ = FindSlices(sound.Data(), sound.Length(), kSampleRateHz);
+    }
+
+    // S30, S35: start and end of the selection, in either order
     const float seconds = float(core.SoundSamples()) / float(kSampleRateHz);
-    p.length            = std::max(c.knobs[Controls::S35], kMinLength);
-    p.start             = c.knobs[Controls::S30];
+    const float from    = c.knobs[Controls::S30];
+    const float to      = c.knobs[Controls::S35];
+    p.length            = std::max(std::fabs(to - from), kMinLength);
+    p.start             = std::min(std::min(from, to), 1.0f - p.length);
 
     const float semitones = Semitones(c.knobs[Controls::S33]);
     const bool  unison    = semitones == 0.0f;
     p.pitch               = std::exp2(semitones / 12.0f);
-
-    // S34, Fill: exact at both ends. Sealed again: the sound's slices.
-    const float fill_knob = c.knobs[Controls::S34];
-    p.fill                = fill_knob < kFillEnd
-                 ? 0.0f
-                 : fill_knob > 1.0f - kFillEnd ? 1.0f : fill_knob;
-    const bool sealed = p.fill == 0.0f;
-    if(sealed && !sealed_)
-    {
-        const Buffer& sound = core.Sound();
-        slices_ = FindSlices(sound.Data(), core.SoundSamples(), kSampleRateHz);
-    }
-    sealed_ = sealed;
 
     // S36, Tilt: centre stop, up forward, down backward, further faster. Speed
     // 1 half way, with a detent.
@@ -142,20 +140,14 @@ void CoreUI::Process(const Controls& c, Core& core)
             press   = std::max(press, c.pressure[pad]);
         }
     }
-    const bool finishing
-        = p.fill < 1.0f && p.end == Playhead::End::OneShot && !core.HasEnded();
+    const bool finishing = p.end == Playhead::End::OneShot && !core.HasEnded();
     if(!touched && !finishing)
         slice_ = kNumSlices;
     if(slice_ < kNumSlices)
     {
-        // Held: at the sound's onsets, from the selection's start. What comes
-        // in: equal parts.
-        const float samples = float(std::max(core.SoundSamples(), size_t(1)));
-        const float from = float(core.HeldEnd()) / samples - p.start - p.length;
-        p.slice_start    = (slices_[slice_] - from) / p.length;
-        p.slice_end      = (slices_[slice_ + 1] - from) / p.length;
-        p.live_slice_start = float(slice_) / float(kNumSlices);
-        p.live_slice_end   = float(slice_ + 1) / float(kNumSlices);
+        // At the sound's onsets, in selections from the selection's start
+        p.slice_start = (slices_[slice_] - p.start) / p.length;
+        p.slice_end   = (slices_[slice_ + 1] - p.start) / p.length;
     }
 
     // S37, Pour, opened further by a firm press on a slice
@@ -201,12 +193,11 @@ void CoreUI::Process(const Controls& c, Core& core)
 
     // Reaching a detent, or turning within it: a pulse
     const std::array<bool, kNumDetents> at
-        = {unison, p.freeze, speed_one, size_centre, sealed};
+        = {unison, p.freeze, speed_one, size_centre};
     const std::array<float, kNumDetents> knobs = {c.knobs[Controls::S33],
                                                   c.knobs[Controls::S36],
                                                   c.knobs[Controls::S36],
-                                                  c.knobs[Controls::S31],
-                                                  c.knobs[Controls::S34]};
+                                                  c.knobs[Controls::S31]};
     if(!detents_ready_)
     {
         // Power-up: no pulse
@@ -225,9 +216,12 @@ void CoreUI::Process(const Controls& c, Core& core)
     }
 }
 
-// The detent pulse, or a dim glow that follows the grains' windows
+// Flashing while recording, the detent pulse, or a dim glow that follows the
+// grains' windows
 float CoreUI::Led(uint32_t now, const Core& core) const
 {
+    if(record_)
+        return (now / kFlashMs) % 2 == 0 ? 1.0f : 0.0f;
     const float brightness
         = now < pulse_until_ ? 1.0f : kGlow * std::min(1.0f, core.GrainLevel());
     // Cubed: even steps to the eye

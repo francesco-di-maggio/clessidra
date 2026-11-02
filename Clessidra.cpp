@@ -21,7 +21,8 @@ namespace
     constexpr uint32_t kLoopMs    = 3;   // pad scan interval
     constexpr uint32_t kLogMs     = 250; // serial log interval (DEBUG=1)
 
-    float DSY_SDRAM_BSS sound[kBufferSamples];
+    float DSY_SDRAM_BSS ring[kRingSamples];
+    float DSY_SDRAM_BSS sound[Core::kNumBuffers][kBufferSamples];
 
     Touch               touch;
     Core                core;
@@ -68,8 +69,13 @@ namespace
     void Init()
     {
         touch.Init(kSampleRate, kBlockSize);
-        daisy::DaisySeed& seed = touch.seed;
-        core.Init(seed.AudioSampleRate(), sound, kBufferSamples);
+        daisy::DaisySeed& seed      = touch.seed;
+        float* const      buffers[] = {sound[0], sound[1]};
+        core.Init(seed.AudioSampleRate(),
+                  ring,
+                  kRingSamples,
+                  buffers,
+                  kBufferSamples);
         cpu.Init(seed.AudioSampleRate(), seed.AudioBlockSize());
 #if DEBUG
         seed.StartLog(false);

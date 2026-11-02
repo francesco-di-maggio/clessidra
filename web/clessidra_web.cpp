@@ -17,38 +17,34 @@ using namespace clessidra;
 namespace
 {
 constexpr size_t kMaxBlock = 128; // Web Audio's render quantum
-// Waveform columns over the buffer, each its peak level
-constexpr size_t kColumns          = 1024;
-constexpr size_t kSamplesPerColumn = kBufferSamples / kColumns;
-static_assert(kBufferSamples % kColumns == 0);
+// Waveform columns over the recording, each its peak level, a few per block
+constexpr size_t kColumns         = 1200;
+constexpr size_t kColumnsPerBlock = 40;
 
-float    sound[kBufferSamples];
+float    ring[kRingSamples];
+float    sound[Core::kNumBuffers][kBufferSamples];
 Core     core;
 CoreUI   ui;
 Controls controls;
 float    in_l[kMaxBlock], in_r[kMaxBlock], out_l[kMaxBlock], out_r[kMaxBlock];
 float    peaks[kColumns];
-size_t   last_write = 0;
+size_t   peaks_done = kColumns; // columns of the recording playing
+uint32_t recordings = 0;
 
-// What the page draws, in samples of the buffer unless noted
+// What the page draws, in samples of the recording unless noted
 enum View : size_t
 {
-    kWrite,
-    kHeldEnd,
     kSound,
     kSelectionStart,
     kSelectionLength,
-    kLiveStart,
-    kLiveLength,
     kPlayhead,
-    kLivePlayhead,
     kSlice, // kNumSlices: the whole selection
     kSliceEdges,
     kNumView = kSliceEdges + kNumSlices + 1
 };
 float view[kNumView];
 
-// Per grain: position 0..1 of the buffer, progress 0..1, window shape, pan
+// Per grain: position 0..1 of the recording, progress 0..1, window shape, pan
 constexpr size_t kGrainFields = 4;
 float            grains[Core::kNumVoices * kGrainFields];
 
@@ -61,7 +57,6 @@ enum Param : size_t
     kDensity,
     kGrainMs,
     kPitch,
-    kFill,
     kReverb,
     kJitter,
     kRandPitch,
@@ -72,17 +67,18 @@ enum Param : size_t
 };
 float params[kNumParams];
 
-void UpdatePeaks(size_t from, size_t to)
+void UpdatePeaks()
 {
-    for(size_t column = from / kSamplesPerColumn;
-        column <= std::min(to / kSamplesPerColumn, kColumns - 1);
-        column++)
+    const Buffer& b    = core.Sound();
+    const size_t  last = std::min(peaks_done + kColumnsPerBlock, kColumns);
+    for(; peaks_done < last; peaks_done++)
     {
-        float        peak  = 0.0f;
-        const size_t first = column * kSamplesPerColumn;
-        for(size_t i = first; i < first + kSamplesPerColumn; i++)
-            peak = std::max(peak, std::fabs(sound[i]));
-        peaks[column] = peak;
+        const size_t from = peaks_done * b.Length() / kColumns;
+        const size_t to   = (peaks_done + 1) * b.Length() / kColumns;
+        float        peak = 0.0f;
+        for(size_t i = from; i < to; i++)
+            peak = std::max(peak, std::fabs(b.Data()[i]));
+        peaks[peaks_done] = peak;
     }
 }
 
@@ -93,8 +89,8 @@ EXPORT int cl_init(float sample_rate)
     // The mapping counts in kSampleRateHz, as on the board
     if(sample_rate != float(kSampleRateHz))
         return 0;
-    core.Init(sample_rate, sound, kBufferSamples);
-    last_write = core.WritePoint();
+    float* const buffers[] = {sound[0], sound[1]};
+    core.Init(sample_rate, ring, kRingSamples, buffers, kBufferSamples);
     return 1;
 }
 
@@ -117,17 +113,12 @@ EXPORT void cl_process(int size, uint32_t now_ms)
     float*       out[2] = {out_l, out_r};
     core.Process(in, out, std::min(size_t(size), kMaxBlock));
 
-    const size_t write = core.WritePoint();
-    if(write == last_write)
-        return;
-    if(write > last_write)
-        UpdatePeaks(last_write, write);
-    else
+    if(core.Recordings() != recordings)
     {
-        UpdatePeaks(last_write, kBufferSamples - 1);
-        UpdatePeaks(0, write);
+        recordings = core.Recordings();
+        peaks_done = 0;
     }
-    last_write = write;
+    UpdatePeaks();
 }
 
 // Controls, as Controls holds them: knobs 0..1, switches as libDaisy's
@@ -161,50 +152,40 @@ EXPORT int cl_columns()
 {
     return int(kColumns);
 }
-EXPORT int cl_buffer_samples()
+EXPORT int cl_recordings()
 {
-    return int(kBufferSamples);
+    return int(recordings);
 }
 
-// The selections as Core::Process places them
+// The selection as Core::Process places it
 EXPORT const float* cl_view()
 {
-    const Core::Params& p      = core.CurrentParams();
-    const double        sound  = double(core.SoundSamples());
-    const double        buffer = double(kBufferSamples);
-    const double        write  = double(core.WritePoint());
-    const double held_end = p.fill >= 1.0f ? write : double(core.HeldEnd());
-    const double lag = double(size_t(Core::kStartLagSeconds * kSampleRateHz));
-    const double sel_length  = std::max(double(p.length) * sound, 1.0);
-    const double sel_start   = held_end - double(p.start) * sound - sel_length;
-    const double live_length = std::clamp(
-        double(p.length) * buffer, 1.0, std::max(sound - lag, 1.0));
-    const double live_start = write - lag - live_length;
+    const Core::Params& p          = core.CurrentParams();
+    const double        sound      = double(core.SoundSamples());
+    const double        sel_length = std::max(double(p.length) * sound, 1.0);
+    const double        sel_start  = double(p.start) * sound;
 
-    view[kWrite]           = float(write);
-    view[kHeldEnd]         = float(held_end);
     view[kSound]           = float(sound);
     view[kSelectionStart]  = float(sel_start);
     view[kSelectionLength] = float(sel_length);
-    view[kLiveStart]       = float(live_start);
-    view[kLiveLength]      = float(live_length);
-    view[kPlayhead]     = float(sel_start + core.PlayheadPhase() * sel_length);
-    view[kLivePlayhead] = float(live_start + core.LivePhase() * live_length);
-    view[kSlice]        = float(ui.Slice());
+    view[kPlayhead] = float(sel_start + core.PlayheadPhase() * sel_length);
+    view[kSlice]    = float(ui.Slice());
     for(size_t i = 0; i <= kNumSlices; i++)
         view[kSliceEdges + i] = float(ui.Slices()[i] * sound);
     return view;
 }
 
-// Fills the grain fields, returns how many grains are playing
+// Fills the grain fields with the grains reading the recording playing,
+// returns how many
 EXPORT int cl_grains()
 {
-    int count = 0;
+    const Buffer& b     = core.Sound();
+    int           count = 0;
     for(const Grain& g : core.Grains())
     {
-        if(!g.IsActive())
+        if(!g.IsActive() || g.Source() != &b || b.Length() == 0)
             continue;
-        double position = g.Position() / double(kBufferSamples);
+        double position = g.Position() / double(b.Length());
         position -= std::floor(position);
         float* fields = grains + size_t(count) * kGrainFields;
         fields[0]     = float(position);
@@ -229,7 +210,6 @@ EXPORT const float* cl_params()
     params[kDensity]      = p.density;
     params[kGrainMs]      = p.grain_ms;
     params[kPitch]        = 12.0f * std::log2(p.pitch);
-    params[kFill]         = p.fill;
     params[kReverb]       = p.reverb;
     params[kJitter]       = p.jitter;
     params[kRandPitch]    = p.rand_pitch;
@@ -237,9 +217,4 @@ EXPORT const float* cl_params()
     params[kStart]        = p.start;
     params[kLength]       = p.length;
     return params;
-}
-
-EXPORT float cl_grain_level()
-{
-    return core.GrainLevel();
 }

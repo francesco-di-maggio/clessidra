@@ -30,18 +30,25 @@ bool Near(double value, double target, double tolerance)
     return std::fabs(value - target) <= tolerance;
 }
 
-// A core with a buffer of the given length
+// A core with buffers of the given length, the ring a second longer
 struct Rig
 {
-    std::vector<float> memory;
+    std::vector<float> ring;
+    std::vector<float> sound[Core::kNumBuffers];
     Core               core;
     double             time   = 0.0; // seconds of input so far
     float              peak   = 0.0f;
     bool               finite = true;
 
-    explicit Rig(double seconds = 8.0) : memory(size_t(seconds * kRate))
+    explicit Rig(double seconds = 8.0) : ring(size_t((seconds + 1.0) * kRate))
     {
-        core.Init(kRate, memory.data(), memory.size());
+        float* buffers[Core::kNumBuffers];
+        for(size_t i = 0; i < Core::kNumBuffers; i++)
+        {
+            sound[i].resize(size_t(seconds * kRate));
+            buffers[i] = sound[i].data();
+        }
+        core.Init(kRate, ring.data(), ring.size(), buffers, sound[0].size());
     }
 
     // Runs the input for seconds; between blocks, each(block)
@@ -72,14 +79,21 @@ struct Rig
         }
     }
 
-    // The whole buffer filled with the input, then sealed
+    // Holds record for seconds of the input, then waits for it to land
+    void Record(double seconds, const std::function<float(double)>& input)
+    {
+        const uint32_t before = core.Recordings();
+        core.SetRecording(true);
+        Run(seconds, input);
+        core.SetRecording(false);
+        for(int i = 0; i < 400 && core.Recordings() == before; i++)
+            Run(0.01, input);
+    }
+
+    // The whole buffer recorded from the input
     void Fill(const std::function<float(double)>& input)
     {
-        Core::Params p;
-        p.fill = 1.0f;
-        core.SetParams(p);
-        Run(double(memory.size()) / kRate + 0.1, input);
-        core.SetParams(Core::Params{});
+        Record(double(sound[0].size()) / kRate, input);
     }
 };
 
@@ -92,114 +106,6 @@ float Silence(double)
     return 0.0f;
 }
 
-double Rms(const std::vector<float>& x)
-{
-    double sum = 0.0;
-    for(float v : x)
-        sum += double(v) * v;
-    return std::sqrt(sum / double(x.size()));
-}
-
-void FillTests()
-{
-    Rig empty(1.0);
-    empty.Run(0.5, Sine);
-    int grains = 0;
-    for(const auto& grain : empty.core.Grains())
-        grains += grain.IsActive();
-    Check(grains == 0, "nothing in the buffer: no grains", grains);
-
-    // The first sound is heard at once, whatever the end and the selection
-    for(auto end :
-        {Playhead::End::OneShot, Playhead::End::PingPong, Playhead::End::Loop})
-    {
-        for(float position : {0.0f, 0.5f})
-        {
-            Rig          first(8.0);
-            Core::Params q;
-            q.end    = end;
-            q.fill   = 1.0f;
-            q.start  = position;
-            q.length = 0.25f;
-            first.core.SetParams(q);
-            first.Run(0.3, Sine);
-            Check(first.peak > 0.2f,
-                  "first sound: heard within 0.3 s",
-                  first.peak);
-        }
-    }
-
-    // Live at speed 1: the distance to the input stays, S30 sets it
-    {
-        Rig          live(8.0);
-        Core::Params q;
-        q.fill     = 1.0f;
-        q.grain_ms = 50.0f;
-        live.core.SetParams(q);
-        live.Run(9.0, Sine);
-        const double phase = live.core.LivePhase();
-        live.Run(1.0, Sine);
-        Check(live.core.LivePhase() == phase && phase > 0.99,
-              "live, speed 1: the playhead stays at the newest sound",
-              live.core.LivePhase());
-    }
-
-    Rig r(1.0);
-    r.Fill(Sine);
-    const double full = Rms(r.memory);
-    Check(Near(full, 0.5, 0.01),
-          "fill 1: the input, two jacks +3 dB (rms)",
-          full);
-
-    r.Run(0.01, Silence);
-    const double sealed = Rms(r.memory);
-    r.Run(1.0, Silence);
-    Check(Rms(r.memory) == sealed && Near(sealed, full, 0.001),
-          "fill 0: sealed, nothing changes",
-          Rms(r.memory));
-
-    Core::Params p;
-    p.fill = 0.5f;
-    r.core.SetParams(p);
-    r.Run(1.0, Silence);
-    Check(Near(Rms(r.memory), 0.5 * full, 0.03 * full),
-          "fill 0.5: half the old sound after one pass (rms)",
-          Rms(r.memory));
-
-    // Filled for a part of the buffer: the sound is that part
-    Rig part(8.0);
-    p      = Core::Params{};
-    p.fill = 1.0f;
-    part.core.SetParams(p);
-    part.Run(2.0, Sine);
-    part.core.SetParams(Core::Params{});
-    part.Run(0.1, Silence);
-    Check(Near(double(part.core.SoundSamples()), 2.0 * kRate, 0.11 * kRate),
-          "filled for 2 s, then sealed: 2 s of sound (samples)",
-          double(part.core.SoundSamples()));
-    int          silent = 0;
-    Core::Params play;
-    play.density = 50.0f;
-    part.core.SetParams(play);
-    part.Run(4.0, Silence, [&](size_t) {
-        if(part.core.GrainLevel() > 0.1f
-           && part.core.PlayheadPhase() * 2.05 * kRate > 2.2 * kRate)
-            silent++;
-    });
-    Check(silent == 0, "sealed: the playhead stays in the sound", silent);
-
-    p = Core::Params{};
-    // Live, reading across the write point: no build-up, nothing unsafe
-    p.fill     = 1.0f;
-    p.pitch    = 2.0f;
-    p.rand_pos = 1.0f;
-    r.core.SetParams(p);
-    r.peak = 0.0f;
-    r.Run(3.0, Sine);
-    Check(r.finite && r.peak <= Limiter::kThreshold + 1e-4f,
-          "live, pitched up: output stays below the limiter",
-          r.peak);
-}
 
 void Level()
 {
@@ -264,11 +170,21 @@ struct Panel
         c.knobs.fill(0.5f);
         c.knobs[Controls::S30] = 0.0f;
         c.knobs[Controls::S32] = 0.0f;
-        c.knobs[Controls::S34] = 0.0f;
         c.knobs[Controls::S35] = 1.0f;
         c.knobs[Controls::S36] = 0.75f;
         c.knobs[Controls::S37] = 0.75f;
         c.switches             = {Controls::Up, Controls::Centre};
+    }
+
+    // P11 held for seconds of the input, then until it lands
+    void Record(double seconds, const std::function<float(double)>& input)
+    {
+        const uint32_t before         = rig.core.Recordings();
+        c.touched[CoreUI::kRecordPad] = true;
+        Run(seconds, input);
+        c.touched[CoreUI::kRecordPad] = false;
+        for(int i = 0; i < 400 && rig.core.Recordings() == before; i++)
+            Run(0.01, input);
     }
 
     void Run(double seconds, const std::function<float(double)>& input)
@@ -302,98 +218,6 @@ struct Panel
     }
 };
 
-void Live()
-{
-    // Fill up: whatever the panel, the sound follows the input, and is gone
-    // soon after it. The reverb sets how soon.
-    struct Case
-    {
-        const char* name;
-        float       s30, s31, s32, s35, s36, s37;
-        double      most;
-    };
-    const Case cases[] = {
-        {"pour low, reverb", 0.0f, 0.5f, 0.0f, 1.0f, 0.75f, 0.25f, 3.5},
-        {"pour middle", 0.0f, 0.5f, 0.0f, 1.0f, 0.75f, 0.5f, 3.0},
-        {"pour 75 %", 0.0f, 0.5f, 0.0f, 1.0f, 0.75f, 0.75f, 2.0},
-        {"pour top", 0.0f, 0.5f, 0.0f, 1.0f, 0.75f, 1.0f, 2.0},
-        {"position up", 0.8f, 0.5f, 0.0f, 1.0f, 0.75f, 0.75f, 2.0},
-        {"short selection", 0.5f, 0.5f, 0.0f, 0.1f, 0.75f, 0.75f, 2.0},
-        {"scatter a little", 0.0f, 0.5f, 0.25f, 1.0f, 0.75f, 0.75f, 2.0},
-        {"long grains", 0.0f, 1.0f, 0.0f, 1.0f, 0.75f, 0.75f, 3.0},
-    };
-    for(const Case& k : cases)
-    {
-        Panel panel;
-        panel.c.knobs[Controls::S30] = k.s30;
-        panel.c.knobs[Controls::S31] = k.s31;
-        panel.c.knobs[Controls::S32] = k.s32;
-        panel.c.knobs[Controls::S34] = 1.0f;
-        panel.c.knobs[Controls::S35] = k.s35;
-        panel.c.knobs[Controls::S36] = k.s36;
-        panel.c.knobs[Controls::S37] = k.s37;
-        panel.Run(10.0, Sine);
-        const double fade = panel.Fade();
-        std::printf("      fill 100 %%, %s: gone in %.2f s\n", k.name, fade);
-        Check(fade < k.most, "live: gone soon after the input stops (s)", fade);
-    }
-
-    // Pitched up: grains don't run into the oldest sound
-    Panel high;
-    high.c.knobs[Controls::S33] = 1.0f;
-    high.c.knobs[Controls::S34] = 1.0f;
-    high.Run(10.0, Sine);
-    const double high_fade = high.Fade();
-    Check(high_fade < 2.5,
-          "live, pitch +24: gone soon after the input (s)",
-          high_fade);
-
-    // Scatter at the top reaches 2 s back, no further
-    Panel wide;
-    wide.c.knobs[Controls::S32] = 1.0f;
-    wide.c.knobs[Controls::S34] = 1.0f;
-    wide.Run(10.0, Sine);
-    const double wide_fade = wide.Fade();
-    Check(wide_fade < 5.0,
-          "live, scatter top: gone within its reach (s)",
-          wide_fade);
-
-    // Slowed down, then back at speed 1: back to what comes in
-    Panel back;
-    back.c.knobs[Controls::S34] = 1.0f;
-    back.c.knobs[Controls::S36] = 0.6f;
-    back.Run(9.0, Sine);
-    back.c.knobs[Controls::S36] = 0.75f;
-    back.Run(1.0, Sine);
-    const double fade = back.Fade();
-    Check(fade < 2.0,
-          "live, back at speed 1: gone soon after the input (s)",
-          fade);
-
-    // Slowed down, it falls behind: it hears what passed, by design
-    Panel slow;
-    slow.c.knobs[Controls::S34] = 1.0f;
-    slow.c.knobs[Controls::S36] = 0.6f;
-    slow.Run(10.0, Sine);
-    Check(
-        slow.rig.peak > 0.2f, "live, slowed down: still sounds", slow.rig.peak);
-
-    // Sealed: the sound stays while Pour is open, whatever the input does
-    Panel sealed;
-    sealed.c.knobs[Controls::S34]    = 1.0f;
-    sealed.c.switches[Controls::S07] = Controls::Down;
-    sealed.Run(4.0, Sine);
-    sealed.c.knobs[Controls::S34] = 0.0f;
-    sealed.Run(0.1, Silence);
-    sealed.rig.peak = 0.0f;
-    sealed.Run(5.0, Silence);
-    Check(sealed.rig.peak > 0.2f, "sealed: the sound stays", sealed.rig.peak);
-    Check(
-        Near(double(sealed.rig.core.SoundSamples()), 4.1 * kRate, 0.2 * kRate),
-        "sealed: as much sound as came in (samples)",
-        double(sealed.rig.core.SoundSamples()));
-}
-
 // Output rms over seconds, under the panel's controls
 double PanelRms(Panel& panel, double seconds, float (*input)(double))
 {
@@ -423,169 +247,103 @@ float Noise(double)
     return 0.5f * (float(seed >> 8) / float(1 << 24) * 2.0f - 1.0f);
 }
 
-// 8 s: silence, then the sine for the last 2 s, sealed. The sine is what is held.
-void HoldSine(Panel& panel)
+double Seconds(const Core& core)
 {
-    panel.c.knobs[Controls::S34] = 1.0f;
-    panel.Run(6.0, Silence);
-    panel.Run(2.0, Sine);
-    panel.c.knobs[Controls::S34]    = 0.0f;
-    panel.c.knobs[Controls::S35]    = 0.2f;
-    panel.c.knobs[Controls::S32]    = 0.0f;
-    panel.c.switches[Controls::S07] = Controls::Down;
-    panel.Run(0.5, Silence);
+    return double(core.SoundSamples()) / kRate;
 }
 
-// Fill is the odds of a grain following the input: no jump, and every control
-// the same at any Fill
-void Held()
+// P11: tap keeps the last seconds, hold the touch, both into the buffer not
+// playing
+void Record()
 {
-    // The moment Fill came down from: S30 at 0 ends at it
+    Panel empty;
+    empty.Run(1.0, Sine);
+    Check(empty.rig.peak == 0.0f && Seconds(empty.rig.core) == 0.0,
+          "power-up: silent until the first recording",
+          empty.rig.peak);
+
     Panel hold;
-    HoldSine(hold);
-    const double sealed = PanelRms(hold, 1.0, Silence);
-    Check(sealed > 0.1, "sealed: the moment just heard (rms)", sealed);
+    hold.Run(1.0, Sine);
+    hold.Record(2.0, Sine);
+    Check(Near(Seconds(hold.rig.core), 2.05, 0.02),
+          "hold 2 s: the touch and 50 ms before (s)",
+          Seconds(hold.rig.core));
+    const double heard = PanelRms(hold, 0.5, Silence);
+    Check(heard > 0.05, "hold: plays at once (rms)", heard);
 
-    // Low Fill: the write point crosses silence, the selection stays
-    Panel low;
-    HoldSine(low);
-    low.c.knobs[Controls::S34] = 0.05f;
-    const double worn          = PanelRms(low, 1.0, Silence);
-    Check(worn > 0.75 * sealed,
-          "fill 5 %: still the selection, no jump (rms)",
-          worn);
+    Panel tap;
+    tap.Run(10.0, Sine);
+    tap.Record(0.1, Sine);
+    Check(Near(Seconds(tap.rig.core), Core::kTapCaptureSeconds, 0.02),
+          "tap: the last 8 s (s)",
+          Seconds(tap.rig.core));
 
-    // More Fill, fewer grains from the held sound
-    double last = sealed;
-    bool   less = true;
-    for(float fill : {0.25f, 0.5f, 0.75f, 1.0f})
+    Panel lng(4.0);
+    lng.Record(6.0, Sine);
+    Check(Near(Seconds(lng.rig.core), 4.0, 0.01),
+          "held past the buffer: the last of it, all of the buffer (s)",
+          Seconds(lng.rig.core));
+
+    Panel quiet;
+    quiet.Record(1.0, Sine);
+    const double kept = Seconds(quiet.rig.core);
+    quiet.Run(1.0, Silence);
+    quiet.Record(1.0, Silence);
+    Check(Seconds(quiet.rig.core) == kept,
+          "silence recorded: nothing changes (s)",
+          Seconds(quiet.rig.core));
+
+    // Silence around the sound is trimmed to a fade. A tone with fades, as a
+    // cut leaves the DC blocker's tail.
+    Panel trim;
+    trim.Run(1.0, Silence);
+    trim.c.touched[CoreUI::kRecordPad] = true;
+    trim.Run(0.5, Silence);
+    const double from = trim.rig.time;
+    trim.Run(1.0, [from](double t) {
+        const double x = (t - from) / 1.0;
+        return float(std::sin(M_PI * x)) * Sine(t);
+    });
+    trim.Run(0.5, Silence);
+    trim.c.touched[CoreUI::kRecordPad] = false;
+    trim.Run(2.0, Silence);
+    Check(Near(Seconds(trim.rig.core), 1.0, 0.02),
+          "silence at both ends: trimmed (s)",
+          Seconds(trim.rig.core));
+
+    // A new recording: the LED flashes while held, the playhead restarts
+    Panel led;
+    led.c.touched[CoreUI::kRecordPad] = true;
+    led.Run(0.5, Sine);
+    const float on  = led.ui.Led(0, led.rig.core);
+    const float off = led.ui.Led(CoreUI::kFlashMs, led.rig.core);
+    Check(on == 1.0f && off == 0.0f, "recording: the LED flashes", off);
+
+    // Recording again while the last one plays: no jump at the swap
+    Panel again;
+    again.c.knobs[Controls::S37]    = 1.0f;
+    again.c.switches[Controls::S07] = Controls::Down;
+    again.Record(2.0, Sine);
+    float        l[kBlock], o1[kBlock], o2[kBlock];
+    const float* in[2]                  = {l, l};
+    float*       out[2]                 = {o1, o2};
+    again.c.touched[CoreUI::kRecordPad] = true;
+    for(size_t b = 0; b < size_t(4.0 * kRate / kBlock); b++)
     {
-        Panel more;
-        HoldSine(more);
-        more.c.knobs[Controls::S34] = fill;
-        more.Run(2.5, Silence); // the reverb of what was before
-        const double now = PanelRms(more, 1.0, Silence);
-        std::printf(
-            "      fill %.0f %%, input silent: rms %.4f\n", 100.0 * fill, now);
-        less = less && now < last;
-        last = now;
+        if(b == size_t(1.0 * kRate / kBlock))
+            again.c.touched[CoreUI::kRecordPad] = false;
+        again.c.now_ms = again.ms++;
+        again.ui.Process(again.c, again.rig.core);
+        for(size_t i = 0; i < kBlock; i++)
+            l[i] = Noise(0.0);
+        again.rig.core.Process(in, out, kBlock);
+        for(size_t i = 0; i < kBlock; i++)
+            again.rig.finite = again.rig.finite && std::isfinite(o1[i])
+                               && std::isfinite(o2[i]);
     }
-    Check(less && last < 0.1 * sealed,
-          "fill up: the held sound gives way to the input (rms at 100 %)",
-          last);
-
-    // The crossfade on a real spread of sound: noise held, noise coming in
-    for(float fill : {0.0f, 0.1f, 0.25f, 0.5f, 0.75f, 0.9f, 0.97f, 1.0f})
-    {
-        Panel held, input;
-        held.c.knobs[Controls::S34] = 1.0f;
-        held.Run(8.5, Noise);
-        held.c.knobs[Controls::S34]    = 0.0f;
-        held.c.switches[Controls::S07] = Controls::Down;
-        held.Run(0.2, Silence);
-        held.c.knobs[Controls::S34] = fill;
-        held.Run(2.5, Silence);
-        const double from_held       = PanelRms(held, 1.0, Silence);
-        input.c.knobs[Controls::S34] = 1.0f;
-        input.Run(8.5, Silence);
-        input.c.knobs[Controls::S34]    = 0.0f;
-        input.c.switches[Controls::S07] = Controls::Down;
-        input.Run(0.2, Silence);
-        input.c.knobs[Controls::S34] = fill;
-        input.Run(2.5, Noise);
-        const double from_input = PanelRms(input, 1.0, Noise);
-        std::printf("      fill %3.0f %%: held %6.1f dB, input %6.1f dB\n",
-                    100.0 * fill,
-                    20.0 * std::log10(std::max(from_held, 1e-6)),
-                    20.0 * std::log10(std::max(from_input, 1e-6)));
-    }
-
-    // S30 moves the selection at any Fill: back from the sine, into silence
-    Panel away;
-    HoldSine(away);
-    away.c.knobs[Controls::S30] = 0.6f;
-    away.c.knobs[Controls::S34] = 0.05f;
-    away.Run(1.0, Silence);
-    const double moved = PanelRms(away, 1.0, Silence);
-    Check(moved < 0.1 * sealed,
-          "fill 5 %: S30 still moves the selection (rms)",
-          moved);
-
-    // S07 at any Fill: one-shot ends, only the followers go on
-    Panel ends;
-    HoldSine(ends);
-    ends.c.switches[Controls::S07] = Controls::Up;
-    ends.c.knobs[Controls::S34]    = 0.05f;
-    ends.ui.Process(ends.c, ends.rig.core);
-    ends.rig.core.Restart();
-    ends.Run(4.0, Silence);
-    Check(ends.rig.core.HasEnded(), "fill 5 %: one-shot still ends", 1.0);
-
-    // Sealed: grains crossing where newest meets oldest fade, no jump. A tone
-    // that doesn't fit the buffer, so the two don't line up.
-    {
-        Panel seam;
-        auto  tone = [](double t) {
-            return 0.25f * float(std::sin(2.0 * M_PI * 221.7 * t));
-        };
-        seam.c.knobs[Controls::S34]    = 1.0f;
-        seam.c.knobs[Controls::S37]    = 1.0f;
-        seam.c.switches[Controls::S07] = Controls::Down;
-        seam.Run(8.3, tone);
-        seam.c.knobs[Controls::S34] = 0.0f;
-        seam.Run(1.0, tone);
-        float        l[kBlock] = {}, o1[kBlock], o2[kBlock];
-        const float* in[2]     = {l, l};
-        float*       out[2]    = {o1, o2};
-        float        last = 0.0f, jump = 0.0f;
-        for(size_t b = 0; b < size_t(12.0 * kRate / kBlock); b++)
-        {
-            seam.rig.core.Process(in, out, kBlock);
-            for(size_t i = 0; i < kBlock; i++)
-            {
-                jump = std::max(jump, std::fabs(o1[i] - last));
-                last = o1[i];
-            }
-        }
-        Check(jump < 0.035, "sealed: no jump at the seam (largest step)", jump);
-    }
-
-    // A slice at the top of Fill: back to what comes in once released
-    for(auto end : {Controls::Up, Controls::Centre, Controls::Down})
-    {
-        Panel        pad;
-        const size_t slice            = CoreUI::kSlicePads[0];
-        pad.c.knobs[Controls::S34]    = 1.0f;
-        pad.c.switches[Controls::S07] = end;
-        pad.Run(9.0, Sine);
-        pad.c.touched[slice] = true;
-        pad.Run(0.5, Sine);
-        pad.c.touched[slice] = false;
-        pad.Run(0.5, Sine);
-        const double fade = pad.Fade();
-        Check(fade < 2.0,
-              "live, slice released: gone soon after the input (s)",
-              fade);
-    }
-
-    // Filled for a part of the buffer: no silence at any position
-    for(float position : {0.0f, 0.3f, 0.7f})
-    {
-        Panel part;
-        part.c.knobs[Controls::S34] = 1.0f;
-        part.Run(2.0, Sine);
-        part.c.knobs[Controls::S34]    = 0.0f;
-        part.c.knobs[Controls::S30]    = position;
-        part.c.knobs[Controls::S37]    = 1.0f;
-        part.c.switches[Controls::S07] = Controls::Down;
-        part.Run(0.5, Silence);
-        double least = 1.0;
-        for(int i = 0; i < 40; i++)
-            least = std::min(least, PanelRms(part, 0.1, Silence));
-        Check(least > 0.05,
-              "part of the buffer: never silent (lowest rms)",
-              least);
-    }
+    Check(again.rig.core.Recordings() == 2 && again.rig.finite,
+          "recording while playing: lands, output finite",
+          double(again.rig.core.Recordings()));
 }
 
 // Every control moved at random, for a long time: nothing breaks
@@ -612,7 +370,10 @@ void Fuzz()
         const size_t pad      = CoreUI::kSlicePads[size_t(next() * 7.0f) % 7];
         panel.c.touched[pad]  = next() < 0.3f;
         panel.c.pressure[pad] = next();
-        panel.Run(0.05, Sine);
+        if(next() < 0.05f)
+            panel.c.touched[CoreUI::kRecordPad]
+                = !panel.c.touched[CoreUI::kRecordPad];
+        panel.Run(0.05, next() < 0.5f ? Sine : Noise);
         size_t n = 0;
         for(const auto& grain : panel.rig.core.Grains())
             n += grain.IsActive();
@@ -626,34 +387,27 @@ void Fuzz()
           "every control at random: a voice stays free",
           double(most));
 
-    // After all that, it still plays: heard at once, gone soon, sealed stays
+    // After all that, it still records and plays
     panel.c.knobs[Controls::S30]    = 0.0f;
     panel.c.knobs[Controls::S31]    = 0.5f;
     panel.c.knobs[Controls::S32]    = 0.0f;
     panel.c.knobs[Controls::S33]    = 0.5f;
-    panel.c.knobs[Controls::S34]    = 1.0f;
     panel.c.knobs[Controls::S35]    = 1.0f;
     panel.c.knobs[Controls::S36]    = 0.75f;
     panel.c.knobs[Controls::S37]    = 0.75f;
     panel.c.switches[Controls::S07] = Controls::Down;
     panel.c.touched.fill(false);
     panel.c.pressure.fill(0.0f);
-    panel.Run(0.05, Sine);
-    const double heard = PanelRms(panel, 0.3, Sine);
-    Check(heard > 0.05, "after it all: the input heard at once (rms)", heard);
-    panel.Run(4.0, Sine);
-    panel.c.knobs[Controls::S34] = 0.0f;
-    panel.Run(0.3, Sine);
+    panel.Run(0.5, Silence);
+    panel.Record(2.0, Sine);
     const double kept = PanelRms(panel, 2.0, Silence);
-    Check(kept > 0.05, "after it all: sealed, the sound stays (rms)", kept);
+    Check(kept > 0.05, "after it all: a new recording plays (rms)", kept);
 
     // A slice without width, as a torn parameter copy gave: nothing breaks
     Rig          zero(1.0);
     Core::Params none;
     zero.Fill(Sine);
     none.slice_start = none.slice_end = 0.5f;
-    none.live_slice_start = none.live_slice_end = 0.5f;
-    none.fill                                   = 0.5f;
     zero.core.SetParams(none);
     zero.Run(0.5, Sine);
     Check(zero.finite, "a slice without width: output finite", 1.0);
@@ -665,8 +419,9 @@ std::vector<float> Window(float shape)
 {
     std::vector<float> ones(kRate, 1.0f);
     Buffer             buffer;
-    buffer.Init(ones.data(), ones.size());
+    buffer.Init(ones.data(), ones.size(), kRate);
     std::fill(ones.begin(), ones.end(), 1.0f);
+    buffer.Finish(ones.size());
     Grain::InitWindow();
     Grain        grain;
     Grain::Latch latch;
@@ -925,7 +680,6 @@ void Mapping()
     c.knobs.fill(0.5f);
     c.knobs[Controls::S30] = 0.0f;
     c.knobs[Controls::S32] = 0.0f;
-    c.knobs[Controls::S34] = 0.0f;
     c.knobs[Controls::S35] = 1.0f;
     c.knobs[Controls::S36] = 0.75f;
     c.knobs[Controls::S37] = 0.0f;
@@ -941,14 +695,19 @@ void Mapping()
               && p.spread == 0.0f,
           "S32 bottom, low pour: plain",
           p.jitter);
-    Check(p.fill == 0.0f, "S34 bottom: sealed", p.fill);
-    c.knobs[Controls::S34] = 0.1f;
+    c.knobs[Controls::S30] = 0.8f;
+    c.knobs[Controls::S35] = 0.2f;
     ui.Process(c, r.core);
-    Check(p.fill == 0.1f, "S34 at 10 %: fill 0.1", p.fill);
-    c.knobs[Controls::S34] = 1.0f;
+    Check(Near(p.start, 0.2, 1e-6) && Near(p.length, 0.6, 1e-6),
+          "S30, S35: the selection between them, in either order",
+          p.length);
+    c.knobs[Controls::S35] = 0.8f;
     ui.Process(c, r.core);
-    Check(p.fill == 1.0f, "S34 top: only the input", p.fill);
-    c.knobs[Controls::S34] = 0.0f;
+    Check(Near(p.length, CoreUI::kMinLength, 1e-6) && p.start <= 0.8f,
+          "S30 = S35: the shortest selection",
+          p.length);
+    c.knobs[Controls::S30] = 0.0f;
+    c.knobs[Controls::S35] = 1.0f;
     ui.Process(c, r.core);
     Check(p.end == Playhead::End::OneShot, "S07 up: one-shot", int(p.end));
 
@@ -1064,9 +823,7 @@ void Mapping()
 
 int main()
 {
-    FillTests();
-    Live();
-    Held();
+    Record();
     Fuzz();
     Level();
     Windows();

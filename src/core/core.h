@@ -10,6 +10,7 @@
 #include "buffer.h"
 #include "limiter.h"
 #include "playhead.h"
+#include "ring.h"
 #include "svf.h"
 
 namespace clessidra
@@ -58,14 +59,21 @@ class Core
     static constexpr float kToneQMax      = 1.5f;
     static constexpr float kToneFade      = 0.1f;
     static constexpr float kToneSeconds   = 0.01f; // smoothing of Params.tone
-    // How far behind the write point the sound is read while it comes in
-    static constexpr float kStartLagSeconds = 0.05f;
+    // Recording. The input goes to the ring all the time. On release, a touch
+    // shorter than kTapSeconds keeps the kTapCaptureSeconds before it, a longer
+    // one the touch from kPreRollSeconds before it, up to the buffers'
+    // capacity. Copied to the buffer not playing, which then plays.
+    static constexpr size_t kNumBuffers        = 2;
+    static constexpr float  kTapSeconds        = 0.3f;
+    static constexpr float  kTapCaptureSeconds = 8.0f;
+    static constexpr float  kPreRollSeconds    = 0.05f;
+    static constexpr size_t kCopyPerSample = 21; // × real time: 30 s in 1.4 s
+    // ring written on during the copy
+    static constexpr float kCopyMarginSeconds = 0.5f;
 
     struct Params
     {
-        // Selection, 0..1 of the sound. start: how far back from the held
-        // end its end lies. Grains that follow the input read the same length
-        // behind the write point.
+        // Selection, 0..1 of the sound
         float start  = 0.0f;
         float length = 1.0f;
         float speed  = 1.0f; // 1 = real time, negative = reverse
@@ -73,9 +81,6 @@ class Core
         // lie outside the selection
         float slice_start = 0.0f;
         float slice_end   = 1.0f;
-        // the same, for the grains that follow the input
-        float live_slice_start = 0.0f;
-        float live_slice_end   = 1.0f;
         // what the playhead does at the end of the slice
         Playhead::End end = Playhead::End::Loop;
         bool  freeze   = false; // the playhead held where it was, speed ignored
@@ -98,16 +103,19 @@ class Core
         float window_shape = 0.5f;
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
         float tone   = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
-        // 0 the buffer sealed .. 1 only the input: what replaces the sound as
-        // the write point passes, and the share of grains that follow it
-        float fill = 0.0f;
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
     };
 
-    // buffer: buffer_size floats, allocated by the caller
-    void Init(float sample_rate, float* buffer, size_t buffer_size);
+    // ring: ring_size floats. buffers: kNumBuffers of buffer_size floats, the
+    // longest recording. Allocated by the caller. The ring holds the longest
+    // recording, its pre-roll and kCopyMarginSeconds.
+    void Init(float        sample_rate,
+              float*       ring,
+              size_t       ring_size,
+              float* const buffers[kNumBuffers],
+              size_t       buffer_size);
     void Process(const float* const* in, float** out, size_t size);
 
     // Main loop. A block sees one set whole: written to the slot not in use,
@@ -120,37 +128,40 @@ class Core
         slot_.store(next, std::memory_order_release);
     }
     // Main loop, after SetParams(). The playhead from the start of the slice,
-    // at the next block. Also after each new recording.
+    // at the next block.
     void Restart() { restart_.store(true, std::memory_order_relaxed); }
-    // The playhead stopped at the end, in one-shot
-    bool HasEnded() const { return ended_.load(std::memory_order_relaxed); }
-    // What has come in, at most the buffer
-    size_t SoundSamples() const
+    // Main loop: true while the record pad is held
+    void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
+    // New recordings so far: a change means Sound() is a new recording, and the
+    // playhead has restarted
+    uint32_t Recordings() const
     {
-        return sound_samples_.load(std::memory_order_relaxed);
+        return recordings_.load(std::memory_order_acquire);
     }
-    // Where the held sound ends, in samples of the buffer
-    size_t HeldEnd() const { return held_end_.load(std::memory_order_relaxed); }
+    // The playhead stopped at the end, in one-shot
+    bool   HasEnded() const { return ended_.load(std::memory_order_relaxed); }
+    size_t SoundSamples() const { return Sound().Length(); }
     // Grain windows summed, mean over the last block: 1 = one grain at its peak
     float GrainLevel() const
     {
         return grain_level_.load(std::memory_order_relaxed);
     }
 
-    const Buffer& Sound() const { return buffer_; }
+    // The recording playing
+    const Buffer& Sound() const
+    {
+        return buffers_[playing_.load(std::memory_order_acquire)];
+    }
     // For tests, between blocks: the grains and the parameters in use
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
     double        PlayheadPhase() const { return stream_.phase; }
-    double        LivePhase() const { return stream_.live_phase; }
-    size_t        WritePoint() const { return write_; }
 
   private:
-    // The playhead over the selection, and behind the write point
+    // The playhead over the selection
     struct Stream
     {
-        double phase       = 0.0; // through its span, 0..1
-        double live_phase  = 0.0;
+        double phase       = 0.0;  // through its span, 0..1
         double sched_phase = 0.0;  // grain starts, 1 = mean interval
         float  sched_next  = 1.0f; // phase of the next start
     };
@@ -163,15 +174,24 @@ class Core
         double phase;     // through the span
         double low, high; // of the span, where it may scatter
         bool   backwards;
-        double newest; // the newest sound it may reach
-        double wrap;   // reads inside this many samples, 0: the whole buffer
+    };
+
+    enum class Capture
+    {
+        Idle,
+        Waiting,
+        Copying
     };
 
     // Starts a grain on a free voice at sample offset of the block
     void Trigger(const Params& p,
                  const Source& source,
-                 size_t        offset,
-                 double        grain_samples);
+                 const Buffer* sound,
+                 size_t        offset);
+    // End of Process(), after the ring is written: on release, copies the
+    // recording to the buffer not playing once its grains have ended, then
+    // plays it
+    void UpdateCapture(size_t size);
     // Updates norm_ from the mean powers of the last block
     void  Normalise(float  power_grains,
                     float  power_sum,
@@ -187,22 +207,23 @@ class Core
 
     // The sound. Input: DC in the buffer would sound as thumps at the grain
     // rate
-    daisysp::DcBlock dc_block_;
-    Buffer           buffer_;
-    size_t           write_ = 0;
-    float fill_gain_        = 0.0f;  // Params.fill at the end of the last block
-    bool  filled_           = false; // sound has come in
-    bool  wrapped_          = false; // the write point has gone all the way
-    bool  was_writing_      = false;
-    std::atomic<size_t> sound_samples_{0};
-    std::atomic<size_t> held_end_{0};
+    daisysp::DcBlock                dc_block_;
+    Ring                            ring_;
+    std::array<Buffer, kNumBuffers> buffers_;
+    std::atomic<size_t>             playing_{0};
+    std::atomic<uint32_t>           recordings_{0};
+    std::atomic<bool>               record_{false};
+    bool                            was_record_ = false;
+    Capture                         capture_    = Capture::Idle;
+    size_t                          held_       = 0; // samples since the touch
+    size_t capture_back_   = 0; // from the recording's end to the next write
+    size_t capture_length_ = 0;
 
     // Grains. Running positions in double: float steps reach 1/32 sample at 8
     // s.
     std::array<Grain, kNumVoices> grains_;
     Stream                        stream_;
     Playhead                      playhead_;
-    Playhead                      live_playhead_;
     std::atomic<bool>             restart_{false};
     std::atomic<bool>             ended_{false};
     uint32_t                      seed_ = 1;
