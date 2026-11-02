@@ -1,10 +1,11 @@
 // The Play page in headless Chrome: Start, record with R, and the firmware
-// answers. Serves web/dist with astro preview. From the repo: make test, after
-// make web. Chrome from $CHROME, or where it usually is.
+// answers. Serves web/dist itself. From the repo: make test, after make web.
+// Chrome from $CHROME, or where it usually is.
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { extname, join } from "node:path";
 
 const PREVIEW = 4329;
 const DEBUG = 9339;
@@ -22,9 +23,21 @@ function check(ok, what, value) {
   if (!ok) failed++;
 }
 
-const web = new URL("../web/", import.meta.url).pathname;
-// In its own process group: stopping npx alone would leave astro serving
-const preview = spawn("npx", ["astro", "preview", "--port", String(PREVIEW)], { cwd: web, stdio: "ignore", detached: true });
+// web/dist at /clessidra/, as GitHub Pages serves it
+const dist = new URL("../web/dist/", import.meta.url).pathname;
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".wasm": "application/wasm", ".svg": "image/svg+xml", ".png": "image/png" };
+const server = createServer((req, res) => {
+  let path = decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/^\/clessidra\//, "");
+  if (path === "" || path.endsWith("/")) path += "index.html";
+  try {
+    const body = readFileSync(join(dist, path));
+    res.writeHead(200, { "Content-Type": TYPES[extname(path)] ?? "application/octet-stream" });
+    res.end(body);
+  } catch {
+    res.writeHead(404);
+    res.end();
+  }
+}).listen(PREVIEW);
 const browser = spawn(chrome, ["--headless=new", `--remote-debugging-port=${DEBUG}`, "--autoplay-policy=no-user-gesture-required", `--user-data-dir=${mkdtempSync(join(tmpdir(), "clessidra-"))}`, "about:blank"], { stdio: "ignore" });
 
 async function waitFor(url) {
@@ -81,7 +94,7 @@ try {
   check(false, "the page runs", err.message);
 } finally {
   browser.kill();
-  process.kill(-preview.pid);
+  server.close();
 }
 
 if (failed) {
