@@ -1,0 +1,51 @@
+---
+import Base from "../layouts/Base.astro";
+import TouchPanel from "../components/TouchPanel.astro";
+import { CONTROLS, LED } from "../lib/controls";
+
+// One row per control that does something, the slices as one
+const rows = CONTROLS.filter((c) => !c.free && (c.slice ?? 0) === 0).map((c) =>
+  c.slice === 0
+    ? { ids: CONTROLS.filter((s) => s.slice !== undefined).map((s) => s.id), label: "P03–P09", name: "Slices", does: c.does }
+    : { ids: [c.id], label: c.id, name: c.name, does: c.does },
+);
+const free = CONTROLS.filter((c) => c.free).map((c) => c.id);
+---
+<Base title="Mapping" wide description="Clessidra's controls on the Synthux Simple Touch: faders, knobs, switches and pads.">
+<h1>Mapping</h1>
+<p class="lead">What each control does, on the board and in the browser.</p>
+
+<div class="instrument">
+  <div class="stack">
+    <div class="panel table mapping"><table>
+      <thead><tr><th>Control</th><th>Name</th><th>Does</th></tr></thead>
+      <tbody>
+        {rows.map((r) => <tr data-ids={r.ids.join(" ")}><td>{r.label}</td><td>{r.name}</td><td>{r.does}</td></tr>)}
+        <tr data-ids={free.join(" ")}><td>Others</td><td>Free</td><td>{free.join(", ")}: nothing yet.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2 class="label">LED</h2>
+    <div class="panel table"><table><tbody>
+      {LED.map(([state, meaning]) => <tr><td>{state}</td><td>{meaning}</td></tr>)}
+    </tbody></table></div>
+  </div>
+  <div class="side">
+    <div class="panel touch-panel"><TouchPanel /></div>
+  </div>
+</div>
+</Base>
+
+<script>
+  // Pointing at a row lights its controls on the panel, and the reverse
+  const rows = [...document.querySelectorAll<HTMLTableRowElement>("tr[data-ids]")];
+  const parts = [...document.querySelectorAll<SVGGElement>(".touch .ctl")];
+  function show(id: string) {
+    const row = rows.find((r) => r.dataset.ids!.split(" ").includes(id));
+    const ids = row ? row.dataset.ids!.split(" ") : [id];
+    for (const r of rows) r.classList.toggle("active", r === row);
+    for (const g of parts) g.classList.toggle("active", ids.includes(g.dataset.id!));
+  }
+  for (const r of rows) r.addEventListener("pointerenter", () => show(r.dataset.ids!.split(" ")[0]));
+  for (const g of parts) g.addEventListener("pointerenter", () => show(g.dataset.id!));
+</script>

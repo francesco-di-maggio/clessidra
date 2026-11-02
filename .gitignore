@@ -1,2 +1,6 @@
 .DS_Store
 build/
+web/node_modules/
+web/dist/
+.astro/
+web/public/clessidra.wasm

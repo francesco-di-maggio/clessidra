@@ -17,7 +17,7 @@ build/tests/core
 
 # The web build, where Emscripten is installed
 if command -v em++ > /dev/null; then
-    sh web/build.sh > /dev/null
+    sh web/build.sh
     echo "== Web"
     node tests/web.mjs
 else

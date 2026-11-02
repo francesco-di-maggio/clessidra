@@ -1,0 +1,80 @@
+/* Play: one screen in the family's column. The sand on top, the controls in a
+   rack below, a readout line. Orange only for what is on. */
+body.app { height: 100dvh; min-height: 0; overflow: hidden; }
+body.app main { min-height: 0; display: grid; grid-template-rows: auto minmax(120px, 1fr) auto auto; gap: 10px; }
+.mark .slash { margin: 0 2px; }
+.led { display: flex; align-items: center; gap: 6px; }
+.led .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--accent) calc(var(--led, 0) * 100%), transparent); }
+
+.bar { display: grid; grid-template-columns: 112px 1fr; gap: 10px; }
+.bar .control { justify-content: center; background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.bar .control.on { background: var(--bg); border-color: var(--line); color: var(--ink); }
+
+.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); overflow: hidden; background: var(--bg); }
+.segmented button { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 0 6px; border: 0; background: none; color: var(--dim);
+                    font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+.segmented button + button { border-left: 1px solid var(--line); }
+.segmented button:disabled { opacity: 0.5; cursor: default; }
+.segmented [aria-pressed="true"], .segmented [aria-checked="true"] { color: var(--ink); background: var(--surface); }
+.segmented [aria-pressed="true"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.view { display: grid; grid-template-rows: auto minmax(0, 1fr); padding: 0; overflow: hidden; }
+.view .head { display: flex; justify-content: space-between; padding: 10px 14px 0; }
+.view canvas { display: block; width: 100%; height: 100%; min-height: 0; }
+.held { font-variant-numeric: tabular-nums; }
+.held.on { color: var(--accent); }
+
+/* Rack: three across, Grain wide, Slices the full row */
+.rack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "record time levels" "selection grain grain" "slices slices slices"; gap: 10px; }
+.record { grid-area: record; }
+.time { grid-area: time; }
+.levels { grid-area: levels; }
+.selection { grid-area: selection; }
+.grain { grid-area: grain; }
+.slices { grid-area: slices; }
+.group { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 10px 12px 12px; }
+.group h2.label { margin: 0; }
+.controls { display: flex; flex: 1; align-items: center; justify-content: space-around; gap: 4px; }
+
+.knob { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 64px; cursor: ns-resize; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
+.knob .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; white-space: nowrap; }
+.knob svg { width: 48px; height: 48px; }
+.knob .track, .knob .fill { fill: none; stroke-width: 2.5; stroke-linecap: round; }
+.knob .track { stroke: var(--line); }
+.knob .fill { stroke: var(--ink); }
+.knob .tick { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+.knob .value { font: 500 11px/16px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
+.knob.focus .label, .knob:focus-visible .label { color: var(--ink); }
+.knob:focus-visible svg { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 50%; }
+
+.group .segmented { height: auto; grid-auto-flow: row; width: 84px; }
+.group .segmented button { height: 22px; font-size: 10px; letter-spacing: 0.04em; }
+.group .segmented button + button { border-left: 0; border-top: 1px solid var(--line); }
+
+.level { display: flex; align-items: center; gap: 2px; }
+.meter { display: grid; gap: 3px; padding: 14px 0 16px; }
+.meter i { width: 4px; height: 4px; border-radius: 1px; background: var(--line); }
+.meter i.on { background: var(--ink); }
+.meter i.clip { background: var(--accent); }
+
+.pad { display: grid; place-items: center; width: 100%; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
+       font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.pad.playing { border-color: var(--ink); }
+.pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
+#record .pad { width: 72px; height: 72px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.pads { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+
+.readout { display: flex; align-items: baseline; gap: 12px; height: 20px; margin: 0; overflow: hidden; white-space: nowrap; font-size: 13px; line-height: 20px; }
+.readout .label { color: var(--ink); }
+.readout .value { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; }
+.readout .does { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
+
+/* Short or narrow screens: the page scrolls rather than squeezing the controls */
+@media (max-height: 700px), (max-width: 480px) {
+  body.app { height: auto; min-height: 100dvh; overflow: auto; }
+  body.app main { grid-template-rows: auto 200px auto auto; }
+}
+@media (max-width: 480px) {
+  .rack { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "record time" "levels selection" "grain grain" "slices slices"; }
+  .readout { height: auto; white-space: normal; flex-wrap: wrap; }
+}

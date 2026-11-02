@@ -1,17 +1,26 @@
-// The sound: the firmware in an AudioWorklet (worklet.js), and what plays into
+// The sound: the firmware in an AudioWorklet (worklet.ts), and what plays into
 // its input, as into the board's.
 
-export class Audio {
-  constructor(onMessage) {
-    this.onMessage = onMessage;
-    this.ctx = null;
-    this.node = null;
-    this.input = null;
-    this.stream = null;
-    this.queue = []; // controls set before the firmware runs
-  }
+import { RATE, type Control, type FromWorklet } from "./engine";
+import { url } from "./url";
+import workletUrl from "./worklet.ts?worker&url";
 
-  send(m) {
+export type Input = "demo" | "mic" | File;
+
+export class Audio {
+  ctx: AudioContext | null = null;
+  private node: AudioWorkletNode | null = null;
+  private input: AudioNode | null = null;
+  private stream: MediaStream | null = null;
+  private queue: Control[] = []; // controls set before the firmware runs
+  // Browser only, the board has its own: the level into the firmware and out
+  private inGain: GainNode | null = null;
+  private outGain: GainNode | null = null;
+  private gains = { input: 1, output: 1 };
+
+  constructor(private onMessage: (m: FromWorklet) => void) {}
+
+  send(m: Control) {
     if (this.node) this.node.port.postMessage(m);
     else this.queue.push(m);
   }
@@ -19,20 +28,22 @@ export class Audio {
   // The board's rate: the mapping counts in 48 kHz. The browser resamples to
   // the device.
   async start() {
-    this.ctx = new AudioContext({ sampleRate: 48000, latencyHint: "interactive" });
-    const base = new URL("../", import.meta.url);
+    const ctx = (this.ctx = new AudioContext({ sampleRate: RATE, latencyHint: "interactive" }));
     const [bytes] = await Promise.all([
-      fetch(new URL("clessidra.wasm", base)).then((r) => r.arrayBuffer()),
-      this.ctx.audioWorklet.addModule(new URL("js/worklet.js", base)),
+      fetch(url("clessidra.wasm").replace(/\/$/, "")).then((r) => r.arrayBuffer()),
+      ctx.audioWorklet.addModule(workletUrl),
     ]);
-    this.node = new AudioWorkletNode(this.ctx, "clessidra", {
+    this.node = new AudioWorkletNode(ctx, "clessidra", {
       numberOfInputs: 1,
       numberOfOutputs: 1,
       outputChannelCount: [2],
       processorOptions: { bytes },
     });
-    this.node.port.onmessage = (e) => this.onMessage(e.data);
-    this.node.connect(this.ctx.destination);
+    this.node.port.onmessage = (e: MessageEvent<FromWorklet>) => this.onMessage(e.data);
+    this.inGain = new GainNode(ctx, { gain: this.gains.input });
+    this.outGain = new GainNode(ctx, { gain: this.gains.output });
+    this.inGain.connect(this.node);
+    this.node.connect(this.outGain).connect(ctx.destination);
     for (const m of this.queue) this.node.port.postMessage(m);
     this.queue = [];
   }
@@ -41,43 +52,48 @@ export class Audio {
     return this.ctx?.state === "running";
   }
 
-  async pause(on) {
-    if (on) await this.ctx.suspend();
-    else await this.ctx.resume();
+  async pause(on: boolean) {
+    if (on) await this.ctx?.suspend();
+    else await this.ctx?.resume();
   }
 
-  // "demo", "mic", or an audio File
-  async use(kind) {
+  async use(kind: Input) {
+    const ctx = this.ctx!;
     this.input?.disconnect();
-    this.input?.stop?.();
+    if (this.input instanceof AudioBufferSourceNode) this.input.stop();
     this.stream?.getTracks().forEach((t) => t.stop());
     this.input = this.stream = null;
-    if (kind === "demo") this.input = this.loop(demo(this.ctx));
+    if (kind === "demo") this.input = loop(ctx, demo(ctx));
     else if (kind === "mic") {
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
-      this.input = this.ctx.createMediaStreamSource(this.stream);
-    } else if (kind instanceof File) {
-      this.input = this.loop(await this.ctx.decodeAudioData(await kind.arrayBuffer()));
-    }
-    this.input?.connect(this.node);
+      this.input = ctx.createMediaStreamSource(this.stream);
+    } else this.input = loop(ctx, await ctx.decodeAudioData(await kind.arrayBuffer()));
+    this.input.connect(this.inGain!);
   }
 
-  loop(buffer) {
-    const source = this.ctx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-    source.start();
-    return source;
+  // Linear gains, smoothed over 20 ms
+  setGain(which: "input" | "output", gain: number) {
+    this.gains[which] = gain;
+    const node = which === "input" ? this.inGain : this.outGain;
+    node?.gain.setTargetAtTime(gain, this.ctx!.currentTime, 0.02);
   }
+}
+
+function loop(ctx: AudioContext, buffer: AudioBuffer) {
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  source.start();
+  return source;
 }
 
 // A plucked phrase, made here (Karplus-Strong): the demo needs no sound file.
 // Notes of different lengths and levels, so the slices find onsets.
-function demo(ctx) {
+function demo(ctx: AudioContext) {
   const rate = ctx.sampleRate;
-  const notes = [
+  const notes: [number, number, number][] = [
     [57, 0.5, 0.6], [64, 0.25, 0.4], [69, 0.25, 0.5], [72, 1, 0.7],
     [71, 0.5, 0.5], [64, 0.5, 0.4], [67, 0.75, 0.6], [62, 1.25, 0.7],
   ]; // MIDI note, seconds, level

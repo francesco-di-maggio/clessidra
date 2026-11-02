@@ -33,11 +33,15 @@ libs:
 test:
 	@sh tests/run.sh
 
-# The web page in build/web, served at http://localhost:8000
-web:
+# The web page: the wasm, then the site in web/dist. web-dev serves it at
+# http://localhost:4321/clessidra/ and reloads on changes
+wasm:
 	@sh web/build.sh
 
-serve: web
-	python3 -m http.server 8000 -d build/web
+web: wasm
+	npm --prefix web run build
 
-.PHONY: test web serve
+web-dev: wasm
+	npm --prefix web run dev
+
+.PHONY: test wasm web web-dev

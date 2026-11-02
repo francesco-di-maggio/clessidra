@@ -1,0 +1,23 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base title="Download" description="Clessidra's firmware for the Synthux Simple Touch, and how to flash it.">
+<h1>Download</h1>
+<p class="lead">Firmware for the Synthux Simple Touch, flashed from the browser.</p>
+
+<h2 class="label">Firmware</h2>
+<ul class="panel lists list">
+  <li><a href="https://github.com/francesco-di-maggio/clessidra/releases/latest/download/Clessidra.bin"><span class="text"><b>Firmware</b><span class="sub">Latest release, Clessidra.bin</span></span><span class="arrow" aria-hidden="true">↓</span></a></li>
+  <li><a href="https://electro-smith.github.io/Programmer/"><span class="text"><b>Daisy Web Programmer</b><span class="sub">Flashes the firmware over USB, in Chrome or Edge</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+  <li><a href="https://github.com/francesco-di-maggio/clessidra/releases"><span class="text"><b>Releases</b><span class="sub">What changed in each version</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+  <li><a href="https://github.com/francesco-di-maggio/clessidra"><span class="text"><b>Source</b><span class="sub">Build it yourself with the Daisy Toolchain</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+</ul>
+
+<h2 class="label">Flash</h2>
+<ol class="panel rows steps">
+  <li class="row"><span class="label">01</span><span>Download Clessidra.bin</span></li>
+  <li class="row"><span class="label">02</span><span>Connect the Seed over USB</span></li>
+  <li class="row"><span class="label">03</span><span>Hold BOOT, press and release RESET, release BOOT</span></li>
+  <li class="row"><span class="label">04</span><span>In the Daisy Web Programmer: Connect, choose the file, Program</span></li>
+</ol>
+</Base>

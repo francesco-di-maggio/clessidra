@@ -1,49 +1,60 @@
-// The sound as the firmware holds it: the 8 s buffer, where the input is
-// written, the selection the playhead moves through, the slices, and every
-// grain at the point it reads, high for left and low for right.
+// The sand: the recording playing, the selection the playhead moves through,
+// the slices, and every grain at the point it reads, high for left and low for
+// right. Laid out to the canvas's size.
 
-import { SLICE_PADS } from "./panel.js";
-
-const RATE = 48000;
-const V = { write: 0, heldEnd: 1, sound: 2, selStart: 3, selLength: 4, liveStart: 5, liveLength: 6, playhead: 7, livePlayhead: 8, slice: 9, edges: 10 };
-const NUM_SLICES = 7;
-const GRAIN_FIELDS = 4;
-const FILL = 6; // cl_params
+import { GRAIN_FIELDS, NUM_SLICES, RATE, VIEW, type Frame } from "./engine";
 
 // Grain::Render's window at progress x for shape: Hann at 0.5, percussive
 // towards 1, reversed towards 0
-export function windowAt(x, shape) {
+export function windowAt(x: number, shape: number) {
   const skew = 2 * Math.min(Math.max(shape, 0), 1) - 1;
   const percussive = Math.abs(skew);
   if (skew < 0) x = 1 - x;
   const peak = 0.5 - 0.49 * percussive;
-  const rise = (t) => Math.sin((Math.PI / 2) * t) ** 2;
+  const rise = (t: number) => Math.sin((Math.PI / 2) * t) ** 2;
   if (x < peak) return rise(x / peak);
   const fall = Math.min(1, (x - peak) / (1 - peak));
   const hann = rise(1 - fall);
   return hann + percussive * (Math.exp(-5 * fall) * Math.cos((Math.PI / 2) * fall) - hann);
 }
 
+interface Colours {
+  surface: string;
+  ink: string;
+  dim: string;
+  line: string;
+  accent: string;
+  mono: string;
+}
+
+const DOT = 4; // the waveform's grid, px
+
 export class Sand {
-  constructor(canvas, samples) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext("2d");
-    this.samples = samples;
-    this.frame = null;
+  private ctx: CanvasRenderingContext2D;
+  private frame: Frame | null = null;
+  private c!: Colours;
+  private dots = document.createElement("canvas"); // the waveform, drawn when it changes
+  private dotsKey = "";
+  recording = 0; // seconds held, 0 when not recording
+  started = false;
+
+  constructor(private canvas: HTMLCanvasElement) {
+    this.ctx = canvas.getContext("2d")!;
     this.colours();
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => this.colours());
     new MutationObserver(() => this.colours()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     new ResizeObserver(() => this.draw()).observe(canvas);
   }
 
-  colours() {
+  private colours() {
     const css = getComputedStyle(document.documentElement);
-    const get = (name) => css.getPropertyValue(name).trim();
-    this.c = { ink: get("--ink"), dim: get("--dim"), line: get("--line"), accent: get("--accent"), surface: get("--surface"), mono: get("--mono") };
+    const get = (name: string) => css.getPropertyValue(name).trim();
+    this.c = { surface: get("--surface"), ink: get("--ink"), dim: get("--dim"), line: get("--line"), accent: get("--accent"), mono: get("--mono") };
+    this.dotsKey = "";
     this.draw();
   }
 
-  update(frame) {
+  update(frame: Frame) {
     this.frame = frame;
     this.draw();
   }
@@ -53,7 +64,7 @@ export class Sand {
     const dpr = devicePixelRatio || 1;
     const W = canvas.clientWidth;
     const H = canvas.clientHeight;
-    if (!W) return;
+    if (!W || !H) return;
     if (canvas.width !== Math.round(W * dpr)) canvas.width = Math.round(W * dpr);
     if (canvas.height !== Math.round(H * dpr)) canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -61,142 +72,150 @@ export class Sand {
 
     const pad = 14;
     const width = W - 2 * pad;
-    const x = (s) => pad + (((s % this.samples) + this.samples) % this.samples) / this.samples * width;
-    const top = 12;
-    const lane = { top: 22, bottom: 92 }; // grains: left high, right low
-    const wave = { mid: 140, half: 34 };
-    const bottom = 182;
-    const axis = 232;
-
-    // Seconds
-    ctx.font = `500 10px ${c.mono}`;
-    ctx.textAlign = "center";
-    ctx.fillStyle = c.dim;
-    ctx.strokeStyle = c.line;
-    ctx.lineWidth = 1;
-    const seconds = this.samples / RATE;
-    for (let s = 0; s <= seconds; s++) {
-      const px = pad + (s / seconds) * width;
-      line(ctx, px, axis - 8, px, axis - 2);
-      ctx.fillText(s === seconds ? `${s} s` : `${s}`, px, axis + 10);
-    }
-    line(ctx, pad, axis - 8, W - pad, axis - 8);
-
+    const top = 18;
+    const axis = H - 14; // seconds
+    const bottom = axis - 38; // the slices below it
+    const mid = (top + bottom) / 2;
+    const half = (bottom - top) / 2 - 6;
     const f = this.frame;
-    if (!f) {
-      ctx.fillStyle = c.dim;
-      ctx.font = `500 11px ${c.mono}`;
-      ctx.fillText("PRESS START", W / 2, wave.mid + 4);
+    const sound = f ? f.view[VIEW.sound] : 0;
+    const x = (s: number) => pad + (s / sound) * width;
+
+    ctx.font = `500 11px ${c.mono}`;
+    ctx.textBaseline = "middle";
+    if (this.recording) {
+      ctx.textAlign = "right";
+      ctx.fillStyle = c.accent;
+      ctx.fillText(`● REC ${this.recording.toFixed(1)} S`, W - pad, 9);
+    }
+    ctx.textAlign = "center";
+    if (!f || !sound) {
+      ctx.fillStyle = this.recording ? c.accent : c.dim;
+      ctx.fillText(this.recording ? "RECORDING" : this.started ? "LISTENING · TAP OR HOLD REC" : "PRESS START", W / 2, mid);
       return;
     }
     const v = f.view;
-    const writing = f.params[FILL] > 0;
-    // At Fill 100 % every grain follows the input: nothing reads the held sound
-    const holding = v[V.sound] > 0 && f.params[FILL] < 1;
-    const sound = v[V.sound];
-    // The slices the pads play: at the held sound's onsets, or equal parts of the input
-    const edge = (i) => (holding ? v[V.edges + i] : v[V.liveStart] + (i / NUM_SLICES) * v[V.liveLength]);
 
-    // The input's window, behind the write point
-    if (writing) {
-      ctx.fillStyle = withAlpha(c.accent, 0.1);
-      span(this.samples, v[V.liveStart], v[V.liveLength], (a, b) => ctx.fillRect(x(a), top, x(b) - x(a), bottom - top));
-    }
-    // The held selection
-    if (holding) {
-      ctx.fillStyle = withAlpha(c.ink, 0.06);
-      ctx.strokeStyle = c.ink;
-      span(this.samples, v[V.selStart], v[V.selLength], (a, b) => ctx.fillRect(x(a), top, x(b) - x(a), bottom - top));
-      ctx.lineWidth = 1;
-      line(ctx, x(v[V.selStart]), top, x(v[V.selStart]), bottom);
-      line(ctx, x(v[V.selStart] + v[V.selLength] - 1), top, x(v[V.selStart] + v[V.selLength] - 1), bottom);
-    }
-
-    // Waveform: each column's peak
-    const peaks = f.peaks;
-    const cw = width / peaks.length;
+    // Seconds of the recording
+    ctx.font = `500 10px ${c.mono}`;
     ctx.fillStyle = c.dim;
-    for (let i = 0; i < peaks.length; i++) {
-      const h = Math.min(1, peaks[i]) * wave.half;
-      if (h > 0.25) ctx.fillRect(pad + i * cw, wave.mid - h, Math.max(cw, 1), 2 * h);
-    }
     ctx.strokeStyle = c.line;
-    line(ctx, pad, wave.mid, W - pad, wave.mid);
+    ctx.lineWidth = 1;
+    const seconds = sound / RATE;
+    const step = seconds > 16 ? 5 : seconds > 6 ? 2 : seconds > 2 ? 1 : 0.5;
+    line(ctx, pad, axis - 8, W - pad, axis - 8);
+    for (let s = 0; s <= seconds + 1e-6; s += step) {
+      const px = pad + (s / seconds) * width;
+      line(ctx, px, axis - 8, px, axis - 3);
+      if (px < W - pad - 36) ctx.fillText(`${s}`, px, axis + 3);
+    }
+    ctx.textAlign = "right";
+    ctx.fillText(`${seconds.toFixed(1)} s`, W - pad, axis + 3);
+    ctx.textAlign = "center";
+
+    // The waveform as dots, ink inside the selection; brackets at its ends
+    const a = x(v[VIEW.selStart]);
+    const b = x(v[VIEW.selStart] + v[VIEW.selLength]);
+    this.drawDots(f.peaks, W, H, pad, width, mid, half, a, b, dpr);
+    ctx.drawImage(this.dots, 0, 0, W, H);
+    ctx.strokeStyle = c.ink;
+    ctx.lineWidth = 1.5;
+    bracket(ctx, a, top, bottom, 1);
+    bracket(ctx, b, top, bottom, -1);
 
     // Slices, under the sound
-    if (sound > 0) {
-      ctx.strokeStyle = c.dim;
-      ctx.font = `500 10px ${c.mono}`;
-      for (let i = 0; i <= NUM_SLICES; i++) line(ctx, x(edge(i)), bottom + 4, x(edge(i)), bottom + 12);
-      for (let i = 0; i < NUM_SLICES; i++) {
-        const a = x(edge(i));
-        const b = x(edge(i + 1) - 1);
-        if (b - a < 24) continue;
-        ctx.fillStyle = v[V.slice] === i ? c.ink : c.dim;
-        ctx.fillText(`P${String(SLICE_PADS[i]).padStart(2, "0")}`, (a + b) / 2, bottom + 24);
-      }
+    ctx.strokeStyle = c.dim;
+    ctx.font = `500 10px ${c.mono}`;
+    for (let i = 0; i <= NUM_SLICES; i++) line(ctx, x(v[VIEW.edges + i]), bottom + 6, x(v[VIEW.edges + i]), bottom + 14);
+    for (let i = 0; i < NUM_SLICES; i++) {
+      const sa = x(v[VIEW.edges + i]);
+      const sb = x(v[VIEW.edges + i + 1]);
+      if (sb - sa < 14) continue;
+      ctx.fillStyle = v[VIEW.slice] === i ? c.accent : c.dim;
+      ctx.fillText(`${i + 1}`, (sa + sb) / 2, bottom + 22);
     }
 
-    // Playheads and the write point
+    // The playhead: now
     ctx.lineWidth = 1.5;
-    ctx.strokeStyle = c.ink;
-    ctx.fillStyle = c.ink;
-    if (holding) marker(ctx, x(v[V.playhead]), top, bottom);
-    if (writing) {
-      ctx.strokeStyle = c.accent;
-      ctx.fillStyle = c.accent;
-      ctx.setLineDash([3, 3]);
-      line(ctx, x(v[V.livePlayhead]), top, x(v[V.livePlayhead]), bottom);
-      ctx.setLineDash([]);
-    }
-    ctx.strokeStyle = writing ? c.accent : c.dim;
-    ctx.lineWidth = writing ? 2 : 1;
-    line(ctx, x(v[V.write]), 4, x(v[V.write]), bottom);
+    ctx.strokeStyle = c.accent;
+    ctx.fillStyle = c.accent;
+    const px = x(v[VIEW.playhead]);
+    line(ctx, px, top, px, bottom);
+    ctx.beginPath();
+    ctx.moveTo(px - 4, top - 6);
+    ctx.lineTo(px + 4, top - 6);
+    ctx.lineTo(px, top);
+    ctx.fill();
 
-    // Grains
+    // Grains over the waveform, by pan, each cut clear of the dots
     const g = f.grains;
     for (let i = 0; i < g.length; i += GRAIN_FIELDS) {
       const level = windowAt(g[i + 1], g[i + 2]);
       const gx = pad + g[i] * width;
-      const gy = lane.top + g[i + 3] * (lane.bottom - lane.top);
-      ctx.fillStyle = withAlpha(c.ink, 0.2 + 0.8 * level);
+      const gy = top + 8 + g[i + 3] * (bottom - top - 16);
+      const r = 2 + 4 * level;
+      ctx.fillStyle = c.surface;
       ctx.beginPath();
-      ctx.arc(gx, gy, 1.5 + 4.5 * level, 0, 2 * Math.PI);
+      ctx.arc(gx, gy, r + 2.5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.fillStyle = withAlpha(c.ink, 0.35 + 0.65 * level);
+      ctx.beginPath();
+      ctx.arc(gx, gy, r, 0, 2 * Math.PI);
       ctx.fill();
     }
-    ctx.fillStyle = c.dim;
-    ctx.textAlign = "left";
-    ctx.fillText("L", 2, lane.top + 4);
-    ctx.fillText("R", 2, lane.bottom + 4);
+  }
+
+  // Columns of dots on a DOT grid, each up to its peak, mirrored about mid
+  private drawDots(peaks: Float32Array, W: number, H: number, pad: number, width: number, mid: number, half: number, a: number, b: number, dpr: number) {
+    let sum = 0;
+    for (let i = 0; i < peaks.length; i += 7) sum += peaks[i];
+    const key = `${W}x${H}:${dpr}:${a.toFixed(1)}:${b.toFixed(1)}:${sum.toFixed(4)}`;
+    if (key === this.dotsKey) return;
+    this.dotsKey = key;
+    const d = this.dots;
+    d.width = Math.round(W * dpr);
+    d.height = Math.round(H * dpr);
+    const g = d.getContext("2d")!;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const inside = new Path2D();
+    const outside = new Path2D();
+    const cols = Math.floor(width / DOT);
+    const rows = Math.floor(half / DOT);
+    for (let k = 0; k < cols; k++) {
+      const i0 = Math.floor((k / cols) * peaks.length);
+      const i1 = Math.max(i0 + 1, Math.floor(((k + 1) / cols) * peaks.length));
+      let peak = 0;
+      for (let i = i0; i < i1; i++) peak = Math.max(peak, peaks[i]);
+      const n = Math.round(Math.min(1, peak) * rows);
+      const cx = pad + k * DOT + DOT / 2;
+      const path = cx >= a && cx <= b ? inside : outside;
+      for (let j = -n; j <= n; j++) path.rect(cx - 1, mid + j * DOT - 1, 2, 2);
+    }
+    g.fillStyle = this.c.line;
+    g.fill(outside);
+    g.fillStyle = this.c.ink;
+    g.fill(inside);
   }
 }
 
-// Calls draw(a, b) for each part of a span that wraps round the buffer
-function span(samples, start, length, draw) {
-  let a = ((start % samples) + samples) % samples;
-  const end = a + Math.min(length, samples);
-  if (end <= samples) return draw(a, end - 0.5);
-  draw(a, samples - 0.5);
-  draw(0, end - samples);
+// [ at the start of a span, ] at its end
+function bracket(ctx: CanvasRenderingContext2D, x: number, top: number, bottom: number, side: 1 | -1) {
+  ctx.beginPath();
+  ctx.moveTo(x + 6 * side, top);
+  ctx.lineTo(x, top);
+  ctx.lineTo(x, bottom);
+  ctx.lineTo(x + 6 * side, bottom);
+  ctx.stroke();
 }
 
-function line(ctx, x0, y0, x1, y1) {
+function line(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number) {
   ctx.beginPath();
   ctx.moveTo(x0, y0);
   ctx.lineTo(x1, y1);
   ctx.stroke();
 }
 
-function marker(ctx, x, top, bottom) {
-  line(ctx, x, top, x, bottom);
-  ctx.beginPath();
-  ctx.moveTo(x - 4, top - 6);
-  ctx.lineTo(x + 4, top - 6);
-  ctx.lineTo(x, top);
-  ctx.fill();
-}
-
-function withAlpha(colour, alpha) {
+function withAlpha(colour: string, alpha: number) {
   const hex = colour.replace("#", "");
   const n = parseInt(hex.length === 3 ? [...hex].map((h) => h + h).join("") : hex, 16);
   return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${alpha})`;
