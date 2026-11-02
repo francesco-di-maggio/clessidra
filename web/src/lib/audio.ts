@@ -30,7 +30,7 @@ export class Audio {
   async start() {
     const ctx = (this.ctx = new AudioContext({ sampleRate: RATE, latencyHint: "interactive" }));
     const [bytes] = await Promise.all([
-      fetch(url("clessidra.wasm").replace(/\/$/, "")).then((r) => r.arrayBuffer()),
+      fetch(url("clessidra.wasm")).then((r) => r.arrayBuffer()),
       ctx.audioWorklet.addModule(workletUrl),
     ]);
     this.node = new AudioWorkletNode(ctx, "clessidra", {

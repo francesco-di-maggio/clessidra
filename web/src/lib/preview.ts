@@ -8,7 +8,7 @@ export class Preview {
   private constructor(private w: Exports) {}
 
   static async load() {
-    const bytes = await (await fetch(url("clessidra.wasm").replace(/\/$/, ""))).arrayBuffer();
+    const bytes = await (await fetch(url("clessidra.wasm"))).arrayBuffer();
     const { instance } = await WebAssembly.instantiate(bytes, {});
     const w = instance.exports as unknown as Exports;
     w._initialize?.();
