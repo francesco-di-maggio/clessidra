@@ -57,7 +57,7 @@ enum Param : size_t
     kGrainMs,
     kPitch,
     kReverb,
-    kJitter,
+    kRandDensity,
     kRandPitch,
     kWindowShape,
     kStart,
@@ -67,6 +67,10 @@ enum Param : size_t
     kRandPos,
     kRandSize,
     kRandShape,
+    kRandLength,
+    kGrainMsSet,
+    kMinGrainMs,
+    kMaxGrainMs,
     kNumParams
 };
 float params[kNumParams];
@@ -172,15 +176,17 @@ EXPORT int cl_recordings()
 // The selection as Core::Process places it
 EXPORT const float* cl_view()
 {
-    const Core::Params& p          = core.CurrentParams();
-    const double        sound      = double(core.SoundSamples());
-    const double        sel_length = std::max(double(p.length) * sound, 1.0);
-    const double        sel_start  = double(p.start) * sound;
+    const Core::Params& p     = core.CurrentParams();
+    const double        sound = double(core.SoundSamples());
+    const double sel_length = std::max(double(core.PassLength()) * sound, 1.0);
+    const double sel_start  = double(p.start) * sound;
 
     view[kSound]           = float(sound);
     view[kSelectionStart]  = float(sel_start);
     view[kSelectionLength] = float(sel_length);
-    view[kPlayhead] = float(sel_start + core.PlayheadPhase() * sel_length);
+    // Past the end, round to the start
+    const double playhead = sel_start + core.PlayheadPhase() * sel_length;
+    view[kPlayhead] = float(sound > 0.0 ? std::fmod(playhead, sound) : 0.0);
     for(size_t i = 0; i <= kNumSlices; i++)
         view[kSliceEdges + i] = float(ui.Slices()[i] * sound);
     for(size_t i = 0; i < Core::kNumTriggers; i++)
@@ -226,10 +232,10 @@ EXPORT const float* cl_params()
     params[kSpeed]        = p.speed;
     params[kFreeze]       = p.freeze ? 1.0f : 0.0f;
     params[kDensity]      = p.density;
-    params[kGrainMs]      = p.grain_ms;
+    params[kGrainMs]      = core.GrainMs();
     params[kPitch]        = 12.0f * std::log2(p.pitch);
     params[kReverb]       = p.reverb;
-    params[kJitter]       = p.jitter;
+    params[kRandDensity]  = p.rand_density;
     params[kRandPitch]    = p.rand_pitch;
     params[kWindowShape]  = p.window_shape;
     params[kStart]        = p.start;
@@ -239,5 +245,9 @@ EXPORT const float* cl_params()
     params[kRandPos]      = p.rand_pos;
     params[kRandSize]     = p.rand_size;
     params[kRandShape]    = p.rand_shape;
+    params[kRandLength]   = p.rand_length;
+    params[kGrainMsSet]   = p.grain_ms;
+    params[kMinGrainMs]   = p.min_grain_ms;
+    params[kMaxGrainMs]   = p.max_grain_ms;
     return params;
 }

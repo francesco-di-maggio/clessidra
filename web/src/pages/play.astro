@@ -2,7 +2,7 @@
 import Base from "../layouts/Base.astro";
 import "../styles/play.css";
 ---
-<Base title="Play" app description="Play Clessidra in the browser: the firmware compiled to WebAssembly, its controls and every grain.">
+<Base title="Play" app description="Clessidra in the browser: the firmware as WebAssembly.">
   <span slot="end" class="label led">LED <span id="led" class="dot"></span></span>
 
   <div class="transport">
@@ -16,16 +16,21 @@ import "../styles/play.css";
     <input id="file" type="file" accept="audio/*" hidden>
   </div>
 
-  <section class="panel incoming" aria-label="Incoming, the last 8 s">
-    <canvas id="incoming" role="img" aria-label="The input over the last 8 seconds"></canvas>
-  </section>
+  <div class="scope">
+    <section class="panel incoming" aria-label="Incoming, the last 8 s">
+      <canvas id="incoming" role="img" aria-label="The input over the last 8 seconds"></canvas>
+    </section>
+    <section class="panel grain" aria-label="A grain">
+      <canvas id="grain-view" role="img" aria-label="A grain's window at its size, and the range randomness reaches"></canvas>
+    </section>
+  </div>
 
   <section class="panel view" aria-label="Buffer">
     <span id="held" class="label held">Empty</span>
     <canvas id="buffer" role="img" aria-label="The recording: the selection, the playhead, the slices and the grains"></canvas>
   </section>
 
-  <section class="panel strip" aria-label="Controls in the order the sound goes. Each randomness small, below its own">
+  <section class="panel strip" aria-label="Controls in signal order, each randomness below its knob">
     <div class="cluster"><span class="head">Playhead</span><div id="playhead" class="body"></div></div>
     <div class="cluster"><span class="head">Grain</span><div id="grain" class="body"></div></div>
     <div class="cluster"><span class="head">FX</span><div id="fx" class="body"></div></div>

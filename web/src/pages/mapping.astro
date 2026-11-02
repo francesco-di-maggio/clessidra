@@ -14,17 +14,17 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
   <div class="stack">
     <div id="layer" class="segmented vertical" role="group" aria-label="Layer">
       <button type="button" data-layer="0" aria-pressed="true">Own</button>
-      <button type="button" data-layer="1" aria-pressed="false">P11 · Random</button>
+      <button type="button" data-layer="1" aria-pressed="false">P11 · Shift</button>
       <button type="button" data-layer="2" aria-pressed="false">P00 · FX</button>
     </div>
     <div class="panel help" aria-live="polite">
       <span id="help-board" class="label">Help</span>
       <b id="help-name">Point at a control</b>
-      <p id="help-does">Shift shows P11's layer, Option P00's, while held.</p>
+      <p id="help-does">⇧ shows P11's layer, ⌥ P00's, while held.</p>
     </div>
     <ul class="panel notes">
       <li><span class="label">Pick-up</span>A knob takes over a value once it reaches it</li>
-      <li><span class="label">Random</span>Off at the centre, up an even spread, down a long tail</li>
+      <li><span class="label">Randomness</span>Off at the centre, up even, down a long tail</li>
       <li><span class="label">Both held</span>P00 over P11</li>
     </ul>
   </div>

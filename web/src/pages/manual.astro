@@ -6,7 +6,7 @@ import "../styles/site.css";
 import TouchPanel from "../components/TouchPanel.astro";
 import { CONTROLS, LED } from "../lib/controls";
 
-const KNOBS = ["S36", "S30", "S35", "S37", "S31", "S32", "S33", "S34"];
+const KNOBS = ["S36", "S37", "S30", "S35", "S31", "S32", "S33", "S34"];
 const LAYERS = ["", "P11+", "P00+"];
 const byId = (id: string) => CONTROLS.find((c) => c.id === id);
 const OTHERS = ["P10", "P11", "P00", "P02", "P03", "S09", "S07"];
@@ -52,21 +52,21 @@ const OTHERS = ["P10", "P11", "P00", "P02", "P03", "S09", "S07"];
   </div>
   <div class="lines">
     <p>It's the instrument where you pour grains of sound from single drops into a dense cloud.</p>
-    <p>Firmware and play in the browser: francescodimaggio.nl/clessidra</p>
-    <p>Made during the Synthux Design Residency 2026</p>
+    <p>francescodimaggio.nl/clessidra</p>
+    <p>Synthux Design Residency 2026</p>
   </div>
   <div class="board"><TouchPanel /></div>
   <div class="box">
-    <p>Three layers on the knobs: their own, P11 held for randomness, P00 held for FX.</p>
-    <p>A knob takes over a value only once it reaches it, so nothing jumps.</p>
-    <p>Randomness: off at the centre, up an even spread, down mostly near with a long tail.</p>
+    <p>Three layers: own, P11 (Shift) held for each knob's randomness, P00 held for FX.</p>
+    <p>Pick-up: a knob takes over a value once it reaches it.</p>
+    <p>Randomness: off at the centre, up even, down a long tail.</p>
   </div>
 </div></section>
 
 <section class="page"><div class="frame">
   <h2>Layers</h2>
   <table>
-    <thead><tr><th>Control</th><th>Own</th><th>P11 Random</th><th>P00 FX</th></tr></thead>
+    <thead><tr><th>Control</th><th>Own</th><th>P11 Shift</th><th>P00 FX</th></tr></thead>
     <tbody>
       {KNOBS.map((k) => <tr><td>{k}</td>{LAYERS.map((l) => { const c = byId(l + k); return <td class={c ? "" : "free"}>{c?.name ?? "–"}</td>; })}</tr>)}
     </tbody>

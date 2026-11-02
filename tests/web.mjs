@@ -52,20 +52,20 @@ const view = () => f32(w.cl_view(), 19);
 const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_grain_fields() + g * 16, 4)[0]);
 const silence = () => 0;
 
-// Panel: speed 1, size at its centre, pitch unison, whole selection, random
-// grains, 36 a second
+// Panel: speed 1, size at its centre, pitch unison, whole selection,
+// periodic grains, 70 a second, all wet
 w.cl_knob(KNOB.S36, 0.5);
 w.cl_knob(KNOB.S31, 0.5);
 w.cl_knob(KNOB.S33, 0.5);
 w.cl_knob(KNOB.S30, 0);
 w.cl_knob(KNOB.S35, 1);
-w.cl_knob(KNOB.S37, 0.9);
-w.cl_knob(KNOB.S34, 1);
+w.cl_knob(KNOB.S34, 0.9);
+w.cl_knob(KNOB.S37, 1);
 
 let r = run(3);
 check(r.finite && r.peak === 0, "nothing recorded: silent", r.peak.toFixed(3));
 
-// Hold P11 for 2 s
+// Hold P10 for 2 s
 w.cl_pad(RECORD, 1, 0.5);
 run(2);
 w.cl_pad(RECORD, 0, 0);
@@ -88,12 +88,12 @@ run(0.5);
 v = view();
 check(w.cl_recordings() === 2 && Math.abs(v[V.sound] / RATE - 8) < 0.02, "tap: the last 8 s", (v[V.sound] / RATE).toFixed(2));
 
-// S35 half, S30 at the top: the second half. Grains inside, with no randomness
-w.cl_knob(KNOB.S30, 1);
+// S35 half, S30 at the middle: the second half. Grains inside, with no randomness
+w.cl_knob(KNOB.S30, 0.5);
 w.cl_knob(KNOB.S35, 0.5);
 run(1, silence);
 v = view();
-check(Math.abs(v[V.selStart] / v[V.sound] - 0.5) < 1e-3 && Math.abs(v[V.selLength] / v[V.sound] - 0.5) < 1e-3, "S35 half, S30 top: the second half");
+check(Math.abs(v[V.selStart] / v[V.sound] - 0.5) < 1e-3 && Math.abs(v[V.selLength] / v[V.sound] - 0.5) < 1e-3, "S35 half, S30 middle: the second half");
 const grainSamples = (f32(w.cl_params(), 13)[3] / 1000) * RATE;
 const held = grains();
 const inside = held.every((x) => {
@@ -101,6 +101,20 @@ const inside = held.every((x) => {
   return at >= v[V.selStart] - 1 && at <= v[V.selStart] + v[V.selLength] + grainSamples;
 });
 check(held.length > 0 && inside, "grains inside the selection", held.length);
+
+// S30 three quarters, S35 half: round the end, the playhead inside the recording
+w.cl_knob(KNOB.S30, 0.75);
+w.cl_knob(KNOB.S36, 1);
+let wrapped = true;
+for (let i = 0; i < 40; i++) {
+  run(0.05, silence);
+  const at = view()[V.playhead] / v[V.sound];
+  wrapped &&= at >= 0 && at < 1 && (at >= 0.75 - 1e-3 || at <= 0.25 + 1e-3);
+}
+check(wrapped, "S30 three quarters, S35 half: round the end to the start");
+w.cl_knob(KNOB.S30, 0.5);
+w.cl_knob(KNOB.S36, 0.5);
+run(0.1, silence);
 
 const params = f32(w.cl_params(), 13);
 check(Math.abs(params[0] - 1) < 1e-6, "Speed at the centre: 1", params[0]);

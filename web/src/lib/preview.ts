@@ -21,6 +21,7 @@ export class Preview {
     if (m.type === "knob") w.cl_knob(m.index, m.value);
     else if (m.type === "layer") w.cl_layer(m.layer, m.index, m.value);
     else if (m.type === "switch") w.cl_switch(m.index, m.position);
+    else w.cl_pad(m.index, m.touched ? 1 : 0, m.pressure);
   }
 
   // One silent block, then the parameters and the view it leaves

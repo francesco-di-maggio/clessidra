@@ -88,6 +88,28 @@ try {
   check(/^2\.\d s$/.test(held), "R held 2 s: recorded", held);
   const values = await run(`[...document.querySelectorAll(".knob .value")].map((v) => v.textContent)`);
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
+
+  // Shift tapped: latched, Size turns its randomness. Tapped again: off.
+  // FX held past the latch time: off on release.
+  const pad = (name, down) => run(`document.querySelector('#functions .pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
+  const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
+  const layer = () => run(`document.body.className`);
+  const size = await value("Size");
+  await pad("Shift", true);
+  await pad("Shift", false);
+  check((await layer()).includes("layer-shift"), "Shift tapped: latched", await layer());
+  await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Size"); for (let i = 0; i < 30; i++) k.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" })); })()`);
+  await sleep(300);
+  const random = await value("Size Random");
+  check(random !== "Off" && (await value("Size")) === random, "Shift latched: Size turns its randomness", random);
+  await pad("Shift", true);
+  await pad("Shift", false);
+  await sleep(300);
+  check(!(await layer()).includes("layer-shift") && (await value("Size")) === size, "Shift tapped again: off, Size as it was", await value("Size"));
+  await pad("FX", true);
+  await sleep(500);
+  await pad("FX", false);
+  check(!(await layer()).includes("layer-fx"), "FX held: off on release", await layer());
   check(errors.length === 0, "no errors", errors.join(" | "));
   ws.close();
 } catch (err) {

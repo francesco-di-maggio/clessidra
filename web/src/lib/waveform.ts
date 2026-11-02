@@ -108,15 +108,16 @@ export class Waveform {
     ctx.fillText(`${seconds.toFixed(1)} s`, W - pad, axis + 3);
     ctx.textAlign = "center";
 
-    // The waveform as dots, ink inside the selection; brackets at its ends
+    // The waveform as dots, ink inside the selection; brackets at its ends.
+    // Past the end, it goes on from the start: b beyond the right edge.
     const a = x(v[VIEW.selStart]);
-    const b = x(v[VIEW.selStart] + v[VIEW.selLength]);
+    const b = a + (v[VIEW.selLength] / sound) * width;
     this.drawDots(f.peaks, W, H, pad, width, mid, half, a, b, dpr);
     ctx.drawImage(this.dots, 0, 0, W, H);
     ctx.strokeStyle = c.ink;
     ctx.lineWidth = 1.5;
     bracket(ctx, a, top, bottom, 1);
-    bracket(ctx, b, top, bottom, -1);
+    bracket(ctx, b > pad + width + 0.5 ? b - width : b, top, bottom, -1);
 
     // Slices, under the sound
     ctx.strokeStyle = c.dim;
@@ -142,7 +143,7 @@ export class Waveform {
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = c.accent;
     ctx.fillStyle = c.accent;
-    const px = x(v[VIEW.playhead]);
+    const px = x(v[VIEW.playhead] % sound);
     line(ctx, px, top, px, bottom);
     ctx.beginPath();
     ctx.moveTo(px - 4, top - 6);
@@ -191,7 +192,7 @@ export class Waveform {
       for (let i = i0; i < i1; i++) peak = Math.max(peak, peaks[i]);
       const n = Math.round(Math.min(1, peak) * rows);
       const cx = pad + k * DOT + DOT / 2;
-      const path = cx >= a && cx <= b ? inside : outside;
+      const path = (cx >= a && cx <= b) || cx + width <= b ? inside : outside;
       for (let j = -n; j <= n; j++) path.rect(cx - 1, mid + j * DOT - 1, 2, 2);
     }
     g.fillStyle = this.c.line;

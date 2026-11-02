@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { FX_PAD, LAYER, PARAM, RANDOM_PAD, RATE, RECORD_PAD, RESTART_PAD, SLICE_PADS } from "./engine";
+import { FX_PAD, LAYER, PARAM, RATE, RECORD_PAD, RESTART_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -24,6 +24,7 @@ export interface Control {
   y: number;
   initial?: number;
   bipolar?: boolean; // drawn from its centre
+  detent?: boolean; // stops at its centre
   slice?: number;
   free?: boolean;
   layer?: number; // the knob's function while a pad holds this layer (LAYER)
@@ -35,6 +36,7 @@ export interface Control {
 
 const seconds = (samples: number) => `${(samples / RATE).toFixed(samples < RATE ? 2 : 1)} s`;
 const percent = (x: number) => `${Math.round(x * 100)} %`;
+const ms = (x: number) => (x < 1000 ? `${Math.round(x)} ms` : `${(x / 1000).toFixed(2)} s`);
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
 // A randomness, -1..1: up an even spread, down mostly near with a long tail
 const random = (x: number) => (x === 0 ? "Off" : `${signed(x * 100, 0)} %`);
@@ -47,78 +49,80 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 
 export const CONTROLS: Control[] = [
   {
-    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.5,
-    does: "How fast the playhead moves, 0 to 4×, 1× at the centre, a tape stop at the bottom.",
+    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.5, detent: true,
+    does: "Playhead speed, 0 to 4×. 1× at the centre, stopped at the bottom.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
   },
   {
-    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.85, bipolar: true,
-    does: "Grains per second, 0.3 to 131. Periodic below the centre, off at it, random above.",
-    value: (p) => {
-      const d = p[PARAM.density];
-      return d === 0 ? "Off" : `${p[PARAM.jitter] ? "Rnd" : "Per"} ${d.toFixed(d < 10 ? 1 : 0)}/s`;
-    },
+    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Dry/Wet", initial: 0.5,
+    does: "Input and grains, equal power. 0 % dry, 100 % wet.",
+    value: (p) => percent(p[PARAM.mix]),
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
-    does: "Where the selection sits, from the recording's start to its end.",
+    does: "Selection start, anywhere in the recording.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
-    does: "How much of the recording the selection holds, all of it at the top.",
+    does: "Selection length, past the end round to the start. All at the top.",
     value: (p, v) => seconds(p[PARAM.length] * v.sound),
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true,
-    does: "Grain length, 10 ms to 4 s, at most half the recording. 200 ms at the centre.",
-    value: (p) => `${Math.round(p[PARAM.grainMs])} ms`,
+    does: "Grain size, 10 ms to 4 s. 200 ms at the centre. At most half the recording.",
+    value: (p) => ms(p[PARAM.grainMs]),
   },
   {
     id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Shape", initial: 0.5, bipolar: true,
-    does: "The grain window: reverse percussive, Hann at the centre, percussive.",
+    does: "Grain window: reverse percussive, Hann at the centre, percussive.",
     value: (p) => (Math.abs(p[PARAM.shape] - 0.5) < 0.01 ? "Hann" : `${p[PARAM.shape] > 0.5 ? "Perc" : "Rev"} ${percent(Math.abs(p[PARAM.shape] - 0.5) * 2)}`),
   },
   {
     id: "S33", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true,
-    does: "±2 octaves, stops at 0, 0.1, 1, 3, 4, 7, 12 and 24 semitones.",
+    does: "±24 semitones. Stops at 0, 0.1, 5, 7, 12, 17, 19, 24.",
     value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
   },
   {
-    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Dry/Wet", initial: 0.5,
-    does: "The input and the grains, equal power. 0 % dry, 100 % wet.",
-    value: (p) => percent(p[PARAM.mix]),
+    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Density", initial: 0.7,
+    does: "Grains per second. None at the bottom, then 0.3 to 131, exponential.",
+    value: (p) => {
+      const d = p[PARAM.density];
+      return d === 0 ? "Off" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
+    },
   },
   {
     id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
-    does: "Tap: the last 8 s. Hold: until you let go, up to 30 s. Always listening.",
+    does: "Tap: the last 8 s. Hold: until release, up to 30 s.",
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Direction", initial: POSITION.up,
-    does: "Up forward, centre freeze, down reverse, for the playhead and the triggers.",
+    does: "Up forward, centre freeze, down reverse. Playhead and slices.",
     value: (p) => (p[PARAM.freeze] ? "Freeze" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   ...SLICE_PADS.map((pad, i): Control => ({
     id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Slice ${i + 1}`, slice: i,
-    does: "Plays its slice with its own grains, as Trigger sets. Press harder for more.",
+    does: "Plays its slice with its own grains, as Trigger sets. Pressure sets density.",
     value: (_, v) => (v.slices[i] ? seconds(v.slices[i]) : ""),
   })),
-  // While P11 is held: the randomness of each grain parameter, and reverb
+  // P11 held, shift: each knob's randomness
   ...([
-    ["S30", "Position", PARAM.randPos],
-    ["S31", "Size", PARAM.randSize],
-    ["S32", "Shape", PARAM.randShape],
-    ["S33", "Pitch", PARAM.randPitch],
-  ] as const).map(([knob, of, param], index): Control => ({
-    id: `P11+${knob}`, type: "knob", index, x: 0, y: 0, name: `${of} Random`, short: "Random", initial: 0.5, bipolar: true, layer: LAYER.random, board: `P11 + ${knob}`,
-    does: `Randomness of ${of.toLowerCase()} per grain: off at the centre, up an even spread, down a long tail.`,
+    ["S30", "Position", PARAM.randPos, "per grain"],
+    ["S31", "Size", PARAM.randSize, "per grain"],
+    ["S32", "Shape", PARAM.randShape, "per grain"],
+    ["S33", "Pitch", PARAM.randPitch, "per grain"],
+    ["S34", "Density", PARAM.randDensity, "of the starts"],
+    ["S35", "Length", PARAM.randLength, "per pass"],
+  ] as const).map(([knob, of, param, per]): Control => ({
+    id: `P11+${knob}`, type: "knob", index: Number(knob.slice(1)) - 30, x: 0, y: 0, name: `${of} Random`, short: "Random", initial: 0.5, bipolar: true, layer: LAYER.shift, board: `P11 + ${knob}`,
+    does: `${of} randomness ${per}. Off at the centre, up even, down a long tail.`,
     value: (p) => random(p[param]),
   })),
-  // While P00 is held: the FX, in the order the sound goes through them
+  // P00 held: the FX, in the order the sound goes through them
   {
     id: "P00+S31", type: "knob", index: 1, x: 0, y: 0, name: "Filter", initial: 0.5, bipolar: true, layer: LAYER.fx, board: "P00 + S31",
-    does: "Low-pass to the left, 20 kHz to 200 Hz, off at the centre, high-pass to the right, to 2 kHz.",
+    does: "Low-pass left, 20 kHz to 200 Hz. Off at the centre. High-pass right, to 2 kHz.",
     value: (p) => {
       const t = p[PARAM.filter];
       if (t === 0) return "Off";
@@ -128,19 +132,19 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P00+S32", type: "knob", index: 2, x: 0, y: 0, name: "Reverb", initial: 0.25, layer: LAYER.fx, board: "P00 + S32",
-    does: "Reverb on the grains: more and longer, 0.5 to 16 s.",
+    does: "Reverb on the grains. Amount and decay, 0.5 to 16 s.",
     value: (p) => percent(p[PARAM.reverb]),
   },
-  { id: "P11", type: "pad", index: RANDOM_PAD, ...padAt(RANDOM_PAD), name: "Random", does: "Held: S30 to S33 set the randomness of position, size, shape and pitch. Knobs pick up." },
-  { id: "P00", type: "pad", index: FX_PAD, ...padAt(FX_PAD), name: "FX", does: "Held: S31 sets the filter, S32 the reverb. Each knob picks up its value." },
+  { id: "P11", type: "pad", index: SHIFT_PAD, ...padAt(SHIFT_PAD), name: "Shift", does: "Held: the knobs set their randomness." },
+  { id: "P00", type: "pad", index: FX_PAD, ...padAt(FX_PAD), name: "FX", does: "Held: S31 filter, S32 reverb. Over Shift." },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Trigger", initial: POSITION.up,
-    does: "A slice pad plays once to its end (up), while held (centre), or looped while held (down).",
+    does: "Slice pads: up once to the end, centre while held, down looped while held.",
     value: () => "",
   },
   {
     id: "P02", type: "pad", index: RESTART_PAD, ...padAt(RESTART_PAD), name: "Restart",
-    does: "The playhead from the start of the selection.",
+    does: "Playhead to the selection start.",
   },
   ...[1].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
 ];
@@ -151,7 +155,7 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 export const LED: [string, string][] = [
   ["Glow", "Grains playing"],
   ["Flashing", "Recording"],
-  ["Pulse", "A control at or turning within its centre: pitch unison, speed 1×, size at its centre, density off"],
+  ["Pulse", "At a centre: pitch unison, speed 1×, size 200 ms"],
   ["Steady", "P11 or P00 held: the value of the knob last turned"],
 ];
 
@@ -166,12 +170,12 @@ const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.l
 export const LEVELS: Level[] = [
   {
     id: "IN", type: "knob", index: -1, x: 0, y: 0, name: "In", initial: 0.5, bipolar: true,
-    does: "The level into the firmware, ±12 dB. Browser only: on the board the source sets it.",
+    does: "Input level, ±12 dB. Browser only.",
     gain: (x) => 10 ** (((x - 0.5) * 24) / 20),
   },
   {
     id: "OUT", type: "knob", index: -1, x: 0, y: 0, name: "Out", initial: 1,
-    does: "The volume of what you hear, −60 to 0 dB, off at the bottom. Browser only.",
+    does: "Output level, −60 to 0 dB, off at the bottom. Browser only.",
     gain: (x) => (x <= 0 ? 0 : 10 ** ((60 * (x - 1)) / 20)),
   },
 ];

@@ -6,9 +6,9 @@ export const BLOCK = 128; // Web Audio's render quantum
 export const NUM_SLICES = 7; // onsets.h kNumSlices
 export const MAX_RECORD_S = 30; // config.h kBufferSeconds
 export const RECORD_PAD = 10; // CoreUI::kRecordPad
-export const RANDOM_PAD = 11; // CoreUI::kRandomPad
+export const SHIFT_PAD = 11; // CoreUI::kShiftPad
 export const FX_PAD = 0; // CoreUI::kFxPad
-export const LAYER = { random: 1, fx: 2 } as const; // CoreUI::Layer
+export const LAYER = { shift: 1, fx: 2 } as const; // CoreUI::Layer
 export const RESTART_PAD = 2; // CoreUI::kRestartPad
 export const SLICE_PADS = [3, 4, 8, 5, 6, 9, 7]; // CoreUI::kSlicePads
 // The incoming strip: the last seconds a tap keeps (Core::kTapCaptureSeconds)
@@ -18,9 +18,9 @@ export const INCOMING_COLUMNS = 320;
 // cl_view, in samples of the recording
 export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, edges: 4, triggers: 4 + NUM_SLICES + 1 } as const;
 export const VIEW_SIZE = VIEW.triggers + NUM_SLICES;
-// cl_params, in the core's units
-export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, jitter: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, filter: 12, randPos: 13, randSize: 14, randShape: 15 } as const;
-export const PARAM_SIZE = 16;
+// cl_params, in the core's units. grainMs: the size in use, grainMsSet: as set
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randDensity: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, filter: 12, randPos: 13, randSize: 14, randShape: 15, randLength: 16, grainMsSet: 17, minGrainMs: 18, maxGrainMs: 19 } as const;
+export const PARAM_SIZE = 20;
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window shape, pan
 export const GRAIN_FIELDS = 4;
 
