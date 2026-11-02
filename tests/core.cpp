@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <functional>
 #include <vector>
+#include "core/svf.h"
 #include "ui/core.ui.h"
 
 using namespace clessidra;
@@ -473,6 +474,38 @@ void Windows()
           reverse[499]);
 }
 
+// The filter's gain at hz, dB, on a sine after a second to settle
+double Gain(float hz, float cutoff, float q, bool low)
+{
+    Svf f;
+    f.Set(cutoff, q, float(kRate));
+    double in = 0.0, out = 0.0;
+    for(size_t n = 0; n < 2 * kRate; n++)
+    {
+        const float x = float(std::sin(2.0 * M_PI * hz * double(n) / kRate));
+        f.Process(x);
+        const float y = low ? f.Low() : f.High();
+        if(n < kRate)
+            continue;
+        in += double(x) * x;
+        out += double(y) * y;
+    }
+    return 10.0 * std::log10(out / in);
+}
+
+void Filter()
+{
+    Check(Near(Gain(4000, 200, 1.5f, true), -52.0, 1.0),
+          "filter: lowpass 200 Hz at 4 kHz (dB)",
+          Gain(4000, 200, 1.5f, true));
+    Check(Near(Gain(200, 2000, 1.5f, false), -40.0, 1.0),
+          "filter: highpass 2 kHz at 200 Hz (dB)",
+          Gain(200, 2000, 1.5f, false));
+    Check(std::fabs(Gain(10000, 20000, 0.707f, true)) < 0.05,
+          "filter: off (lowpass 20 kHz) at 10 kHz (dB)",
+          Gain(10000, 20000, 0.707f, true));
+}
+
 // Triggers: once to the end of their slice, while held, or round it while held
 void Triggers()
 {
@@ -749,23 +782,42 @@ void Mapping()
     c.knobs[Controls::S31] = 0.5f;
     ui.Process(c, r.core);
 
-    // P11: the second layer, each knob picked up where its value is
-    Check(p.reverb == CoreUI::kReverbStart,
-          "second layer at power-up: some reverb",
+    // P00: the FX layer, each knob picked up where its value is
+    Check(p.reverb == CoreUI::kReverbStart && p.filter == 0.0f,
+          "FX at power-up: filter off, some reverb",
           p.reverb);
-    c.touched[CoreUI::kLayerPad] = true;
-    c.knobs[Controls::S34]       = 0.9f; // far from the reverb's value
+    c.touched[CoreUI::kFxPad] = true;
+    c.knobs[Controls::S32]    = 0.9f; // away from the reverb's value
     ui.Process(c, r.core);
-    Check(p.reverb == CoreUI::kReverbStart && Near(p.mix, 0.5, 1e-6),
-          "P11 + S34 away from the reverb: nothing moves",
+    Check(p.reverb == CoreUI::kReverbStart && p.window_shape == 0.5f,
+          "P00 + S32 away from the reverb: nothing moves",
           p.reverb);
-    c.knobs[Controls::S34] = 0.2f; // across it
+    c.knobs[Controls::S32] = 0.2f; // across it
     ui.Process(c, r.core);
-    c.knobs[Controls::S34] = 0.6f;
+    c.knobs[Controls::S32] = 0.6f;
     ui.Process(c, r.core);
-    Check(Near(p.reverb, 0.6, 1e-6) && Near(p.mix, 0.5, 1e-6),
-          "P11 + S34 picked up: reverb, dry/wet stays",
+    Check(Near(p.reverb, 0.6, 1e-6) && p.window_shape == 0.5f,
+          "P00 + S32 picked up: reverb, shape stays",
           p.reverb);
+    c.knobs[Controls::S31] = 0.0f; // from its value, at the centre
+    ui.Process(c, r.core);
+    Check(p.filter == -1.0f && Near(p.grain_ms, 200.0, 0.5),
+          "P00 + S31 down: low-pass, size stays",
+          p.filter);
+    c.knobs[Controls::S34] = 0.9f;
+    ui.Process(c, r.core);
+    Check(Near(p.mix, 0.9, 1e-6), "P00 + S34: nothing on FX, dry/wet", p.mix);
+    c.touched[CoreUI::kRandomPad] = true;
+    c.knobs[Controls::S31]        = 0.5f;
+    ui.Process(c, r.core);
+    Check(p.filter == 0.0f && p.rand_size == 0.0f,
+          "P00 and P11 held: FX",
+          p.filter);
+    c.touched[CoreUI::kFxPad] = false;
+    c.knobs[Controls::S34]    = 0.5f;
+    ui.Process(c, r.core);
+
+    // P11: the randomness layer
     c.knobs[Controls::S31] = 1.0f; // from its value, at the centre
     ui.Process(c, r.core);
     Check(p.rand_size == 1.0f && Near(p.grain_ms, 200.0, 0.5),
@@ -778,14 +830,14 @@ void Mapping()
           p.rand_pitch);
     const float shown = ui.Led(0, r.core);
     Check(shown == 1.0f, "P11 held: the LED shows the knob last turned", shown);
-    c.touched[CoreUI::kLayerPad] = false;
+    c.touched[CoreUI::kRandomPad] = false;
     ui.Process(c, r.core);
     Check(p.pitch == 1.0f && Near(p.mix, 0.5, 1e-6),
-          "P11 released, knobs away: first layer unchanged",
+          "P11 released, knobs away: their own values unchanged",
           p.pitch);
     c.knobs[Controls::S31] = 0.5f;
+    c.knobs[Controls::S32] = 0.5f;
     c.knobs[Controls::S33] = 0.5f;
-    c.knobs[Controls::S34] = 0.5f;
     ui.Process(c, r.core);
 
     c.knobs[Controls::S36] = 1.0f;
@@ -822,8 +874,8 @@ void Mapping()
     ui.Process(c, r.core);
 
     // The other second layers, each picked up at its value
-    c.touched[CoreUI::kLayerPad] = true;
-    c.knobs[Controls::S32]       = 1.0f;
+    c.touched[CoreUI::kRandomPad] = true;
+    c.knobs[Controls::S32]        = 1.0f;
     ui.Process(c, r.core);
     Check(p.rand_shape == 1.0f && p.window_shape == 0.5f,
           "P11 + S32: shape randomness, shape stays",
@@ -848,12 +900,12 @@ void Mapping()
               && p.rand_pitch == 0.0f && p.spread == 0.0f,
           "P11 + S30 to S33 at the centre: no randomness",
           p.spread);
-    c.touched[CoreUI::kLayerPad] = false;
-    c.knobs[Controls::S30]       = 0.0f;
-    c.knobs[Controls::S31]       = 0.5f;
-    c.knobs[Controls::S32]       = 0.5f;
-    c.knobs[Controls::S33]       = 0.5f;
-    c.knobs[Controls::S35]       = 1.0f;
+    c.touched[CoreUI::kRandomPad] = false;
+    c.knobs[Controls::S30]        = 0.0f;
+    c.knobs[Controls::S31]        = 0.5f;
+    c.knobs[Controls::S32]        = 0.5f;
+    c.knobs[Controls::S33]        = 0.5f;
+    c.knobs[Controls::S35]        = 1.0f;
     ui.Process(c, r.core);
 
     // The LED glows with the grains
@@ -936,6 +988,7 @@ int main()
     Fuzz();
     Level();
     Windows();
+    Filter();
     Triggers();
     Randomness();
     Pan();

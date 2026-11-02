@@ -13,14 +13,16 @@
 namespace clessidra
 {
 // Maps the Simple Touch's controls to the core's parameters and recording, and
-// drives the LED. P11 held: each grain parameter's randomness, and reverb. No
-// hardware code: the board and the host tests run the same mapping.
+// drives the LED. Three layers on the knobs: their own, P11 held the randomness
+// of each grain parameter, P00 held the FX. No hardware code: the board and the
+// host tests run the same mapping.
 class CoreUI
 {
   public:
     // Pads
     static constexpr size_t kRecordPad  = 10;
-    static constexpr size_t kLayerPad   = 11; // held: the second layer
+    static constexpr size_t kRandomPad  = 11; // held: the randomness layer
+    static constexpr size_t kFxPad      = 0;  // held: the FX layer, first
     static constexpr size_t kRestartPad = 2;
     // Slices, first to last in the buffer: pads left to right on the
     // faceplate, top to bottom within a column
@@ -32,8 +34,16 @@ class CoreUI
     static constexpr float kMinLength  = 0.01f;
     static constexpr float kMinGrainMs = 10.0f;
     static constexpr float kMaxGrainMs = 4000.0f;
-    // Second layer at power-up: randomness off at the centre, some reverb
+    // Layers on the knobs
+    enum Layer : size_t
+    {
+        kOwn,
+        kRandom,
+        kFx
+    };
+    // At power-up: randomness off at the centre, filter off, some reverb
     static constexpr float kRandomStart = 0.5f;
+    static constexpr float kFilterStart = 0.5f;
     static constexpr float kReverbStart = 0.25f;
     // S37: distance from the centre that is off, as Beads
     static constexpr float kDensityStop = 0.02f;
@@ -62,10 +72,10 @@ class CoreUI
     void Process(const Controls& c, Core& core);
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
     float Led(uint32_t now_ms, const Core& core) const;
-    // For UIs with one control per function: a knob's second value directly
-    void SetSecond(Controls::Knob knob, float value)
+    // For UIs with one control per function: a knob's value on a layer
+    void SetLayer(Layer layer, Controls::Knob knob, float value)
     {
-        layers_.SetSecond(knob, value);
+        layers_.Set(layer, knob, value);
     }
     // For displays: slice edges, of the recording
     const std::array<float, kNumSlices + 1>& Slices() const { return slices_; }
@@ -79,7 +89,7 @@ class CoreUI
     std::array<float, kNumSlices + 1>     slices_{}; // edges, of the recording
     uint32_t                              recordings_ = 0;
     bool                                  record_     = false;
-    bool                                  layer_      = false;
+    size_t                                layer_      = kOwn;
     Layers                                layers_;
     // LED. Times in ms, shown until they pass.
     uint32_t pulse_until_ = 0;

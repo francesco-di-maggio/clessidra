@@ -63,6 +63,7 @@ enum Param : size_t
     kStart,
     kLength,
     kMix,
+    kFilter,
     kRandPos,
     kRandSize,
     kRandShape,
@@ -142,10 +143,12 @@ EXPORT void cl_pad(int pad, int touched, float pressure)
     controls.pressure[p] = pressure;
 }
 
-// A knob's second function, set directly: the page has a control for each
-EXPORT void cl_second(int knob, float value)
+// A knob's function on a layer, set directly: the page has a control for each
+EXPORT void cl_layer(int layer, int knob, float value)
 {
-    ui.SetSecond(Controls::Knob(size_t(knob) % Controls::kNumKnobs), value);
+    ui.SetLayer(CoreUI::Layer(size_t(layer) % Layers::kNumLayers),
+                Controls::Knob(size_t(knob) % Controls::kNumKnobs),
+                value);
 }
 
 EXPORT float cl_led(uint32_t now_ms)
@@ -232,6 +235,7 @@ EXPORT const float* cl_params()
     params[kStart]        = p.start;
     params[kLength]       = p.length;
     params[kMix]          = p.mix;
+    params[kFilter]       = p.filter;
     params[kRandPos]      = p.rand_pos;
     params[kRandSize]     = p.rand_size;
     params[kRandShape]    = p.rand_shape;

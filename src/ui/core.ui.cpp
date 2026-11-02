@@ -50,10 +50,12 @@ namespace
 CoreUI::CoreUI()
 {
     EqualSlices();
-    // The randomness of position, size, shape and pitch, then reverb
+    // P11: the randomness of position, size, shape and pitch. P00: filter and
+    // reverb, in the order the sound goes through them.
     for(auto k : {Controls::S30, Controls::S31, Controls::S32, Controls::S33})
-        layers_.Add(k, kRandomStart);
-    layers_.Add(Controls::S34, kReverbStart);
+        layers_.Add(kRandom, k, kRandomStart);
+    layers_.Add(kFx, Controls::S31, kFilterStart);
+    layers_.Add(kFx, Controls::S32, kReverbStart);
 }
 
 void CoreUI::EqualSlices()
@@ -67,10 +69,11 @@ void CoreUI::Process(const Controls& c, Core& core)
 {
     Core::Params p;
 
-    // P11 held: the second layer
-    layer_ = c.touched[kLayerPad];
+    // P00 held: the FX layer, else P11 held: the randomness
+    layer_ = c.touched[kFxPad] ? kFx : c.touched[kRandomPad] ? kRandom : kOwn;
     layers_.Process(c.knobs, layer_);
-    const auto knob = [this](Controls::Knob k) { return layers_.First(k); };
+    const auto knob
+        = [this](Controls::Knob k) { return layers_.Value(kOwn, k); };
 
     // P10: record while held. A new recording: its slices.
     record_ = c.touched[kRecordPad];
@@ -92,9 +95,13 @@ void CoreUI::Process(const Controls& c, Core& core)
     const bool  unison    = semitones == 0.0f;
     p.pitch               = std::exp2(semitones / 12.0f);
 
-    // S34: dry and wet. P11 + S34: reverb on the grains.
-    p.mix    = knob(Controls::S34);
-    p.reverb = layers_.Second(Controls::S34);
+    // S34: dry and wet
+    p.mix = knob(Controls::S34);
+
+    // P00 + S31: filter, low-pass down, high-pass up, off at the centre.
+    // P00 + S32: reverb.
+    p.filter = 2.0f * Detent(layers_.Value(kFx, Controls::S31), 0.05f) - 1.0f;
+    p.reverb = layers_.Value(kFx, Controls::S32);
 
     // S36, speed: 0 to 4 times, 1 at the centre, with a detent. S09,
     // direction: up forward, centre freeze, down reverse.
@@ -173,7 +180,7 @@ void CoreUI::Process(const Controls& c, Core& core)
     // Beads' attenuverters: off at the centre, an even spread up, mostly near
     // with a long tail down
     const auto random = [this](Controls::Knob k) {
-        return 2.0f * Detent(layers_.Second(k), 0.05f) - 1.0f;
+        return 2.0f * Detent(layers_.Value(kRandom, k), 0.05f) - 1.0f;
     };
     p.rand_pos   = random(Controls::S30);
     p.rand_size  = random(Controls::S31);
@@ -222,7 +229,7 @@ float CoreUI::Led(uint32_t now, const Core& core) const
         return (now / kFlashMs) % 2 == 0 ? 1.0f : 0.0f;
     // The second layer: steady at the value of the knob last turned
     const float brightness
-        = layer_ && layers_.Turned()
+        = layer_ != kOwn && layers_.Turned()
               ? layers_.TurnedValue()
               : now < pulse_until_ ? 1.0f
                                    : kGlow * std::min(1.0f, core.GrainLevel());

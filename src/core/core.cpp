@@ -149,6 +149,21 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float reverb_wet_step
         = (reverb_gain * std::sin(reverb_angle) - reverb_wet_) / n;
 
+    const float filter_coeff
+        = 1.0f - std::exp(-n / (kFilterSeconds * sample_rate_));
+    daisysp::fonepole(filter_, std::clamp(p.filter, -1.0f, 1.0f), filter_coeff);
+    const float amount  = std::fabs(filter_);
+    const bool  lowpass = filter_ < 0.0f;
+    const float filter_hz
+        = lowpass
+              ? kLowpassOffHz * std::pow(kLowpassMinHz / kLowpassOffHz, amount)
+              : kHighpassOffHz
+                    * std::pow(kHighpassMaxHz / kHighpassOffHz, amount);
+    const float filter_q   = kFilterQMin + amount * (kFilterQMax - kFilterQMin);
+    const float filter_mix = std::min(1.0f, amount / kFilterFade);
+    for(auto& filter : filters_)
+        filter.Set(filter_hz, filter_q, sample_rate_);
+
     const float norm_step  = (norm_ - norm_gain_) / n;
     const float input_step = (std::max(p.input, 0.0f) - input_gain_) / n;
     const float output_step
@@ -165,9 +180,15 @@ void Core::Process(const float* const* in, float** out, size_t size)
         reverb_dry_ += reverb_dry_step;
         reverb_wet_ += reverb_wet_step;
         norm_gain_ += norm_step;
-        const float l = out[0][i] * norm_gain_;
-        const float r = out[1][i] * norm_gain_;
-        float       reverb_l, reverb_r;
+        float l = out[0][i] * norm_gain_;
+        float r = out[1][i] * norm_gain_;
+        filters_[0].Process(l);
+        filters_[1].Process(r);
+        l += filter_mix
+             * ((lowpass ? filters_[0].Low() : filters_[0].High()) - l);
+        r += filter_mix
+             * ((lowpass ? filters_[1].Low() : filters_[1].High()) - r);
+        float reverb_l, reverb_r;
         reverb_.Process(l, r, &reverb_l, &reverb_r);
         out[0][i] = l * reverb_dry_ + reverb_l * reverb_wet_;
         out[1][i] = r * reverb_dry_ + reverb_r * reverb_wet_;

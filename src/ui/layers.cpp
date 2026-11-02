@@ -4,29 +4,31 @@
 
 namespace clessidra
 {
-void Layers::Add(size_t knob, float value)
+void Layers::Add(size_t layer, size_t knob, float value)
 {
-    knobs_[knob].layered = true;
-    knobs_[knob].second  = value;
+    knobs_[knob].used[layer]  = true;
+    knobs_[knob].value[layer] = value;
 }
 
 void Layers::Process(const std::array<float, Controls::kNumKnobs>& knobs,
-                     bool                                          second)
+                     size_t                                        layer)
 {
-    if(second != second_)
+    if(layer != layer_)
     {
+        // A knob with no function on the new layer keeps its own
         for(auto& k : knobs_)
-            k.caught = !k.layered;
+            k.caught = !k.used[layer];
         turned_ = Controls::kNumKnobs;
     }
-    second_ = second;
+    layer_ = layer;
 
     for(size_t i = 0; i < Controls::kNumKnobs; i++)
     {
         Knob&       k     = knobs_[i];
         const float now   = knobs[i];
-        float&      value = second_ && k.layered ? k.second : k.first;
-        // Power-up: every knob drives its first value at once
+        const bool  own   = !k.used[layer_];
+        float&      value = k.value[own ? 0 : layer_];
+        // Power-up: every knob drives its own value at once
         if(!ready_)
             k.last = now;
         const bool crossed = (k.last - value) * (now - value) <= 0.0f;
@@ -34,7 +36,7 @@ void Layers::Process(const std::array<float, Controls::kNumKnobs>& knobs,
             k.caught = true;
         if(k.caught)
         {
-            if(second_ && k.layered && std::fabs(now - k.last) > 1e-4f)
+            if(layer_ > 0 && !own && std::fabs(now - k.last) > 1e-4f)
                 turned_ = i;
             value = now;
         }
