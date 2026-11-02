@@ -33,10 +33,11 @@ const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
 const add = (w: Widget) => parts.set(w.c.id, w);
 add(pad(byId("P10"), $("record"), "Rec", on));
 add(knob(byId("S36"), $("time"), on));
-add(segmented(byId("S07"), $("time"), [[POSITION.up, "Off"], [POSITION.centre, "Pong"], [POSITION.down, "On"]], on));
-for (const id of ["S30", "S35"]) add(knob(byId(id), $("selection"), on));
-for (const id of ["S37", "S31", "P11+S31", "S32", "P11+S34"]) add(knob(byId(id), $("grain"), on));
+add(segmented(byId("S09"), $("time"), [[POSITION.up, "Fwd"], [POSITION.centre, "Frz"], [POSITION.down, "Rev"]], on));
+for (const id of ["S30", "S35", "S32"]) add(knob(byId(id), $("selection"), on));
+for (const id of ["S37", "S31", "P11+S31"]) add(knob(byId(id), $("grain"), on));
 for (const id of ["S33", "P11+S33"]) add(knob(byId(id), $("pitch"), on));
+for (const id of ["P11+S32", "P11+S34"]) add(knob(byId(id), $("color"), on));
 // Levels: In, Dry/Wet, Out, in the order the signal goes
 function level(l: Level) {
   const cell = document.createElement("div");
@@ -69,7 +70,7 @@ function set(c: Control, value: number, show = true) {
     const level = c as Level;
     LEVELS_VALUE.set(c.id, value);
     audio.setGain(c.id === "IN" ? "input" : "output", level.gain(value));
-    w.value?.(level.value!(new Float32Array(0), { sound: 0, slice: 0, recording: 0 }));
+    w.value?.(level.value!(new Float32Array(0), { sound: 0, strikes: [], recording: 0 }));
     if (show) focus(c);
     return;
   }
@@ -124,7 +125,7 @@ addEventListener("pointermove", (e) => {
   for (const t of touches.values()) if (t.pointers.has(e.pointerId)) t.pen = e.pressure;
 });
 
-// Keys: R records, 1–7 play the slices, first to last
+// Keys: R records, 1–7 strike the slices, first to last
 function keyPad(e: KeyboardEvent) {
   if (e.key === "r" || e.key === "R") return RECORD_PAD;
   const n = Number(e.key);
@@ -167,12 +168,13 @@ function focus(c: Control) {
 
 function show() {
   if (!last) return;
-  const v: Live = { sound: last.view[VIEW.sound], slice: last.view[VIEW.slice], recording: recording() };
+  const strikes = SLICE_PADS.map((_, i) => last!.view[VIEW.strikes + i] >= 0);
+  const v: Live = { sound: last.view[VIEW.sound], strikes, recording: recording() };
   for (const w of parts.values()) if (w.c.index >= 0) w.value?.(w.c.value?.(last.params, v) ?? "");
   if (focused) readout.value.textContent = focused.value?.(last.params, v) ?? "";
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   held.classList.toggle("on", v.recording > 0);
-  for (const w of parts.values()) if (w.c.slice !== undefined) w.root.classList.toggle("playing", w.c.slice === v.slice);
+  for (const w of parts.values()) if (w.c.slice !== undefined) w.root.classList.toggle("playing", strikes[w.c.slice]);
 }
 
 function onMessage(m: FromWorklet) {

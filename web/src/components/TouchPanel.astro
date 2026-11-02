@@ -56,7 +56,8 @@ const leverY = (p: number) => (p === POSITION.up ? -26 : p === POSITION.down ? 8
       );
     }
     if (c.type === "switch") {
-      const [lx, ly] = c.free ? [0, 52] : [46, -2];
+      // S09's name below it, clear of P01
+      const [lx, ly] = c.id === "S09" ? [0, 52] : [46, -2];
       return (
         <g class={cls} data-id={c.id}>
           <rect class="slot" x={c.x - 14} y={c.y - 30} width="28" height="60" rx="8" />

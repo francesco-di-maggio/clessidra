@@ -6,13 +6,12 @@
 import { LAYER_PAD, PARAM, RATE, RECORD_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
-export const END = ["Off", "Ping-pong", "On"]; // Playhead::End, by S07
 
 // What a readout knows besides the parameters
 export interface Live {
   sound: number; // samples recorded
-  slice: number; // playing, NUM_SLICES for the whole selection
-  recording: number; // seconds P11 has been held, 0 when not
+  strikes: boolean[]; // each slice pad's strike sounding
+  recording: number; // seconds P10 has been held, 0 when not
 }
 
 export interface Control {
@@ -47,9 +46,9 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 
 export const CONTROLS: Control[] = [
   {
-    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.75, bipolar: true,
-    does: "Centre stops. Up forward, down backward, up to 4×. 1× half way.",
-    value: (p) => (p[PARAM.freeze] ? "Stopped" : `${p[PARAM.speed] > 0 ? "→" : "←"} ${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
+    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.5,
+    does: "How fast the playhead moves, 0 to 4×, 1× at the centre.",
+    value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
   },
   {
     id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.6,
@@ -92,20 +91,30 @@ export const CONTROLS: Control[] = [
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
-    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Loop", initial: POSITION.down,
-    does: "At the end of the selection the playhead stops (off, up), turns (ping-pong, centre) or wraps (on, down).",
-    value: (p) => END[p[PARAM.end]],
+    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Direction", initial: POSITION.up,
+    does: "Forward (up), freeze (centre) or reverse (down), for the playhead and the strikes.",
+    value: (p) => (p[PARAM.freeze] ? "Freeze" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   ...SLICE_PADS.map((pad, i): Control => ({
     id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Slice ${i + 1}`, slice: i,
-    does: "Slices at the sound's onsets. A touch plays one, a firm press raises Density.",
-    value: (_, v) => (v.slice === i ? "Playing" : ""),
+    does: "Each plays its slice once, its own grains on top of the playhead. Press harder for more grains.",
+    value: (_, v) => (v.strikes[i] ? "Playing" : ""),
   })),
   // While P11 is held, three knobs do something else
   {
     id: "P11+S31", type: "knob", index: 1, x: 0, y: 0, name: "Shape", initial: 0.5, bipolar: true, second: true, board: "P11 + S31",
     does: "The grain window: reverse percussive, Hann at the centre, percussive.",
     value: (p) => (Math.abs(p[PARAM.shape] - 0.5) < 0.01 ? "Hann" : `${p[PARAM.shape] > 0.5 ? "Perc" : "Rev"} ${percent(Math.abs(p[PARAM.shape] - 0.5) * 2)}`),
+  },
+  {
+    id: "P11+S32", type: "knob", index: 2, x: 0, y: 0, name: "Tone", initial: 0.5, bipolar: true, second: true, board: "P11 + S32",
+    does: "Low-pass to the left (20 kHz to 200 Hz), off at the centre, high-pass to the right (20 Hz to 2 kHz).",
+    value: (p) => {
+      const t = p[PARAM.tone];
+      if (t === 0) return "Off";
+      const hz = t < 0 ? 20000 * (200 / 20000) ** -t : 20 * (2000 / 20) ** t;
+      return `${t < 0 ? "LP" : "HP"} ${hz < 1000 ? Math.round(hz) : (hz / 1000).toFixed(1) + "k"}`;
+    },
   },
   {
     id: "P11+S33", type: "knob", index: 3, x: 0, y: 0, name: "Scatter", initial: 0, second: true, board: "P11 + S33",
@@ -117,8 +126,8 @@ export const CONTROLS: Control[] = [
     does: "Reverb on the grains: more and longer, 0.5 to 16 s.",
     value: (p) => percent(p[PARAM.reverb]),
   },
-  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S31 shape, S33 pitch scatter, S34 reverb. Each knob takes over once it reaches the value." },
-  { id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Free", free: true, initial: POSITION.centre },
+  { id: "P11", type: "pad", index: LAYER_PAD, ...padAt(LAYER_PAD), name: "Shift", does: "Held: the second layer. S31 shape, S32 tone, S33 pitch scatter, S34 reverb. Each knob takes over once it reaches the value." },
+  { id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Free", free: true, initial: POSITION.centre },
   ...[0, 1, 2].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
 ];
 
@@ -128,7 +137,7 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 export const LED: [string, string][] = [
   ["Glow", "Grains playing"],
   ["Flashing", "Recording"],
-  ["Pulse", "A control at or turning within its centre: pitch unison, speed stopped or 1×, size at its centre"],
+  ["Pulse", "A control at or turning within its centre: pitch unison, speed 1×, size at its centre"],
   ["Steady", "P11 held: the value of the knob last turned"],
 ];
 
