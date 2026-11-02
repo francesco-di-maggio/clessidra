@@ -1,64 +1,79 @@
 ---
 import Base from "../layouts/Base.astro";
 import TouchPanel from "../components/TouchPanel.astro";
-import { CONTROLS, LED } from "../lib/controls";
+import { CONTROLS } from "../lib/controls";
 
-// One row per control that does something, the slices as one
-const rows = CONTROLS.filter((c) => !c.free && (c.slice ?? 0) === 0).map((c) =>
-  c.slice === 0
-    ? { ids: CONTROLS.filter((s) => s.slice !== undefined).map((s) => s.id), label: "P03–P09", name: "Slices", does: c.does }
-    : { ids: c.layer ? c.id.split("+") : [c.id], label: c.board ?? c.id, name: c.name, does: c.does },
-);
-const free = CONTROLS.filter((c) => c.free).map((c) => c.id);
-// Every fader and knob on each layer: its own, P11 held, P00 held
-const KNOBS = ["S36", "S30", "S35", "S37", "S31", "S32", "S33", "S34"];
-const LAYERS = [["Own", ""], ["P11 Random", "P11+"], ["P00 FX", "P00+"]];
-const nameOf = (id: string) => CONTROLS.find((c) => c.id === id)?.name ?? "–";
+// What the help shows for each control, by id (layered ones as P11+S31)
+const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { board: c.board ?? c.id, name: c.name, does: c.does ?? "" }]));
 ---
-<Base title="Mapping" wide description="Clessidra's controls on the Synthux Simple Touch: faders, knobs, switches and pads.">
+<Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch, on each of their three layers.">
 <h1>Mapping</h1>
-<p class="lead">What each control does, on the board and in the browser.</p>
-
-<div class="instrument">
+<p class="lead">Point at a control. P11 and P00, held, give the knobs two more layers.</p>
+<div class="mapping">
+  <div class="panel touch-panel"><TouchPanel /></div>
   <div class="stack">
-    <h2 class="label">Layers</h2>
-    <div class="panel table layers"><table>
-      <thead><tr><th>Control</th>{LAYERS.map(([name]) => <th>{name}</th>)}</tr></thead>
-      <tbody>
-        {KNOBS.map((k) => <tr data-ids={k}><td>{k}</td>{LAYERS.map(([, pad]) => <td class={nameOf(pad + k) === "–" ? "free" : ""}>{nameOf(pad + k)}</td>)}</tr>)}
-      </tbody>
-    </table></div>
-
-    <h2 class="label">Every Control</h2>
-    <div class="panel table mapping"><table>
-      <thead><tr><th>Control</th><th>Name</th><th>Does</th></tr></thead>
-      <tbody>
-        {rows.map((r) => <tr data-ids={r.ids.join(" ")}><td>{r.label}</td><td>{r.name}</td><td>{r.does}</td></tr>)}
-        <tr data-ids={free.join(" ")}><td>Others</td><td>Free</td><td>{free.join(", ")}: nothing yet.</td></tr>
-      </tbody>
-    </table></div>
-
-    <h2 class="label">LED</h2>
-    <div class="panel table"><table><tbody>
-      {LED.map(([state, meaning]) => <tr><td>{state}</td><td>{meaning}</td></tr>)}
-    </tbody></table></div>
-  </div>
-  <div class="side">
-    <div class="panel touch-panel"><TouchPanel /></div>
+    <div id="layer" class="segmented vertical" role="group" aria-label="Layer">
+      <button type="button" data-layer="0" aria-pressed="true">Own</button>
+      <button type="button" data-layer="1" aria-pressed="false">P11 · Random</button>
+      <button type="button" data-layer="2" aria-pressed="false">P00 · FX</button>
+    </div>
+    <div class="panel help" aria-live="polite">
+      <span id="help-board" class="label">Help</span>
+      <b id="help-name">Point at a control</b>
+      <p id="help-does">Shift shows P11's layer, Option P00's, while held.</p>
+    </div>
+    <ul class="panel notes">
+      <li><span class="label">Pick-up</span>A knob takes over a value once it reaches it</li>
+      <li><span class="label">Random</span>Off at the centre, up an even spread, down a long tail</li>
+      <li><span class="label">Both held</span>P00 over P11</li>
+    </ul>
   </div>
 </div>
+<script type="application/json" id="help-data" set:html={JSON.stringify(help)} />
 </Base>
 
 <script>
-  // Pointing at a row lights its controls on the panel, and the reverse
-  const rows = [...document.querySelectorAll<HTMLTableRowElement>("tr[data-ids]")];
-  const parts = [...document.querySelectorAll<SVGGElement>(".touch .ctl")];
-  function show(id: string) {
-    const row = rows.find((r) => r.dataset.ids!.split(" ").includes(id));
-    const ids = row ? row.dataset.ids!.split(" ") : [id];
-    for (const r of rows) r.classList.toggle("active", r === row);
-    for (const g of parts) g.classList.toggle("active", ids.includes(g.dataset.id!));
+  // The layer shown, and the help for the control pointed at
+  interface Help { board: string; name: string; does: string }
+  const help: Record<string, Help> = JSON.parse(document.getElementById("help-data")!.textContent!);
+  const panel = document.querySelector<SVGSVGElement>(".touch")!;
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>("#layer button")];
+  const out = { board: document.getElementById("help-board")!, name: document.getElementById("help-name")!, does: document.getElementById("help-does")! };
+  const PREFIX = ["", "P11+", "P00+"];
+  let layer = 0;
+  let held = 0; // a key holding a layer
+  let pointed: string | null = null;
+
+  function show(n: number) {
+    panel.dataset.layer = String(n);
+    for (const b of buttons) b.setAttribute("aria-pressed", String(Number(b.dataset.layer) === n));
+    if (pointed) describe(pointed);
   }
-  for (const r of rows) r.addEventListener("pointerenter", () => show(r.dataset.ids!.split(" ")[0]));
-  for (const g of parts) g.addEventListener("pointerenter", () => show(g.dataset.id!));
+  const current = () => held || layer;
+
+  function describe(id: string) {
+    pointed = id;
+    const n = current();
+    const layered = /^S3\d$/.test(id) && n > 0;
+    const h = help[layered ? PREFIX[n] + id : id];
+    out.board.textContent = layered ? `${PREFIX[n].slice(0, 3)} + ${id}` : (h?.board ?? id);
+    out.name.textContent = h?.name ?? "Free";
+    out.does.textContent = h?.does ?? "Nothing on this layer.";
+  }
+
+  for (const b of buttons) b.addEventListener("click", () => show((layer = Number(b.dataset.layer))));
+  for (const g of panel.querySelectorAll<SVGGElement>(".ctl")) {
+    const id = g.dataset.id!;
+    g.addEventListener("pointerenter", () => describe(id));
+    g.addEventListener("focus", () => describe(id));
+    // The layer pads switch the layer, as holding them does on the board
+    if (id === "P11" || id === "P00") g.addEventListener("click", () => show((layer = layer === (id === "P11" ? 1 : 2) ? 0 : id === "P11" ? 1 : 2)));
+  }
+  const key = (e: KeyboardEvent) => {
+    held = e.altKey ? 2 : e.shiftKey ? 1 : 0;
+    show(current());
+  };
+  addEventListener("keydown", key);
+  addEventListener("keyup", key);
+  addEventListener("blur", () => ((held = 0), show(layer)));
 </script>

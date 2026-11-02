@@ -10,17 +10,8 @@ body.app main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1
 
 /* Transport: Start, the source, In and Out */
 .transport { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 10px; align-items: center; }
-.control.primary { justify-content: center; background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.control.primary.on { background: var(--bg); border-color: var(--line); color: var(--ink); }
 .levels { display: flex; gap: 14px; padding-left: 4px; }
 
-.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); overflow: hidden; background: var(--bg); }
-.segmented button { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 0 6px; border: 0; background: none; color: var(--dim);
-                    font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
-.segmented button + button { border-left: 1px solid var(--line); }
-.segmented button:disabled { opacity: 0.5; cursor: default; }
-.segmented [aria-pressed="true"], .segmented [aria-checked="true"] { color: var(--ink); background: var(--surface); }
-.segmented [aria-pressed="true"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 
 /* Incoming: the last 8 s of input, what a tap keeps */
 .incoming { padding: 0; overflow: hidden; }
