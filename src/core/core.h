@@ -9,7 +9,6 @@
 #include "grain.h"
 #include "buffer.h"
 #include "limiter.h"
-#include "playhead.h"
 #include "ring.h"
 #include "svf.h"
 
@@ -76,20 +75,27 @@ class Core
     static constexpr size_t kNumStrikes = 7;
     struct Strike
     {
+        // Once to the end of the slice; while held; round the slice while held
+        enum class Mode
+        {
+            Once,
+            Gate,
+            Loop
+        };
         float    start   = 0.0f; // of the sound, 0..1
         float    end     = 0.0f;
         float    density = 0.0f; // grains per second
         uint32_t id      = 0;    // a new id plays it again from its start
+        Mode     mode    = Mode::Once;
+        bool     held    = false; // released, frozen: it stops, as in Gate
     };
 
     struct Params
     {
         // Selection, 0..1 of the sound
-        float start  = 0.0f;
-        float length = 1.0f;
-        float speed  = 1.0f; // 1 = real time, negative = reverse
-        // what the playhead does at the end of the selection
-        Playhead::End end = Playhead::End::Loop;
+        float start    = 0.0f;
+        float length   = 1.0f;
+        float speed    = 1.0f;  // 1 = real time, negative = reverse
         bool  freeze   = false; // the playhead held where it was, speed ignored
         float grain_ms = 100.0f; // grain size
         // 0..1: each grain's size random up to kSizeVariationOctaves either way
@@ -147,8 +153,6 @@ class Core
     {
         return recordings_.load(std::memory_order_acquire);
     }
-    // The playhead stopped at the end, in one-shot
-    bool   HasEnded() const { return ended_.load(std::memory_order_relaxed); }
     size_t SoundSamples() const { return Sound().Length(); }
     // Grain windows summed, mean over the last block: 1 = one grain at its peak
     float GrainLevel() const
@@ -243,9 +247,7 @@ class Core
     std::array<Grain, kNumVoices>         grains_;
     Stream                                stream_;
     std::array<StrikeStream, kNumStrikes> strikes_;
-    Playhead                              playhead_;
     std::atomic<bool>                     restart_{false};
-    std::atomic<bool>                     ended_{false};
     uint32_t                              seed_ = 1;
     std::atomic<float>                    grain_level_{0.0f};
 

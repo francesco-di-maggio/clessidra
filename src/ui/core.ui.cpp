@@ -59,6 +59,7 @@ CoreUI::CoreUI()
     layers_.Add(Controls::S32, kToneStart);
     layers_.Add(Controls::S33, 0.0f);
     layers_.Add(Controls::S34, kReverbStart);
+    layers_.Add(Controls::S37, 0.0f); // regularity: periodic
 }
 
 void CoreUI::EqualSlices()
@@ -109,14 +110,27 @@ void CoreUI::Process(const Controls& c, Core& core)
     const Controls::Position way       = c.switches[Controls::S09];
     p.freeze = way == Controls::Centre || speed == 0.0f;
     p.speed  = (way == Controls::Down ? -4.0f : 4.0f) * speed * speed;
-    p.end    = Playhead::End::Loop;
 
-    // S37, Density: the playhead's grains per second
+    // S37, Density: the playhead's grains per second. P11 + S37, regularity:
+    // periodic to random starts, for the playhead and the strikes.
     p.density = Density(knob(Controls::S37));
+    p.jitter  = layers_.Second(Controls::S37);
 
-    // P03-P09: each touch plays its slice once, its own stream of grains.
-    // Pressure sets its density. Released, it goes on to the end of its
-    // slice, unless frozen.
+    // P02: the playhead from the start of the selection
+    if(c.touched[kRestartPad] && !restart_touched_)
+        core.Restart();
+    restart_touched_ = c.touched[kRestartPad];
+
+    // S07, strike mode: up once, centre while held, down round the slice
+    const Controls::Position mode        = c.switches[Controls::S07];
+    const auto               strike_mode = mode == Controls::Up
+                                 ? Core::Strike::Mode::Once
+                                 : mode == Controls::Centre
+                                       ? Core::Strike::Mode::Gate
+                                       : Core::Strike::Mode::Loop;
+
+    // P03-P09: each touch plays its slice, its own stream of grains, as S07
+    // sets. Pressure sets its density.
     for(size_t i = 0; i < kNumSlices; i++)
     {
         const size_t  pad    = kSlicePads[i];
@@ -128,6 +142,8 @@ void CoreUI::Process(const Controls& c, Core& core)
             strike.end   = slices_[i + 1];
         }
         slice_touched_[i] = c.touched[pad];
+        strike.mode       = strike_mode;
+        strike.held       = c.touched[pad];
         if(c.touched[pad])
         {
             const float firm = std::clamp((c.pressure[pad] - kPressFrom)
@@ -136,8 +152,6 @@ void CoreUI::Process(const Controls& c, Core& core)
                                           1.0f);
             strike.density = Density(kStrikeFrom + (1.0f - kStrikeFrom) * firm);
         }
-        else if(p.freeze)
-            strike.density = 0.0f;
     }
     p.strikes = strikes_;
 
@@ -152,10 +166,9 @@ void CoreUI::Process(const Controls& c, Core& core)
         top_ms);
     p.window_shape = layers_.Second(Controls::S31);
 
-    // S32, Scatter: from periodic and plain to random starts, positions, sizes
-    // and pan. Position in seconds, cubic: fine near 0.
+    // S32, Scatter: random positions, sizes and pan. Position in seconds,
+    // cubic: fine near 0.
     const float scatter = knob(Controls::S32);
-    p.jitter            = scatter;
     p.size_variation    = scatter;
     p.spread            = scatter;
     const float scatter_seconds

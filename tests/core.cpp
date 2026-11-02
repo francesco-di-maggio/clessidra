@@ -508,88 +508,67 @@ void Tone()
           Gain(10000, 20000, 0.707f, true));
 }
 
-void Ends()
+// Strikes: once to the end of their slice, while held, or round it while held
+void Strikes()
 {
-    Playhead one_shot;
-    double   phase = 0.0;
-    for(int i = 0; i < 20; i++)
-        phase
-            = one_shot.Step(phase, 0.1, Playhead::End::OneShot, 0.0, 1.0, 0.0);
-    Check(one_shot.IsStopped() && phase < 1.0,
-          "one-shot: stops at the end",
-          phase);
-    const double stopped = phase;
-    phase = one_shot.Step(phase, 0.1, Playhead::End::OneShot, 0.0, 1.0, 0.0);
-    Check(phase == stopped, "one-shot: stays stopped", phase);
-    phase = one_shot.Step(phase, -0.1, Playhead::End::OneShot, 0.0, 1.0, 0.0);
-    Check(!one_shot.IsStopped() && phase < stopped,
-          "one-shot: flipped, it falls back",
-          phase);
-
-    Playhead ping_pong;
-    phase        = 0.5;
-    double least = 1.0;
-    double most  = 0.0;
-    bool   back  = false;
-    for(int i = 0; i < 100; i++)
-    {
-        phase = ping_pong.Step(
-            phase, 0.03, Playhead::End::PingPong, 0.0, 1.0, 0.1);
-        least = std::min(least, phase);
-        most  = std::max(most, phase);
-        back  = back || ping_pong.IsBackward(0.03);
-    }
-    Check(back && most < 0.9 && least >= 0.1 - 0.03,
-          "ping-pong: turns inside the margins (highest phase)",
-          most);
-
-    Playhead loop;
-    Check(Near(loop.Step(0.95, 0.1, Playhead::End::Loop, 0.0, 1.0, 0.0),
-               0.05,
-               1e-9),
-          "loop: wraps",
-          0.05);
-
     Rig r(1.0);
     r.Fill(Sine);
     Core::Params p;
-    p.end = Playhead::End::OneShot;
-    r.core.SetParams(p);
-    auto sounding = [&r] {
-        int n = 0;
-        for(const auto& grain : r.core.Grains())
-            n += grain.IsActive();
-        return n;
-    };
-    r.Run(2.0, Silence);
-    Check(sounding() == 0,
-          "one-shot: silence after the end (grains)",
-          sounding());
-    r.core.Restart();
-    r.Run(0.05, Silence);
-    Check(
-        sounding() > 0, "one-shot: restart sounds again (grains)", sounding());
-
-    // A strike plays its slice once, at the playhead's speed: 1/7 of 1 s
-    p.end         = Playhead::End::Loop;
-    p.density     = 0.0f;
-    auto duration = [&r, &p](float start, uint32_t id) {
-        p.strikes[0] = {start, start + 1.0f / 7.0f, 50.0f, id};
+    p.density = 0.0f;
+    // Seconds a strike sounds over slice 1/7 at speed 1, held for held seconds
+    auto lasts = [&r, &p](Core::Strike::Mode mode, double held, uint32_t id) {
+        p.strikes[0] = {0.0f, 1.0f / 7.0f, 50.0f, id, mode, true};
         r.core.SetParams(p);
         double seconds = 0.0;
-        r.Run(0.01, Silence);
-        while(r.core.StrikeOn(0) && seconds < 1.0)
+        while(seconds < 0.6)
         {
+            if(seconds >= held && p.strikes[0].held)
+            {
+                p.strikes[0].held = false;
+                r.core.SetParams(p);
+            }
             r.Run(0.001, Silence);
             seconds += 0.001;
+            if(!r.core.StrikeOn(0))
+                break;
         }
-        return seconds + 0.01;
+        return seconds;
     };
-    const double first = duration(0.0f, 1);
-    const double last  = duration(6.0f / 7.0f, 2);
-    Check(Near(first, 1.0 / 7.0, 0.005) && Near(last, first, 0.002),
-          "strike: once through its slice, each as long (s)",
-          first);
+    using Mode        = Core::Strike::Mode;
+    const double once = lasts(Mode::Once, 0.01, 1);
+    Check(Near(once, 1.0 / 7.0, 0.005),
+          "strike once: through its slice, released early (s)",
+          once);
+    const double gate = lasts(Mode::Gate, 0.05, 2);
+    Check(Near(gate, 0.05, 0.003), "strike gate: while held (s)", gate);
+    const double loop = lasts(Mode::Loop, 0.4, 3);
+    Check(Near(loop, 0.4, 0.003),
+          "strike loop: round its slice while held, past its end (s)",
+          loop);
+    p.freeze          = true;
+    const double cold = lasts(Mode::Once, 0.05, 4);
+    Check(Near(cold, 0.05, 0.003),
+          "strike once, frozen: stops on release (s)",
+          cold);
+
+    // The playhead goes round the selection, and starts it again on Restart
+    p.freeze  = false;
+    p.speed   = 4.0f;
+    p.density = 50.0f;
+    r.core.SetParams(p);
+    double least = 1.0, most = 0.0;
+    r.Run(1.0, Silence, [&](size_t) {
+        least = std::min(least, r.core.PlayheadPhase());
+        most  = std::max(most, r.core.PlayheadPhase());
+    });
+    Check(least >= 0.0 && most < 1.0 && most > 0.9,
+          "the playhead loops the selection",
+          most);
+    r.core.Restart();
+    r.Run(0.001, Silence);
+    Check(r.core.PlayheadPhase() < 0.01,
+          "Restart: from the start",
+          r.core.PlayheadPhase());
 }
 
 // L/R correlation of grains from different parts of the sound
@@ -728,7 +707,6 @@ void Mapping()
     c.knobs[Controls::S30] = 0.0f;
     c.knobs[Controls::S35] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.end == Playhead::End::Loop, "the playhead loops", int(p.end));
 
     c.knobs[Controls::S37] = 0.1f;
     ui.Process(c, r.core);
@@ -824,9 +802,9 @@ void Mapping()
 
     c.knobs[Controls::S32] = 0.5f;
     ui.Process(c, r.core);
-    Check(p.jitter == 0.5f && p.size_variation == 0.5f && p.spread == 0.5f,
-          "S32 centre: starts, sizes and pan half random",
-          p.jitter);
+    Check(p.jitter == 0.0f && p.size_variation == 0.5f && p.spread == 0.5f,
+          "S32 centre: sizes and pan half random, starts as they were",
+          p.size_variation);
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
     Check(
@@ -884,15 +862,36 @@ void Mapping()
           "slice pressed hard: the strike at the most density",
           p.strikes[3].density);
     press(place, false);
-    Check(p.strikes[3].density > 0.0f,
-          "released: the strike goes on to its end",
-          p.strikes[3].density);
-    c.switches[Controls::S09] = Controls::Centre;
+    Check(!p.strikes[3].held && p.strikes[3].mode == Core::Strike::Mode::Once,
+          "S07 up, released: once, it goes on to its end",
+          0);
+    c.switches[Controls::S07] = Controls::Centre;
     ui.Process(c, r.core);
-    Check(p.strikes[3].density == 0.0f,
-          "released while frozen: the strike stops",
-          p.strikes[3].density);
-    c.switches[Controls::S09] = Controls::Up;
+    Check(p.strikes[3].mode == Core::Strike::Mode::Gate, "S07 centre: gate", 1);
+    c.switches[Controls::S07] = Controls::Down;
+    ui.Process(c, r.core);
+    Check(p.strikes[3].mode == Core::Strike::Mode::Loop, "S07 down: loop", 2);
+    c.switches[Controls::S07] = Controls::Up;
+
+    // P02: the playhead from the start of the selection
+    r.Run(0.3, Silence);
+    press(CoreUI::kRestartPad, true);
+    r.Run(0.001, Silence);
+    Check(r.core.PlayheadPhase() < 0.01,
+          "P02: the playhead from the start",
+          r.core.PlayheadPhase());
+    press(CoreUI::kRestartPad, false);
+
+    // P11 + S37: regularity, density stays
+    c.touched[CoreUI::kLayerPad] = true;
+    c.knobs[Controls::S37]       = 0.0f; // at its value: picked up
+    ui.Process(c, r.core);
+    c.knobs[Controls::S37] = 1.0f;
+    ui.Process(c, r.core);
+    Check(p.jitter == 1.0f && p.density == density,
+          "P11 + S37: random starts, density stays",
+          p.jitter);
+    c.touched[CoreUI::kLayerPad] = false;
     ui.Process(c, r.core);
 
     // Detent pulse: on reaching the centre, renewed while turned within it
@@ -921,7 +920,7 @@ int main()
     Level();
     Windows();
     Tone();
-    Ends();
+    Strikes();
     Pan();
     Voices();
     Onsets();

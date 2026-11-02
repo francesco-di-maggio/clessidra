@@ -7,6 +7,7 @@ export const NUM_SLICES = 7; // onsets.h kNumSlices
 export const MAX_RECORD_S = 30; // config.h kBufferSeconds
 export const RECORD_PAD = 10; // CoreUI::kRecordPad
 export const LAYER_PAD = 11; // CoreUI::kLayerPad
+export const RESTART_PAD = 2; // CoreUI::kRestartPad
 export const SLICE_PADS = [3, 4, 8, 5, 6, 9, 7]; // CoreUI::kSlicePads
 // The incoming strip: the last seconds a tap keeps (Core::kTapCaptureSeconds)
 export const INCOMING_SECONDS = 8;
@@ -16,8 +17,8 @@ export const INCOMING_COLUMNS = 320;
 export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, edges: 4, strikes: 4 + NUM_SLICES + 1 } as const;
 export const VIEW_SIZE = VIEW.strikes + NUM_SLICES;
 // cl_params, in the core's units
-export const PARAM = { speed: 0, freeze: 1, end: 2, density: 3, grainMs: 4, pitch: 5, reverb: 6, jitter: 7, randPitch: 8, shape: 9, start: 10, length: 11, mix: 12, tone: 13 } as const;
-export const PARAM_SIZE = 14;
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, jitter: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, tone: 12 } as const;
+export const PARAM_SIZE = 13;
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window shape, pan
 export const GRAIN_FIELDS = 4;
 

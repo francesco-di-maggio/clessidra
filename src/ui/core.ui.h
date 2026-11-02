@@ -19,8 +19,9 @@ class CoreUI
 {
   public:
     // Pads
-    static constexpr size_t kRecordPad = 10;
-    static constexpr size_t kLayerPad  = 11; // held: the second layer
+    static constexpr size_t kRecordPad  = 10;
+    static constexpr size_t kLayerPad   = 11; // held: the second layer
+    static constexpr size_t kRestartPad = 2;
     // Slices, first to last in the buffer: pads left to right on the
     // faceplate, top to bottom within a column
     static constexpr size_t kSlicePads[] = {3, 4, 8, 5, 6, 9, 7};
@@ -74,6 +75,7 @@ class CoreUI
     void EqualSlices();
 
     std::array<bool, kNumSlices>         slice_touched_{};
+    bool                                 restart_touched_ = false;
     std::array<Core::Strike, kNumSlices> strikes_{};
     std::array<float, kNumSlices + 1>    slices_{}; // edges, of the recording
     uint32_t                             recordings_ = 0;

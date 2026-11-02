@@ -53,7 +53,6 @@ enum Param : size_t
 {
     kSpeed,
     kFreeze,
-    kEnd,
     kDensity,
     kGrainMs,
     kPitch,
@@ -221,7 +220,6 @@ EXPORT const float* cl_params()
     const Core::Params& p = core.CurrentParams();
     params[kSpeed]        = p.speed;
     params[kFreeze]       = p.freeze ? 1.0f : 0.0f;
-    params[kEnd]          = float(p.end);
     params[kDensity]      = p.density;
     params[kGrainMs]      = p.grain_ms;
     params[kPitch]        = 12.0f * std::log2(p.pitch);

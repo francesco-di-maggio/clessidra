@@ -45,11 +45,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
                      std::max(std::min(len, most_samples), 1.0));
     const double grain_inc = 1.0 / grain_samples;
 
-    if(p.freeze)
-        playhead_.Resume();
     if(restart_.exchange(false, std::memory_order_relaxed))
     {
-        playhead_.Restart();
         stream_.phase = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
         // With a grain at once
         stream_.sched_phase = stream_.sched_next;
@@ -67,39 +64,43 @@ void Core::Process(const float* const* in, float** out, size_t size)
         state.sched_phase = state.sched_next;
     }
 
-    // Outside Loop, the last grains stay inside the selection
-    const double margin
-        = std::min(grain_samples * std::fabs(p.pitch) / sel_len, 0.25);
     const double play_inc
         = p.freeze ? 0.0 : p.speed / sel_len; // phase per sample
-    const bool backwards = !p.freeze && playhead_.IsBackward(play_inc);
+    const bool backwards = play_inc < 0.0;
 
     // Grain starts in this block, at the sample they fall on. A voice that ends
     // in this block is free from the next.
     for(size_t i = 0; i < size && len > 0.0; i++)
     {
-        if(!p.freeze)
-            stream_.phase = playhead_.Step(
-                stream_.phase, play_inc, p.end, 0.0, 1.0, margin);
-        if(!playhead_.IsStopped()
-           && Due(stream_, density / sample_rate_, p.jitter))
+        // Round the selection
+        stream_.phase += play_inc;
+        stream_.phase -= std::floor(stream_.phase);
+        if(Due(stream_, density / sample_rate_, p.jitter))
         {
             const Source source
                 = {sel_start, sel_len, stream_.phase, 0.0, 1.0, backwards};
             Trigger(p, source, &sound, i);
         }
 
-        // Strikes: once through their slice, at the playhead's speed
+        // Strikes: through their slice at the playhead's speed. Released,
+        // only Once goes on, and not while frozen.
         for(size_t s = 0; s < kNumStrikes; s++)
         {
             StrikeStream& state = strikes_[s];
             if(!state.on)
                 continue;
             const Strike& strike = p.strikes[s];
-            const double  slice
+            if(!strike.held && (strike.mode != Strike::Mode::Once || p.freeze))
+            {
+                state.on = false;
+                continue;
+            }
+            const double slice
                 = std::max(double(strike.end - strike.start) * len, 1.0);
             state.phase += p.freeze ? 0.0 : p.speed / slice;
-            if(state.phase < 0.0 || state.phase >= 1.0)
+            if(strike.mode == Strike::Mode::Loop)
+                state.phase -= std::floor(state.phase);
+            else if(state.phase < 0.0 || state.phase >= 1.0)
             {
                 state.on = false;
                 continue;
@@ -209,7 +210,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
         out[1][i] *= output_gain_;
     }
 
-    ended_.store(playhead_.IsStopped(), std::memory_order_relaxed);
     UpdateCapture(size);
 }
 
