@@ -78,9 +78,9 @@ export const CONTROLS: Control[] = [
     value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
   },
   {
-    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Mix", initial: 0.5,
-    does: "Dry to wet, equal power.",
-    value: (p) => (p[PARAM.mix] === 0 ? "Dry" : p[PARAM.mix] === 1 ? "Wet" : `${Math.round(p[PARAM.mix] * 100)}\u00a0% wet`),
+    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Dry/Wet", initial: 0.5,
+    does: "The input and the grains, equal power. 0 % dry, 100 % wet.",
+    value: (p) => percent(p[PARAM.mix]),
   },
   {
     id: "P11", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
@@ -88,7 +88,7 @@ export const CONTROLS: Control[] = [
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
-    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Mode", initial: POSITION.centre,
+    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Mode", initial: POSITION.down,
     does: "What the playhead does at the end of the selection: one-shot (up), ping-pong (centre), loop (down).",
     value: (p) => END[p[PARAM.end]],
   },
@@ -125,9 +125,9 @@ export const LEVELS: Level[] = [
     gain: (x) => 10 ** (((x - 0.5) * 24) / 20),
   },
   {
-    id: "OUT", type: "knob", index: -1, x: 0, y: 0, name: "Out", initial: 0.85,
-    does: "The volume of what you hear. Browser only.",
-    gain: (x) => x ** 3,
+    id: "OUT", type: "knob", index: -1, x: 0, y: 0, name: "Out", initial: 1,
+    does: "The volume of what you hear, −60 to 0 dB, off at the bottom. Browser only.",
+    gain: (x) => (x <= 0 ? 0 : 10 ** ((60 * (x - 1)) / 20)),
   },
 ];
 

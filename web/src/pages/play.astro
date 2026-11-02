@@ -1,6 +1,16 @@
 ---
 import Base from "../layouts/Base.astro";
 import "../styles/play.css";
+
+// The rack: each panel's label and the id its controls go into
+const groups = [
+  ["record", "Record"],
+  ["time", "Time"],
+  ["selection", "Selection"],
+  ["grain", "Grain"],
+  ["output", "Output"],
+  ["slices", "Slices"],
+];
 ---
 <Base title="Play" app description="Play Clessidra in the browser: the firmware compiled to WebAssembly, its controls and every grain.">
   <span slot="end" class="label led">LED <span id="led" class="dot"></span></span>
@@ -15,18 +25,18 @@ import "../styles/play.css";
     <input id="file" type="file" accept="audio/*" hidden>
   </div>
 
-  <section class="panel view" aria-label="Sand">
-    <div class="head"><span class="label">Sand</span><span id="held" class="label held">Empty</span></div>
+  <section class="panel view" aria-labelledby="sand-label">
+    <div class="head"><h2 id="sand-label" class="label">Sand</h2><span id="held" class="label held">Empty</span></div>
     <canvas id="sand" role="img" aria-label="The recording: the selection, the playhead, the slices and the grains"></canvas>
   </section>
 
   <div class="rack">
-    <section class="panel group record" aria-label="Record" id="record"></section>
-    <section class="panel group time" aria-label="Time" id="time"></section>
-    <section class="panel group selection" aria-label="Selection" id="selection"></section>
-    <section class="panel group grain" aria-label="Grain" id="grain"></section>
-    <section class="panel group output" aria-label="Output" id="output"></section>
-    <section class="panel group slices pads" aria-label="Slices" id="slices"></section>
+    {groups.map(([id, label]) => (
+      <section class={`panel group ${id}`} aria-labelledby={`${id}-label`}>
+        <h2 id={`${id}-label`} class="label">{label}</h2>
+        <div id={id} class="controls"></div>
+      </section>
+    ))}
   </div>
 
   <p class="readout" aria-live="polite"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span><span id="readout-does" class="does"></span></p>
