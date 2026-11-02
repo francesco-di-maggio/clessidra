@@ -20,6 +20,9 @@ if command -v em++ > /dev/null; then
     sh web/build.sh
     echo "== Web"
     node tests/web.mjs
+    npm --prefix web run build > /dev/null
+    echo "== Play page"
+    node tests/play.mjs
 else
     echo "== Web: skipped, no em++"
 fi
