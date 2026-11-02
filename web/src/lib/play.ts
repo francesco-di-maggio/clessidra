@@ -60,14 +60,14 @@ const add = (w: Widget) => parts.set(w.c.id, w);
 add(pad(byId("P10"), $("record"), "Rec", on));
 // Two rows: the knobs, and P11's layer under each; In and Out, browser only,
 // under Speed and Direction
-function cell(parent: HTMLElement) {
+function cell(parent: HTMLElement, below = false) {
   const e = document.createElement("div");
-  e.className = "cell";
+  e.className = below ? "cell below" : "cell";
   parent.append(e);
   return e;
 }
 function level(l: Level, parent: HTMLElement) {
-  const at = cell(parent);
+  const at = cell(parent, true);
   at.classList.add("level");
   add(knob(l, at, on));
   return meter(at, l.name);
@@ -86,12 +86,16 @@ for (const [cluster, ids] of COLUMNS) {
   for (const id of ids) {
     add(knob(byId(id), cell($(cluster)), on));
     const second = CONTROLS.find((c) => c.id === `P11+${id}`);
-    if (second) add(knob(second, cell($(cluster)), on));
-    else cell($(cluster));
+    if (second) add(knob(second, cell($(cluster), true), on));
+    else cell($(cluster), true);
   }
 }
 add(segmented(byId("S07"), $("trigger"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
-add(pad(byId("P02"), $("trigger"), "↺", on));
+const restart = document.createElement("div");
+restart.className = "column";
+restart.innerHTML = `<span class="label">Restart</span>`;
+$("trigger").append(restart);
+add(pad(byId("P02"), restart, "↺", on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
 
 for (const w of parts.values()) {

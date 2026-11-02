@@ -33,11 +33,11 @@ export class Incoming {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     const css = getComputedStyle(document.documentElement);
+    const left = 72; // the tag beside
     const pad = 14;
-    const cols = Math.floor((W - 2 * pad) / DOT);
-    const top = 18; // the tag above
-    const rows = Math.floor((H - top - 6) / 2 / DOT);
-    const mid = top + (H - top) / 2;
+    const cols = Math.floor((W - left - pad) / DOT);
+    const rows = Math.floor((H - 8) / 2 / DOT);
+    const mid = H / 2;
     const held = Math.min(this.recording / INCOMING_SECONDS, 1); // share of the strip, from the right
     const quiet = new Path2D();
     const loud = new Path2D();
@@ -48,7 +48,7 @@ export class Incoming {
       let peak = 0;
       for (let i = i0; i < i1 && i < this.peaks.length; i++) peak = Math.max(peak, this.peaks[i]);
       const n = Math.round(Math.min(1, peak) * rows);
-      const cx = pad + k * DOT + DOT / 2;
+      const cx = left + k * DOT + DOT / 2;
       const path = k >= cols * (1 - held) ? rec : n > 0 ? loud : quiet;
       for (let j = -n; j <= n; j++) path.rect(cx - 1, mid + j * DOT - 1, 2, 2);
     }

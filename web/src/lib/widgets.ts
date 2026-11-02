@@ -49,7 +49,7 @@ function arc(from: number, to: number) {
 // A knob: label, dial, value. Drag up and down (Shift: fine), arrows, double
 // click for the starting value. Bipolar knobs fill from their centre.
 export function knob(c: Control, parent: Element, h: Handlers): Widget {
-  const root = html("div", { class: c.second ? "knob second" : "knob", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
+  const root = html("div", { class: "knob", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
   html("span", { class: "label" }, root).textContent = c.short ?? c.name;
   const dial = svg("svg", { viewBox: "0 0 56 56", "aria-hidden": "true" }, root);
   svg("path", { class: "track", d: arc(-SWEEP / 2, SWEEP / 2) }, dial);

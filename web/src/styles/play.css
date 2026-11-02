@@ -2,7 +2,7 @@
    controls with P11's layer below, the slices, a readout line. Orange only for
    what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
-body.app main { min-height: 0; display: grid; grid-template-rows: auto 64px minmax(120px, 1fr) auto auto auto; gap: 10px; }
+body.app main { min-height: 0; display: grid; grid-template-rows: auto 44px minmax(120px, 1fr) auto auto auto; gap: 10px; }
 .mark .slash { margin: 0 2px; }
 .led { display: flex; align-items: center; gap: 6px; }
 .led .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--accent) calc(var(--led, 0) * 100%), transparent); }
@@ -26,7 +26,7 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 64px minm
 /* Incoming: the last 8 s of input, what a tap keeps */
 .incoming { position: relative; padding: 0; overflow: hidden; }
 .incoming canvas { display: block; width: 100%; height: 100%; }
-.tag { position: absolute; top: 6px; left: 12px; font-size: 10px; line-height: 14px; pointer-events: none; }
+.tag { position: absolute; top: 50%; left: 14px; transform: translateY(-50%); font-size: 10px; line-height: 14px; pointer-events: none; }
 
 /* The buffer, its status in the corner */
 .view { position: relative; padding: 0; overflow: hidden; }
@@ -49,8 +49,8 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 64px minm
 .knob .value { font: 500 11px/16px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
 .knob.focus .label, .knob:focus-visible .label, .switch.focus .label { color: var(--ink); }
 .knob:focus-visible svg { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 50%; }
-.knob.second svg { width: 32px; height: 32px; }
-.knob.second .label { color: var(--dim); }
+.cell.below svg { width: 32px; height: 32px; }
+.cell.below .label { color: var(--dim); }
 
 .switch { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .switch .segmented { height: auto; grid-auto-flow: row; width: 56px; }
@@ -59,16 +59,21 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 64px minm
 
 /* A meter beside its knob's dial, not widening the knob */
 .level { position: relative; }
-.meter { position: absolute; top: 16px; right: -4px; height: 44px; display: flex; flex-direction: column; justify-content: space-between; }
+.meter { position: absolute; top: 16px; right: -4px; height: 32px; display: flex; flex-direction: column; justify-content: space-between; }
 .meter i { width: 4px; height: 4px; border-radius: 1px; background: var(--line); }
 .meter i.on { background: var(--ink); }
 .meter i.clip { background: var(--accent); }
 
-/* Pads: trigger mode and restart, then the slices */
-.pads { display: flex; align-items: center; gap: 10px; padding: 10px; }
-.pads .cluster { display: flex; flex: none; gap: 8px; padding: 0 10px 0 0; border-right: 1px solid var(--line); align-items: center; }
-.pads .cluster .pad { width: 48px; font-size: 16px; }
-.slices { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+/* Pads: trigger mode and restart, then the slices, their labels on one line
+   and as tall as the switch */
+.pads { display: flex; align-items: flex-start; gap: 10px; padding: 12px 10px; }
+.pads .cluster { display: flex; flex: none; gap: 8px; padding: 0 10px 0 0; border-right: 1px solid var(--line); }
+.pads .pad { height: 62px; }
+.pads .cluster .pad { width: 56px; font-size: 16px; }
+.column { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.column > .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; }
+.column.wide { flex: 1; align-items: stretch; text-align: center; }
+.slices { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .pad { display: grid; place-content: center; gap: 2px; width: 100%; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { font-size: 10px; color: var(--dim); font-variant-numeric: tabular-nums; }
@@ -86,7 +91,7 @@ body.app main { min-height: 0; display: grid; grid-template-rows: auto 64px minm
 /* Short or narrow screens: the page scrolls rather than squeezing the controls */
 @media (max-height: 640px), (max-width: 600px) {
   body.app { height: auto; min-height: 100dvh; overflow: auto; }
-  body.app main { grid-template-rows: auto 64px 200px auto auto auto; }
+  body.app main { grid-template-rows: auto 44px 200px auto auto auto; }
 }
 @media (max-width: 600px) {
   .strip { flex-wrap: wrap; row-gap: 12px; }
