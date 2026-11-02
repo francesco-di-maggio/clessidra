@@ -78,7 +78,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
         if(Due(stream_, density / sample_rate_, p.jitter))
         {
             const Source source
-                = {sel_start, sel_len, stream_.phase, 0.0, 1.0, backwards};
+                = {sel_start, sel_len, stream_.phase, backwards};
             StartGrain(p, source, &sound, i);
         }
 
@@ -113,8 +113,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
             const Source source = {double(trigger.start) * len,
                                    slice,
                                    state.phase,
-                                   0.0,
-                                   1.0,
                                    p.speed < 0.0f};
             StartGrain(p, source, &sound, i);
         }
@@ -151,21 +149,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float reverb_wet_step
         = (reverb_gain * std::sin(reverb_angle) - reverb_wet_) / n;
 
-    const float filter_coeff
-        = 1.0f - std::exp(-n / (kFilterSeconds * sample_rate_));
-    daisysp::fonepole(filter_, std::clamp(p.filter, -1.0f, 1.0f), filter_coeff);
-    const float amount  = std::fabs(filter_);
-    const bool  lowpass = filter_ < 0.0f;
-    const float filter_hz
-        = lowpass
-              ? kLowpassOffHz * std::pow(kLowpassMinHz / kLowpassOffHz, amount)
-              : kHighpassOffHz
-                    * std::pow(kHighpassMaxHz / kHighpassOffHz, amount);
-    const float filter_q   = kFilterQMin + amount * (kFilterQMax - kFilterQMin);
-    const float filter_mix = std::min(1.0f, amount / kFilterFade);
-    for(auto& filter : filters_)
-        filter.Set(filter_hz, filter_q, sample_rate_);
-
     const float norm_step  = (norm_ - norm_gain_) / n;
     const float input_step = (std::max(p.input, 0.0f) - input_gain_) / n;
     const float output_step
@@ -182,15 +165,9 @@ void Core::Process(const float* const* in, float** out, size_t size)
         reverb_dry_ += reverb_dry_step;
         reverb_wet_ += reverb_wet_step;
         norm_gain_ += norm_step;
-        float l = out[0][i] * norm_gain_;
-        float r = out[1][i] * norm_gain_;
-        filters_[0].Process(l);
-        filters_[1].Process(r);
-        l += filter_mix
-             * ((lowpass ? filters_[0].Low() : filters_[0].High()) - l);
-        r += filter_mix
-             * ((lowpass ? filters_[1].Low() : filters_[1].High()) - r);
-        float reverb_l, reverb_r;
+        const float l = out[0][i] * norm_gain_;
+        const float r = out[1][i] * norm_gain_;
+        float       reverb_l, reverb_r;
         reverb_.Process(l, r, &reverb_l, &reverb_r);
         out[0][i] = l * reverb_dry_ + reverb_l * reverb_wet_;
         out[1][i] = r * reverb_dry_ + reverb_r * reverb_wet_;
@@ -316,38 +293,35 @@ void Core::StartGrain(const Params& p,
 
     Grain::Latch latch;
     latch.buffer = sound;
-    // Spray stays inside what is playing, mirrored at its ends
-    const double low       = source.low;
-    const double high      = source.high;
-    double       scattered = source.phase + Random() * p.rand_pos * 0.5;
-    if(scattered > high)
-        scattered = 2.0 * high - scattered;
-    if(scattered < low)
-        scattered = std::min(2.0 * low - scattered, high);
-    latch.position = source.start + scattered * source.length;
-    // Peaky: the further each grain may go is itself random
-    const float reach
-        = std::min(3.0f * p.rand_pitch * (0.5f - 0.5f * Random()), 1.0f);
-    const float ratio
-        = std::exp2(Random() * reach * kRandPitchSemitones / 12.0f);
+    // Each as Beads, over its range: position inside what is playing, size
+    // between the knob's ends, exponential, any shape, pitch either way
+    const double phase
+        = p.rand_pos != 0.0f
+              ? source.phase
+                    + Blend(p.rand_pos) * (0.5 + 0.5 * Random() - source.phase)
+              : source.phase;
+    latch.position = source.start + phase * source.length;
+    if(p.rand_size != 0.0f && p.max_grain_ms > p.min_grain_ms)
+    {
+        const float octaves = std::log2(p.max_grain_ms / p.min_grain_ms);
+        const float size    = std::clamp(
+            std::log2(p.grain_ms / p.min_grain_ms) / octaves, 0.0f, 1.0f);
+        latch.size = std::exp2((Randomise(size, p.rand_size) - size) * octaves);
+    }
+    latch.shape = p.rand_shape != 0.0f ? Randomise(p.window_shape, p.rand_shape)
+                                       : p.window_shape;
+    const float semitones
+        = p.rand_pitch != 0.0f
+              ? Random() * Blend(p.rand_pitch) * kRandPitchSemitones
+              : 0.0f;
+    latch.rate = p.pitch * std::exp2(semitones / 12.0f);
+    if(source.backwards)
+        latch.rate = -latch.rate;
     // Width with the grains sounding and how much they differ: a lone grain
     // near the centre, most of the others too
     const float width = 0.5f * float(active + 1) * p.spread;
     const float scale = 0.5f - 0.5f * Random();
     latch.pan         = 0.5f + 0.5f * Random() * std::min(width * scale, 1.0f);
-    latch.rate        = p.pitch * ratio;
-    if(source.backwards)
-        latch.rate = -latch.rate;
-    if(p.rand_size > 0.0f)
-        latch.size = std::exp2(Random() * p.rand_size * kSizeVariationOctaves);
-    latch.shape = p.window_shape;
-    // As Beads: a peaky blend towards a random shape
-    if(p.rand_shape > 0.0f)
-    {
-        const float blend
-            = std::min(3.0f * p.rand_shape * (0.5f - 0.5f * Random()), 1.0f);
-        latch.shape += blend * (0.5f - 0.5f * Random() - p.window_shape);
-    }
     grain->Start(latch, offset);
 
     // Keeps voices free for the next grains
@@ -386,6 +360,18 @@ float Core::Interval(float jitter)
     const float            random
         = x * (1.0f + x * (0.5f + x * (0.3333f + x * 0.25f))) / kMean;
     return 1.0f - jitter + jitter * random;
+}
+
+float Core::Randomise(float x, float amount)
+{
+    return x + Blend(amount) * (0.5f + 0.5f * Random() - x);
+}
+
+float Core::Blend(float amount)
+{
+    return amount > 0.0f
+               ? std::min(amount, 1.0f)
+               : std::min(-3.0f * amount * (0.5f + 0.5f * Random()), 1.0f);
 }
 
 float Core::Random()

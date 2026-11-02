@@ -13,8 +13,8 @@
 namespace clessidra
 {
 // Maps the Simple Touch's controls to the core's parameters and recording, and
-// drives the LED. P11 held: each grain parameter's randomness, reverb and
-// filter. No hardware code: the board and the host tests run the same mapping.
+// drives the LED. P11 held: each grain parameter's randomness, and reverb. No
+// hardware code: the board and the host tests run the same mapping.
 class CoreUI
 {
   public:
@@ -32,11 +32,9 @@ class CoreUI
     static constexpr float kMinLength  = 0.01f;
     static constexpr float kMinGrainMs = 10.0f;
     static constexpr float kMaxGrainMs = 4000.0f;
-    // Second layer at power-up: no randomness, some reverb, filter off
+    // Second layer at power-up: randomness off at the centre, some reverb
+    static constexpr float kRandomStart = 0.5f;
     static constexpr float kReverbStart = 0.25f;
-    static constexpr float kFilterStart = 0.5f;
-    // P11 + S30 at the top: grains this far either way from the playhead
-    static constexpr float kMaxSpraySeconds = 2.0f;
     // S37: distance from the centre that is off, as Beads
     static constexpr float kDensityStop = 0.02f;
     // S36: distance from the centre, of half its travel, that stops

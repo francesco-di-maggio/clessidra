@@ -63,7 +63,6 @@ enum Param : size_t
     kStart,
     kLength,
     kMix,
-    kFilter,
     kRandPos,
     kRandSize,
     kRandShape,
@@ -233,7 +232,6 @@ EXPORT const float* cl_params()
     params[kStart]        = p.start;
     params[kLength]       = p.length;
     params[kMix]          = p.mix;
-    params[kFilter]       = p.filter;
     params[kRandPos]      = p.rand_pos;
     params[kRandSize]     = p.rand_size;
     params[kRandShape]    = p.rand_shape;

@@ -50,13 +50,10 @@ namespace
 CoreUI::CoreUI()
 {
     EqualSlices();
-    // Each grain parameter's randomness, then reverb and filter
-    layers_.Add(Controls::S30, 0.0f);
-    layers_.Add(Controls::S31, 0.0f);
-    layers_.Add(Controls::S32, 0.0f);
-    layers_.Add(Controls::S33, 0.0f);
+    // The randomness of position, size, shape and pitch, then reverb
+    for(auto k : {Controls::S30, Controls::S31, Controls::S32, Controls::S33})
+        layers_.Add(k, kRandomStart);
     layers_.Add(Controls::S34, kReverbStart);
-    layers_.Add(Controls::S35, kFilterStart);
 }
 
 void CoreUI::EqualSlices()
@@ -85,12 +82,11 @@ void CoreUI::Process(const Controls& c, Core& core)
         slices_ = FindSlices(sound.Data(), sound.Length(), kSampleRateHz);
     }
 
-    // S30, S35: start and end of the selection, in either order
+    // S35, length of the selection. S30, its position: from the start to the
+    // end of the recording.
     const float seconds = float(core.SoundSamples()) / float(kSampleRateHz);
-    const float from    = knob(Controls::S30);
-    const float to      = knob(Controls::S35);
-    p.length            = std::max(std::fabs(to - from), kMinLength);
-    p.start             = std::min(std::min(from, to), 1.0f - p.length);
+    p.length            = std::max(knob(Controls::S35), kMinLength);
+    p.start             = knob(Controls::S30) * (1.0f - p.length);
 
     const float semitones = Semitones(knob(Controls::S33));
     const bool  unison    = semitones == 0.0f;
@@ -159,7 +155,7 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.triggers = triggers_;
 
     // S31: grain size, exponential, kMinGrainMs to kMaxGrainMs, at most half
-    // the sound. P11 + S31: its randomness.
+    // the sound
     const float size_knob   = Detent(knob(Controls::S31), 0.05f);
     const bool  size_centre = size_knob == 0.5f;
     const float top_ms      = std::clamp(500.0f * seconds, 100.0f, kMaxGrainMs);
@@ -167,30 +163,28 @@ void CoreUI::Process(const Controls& c, Core& core)
         kMinGrainMs * std::pow(kMaxGrainMs / kMinGrainMs, size_knob),
         kMinGrainMs,
         top_ms);
-    p.rand_size = layers_.Second(Controls::S31);
+    p.min_grain_ms = kMinGrainMs;
+    p.max_grain_ms = top_ms;
 
-    // S32: window shape. P11 + S32: its randomness.
+    // S32: window shape
     p.window_shape = knob(Controls::S32);
-    p.rand_shape   = layers_.Second(Controls::S32);
 
-    // P11 + S30, spray: random positions, in seconds, cubic: fine near 0
-    const float spray         = layers_.Second(Controls::S30);
-    const float spray_seconds = kMaxSpraySeconds * spray * spray * spray;
-    p.rand_pos
-        = seconds > 0.0f
-              ? std::min(2.0f * spray_seconds / (p.length * seconds), 1.0f)
-              : 0.0f;
-
-    // P11 + S33: pitch randomness, cubic: fine near 0
-    const float pitch_random = layers_.Second(Controls::S33);
-    p.rand_pitch             = pitch_random * pitch_random * pitch_random;
+    // P11 + S30 to S33: the randomness of position, size, shape and pitch, as
+    // Beads' attenuverters: off at the centre, an even spread up, mostly near
+    // with a long tail down
+    const auto random = [this](Controls::Knob k) {
+        return 2.0f * Detent(layers_.Second(k), 0.05f) - 1.0f;
+    };
+    p.rand_pos   = random(Controls::S30);
+    p.rand_size  = random(Controls::S31);
+    p.rand_shape = random(Controls::S32);
+    p.rand_pitch = random(Controls::S33);
 
     // Pan, as Beads: as wide as the grains differ, in every way
-    p.spread = std::min(
-        spray + p.rand_size + p.rand_shape + pitch_random + p.jitter, 1.0f);
-
-    // P11 + S35: filter, low-pass down, high-pass up, off at the centre
-    p.filter = 2.0f * Detent(layers_.Second(Controls::S35), 0.05f) - 1.0f;
+    p.spread = std::min(std::fabs(p.rand_pos) + std::fabs(p.rand_size)
+                            + std::fabs(p.rand_shape) + std::fabs(p.rand_pitch)
+                            + p.jitter,
+                        1.0f);
 
     core.SetParams(p);
 

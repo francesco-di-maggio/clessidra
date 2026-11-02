@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <functional>
 #include <vector>
-#include "core/svf.h"
 #include "ui/core.ui.h"
 
 using namespace clessidra;
@@ -474,39 +473,6 @@ void Windows()
           reverse[499]);
 }
 
-// Share of the output's power within 10 Hz of the partials of 55 Hz, from 40 Hz
-// to 1 kHz
-double Gain(float hz, float cutoff, float q, bool low)
-{
-    Svf f;
-    f.Set(cutoff, q, float(kRate));
-    double in = 0.0, out = 0.0;
-    for(size_t n = 0; n < 2 * kRate; n++)
-    {
-        const float x = float(std::sin(2.0 * M_PI * hz * double(n) / kRate));
-        f.Process(x);
-        const float y = low ? f.Low() : f.High();
-        if(n < kRate)
-            continue;
-        in += double(x) * x;
-        out += double(y) * y;
-    }
-    return 10.0 * std::log10(out / in);
-}
-
-void Filter()
-{
-    Check(Near(Gain(4000, 200, 1.5f, true), -52.0, 1.0),
-          "filter: lowpass 200 Hz at 4 kHz (dB)",
-          Gain(4000, 200, 1.5f, true));
-    Check(Near(Gain(200, 2000, 1.5f, false), -40.0, 1.0),
-          "filter: highpass 2 kHz at 200 Hz (dB)",
-          Gain(200, 2000, 1.5f, false));
-    Check(std::fabs(Gain(10000, 20000, 0.707f, true)) < 0.05,
-          "filter: off (lowpass 20 kHz) at 10 kHz (dB)",
-          Gain(10000, 20000, 0.707f, true));
-}
-
 // Triggers: once to the end of their slice, while held, or round it while held
 void Triggers()
 {
@@ -568,6 +534,51 @@ void Triggers()
     Check(r.core.PlayheadPhase() < 0.01,
           "Restart: from the start",
           r.core.PlayheadPhase());
+}
+
+// As Beads, frozen at the start: up, each grain moved by the amount, evenly.
+// Down, by a random part of three times it: mostly near, a long tail.
+void Randomness()
+{
+    // Furthest position read, of the selection, and the mean
+    const auto spread = [](float amount, double* mean) {
+        Rig r(2.0);
+        r.Fill(Sine);
+        Core::Params p;
+        p.freeze   = true;
+        p.density  = 40.0f;
+        p.grain_ms = 20.0f;
+        p.rand_pos = amount;
+        r.core.SetParams(p);
+        double sum = 0.0, furthest = 0.0, n = 0.0;
+        r.Run(2.0, Silence, [&](size_t) {
+            for(const auto& g : r.core.Grains())
+            {
+                if(!g.IsActive() || g.Progress() > 0.1)
+                    continue;
+                const double x
+                    = g.Settings().position / double(r.core.SoundSamples());
+                sum += x;
+                furthest = std::max(furthest, x);
+                n++;
+            }
+        });
+        *mean = sum / n;
+        return furthest;
+    };
+    double mean = 0.0;
+    double far  = spread(1.0f, &mean);
+    Check(Near(mean, 0.5, 0.1) && far > 0.9,
+          "position random up: even over the selection (mean)",
+          mean);
+    far = spread(0.3f, &mean);
+    Check(far <= 0.3 + 0.01, "position random 0.3: within 0.3", far);
+    far = spread(-0.3f, &mean);
+    Check(far > 0.6 && mean < 0.3,
+          "position random -0.3: mostly near, a long tail (furthest)",
+          far);
+    far = spread(0.0f, &mean);
+    Check(far < 0.01, "position random off: all at the playhead", far);
 }
 
 // L/R correlation of grains from different parts of the sound
@@ -690,16 +701,19 @@ void Mapping()
               && p.spread == 0.0f && p.window_shape == 0.5f,
           "power-up: no randomness, Hann",
           p.jitter);
-    c.knobs[Controls::S30] = 0.8f;
-    c.knobs[Controls::S35] = 0.2f;
+    c.knobs[Controls::S35] = 0.5f;
+    c.knobs[Controls::S30] = 1.0f;
     ui.Process(c, r.core);
-    Check(Near(p.start, 0.2, 1e-6) && Near(p.length, 0.6, 1e-6),
-          "S30, S35: the selection between them, in either order",
-          p.length);
-    c.knobs[Controls::S35] = 0.8f;
+    Check(Near(p.start, 0.5, 1e-6) && Near(p.length, 0.5, 1e-6),
+          "S35 half, S30 top: the second half",
+          p.start);
+    c.knobs[Controls::S30] = 0.0f;
     ui.Process(c, r.core);
-    Check(Near(p.length, CoreUI::kMinLength, 1e-6) && p.start <= 0.8f,
-          "S30 = S35: the shortest selection",
+    Check(p.start == 0.0f, "S30 bottom: from the start", p.start);
+    c.knobs[Controls::S35] = 0.0f;
+    ui.Process(c, r.core);
+    Check(Near(p.length, CoreUI::kMinLength, 1e-6),
+          "S35 bottom: the shortest selection",
           p.length);
     c.knobs[Controls::S30] = 0.0f;
     c.knobs[Controls::S35] = 1.0f;
@@ -736,8 +750,8 @@ void Mapping()
     ui.Process(c, r.core);
 
     // P11: the second layer, each knob picked up where its value is
-    Check(p.reverb == CoreUI::kReverbStart && p.filter == 0.0f,
-          "second layer at power-up: some reverb, filter off",
+    Check(p.reverb == CoreUI::kReverbStart,
+          "second layer at power-up: some reverb",
           p.reverb);
     c.touched[CoreUI::kLayerPad] = true;
     c.knobs[Controls::S34]       = 0.9f; // far from the reverb's value
@@ -752,15 +766,11 @@ void Mapping()
     Check(Near(p.reverb, 0.6, 1e-6) && Near(p.mix, 0.5, 1e-6),
           "P11 + S34 picked up: reverb, dry/wet stays",
           p.reverb);
-    c.knobs[Controls::S31] = 0.0f; // at its value
-    ui.Process(c, r.core);
-    c.knobs[Controls::S31] = 1.0f;
+    c.knobs[Controls::S31] = 1.0f; // from its value, at the centre
     ui.Process(c, r.core);
     Check(p.rand_size == 1.0f && Near(p.grain_ms, 200.0, 0.5),
           "P11 + S31: size randomness, size stays",
           p.rand_size);
-    c.knobs[Controls::S33] = 0.0f; // at its value
-    ui.Process(c, r.core);
     c.knobs[Controls::S33] = 1.0f;
     ui.Process(c, r.core);
     Check(p.rand_pitch == 1.0f && p.pitch == 1.0f,
@@ -813,9 +823,7 @@ void Mapping()
 
     // The other second layers, each picked up at its value
     c.touched[CoreUI::kLayerPad] = true;
-    c.knobs[Controls::S32]       = 0.0f;
-    ui.Process(c, r.core);
-    c.knobs[Controls::S32] = 1.0f;
+    c.knobs[Controls::S32]       = 1.0f;
     ui.Process(c, r.core);
     Check(p.rand_shape == 1.0f && p.window_shape == 0.5f,
           "P11 + S32: shape randomness, shape stays",
@@ -823,24 +831,23 @@ void Mapping()
     c.knobs[Controls::S30] = 1.0f;
     ui.Process(c, r.core);
     Check(p.rand_pos == 1.0f && p.start == 0.0f,
-          "P11 + S30 top: spray ±2 s, here the whole 2 s, start stays",
+          "P11 + S30 up: position, an even spread, position stays",
           p.rand_pos);
     Check(p.spread == 1.0f, "randomness: pan widens with it", p.spread);
-    c.knobs[Controls::S35] = 0.5f; // at its value
+    c.knobs[Controls::S30] = 0.0f;
     ui.Process(c, r.core);
-    c.knobs[Controls::S35] = 0.0f;
-    ui.Process(c, r.core);
-    Check(p.filter == -1.0f && Near(p.length, 1.0, 1e-6),
-          "P11 + S35 down: low-pass, end stays",
-          p.filter);
-    c.knobs[Controls::S35] = 0.5f;
-    ui.Process(c, r.core);
-    Check(p.filter == 0.0f, "P11 + S35 centre: filter off", p.filter);
+    Check(p.rand_pos == -1.0f, "P11 + S30 down: the odd jump", p.rand_pos);
     for(auto k : {Controls::S30, Controls::S31, Controls::S32, Controls::S33})
     {
-        c.knobs[k] = 0.0f;
+        c.knobs[k] = 1.0f; // picked up wherever it was
+        ui.Process(c, r.core);
+        c.knobs[k] = 0.5f;
         ui.Process(c, r.core);
     }
+    Check(p.rand_pos == 0.0f && p.rand_size == 0.0f && p.rand_shape == 0.0f
+              && p.rand_pitch == 0.0f && p.spread == 0.0f,
+          "P11 + S30 to S33 at the centre: no randomness",
+          p.spread);
     c.touched[CoreUI::kLayerPad] = false;
     c.knobs[Controls::S30]       = 0.0f;
     c.knobs[Controls::S31]       = 0.5f;
@@ -929,8 +936,8 @@ int main()
     Fuzz();
     Level();
     Windows();
-    Filter();
     Triggers();
+    Randomness();
     Pan();
     Voices();
     Onsets();

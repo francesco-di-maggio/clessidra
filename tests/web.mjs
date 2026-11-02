@@ -88,12 +88,12 @@ run(0.5);
 v = view();
 check(w.cl_recordings() === 2 && Math.abs(v[V.sound] / RATE - 8) < 0.02, "tap: the last 8 s", (v[V.sound] / RATE).toFixed(2));
 
-// S30 above S35: the selection between them. Grains inside, with no spray
-w.cl_knob(KNOB.S30, 0.75);
-w.cl_knob(KNOB.S35, 0.25);
+// S35 half, S30 at the top: the second half. Grains inside, with no randomness
+w.cl_knob(KNOB.S30, 1);
+w.cl_knob(KNOB.S35, 0.5);
 run(1, silence);
 v = view();
-check(Math.abs(v[V.selStart] / v[V.sound] - 0.25) < 1e-3 && Math.abs(v[V.selLength] / v[V.sound] - 0.5) < 1e-3, "S30 above S35: the selection between them");
+check(Math.abs(v[V.selStart] / v[V.sound] - 0.5) < 1e-3 && Math.abs(v[V.selLength] / v[V.sound] - 0.5) < 1e-3, "S35 half, S30 top: the second half");
 const grainSamples = (f32(w.cl_params(), 13)[3] / 1000) * RATE;
 const held = grains();
 const inside = held.every((x) => {
