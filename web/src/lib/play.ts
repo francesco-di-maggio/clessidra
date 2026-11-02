@@ -193,32 +193,37 @@ function fail(name: string, message: string) {
   readout.does.textContent = message;
 }
 
+// The source goes into the input: chosen before or after Start
+let source: Input = "demo";
+
 start.addEventListener("click", async () => {
   if (!audio.ctx) {
     start.disabled = true;
     try {
       await audio.start();
-      await choose("demo");
+      await choose(source);
     } catch (err) {
       fail("Can't start", (err as Error).message);
       start.disabled = false;
       return;
     }
     waveform.started = true;
-    for (const b of inputs) b.disabled = false;
     start.disabled = false;
   } else await audio.pause(audio.running);
-  start.textContent = audio.running ? "Pause" : "Play";
+  start.textContent = audio.running ? "Pause" : "Start";
   start.classList.toggle("on", audio.running);
 });
 
 async function choose(kind: Input) {
-  try {
-    await audio.use(kind);
-  } catch (err) {
-    fail(kind === "mic" ? "No microphone" : "Can't play this file", (err as Error).message);
-    return;
+  if (audio.ctx) {
+    try {
+      await audio.use(kind);
+    } catch (err) {
+      fail(kind === "mic" ? "No microphone" : "Can't play this file", (err as Error).message);
+      return;
+    }
   }
+  source = kind;
   const name = kind instanceof File ? "file" : kind;
   for (const b of inputs) b.setAttribute("aria-pressed", String(b.dataset.input === name));
 }
