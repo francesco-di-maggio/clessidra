@@ -31,6 +31,8 @@ class Layers
     {
         knobs_[knob].value[layer] = value;
     }
+    // The knob drives its value again only once it reaches it
+    void Hold(size_t knob) { knobs_[knob].caught = false; }
     // The value last changed by a knob, while a layer is held
     bool  Turned() const { return turned_ < Controls::kNumKnobs; }
     float TurnedValue() const { return knobs_[turned_].value[layer_]; }

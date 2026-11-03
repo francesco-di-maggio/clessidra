@@ -24,14 +24,17 @@ class CoreUI
     static constexpr size_t kShiftPad   = 11; // held: the shift layer
     static constexpr size_t kRestartPad = 2;
     static constexpr size_t kMutePad    = 0; // held: the grains silent
+    static constexpr size_t kResetPad
+        = 1; // with P11: the shift layer as at power-up
     // Slices, first to last in the buffer: pads left to right on the
     // faceplate, top to bottom within a column
     static constexpr size_t kSlicePads[] = {3, 4, 8, 5, 6, 9, 7};
     static_assert(std::size(kSlicePads) == kNumSlices);
     static_assert(kNumSlices == Core::kNumTriggers);
 
-    static constexpr float kMinGrainMs = 10.0f;
-    static constexpr float kMaxGrainMs = 4000.0f;
+    static constexpr float kMinGrainMs    = 10.0f;
+    static constexpr float kCentreGrainMs = 200.0f;
+    static constexpr float kMaxGrainMs    = 4000.0f;
     // Layers on the knobs
     enum Layer : size_t
     {
@@ -85,9 +88,12 @@ class CoreUI
     bool                                  restart_touched_ = false;
     std::array<Core::Trigger, kNumSlices> triggers_{};
     std::array<float, kNumSlices + 1>     slices_{}; // edges, of the recording
-    uint32_t                              recordings_  = 0;
-    bool                                  record_      = false;
-    bool                                  rec_touched_ = false;
+    uint32_t                              recordings_    = 0;
+    bool                                  record_        = false;
+    bool                                  rec_touched_   = false;
+    bool                                  reset_touched_ = false;
+    bool                                  frozen_ = false; // S09 at the centre
+    float  speed_held_ = 0.5f; // S36 as it was at the freeze
     bool   listen_ = false; // this touch of P10 listens: P11 held at its start
     size_t layer_  = kOwn;
     Layers layers_;

@@ -10,6 +10,7 @@ export const SHIFT_PAD = 11; // CoreUI::kShiftPad
 export const LAYER = { shift: 1 } as const; // CoreUI::Layer
 export const RESTART_PAD = 2; // CoreUI::kRestartPad
 export const MUTE_PAD = 0; // CoreUI::kMutePad
+export const RESET_PAD = 1; // CoreUI::kResetPad
 export const SLICE_PADS = [3, 4, 8, 5, 6, 9, 7]; // CoreUI::kSlicePads
 // What a tap keeps, seconds: the board's (Core::kTapCaptureSeconds), and the
 // others the browser tries

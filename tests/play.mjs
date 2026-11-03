@@ -108,6 +108,11 @@ try {
   check(turned !== size && (await value("Size Random")) === random, "Shift latched: Size still turns Size, Size Random stays", turned);
   await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Size"); for (let i = 0; i < 20; i++) k.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" })); })()`);
   await sleep(300);
+  await pad("Reset", true);
+  await pad("Reset", false);
+  await sleep(300);
+  const cleared = await value("Size Random");
+  check(cleared === "Off", "Shift + Reset: every randomness off", cleared);
   await pad("Shift", true);
   await pad("Shift", false);
   await sleep(300);
@@ -147,9 +152,6 @@ try {
   await sleep(1500);
   const tapped = await run(`document.getElementById("held").textContent`);
   check(tapped === "4.0 s", "4 s set, Rec tapped: the last 4 s", tapped);
-  await run(`document.querySelector('#keys .pad[aria-label="Free"]').dispatchEvent(new PointerEvent("pointerenter"))`);
-  const free = await run(`document.getElementById("readout-does").textContent`);
-  check(free === "No function yet.", "P01 pointed at: the help says it is free", free);
   check(errors.length === 0, "no errors", errors.join(" | "));
   ws.close();
 } catch (err) {

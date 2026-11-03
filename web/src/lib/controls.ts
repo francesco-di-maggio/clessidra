@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { LAYER, MUTE_PAD, PARAM, RATE, RECORD_PAD, RESTART_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
+import { RESET_PAD, LAYER, MUTE_PAD, PARAM, RATE, RECORD_PAD, RESTART_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -50,7 +50,7 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 export const CONTROLS: Control[] = [
   {
     id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.5, detent: true,
-    does: "Playhead speed, 0 to 4×. 1× at the centre, stopped at the bottom.",
+    does: "Playhead speed, 0 to 4×, 1× at the centre. Frozen: moves the point.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
   },
   {
@@ -75,7 +75,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true,
-    does: "Grain size, 10 ms to 4 s. 200 ms at the centre. At most half the recording.",
+    does: "Grain size, 10 ms, 200 ms at the centre, up to half the recording, 4 s at most.",
     value: (p) => ms(p[PARAM.grainMs]),
   },
   {
@@ -103,7 +103,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Direction", initial: POSITION.up,
-    does: "Up forward, centre freeze, down reverse. Playhead and slices.",
+    does: "Up forward, centre freeze, down reverse. Frozen, S36 moves the point.",
     value: (p) => (p[PARAM.freeze] ? "Freeze" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   ...SLICE_PADS.map((pad, i): Control => ({
@@ -143,7 +143,7 @@ export const CONTROLS: Control[] = [
     id: "P00", type: "pad", index: MUTE_PAD, ...padAt(MUTE_PAD), name: "Mute",
     does: "Held: the grains silent, the reverb rings on.",
   },
-  { id: "P01", type: "pad", index: 1, ...padAt(1), name: "Free", does: "No function yet.", free: true },
+  { id: "P01", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset", does: "With Shift: every randomness off, the reverb back to 25 %." },
 ];
 
 export const byId = (id: string) => CONTROLS.find((c) => c.id === id)!;

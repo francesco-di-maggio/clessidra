@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, CONTROLS, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { LAYER, MAX_RECORD_S, MUTE_PAD, SHIFT_PAD, RATE, RECORD_PAD, SLICE_PADS, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { RESET_PAD, LAYER, MAX_RECORD_S, MUTE_PAD, SHIFT_PAD, RATE, RECORD_PAD, SLICE_PADS, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { GrainView } from "./grain";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
@@ -123,7 +123,7 @@ for (const [tile, ids] of RACK) {
 add(segmented(byId("S09"), $("direction"), [[POSITION.up, "Forward"], [POSITION.centre, "Freeze"], [POSITION.down, "Reverse"]], on));
 add(segmented(byId("S07"), $("trigger"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)).root.classList.add("key"));
-const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Shift", 1], ["P00", "Mute", 3], ["P01", "—", 4], ["P02", "Retrig", 5]];
+const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Shift", 1], ["P00", "Mute", 3], ["P01", "Reset", 4], ["P02", "Retrig", 5]];
 for (const [id, label, after] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
   w.root.classList.add("key", "black");
@@ -235,6 +235,8 @@ const touches = new Map<number, Touch>(); // by pad index
 
 function press(c: Control, down: boolean, e: { pointerId?: number | string; pointerType?: string; pressure?: number }) {
   if (c.free) return;
+  // Shift + Reset: the shift layer as at the start, here as on the board
+  if (down && c.index === RESET_PAD && layer === LAYER.shift) for (const r of CONTROLS) if (r.layer === LAYER.shift) set(r, r.initial ?? 0.5, false);
   if (LAYER_PADS.has(c.index)) return pressLayer(c, down);
   const who = e.pointerId ?? "key";
   let t = touches.get(c.index);

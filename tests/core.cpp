@@ -695,7 +695,7 @@ void Selection()
     r.core.Restart();
     r.core.SetParams(p);
     r.Run(0.3 * r.core.SoundSamples() / kRate, Silence);
-    p.freeze = true;
+    p.speed = 0.0f;
     r.core.SetParams(p);
     r.Run(0.01, Silence);
     const double was = r.core.PlayheadPhase();
@@ -710,6 +710,48 @@ void Selection()
     r.Run(0.01, Silence);
     Check(r.core.PlayheadPhase() == 0.0,
           "length short of the playhead: a new pass from the start",
+          r.core.PlayheadPhase());
+
+    // Frozen: the point stays in the recording whatever the length, even past
+    // the end; the scrub moves it through the selection; unfrozen, on from
+    // there, round the selection
+    p.length = 1.0f;
+    p.speed  = 1.0f;
+    r.core.SetParams(p);
+    r.Run(0.3 * r.core.SoundSamples() / kRate, Silence);
+    p.freeze = true;
+    r.core.SetParams(p);
+    r.Run(0.01, Silence);
+    const double point = r.core.PlayheadPhase();
+    r.Run(0.2, Silence);
+    Check(r.core.PlayheadPhase() == point, "frozen: the point holds", point);
+    p.length = 0.2f;
+    r.core.SetParams(p);
+    r.Run(0.01, Silence);
+    Check(Near(r.core.PlayheadPhase() * 0.2, point, 1e-6),
+          "frozen, length short of the point: it stays (phase)",
+          r.core.PlayheadPhase());
+    p.length = 1.0f;
+    p.scrub  = 0.25f;
+    r.core.SetParams(p);
+    r.Run(0.01, Silence);
+    Check(Near(r.core.PlayheadPhase(), point + 0.25, 1e-6),
+          "frozen, scrubbed a quarter: a quarter of the selection on",
+          r.core.PlayheadPhase());
+    p.scrub = 0.0f;
+    p.start = 0.5f;
+    r.core.SetParams(p);
+    r.Run(0.01, Silence);
+    Check(Near(r.core.PlayheadPhase(), point, 1e-6),
+          "frozen, S30 moved: the point moves with the selection (phase)",
+          r.core.PlayheadPhase());
+    p.start  = 0.0f;
+    p.length = 0.2f;
+    p.freeze = false;
+    r.core.SetParams(p);
+    r.Run(0.01, Silence);
+    Check(r.core.PlayheadPhase() >= 0.0 && r.core.PlayheadPhase() < 1.0,
+          "unfrozen past the end: back into the selection",
           r.core.PlayheadPhase());
 }
 
@@ -982,6 +1024,29 @@ void Mapping()
     Check(p.start == 0.0f && p.length == 1.0f,
           "S30 bottom, S35 top: the whole recording",
           p.length);
+    // P11 alone, held and let go, the knobs untouched: nothing changes
+    const auto same = [](const Core::Params& a, const Core::Params& b) {
+        return a.start == b.start && a.length == b.length
+               && a.grain_ms == b.grain_ms && a.window_shape == b.window_shape
+               && a.pitch == b.pitch && a.density == b.density
+               && a.speed == b.speed && a.freeze == b.freeze
+               && a.filter == b.filter && a.reverb == b.reverb && a.mix == b.mix
+               && a.mute == b.mute && a.rand_pos == b.rand_pos
+               && a.rand_size == b.rand_size && a.rand_shape == b.rand_shape
+               && a.rand_pitch == b.rand_pitch
+               && a.rand_density == b.rand_density
+               && a.rand_length == b.rand_length && a.spread == b.spread;
+    };
+    const Core::Params kept       = p;
+    c.touched[CoreUI::kShiftPad]  = true;
+    c.pressure[CoreUI::kShiftPad] = 0.9f;
+    ui.Process(c, r.core);
+    const bool held               = same(p, kept);
+    c.touched[CoreUI::kShiftPad]  = false;
+    c.pressure[CoreUI::kShiftPad] = 0.0f;
+    ui.Process(c, r.core);
+    Check(held && same(p, kept), "P11 alone: the sound as it was", held);
+
     c.knobs[Controls::S35] = 0.5f;
     c.knobs[Controls::S30] = 0.75f;
     ui.Process(c, r.core);
@@ -1019,6 +1084,19 @@ void Mapping()
     c.knobs[Controls::S34] = 0.5f;
     ui.Process(c, r.core);
     Check(Near(p.grain_ms, 200.0, 0.5), "S31 centre: 200 ms", p.grain_ms);
+    c.knobs[Controls::S31] = 1.0f;
+    ui.Process(c, r.core);
+    Check(Near(p.grain_ms, 500.0 * r.core.SoundSamples() / kRate, 1.0),
+          "S31 top: half the recording (ms)",
+          p.grain_ms);
+    c.knobs[Controls::S31] = 0.75f;
+    ui.Process(c, r.core);
+    Check(p.grain_ms > 200.0f
+              && p.grain_ms < 500.0f * r.core.SoundSamples() / kRate,
+          "S31 between centre and top: between 200 ms and the top (ms)",
+          p.grain_ms);
+    c.knobs[Controls::S31] = 0.5f;
+    ui.Process(c, r.core);
     c.knobs[Controls::S31] = 0.0f;
     ui.Process(c, r.core);
     Check(Near(p.grain_ms, CoreUI::kMinGrainMs, 1e-3),
@@ -1235,6 +1313,59 @@ void Mapping()
     ui.Process(c, r.core);
     Check(p.triggers[3].mode == Core::Trigger::Mode::Loop, "S07 down: loop", 2);
     c.switches[Controls::S07] = Controls::Up;
+
+    // S09 centre: S36 scrubs, the speed held. Back up: the speed as it was
+    // until S36 reaches it.
+    c.knobs[Controls::S36] = 0.5f;
+    ui.Process(c, r.core);
+    const float speed_was     = p.speed;
+    c.switches[Controls::S09] = Controls::Centre;
+    ui.Process(c, r.core);
+    c.knobs[Controls::S36] = 0.7f;
+    ui.Process(c, r.core);
+    Check(p.freeze && Near(p.scrub, 0.2, 1e-6) && p.speed == speed_was,
+          "S09 centre, S36 up a fifth: scrubbed a fifth, speed held",
+          p.scrub);
+    c.switches[Controls::S09] = Controls::Up;
+    ui.Process(c, r.core);
+    ui.Process(c, r.core);
+    const bool held_on = !p.freeze && p.scrub == 0.0f && p.speed == speed_was;
+    c.knobs[Controls::S36] = 0.6f;
+    ui.Process(c, r.core);
+    c.knobs[Controls::S36] = 0.5f;
+    ui.Process(c, r.core);
+    c.knobs[Controls::S36] = 0.4f;
+    ui.Process(c, r.core);
+    Check(held_on && p.speed < speed_was,
+          "S09 up again: the speed as before, until S36 passes it",
+          p.speed);
+    c.knobs[Controls::S36] = 0.5f;
+    ui.Process(c, r.core);
+
+    // P11 + P01: every randomness off
+    press(CoreUI::kShiftPad, true);
+    c.knobs[Controls::S31] = 1.0f;
+    ui.Process(c, r.core);
+    c.knobs[Controls::S31] = 0.5f;
+    ui.Process(c, r.core);
+    c.knobs[Controls::S31] = 0.9f;
+    ui.Process(c, r.core);
+    const bool random_on = p.rand_size > 0.5f;
+    press(CoreUI::kResetPad, true);
+    press(CoreUI::kResetPad, false);
+    const bool cleared = p.rand_size == 0.0f && p.rand_pos == 0.0f
+                         && p.reverb == CoreUI::kReverbStart;
+    c.knobs[Controls::S31] = 0.8f;
+    ui.Process(c, r.core);
+    Check(
+        random_on && cleared && p.rand_size == 0.0f,
+        "P11 + P01: reset, randomness off, the knob takes it up at the centre",
+        p.rand_size);
+    c.knobs[Controls::S31] = 0.5f;
+    ui.Process(c, r.core);
+    press(CoreUI::kShiftPad, false);
+    c.knobs[Controls::S31] = 0.5f;
+    ui.Process(c, r.core);
 
     // P00 held: mute
     press(CoreUI::kMutePad, true);

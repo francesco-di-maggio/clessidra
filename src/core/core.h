@@ -99,10 +99,13 @@ class Core
     {
         // Selection, 0..1 of the sound: from start, length long, round the end
         // to the beginning past it
-        float start    = 0.0f;
-        float length   = 1.0f;
-        float speed    = 1.0f;  // 1 = real time, negative = reverse
-        bool  freeze   = false; // the playhead held where it was, speed ignored
+        float start  = 0.0f;
+        float length = 1.0f;
+        float speed  = 1.0f;  // 1 = real time, negative = reverse
+        bool  freeze = false; // the playhead held where it was, speed ignored
+        // Frozen: the point moved from where it froze, by this part of the
+        // selection, -1..1
+        float scrub    = 0.0f;
         float grain_ms = 100.0f; // grain size
         // the size's range, exponential: where rand_size takes it
         float min_grain_ms = 10.0f;
@@ -298,8 +301,12 @@ class Core
     float pass_length_ = 1.0f;
     // The selection's length in samples at the last block: a new length keeps
     // the playhead where it is in the recording
-    double             sel_len_  = 0.0;
-    float              grain_ms_ = 0.0f;
+    double sel_len_ = 0.0;
+    // Frozen: how far from the selection's start, as a part of the recording,
+    // before the scrub
+    bool               frozen_    = false;
+    double             frozen_at_ = 0.0;
+    float              grain_ms_  = 0.0f;
     std::atomic<float> grain_level_{0.0f};
 
     // Level. Mean powers, smoothed: grains taken separately, their stereo sum,

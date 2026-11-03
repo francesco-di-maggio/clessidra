@@ -86,6 +86,19 @@ void CoreUI::Process(const Controls& c, Core& core)
     // P11 held: the shift layer
     layer_ = c.touched[kShiftPad] ? kShift : kOwn;
     layers_.Process(c.knobs, layer_);
+    // P11 + P01: the shift layer as at power-up, randomness off and some
+    // reverb, each knob taking its value up again once it reaches it
+    if(c.touched[kResetPad] && !reset_touched_ && layer_ == kShift)
+    {
+        for(size_t k = Controls::S30; k <= Controls::S35; k++)
+        {
+            layers_.Set(kShift, k, kShiftStart);
+            layers_.Hold(k);
+        }
+        layers_.Set(kShift, Controls::S37, kReverbStart);
+        layers_.Hold(Controls::S37);
+    }
+    reset_touched_ = c.touched[kResetPad];
     const auto knob
         = [this](Controls::Knob k) { return layers_.Value(kOwn, k); };
 
@@ -125,12 +138,25 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.mute   = c.touched[kMutePad];
 
     // S36, speed: 0 to 4 times, 1 at the centre, with a detent. S09,
-    // direction: up forward, centre freeze, down reverse.
-    const float              speed     = Detent(knob(Controls::S36), 0.05f);
-    const bool               speed_one = speed == 0.5f;
-    const Controls::Position way       = c.switches[Controls::S09];
-    p.freeze = way == Controls::Centre || speed == 0.0f;
-    p.speed  = (way == Controls::Down ? -4.0f : 4.0f) * speed * speed;
+    // direction: up forward, centre freeze, down reverse. Frozen, S36 scrubs
+    // the point through the selection; unfrozen, it picks the speed up again
+    // from where it was.
+    const Controls::Position way    = c.switches[Controls::S09];
+    const bool               frozen = way == Controls::Centre;
+    if(frozen && !frozen_)
+        speed_held_ = knob(Controls::S36);
+    if(!frozen && frozen_)
+    {
+        layers_.Set(kOwn, Controls::S36, speed_held_);
+        layers_.Hold(Controls::S36);
+    }
+    frozen_ = frozen;
+    const float speed
+        = Detent(frozen ? speed_held_ : knob(Controls::S36), 0.05f);
+    const bool speed_one = speed == 0.5f;
+    p.scrub              = frozen ? knob(Controls::S36) - speed_held_ : 0.0f;
+    p.freeze             = frozen || speed == 0.0f;
+    p.speed = (way == Controls::Down ? -4.0f : 4.0f) * speed * speed;
 
     // S34, density: none at the bottom, then more towards the top.
     // P11 + S34: how random the starts are, the triggers' alike.
@@ -173,15 +199,21 @@ void CoreUI::Process(const Controls& c, Core& core)
     }
     p.triggers = triggers_;
 
-    // S31: grain size, exponential, kMinGrainMs to kMaxGrainMs, at most half
-    // the sound
+    // S31: grain size, exponential, kMinGrainMs to kCentreGrainMs at the
+    // centre, then up to half the sound, at most kMaxGrainMs: the whole travel
+    // sounds, whatever the recording
     const float size_knob   = Detent(knob(Controls::S31), 0.05f);
     const bool  size_centre = size_knob == 0.5f;
-    const float top_ms      = std::clamp(500.0f * seconds, 100.0f, kMaxGrainMs);
-    p.grain_ms              = std::clamp(
-        kMinGrainMs * std::pow(kMaxGrainMs / kMinGrainMs, size_knob),
-        kMinGrainMs,
-        top_ms);
+    const float top_ms
+        = seconds > 0.0f
+              ? std::clamp(500.0f * seconds, kCentreGrainMs, kMaxGrainMs)
+              : kMaxGrainMs;
+    p.grain_ms = size_knob < 0.5f ? kMinGrainMs
+                                        * std::pow(kCentreGrainMs / kMinGrainMs,
+                                                   2.0f * size_knob)
+                                  : kCentreGrainMs
+                                        * std::pow(top_ms / kCentreGrainMs,
+                                                   2.0f * size_knob - 1.0f);
     p.min_grain_ms = kMinGrainMs;
     p.max_grain_ms = top_ms;
 

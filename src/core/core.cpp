@@ -50,8 +50,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
         = len > 0.0 ? float(1000.0 * grain_samples / sample_rate_) : p.grain_ms;
 
     // A new length keeps the playhead where it is in the recording. Past the
-    // new end: a new pass.
-    if(sel_len_ > 0.0 && sel_len != sel_len_)
+    // new end: a new pass. Frozen, the point stays where it is.
+    if(!p.freeze && sel_len_ > 0.0 && sel_len != sel_len_)
     {
         stream_.phase *= sel_len_ / sel_len;
         if(stream_.phase >= 1.0)
@@ -69,6 +69,24 @@ void Core::Process(const float* const* in, float** out, size_t size)
         NewPass();
         // With a grain at once
         stream_.sched_phase = stream_.sched_next;
+        if(frozen_ && len > 0.0)
+            frozen_at_ = -double(p.scrub) * sel_len / len;
+    }
+    // Frozen: the point held as far from the selection's start as it was,
+    // whatever the length, moved by the scrub. Unfrozen: on from there, round
+    // the selection.
+    if(p.freeze && len > 0.0)
+    {
+        if(!frozen_)
+            frozen_at_ = stream_.phase * sel_len / len;
+        frozen_ = true;
+        stream_.phase
+            = (frozen_at_ * len + double(p.scrub) * sel_len) / sel_len;
+    }
+    else if(frozen_)
+    {
+        frozen_ = false;
+        stream_.phase -= std::floor(stream_.phase);
     }
     // A new trigger: from the start of its slice, with a grain at once
     for(size_t s = 0; s < kNumTriggers; s++)
@@ -92,7 +110,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
     {
         // Round the selection. Each pass: its length.
         stream_.phase += play_inc;
-        if(stream_.phase >= 1.0 || stream_.phase < 0.0)
+        if(!p.freeze && (stream_.phase >= 1.0 || stream_.phase < 0.0))
         {
             stream_.phase -= std::floor(stream_.phase);
             NewPass();
