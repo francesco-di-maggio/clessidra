@@ -56,7 +56,7 @@ const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainView = new GrainView($<HTMLCanvasElement>("grain-view"));
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
-const HINT = { name: "Play", does: "Drag · ⌥ fine · Double-click resets · R records · ⇧R listens · M mutes · 1–7 slices · Esc unlatches Shift" };
+const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · ⇧R listen · M mute · 1–7 slices · Esc unlatch" };
 let focused: Control | null = null;
 const parts = new Map<string, Widget>();
 
@@ -118,8 +118,8 @@ for (const [tile, ids] of RACK) {
 }
 
 // The keys between the two switches: the slices white, first to last; black
-// between them the pads as they sit on the board, record and shift, P00,
-// P01 and restart
+// between them the pads as they sit on the board, record and shift, mute,
+// P01 and retrig
 add(segmented(byId("S09"), $("direction"), [[POSITION.up, "Forward"], [POSITION.centre, "Freeze"], [POSITION.down, "Reverse"]], on));
 add(segmented(byId("S07"), $("trigger"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)).root.classList.add("key"));

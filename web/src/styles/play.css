@@ -90,9 +90,9 @@ body.app main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1
 :root[data-theme="light"] { --key-black: color-mix(in srgb, var(--ink) 10%, var(--bg)); }
 
 /* The keys: the 12 pads as an octave, as tall as a switch and its name, a
-   switch tile each side. White keys the slices, a shade lighter than the
-   tile; black keys, wide enough for their names, the pads that record, hold
-   and restart, a shade darker. Orange only while on. */
+   switch tile each side. White keys the slices, in a selected switch's
+   colour; black keys, as wide, the pads that record, shift, mute and retrig,
+   in an unselected one's. Orange only while on. */
 .deck { display: grid; grid-template-columns: var(--pair) minmax(0, 1fr) var(--pair); gap: 10px; }
 .deck .side { display: flex; padding: 10px; }
 .keys-tile { padding: 10px; }

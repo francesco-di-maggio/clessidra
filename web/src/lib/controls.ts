@@ -129,7 +129,7 @@ export const CONTROLS: Control[] = [
     does: "Reverb on the grains. Amount and decay, 0.5 to 16 s.",
     value: (p) => percent(p[PARAM.reverb]),
   },
-  { id: "P11", type: "pad", index: SHIFT_PAD, ...padAt(SHIFT_PAD), name: "Shift", does: "Held: the knobs set their randomness, S37 the reverb. With Rec: listen." },
+  { id: "P11", type: "pad", index: SHIFT_PAD, ...padAt(SHIFT_PAD), name: "Shift", does: "Held, or tapped to latch: the randomness, S37 the reverb. Esc unlatches." },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Trigger", initial: POSITION.up,
     does: "Slice pads: up once to the end, centre while held, down looped while held.",
