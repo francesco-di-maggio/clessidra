@@ -28,6 +28,15 @@ namespace
         return kDensityMin * std::pow(Core::kMaxDensity / kDensityMin, amount);
     }
 
+    // A pad's pressure above a light touch, 0..1
+    float Firm(float pressure)
+    {
+        return std::clamp((pressure - CoreUI::kPressFrom)
+                              / (1.0f - CoreUI::kPressFrom),
+                          0.0f,
+                          1.0f);
+    }
+
     // +-24 semitones with stops at musical intervals, flat for the first third
     // of each segment, smooth between them
     float Semitones(float x)
@@ -52,8 +61,7 @@ namespace
 CoreUI::CoreUI()
 {
     EqualSlices();
-    // P11, shift: each knob's randomness. P00: filter and reverb, in the order
-    // the sound goes through them.
+    // P11, shift: each knob's randomness, and the reverb on S37
     for(auto k : {Controls::S30,
                   Controls::S31,
                   Controls::S32,
@@ -61,8 +69,7 @@ CoreUI::CoreUI()
                   Controls::S34,
                   Controls::S35})
         layers_.Add(kShift, k, kShiftStart);
-    layers_.Add(kFx, Controls::S31, kFilterStart);
-    layers_.Add(kFx, Controls::S32, kReverbStart);
+    layers_.Add(kShift, Controls::S37, kReverbStart);
 }
 
 void CoreUI::EqualSlices()
@@ -76,15 +83,24 @@ void CoreUI::Process(const Controls& c, Core& core)
 {
     Core::Params p;
 
-    // P00 held: the FX layer, else P11 held: the randomness
-    layer_ = c.touched[kFxPad] ? kFx : c.touched[kShiftPad] ? kShift : kOwn;
+    // P11 held: the shift layer
+    layer_ = c.touched[kShiftPad] ? kShift : kOwn;
     layers_.Process(c.knobs, layer_);
     const auto knob
         = [this](Controls::Knob k) { return layers_.Value(kOwn, k); };
 
-    // P10: record while held. A new recording: its slices.
-    record_ = c.touched[kRecordPad];
+    // P10: record while held. With P11 held as it is touched: listen to the
+    // input instead, firmer for more of it. A new recording: its slices.
+    const bool rec = c.touched[kRecordPad];
+    if(rec && !rec_touched_)
+        listen_ = c.touched[kShiftPad];
+    rec_touched_ = rec;
+    record_      = rec && !listen_;
     core.SetRecording(record_);
+    p.mix = 1.0f;
+    if(rec && listen_)
+        p.mix = 1.0f - kListenFrom
+                - (1.0f - kListenFrom) * Firm(c.pressure[kRecordPad]);
     if(core.Recordings() != recordings_)
     {
         recordings_         = core.Recordings();
@@ -102,13 +118,11 @@ void CoreUI::Process(const Controls& c, Core& core)
     const bool  unison    = semitones == 0.0f;
     p.pitch               = std::exp2(semitones / 12.0f);
 
-    // S37, fader: dry and wet
-    p.mix = knob(Controls::S37);
-
-    // P00 + S31: filter, low-pass down, high-pass up, off at the centre.
-    // P00 + S32: reverb.
-    p.filter = 2.0f * Detent(layers_.Value(kFx, Controls::S31), 0.05f) - 1.0f;
-    p.reverb = layers_.Value(kFx, Controls::S32);
+    // S37, fader: filter, low-pass down, high-pass up, off at the centre.
+    // P11 + S37: reverb. P00 held: the grains muted, the reverb rings on.
+    p.filter = 2.0f * Detent(knob(Controls::S37), 0.05f) - 1.0f;
+    p.reverb = layers_.Value(kShift, Controls::S37);
+    p.mute   = c.touched[kMutePad];
 
     // S36, speed: 0 to 4 times, 1 at the centre, with a detent. S09,
     // direction: up forward, centre freeze, down reverse.
@@ -154,13 +168,8 @@ void CoreUI::Process(const Controls& c, Core& core)
         trigger.mode      = trigger_mode;
         trigger.held      = c.touched[pad];
         if(c.touched[pad])
-        {
-            const float firm = std::clamp((c.pressure[pad] - kPressFrom)
-                                              / (1.0f - kPressFrom),
-                                          0.0f,
-                                          1.0f);
-            trigger.density = Rate(kTriggerFrom + (1.0f - kTriggerFrom) * firm);
-        }
+            trigger.density = Rate(
+                kTriggerFrom + (1.0f - kTriggerFrom) * Firm(c.pressure[pad]));
     }
     p.triggers = triggers_;
 

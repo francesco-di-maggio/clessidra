@@ -13,17 +13,17 @@
 namespace clessidra
 {
 // Maps the Simple Touch's controls to the core's parameters and recording, and
-// drives the LED. Three layers on the knobs: their own, P11 (shift) held each
-// one's randomness, P00 held the FX. No hardware code: the board and the
-// host tests run the same mapping.
+// drives the LED. Two layers on the knobs and faders: their own, and P11
+// (shift) held, each knob's randomness and the reverb. No hardware code: the
+// board and the host tests run the same mapping.
 class CoreUI
 {
   public:
     // Pads
     static constexpr size_t kRecordPad  = 10;
     static constexpr size_t kShiftPad   = 11; // held: the shift layer
-    static constexpr size_t kFxPad      = 0;  // held: the FX layer, first
     static constexpr size_t kRestartPad = 2;
+    static constexpr size_t kMutePad    = 0; // held: the grains silent
     // Slices, first to last in the buffer: pads left to right on the
     // faceplate, top to bottom within a column
     static constexpr size_t kSlicePads[] = {3, 4, 8, 5, 6, 9, 7};
@@ -36,12 +36,10 @@ class CoreUI
     enum Layer : size_t
     {
         kOwn,
-        kShift,
-        kFx
+        kShift
     };
-    // At power-up: randomness off at the centre, filter off, some reverb
+    // At power-up: randomness off at the centre, some reverb
     static constexpr float kShiftStart  = 0.5f;
-    static constexpr float kFilterStart = 0.5f;
     static constexpr float kReverbStart = 0.25f;
     // S34: the bottom of its travel that is off
     static constexpr float kDensityStop = 0.02f;
@@ -51,6 +49,8 @@ class CoreUI
     static constexpr float kPressFrom = 0.5f;
     // A trigger's density: Density's travel at a light touch, the top when firm
     static constexpr float kTriggerFrom = 0.5f;
+    // P11 + P10, listening: the input's share at a light touch, all when firm
+    static constexpr float kListenFrom = 0.5f;
 
     // LED
     // brightness while grains play, below the pulse
@@ -85,10 +85,12 @@ class CoreUI
     bool                                  restart_touched_ = false;
     std::array<Core::Trigger, kNumSlices> triggers_{};
     std::array<float, kNumSlices + 1>     slices_{}; // edges, of the recording
-    uint32_t                              recordings_ = 0;
-    bool                                  record_     = false;
-    size_t                                layer_      = kOwn;
-    Layers                                layers_;
+    uint32_t                              recordings_  = 0;
+    bool                                  record_      = false;
+    bool                                  rec_touched_ = false;
+    bool   listen_ = false; // this touch of P10 listens: P11 held at its start
+    size_t layer_  = kOwn;
+    Layers layers_;
     // LED. Times in ms, shown until they pass.
     uint32_t pulse_until_ = 0;
     // Pitch unison, speed 1, grain size centre: there, and the knob when the

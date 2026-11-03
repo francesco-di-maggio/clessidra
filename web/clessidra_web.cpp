@@ -155,6 +155,13 @@ EXPORT void cl_layer(int layer, int knob, float value)
                 value);
 }
 
+// What a tap keeps, seconds. Browser only: the board keeps
+// Core::kTapCaptureSeconds.
+EXPORT void cl_tap_seconds(float seconds)
+{
+    core.SetTapSeconds(std::clamp(seconds, 1.0f, float(kBufferSeconds)));
+}
+
 EXPORT float cl_led(uint32_t now_ms)
 {
     return ui.Led(now_ms, core);

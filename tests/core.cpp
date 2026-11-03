@@ -169,14 +169,13 @@ struct Panel
     {
         c.knobs.fill(0.5f);
         c.knobs[Controls::S30] = 0.0f;
-        c.knobs[Controls::S37] = 1.0f;
         c.knobs[Controls::S35] = 1.0f;
         c.knobs[Controls::S36] = 0.5f;
         c.knobs[Controls::S34] = 0.755f; // periodic, 28 grains per second
         c.switches             = {Controls::Up, Controls::Centre};
     }
 
-    // P11 held for seconds of the input, then until it lands
+    // P10 held for seconds of the input, then until it lands
     void Record(double seconds, const std::function<float(double)>& input)
     {
         const uint32_t before         = rig.core.Recordings();
@@ -278,6 +277,14 @@ void Record()
           "tap: the last 8 s (s)",
           Seconds(tap.rig.core));
 
+    Panel shorter;
+    shorter.rig.core.SetTapSeconds(4.0f);
+    shorter.Run(10.0, Sine);
+    shorter.Record(0.1, Sine);
+    Check(Near(Seconds(shorter.rig.core), 4.0, 0.02),
+          "tap, set to 4 s: the last 4 s (s)",
+          Seconds(shorter.rig.core));
+
     Panel lng(4.0);
     lng.Record(6.0, Sine);
     Check(Near(Seconds(lng.rig.core), 4.0, 0.01),
@@ -311,19 +318,22 @@ void Record()
           "silence at both ends: trimmed (s)",
           Seconds(trim.rig.core));
 
-    // S37: dry passes the input as it is, wet only the grains
+    // P11 + P10 firm: listening passes the input as it is. Otherwise only the
+    // grains.
     auto  level = [](double) { return 0.25f; };
     Panel dry;
-    dry.c.knobs[Controls::S37] = 0.0f;
+    dry.c.touched[CoreUI::kShiftPad]   = true;
+    dry.c.touched[CoreUI::kRecordPad]  = true;
+    dry.c.pressure[CoreUI::kRecordPad] = 1.0f;
     dry.Run(0.5, level);
     const double through = PanelRms(dry, 0.5, level);
-    Check(Near(through, 0.25, 0.001),
-          "S37 down: the input, dry, at its level (rms)",
+    Check(Near(through, 0.25, 0.001) && dry.rig.core.Recordings() == 0,
+          "P11 + P10 firm: the input at its level, nothing recorded (rms)",
           through);
     Panel wet;
     wet.Run(0.5, Sine);
     const double none = PanelRms(wet, 0.5, Sine);
-    Check(none < 1e-6, "S37 up, nothing recorded: no dry signal (rms)", none);
+    Check(none < 1e-6, "nothing recorded: no dry signal (rms)", none);
 
     // A new recording: the LED flashes while held, the playhead restarts
     Panel led;
@@ -506,6 +516,58 @@ void Filter()
           Gain(10000, 20000, 0.707f, true));
 }
 
+// The output's RMS over seconds of silent input
+double Rms(Rig& r, double seconds)
+{
+    float        l[kBlock] = {}, o1[kBlock], o2[kBlock];
+    const float* in[2]     = {l, l};
+    float*       out[2]    = {o1, o2};
+    double       sum       = 0.0;
+    const size_t blocks    = size_t(seconds * kRate / kBlock);
+    for(size_t b = 0; b < blocks; b++)
+    {
+        r.core.Process(in, out, kBlock);
+        for(size_t i = 0; i < kBlock; i++)
+            sum += 0.5 * (double(o1[i]) * o1[i] + double(o2[i]) * o2[i]);
+    }
+    return std::sqrt(sum / double(blocks * kBlock));
+}
+
+// Mute: the grains silent within a few ms, the reverb ringing on
+void Mute()
+{
+    Rig r(2.0);
+    r.Fill(Sine);
+    Core::Params p;
+    p.density = 40.0f;
+    r.core.SetParams(p);
+    const double playing = Rms(r, 0.5);
+    p.mute               = true;
+    r.core.SetParams(p);
+    Rms(r, 0.01);
+    Check(Rms(r, 0.2) < 1e-4 && playing > 0.01,
+          "P00 held, no reverb: silent",
+          Rms(r, 0.2));
+    p.mute = false;
+    r.core.SetParams(p);
+    Rms(r, 0.01);
+    Check(Near(Rms(r, 0.5), playing, 0.5 * playing),
+          "P00 released: the grains as before",
+          Rms(r, 0.5));
+
+    p.reverb = 0.8f;
+    r.core.SetParams(p);
+    Rms(r, 1.0);
+    p.mute = true;
+    r.core.SetParams(p);
+    const double tail = Rms(r, 0.25);
+    Rms(r, 2.75);
+    const double later = Rms(r, 0.25);
+    Check(tail > 0.01 && later < 0.5 * tail,
+          "P00 held, reverb: the tail rings on, fading",
+          later / tail);
+}
+
 // Triggers: once to the end of their slice, while held, or round it while held
 void Triggers()
 {
@@ -625,6 +687,71 @@ void Selection()
     Check(r.core.PassLength() == 0.5f,
           "length random off: the length set",
           r.core.PassLength());
+
+    // A new length keeps the playhead where it is in the recording; past the
+    // new end, it starts a new pass
+    p.length = 1.0f;
+    p.speed  = 1.0f;
+    r.core.Restart();
+    r.core.SetParams(p);
+    r.Run(0.3 * r.core.SoundSamples() / kRate, Silence);
+    p.freeze = true;
+    r.core.SetParams(p);
+    r.Run(0.01, Silence);
+    const double was = r.core.PlayheadPhase();
+    p.length         = 0.5f;
+    r.core.SetParams(p);
+    r.Run(0.01, Silence);
+    Check(Near(r.core.PlayheadPhase(), 2.0 * was, 1e-6),
+          "length halved: the playhead stays in the recording (phase)",
+          r.core.PlayheadPhase());
+    p.length = 0.2f;
+    r.core.SetParams(p);
+    r.Run(0.01, Silence);
+    Check(r.core.PlayheadPhase() == 0.0,
+          "length short of the playhead: a new pass from the start",
+          r.core.PlayheadPhase());
+}
+
+// A new recording pours in over the one before: each new grain reads it with
+// odds rising to 1 over kPourSeconds
+void Pour()
+{
+    Rig r(2.0);
+    r.Fill(Sine);
+    Core::Params p;
+    p.density  = 100.0f;
+    p.grain_ms = 20.0f;
+    r.core.SetParams(p);
+    r.Run(0.5, Sine);
+    r.Record(1.0, [](double t) {
+        return 0.5f * float(std::sin(2.0 * M_PI * 440.0 * t));
+    });
+    const Buffer* now = &r.core.Sound();
+    // New grains on the recording before, in each half second
+    std::array<double, 6> before{}, all{};
+    size_t                block = 0;
+    r.Run(3.0, Silence, [&](size_t) {
+        const size_t part = std::min(
+            size_t(double(block++) * kBlock / kRate / 0.5), before.size() - 1);
+        for(const auto& g : r.core.Grains())
+        {
+            if(!g.IsActive() || g.Progress() > 0.05)
+                continue;
+            all[part] += 1.0;
+            if(g.Source() != now)
+                before[part] += 1.0;
+        }
+    });
+    Check(before[0] / all[0] > 0.6,
+          "pour: at first mostly the recording before (share)",
+          before[0] / all[0]);
+    Check(before[2] / all[2] < before[0] / all[0] && before[2] > 0.0,
+          "pour: then less of it (share)",
+          before[2] / all[2]);
+    Check(before[4] == 0.0 && before[5] == 0.0 && all[5] > 0.0,
+          "pour: after 2 s, all the new one",
+          before[4]);
 }
 
 // As Beads, frozen at the start: up, each grain moved by the amount, evenly.
@@ -900,39 +1027,57 @@ void Mapping()
     c.knobs[Controls::S31] = 0.5f;
     ui.Process(c, r.core);
 
-    // P00: the FX layer, each knob picked up where its value is
-    Check(p.reverb == CoreUI::kReverbStart && p.filter == 0.0f,
-          "FX at power-up: filter off, some reverb",
+    // S37: the filter, off at the centre. P11 + S37: the reverb, picked up
+    // where its value is.
+    Check(p.reverb == CoreUI::kReverbStart && p.filter == 0.0f && p.mix == 1.0f,
+          "power-up: filter off, some reverb, all wet",
           p.reverb);
-    c.touched[CoreUI::kFxPad] = true;
-    c.knobs[Controls::S32]    = 0.9f; // away from the reverb's value
+    c.knobs[Controls::S37] = 0.0f;
     ui.Process(c, r.core);
-    Check(p.reverb == CoreUI::kReverbStart && p.window_shape == 0.5f,
-          "P00 + S32 away from the reverb: nothing moves",
-          p.reverb);
-    c.knobs[Controls::S32] = 0.2f; // across it
+    Check(p.filter == -1.0f, "S37 down: low-pass", p.filter);
+    c.knobs[Controls::S37] = 1.0f;
     ui.Process(c, r.core);
-    c.knobs[Controls::S32] = 0.6f;
-    ui.Process(c, r.core);
-    Check(Near(p.reverb, 0.6, 1e-6) && p.window_shape == 0.5f,
-          "P00 + S32 picked up: reverb, shape stays",
-          p.reverb);
-    c.knobs[Controls::S31] = 0.0f; // from its value, at the centre
-    ui.Process(c, r.core);
-    Check(p.filter == -1.0f && Near(p.grain_ms, 200.0, 0.5),
-          "P00 + S31 down: low-pass, size stays",
-          p.filter);
-    c.knobs[Controls::S37] = 0.9f;
-    ui.Process(c, r.core);
-    Check(Near(p.mix, 0.9, 1e-6), "P00 + S37: nothing on FX, dry/wet", p.mix);
+    Check(p.filter == 1.0f, "S37 up: high-pass", p.filter);
+    c.knobs[Controls::S37]       = 0.9f; // away from the reverb's value
     c.touched[CoreUI::kShiftPad] = true;
-    c.knobs[Controls::S31]       = 0.5f;
     ui.Process(c, r.core);
-    Check(p.filter == 0.0f && p.rand_size == 0.0f,
-          "P00 and P11 held: FX",
-          p.filter);
-    c.touched[CoreUI::kFxPad] = false;
-    c.knobs[Controls::S37]    = 0.5f;
+    Check(p.reverb == CoreUI::kReverbStart && p.filter == 1.0f,
+          "P11 + S37 away from the reverb: nothing moves",
+          p.reverb);
+    c.knobs[Controls::S37] = 0.2f; // across it
+    ui.Process(c, r.core);
+    c.knobs[Controls::S37] = 0.6f;
+    ui.Process(c, r.core);
+    Check(Near(p.reverb, 0.6, 1e-6) && p.filter == 1.0f,
+          "P11 + S37 picked up: reverb, filter stays",
+          p.reverb);
+    c.touched[CoreUI::kShiftPad] = false;
+    c.knobs[Controls::S37]       = 1.0f; // at its own value
+    ui.Process(c, r.core);
+    c.knobs[Controls::S37] = 0.5f;
+    ui.Process(c, r.core);
+    c.touched[CoreUI::kShiftPad] = true;
+
+    // P11 + P10: listen, the input by pressure, nothing recorded
+    const uint32_t before          = r.core.Recordings();
+    c.touched[CoreUI::kRecordPad]  = true;
+    c.pressure[CoreUI::kRecordPad] = 0.4f;
+    ui.Process(c, r.core);
+    Check(Near(p.mix, 1.0f - CoreUI::kListenFrom, 1e-6),
+          "P11 + P10 light: half the input",
+          p.mix);
+    c.pressure[CoreUI::kRecordPad] = 1.0f;
+    c.touched[CoreUI::kShiftPad]   = false; // P11 let go first: still listening
+    ui.Process(c, r.core);
+    Check(p.mix == 0.0f, "P11 + P10 firm: all input", p.mix);
+    r.Run(0.5, Sine);
+    c.touched[CoreUI::kRecordPad] = false;
+    ui.Process(c, r.core);
+    r.Run(0.5, Sine);
+    Check(p.mix == 1.0f && r.core.Recordings() == before,
+          "P10 released after listening: all wet, nothing recorded",
+          p.mix);
+    c.touched[CoreUI::kShiftPad] = true;
     ui.Process(c, r.core);
 
     // P11: the shift layer, each knob's randomness
@@ -950,7 +1095,7 @@ void Mapping()
     Check(shown == 1.0f, "P11 held: the LED shows the knob last turned", shown);
     c.touched[CoreUI::kShiftPad] = false;
     ui.Process(c, r.core);
-    Check(p.pitch == 1.0f && Near(p.mix, 0.5, 1e-6),
+    Check(p.pitch == 1.0f && p.filter == 0.0f,
           "P11 released, knobs away: their own values unchanged",
           p.pitch);
     c.knobs[Controls::S31] = 0.5f;
@@ -1091,6 +1236,12 @@ void Mapping()
     Check(p.triggers[3].mode == Core::Trigger::Mode::Loop, "S07 down: loop", 2);
     c.switches[Controls::S07] = Controls::Up;
 
+    // P00 held: mute
+    press(CoreUI::kMutePad, true);
+    Check(p.mute, "P00 held: mute", 1);
+    press(CoreUI::kMutePad, false);
+    Check(!p.mute, "P00 released: sound", 0);
+
     // P02: the playhead from the start of the selection
     r.Run(0.3, Silence);
     press(CoreUI::kRestartPad, true);
@@ -1126,8 +1277,10 @@ int main()
     Level();
     Windows();
     Filter();
+    Mute();
     Triggers();
     Selection();
+    Pour();
     Randomness();
     Starts();
     Pan();

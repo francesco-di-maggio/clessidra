@@ -49,6 +49,20 @@ void Core::Process(const float* const* in, float** out, size_t size)
     grain_ms_
         = len > 0.0 ? float(1000.0 * grain_samples / sample_rate_) : p.grain_ms;
 
+    // A new length keeps the playhead where it is in the recording. Past the
+    // new end: a new pass.
+    if(sel_len_ > 0.0 && sel_len != sel_len_)
+    {
+        stream_.phase *= sel_len_ / sel_len;
+        if(stream_.phase >= 1.0)
+        {
+            stream_.phase = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
+            NewPass();
+            pass_length_ = LengthOnPass(p);
+            sel_len      = std::max(double(pass_length_) * len, 1.0);
+        }
+    }
+
     if(restart_.exchange(false, std::memory_order_relaxed))
     {
         stream_.phase = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
@@ -129,6 +143,17 @@ void Core::Process(const float* const* in, float** out, size_t size)
         }
     }
 
+    sel_len_ = sel_len;
+    if(poured_from_)
+    {
+        pour_ += float(size) / (kPourSeconds * sample_rate_);
+        if(pour_ >= 1.0f)
+        {
+            pour_        = 1.0f;
+            poured_from_ = nullptr;
+        }
+    }
+
     // Each grain through the block: its state stays in registers
     std::fill(out[0], out[0] + size, 0.0f);
     std::fill(out[1], out[1] + size, 0.0f);
@@ -175,8 +200,10 @@ void Core::Process(const float* const* in, float** out, size_t size)
     for(auto& filter : filters_)
         filter.Set(filter_hz, filter_q, sample_rate_);
 
-    const float norm_step  = (norm_ - norm_gain_) / n;
-    const float input_step = (std::max(p.input, 0.0f) - input_gain_) / n;
+    const float mute_target = p.mute ? 0.0f : 1.0f;
+    const float mute_step   = 1.0f / (kMuteSeconds * sample_rate_);
+    const float norm_step   = (norm_ - norm_gain_) / n;
+    const float input_step  = (std::max(p.input, 0.0f) - input_gain_) / n;
     const float output_step
         = (std::clamp(p.output, 0.0f, 1.0f) - output_gain_) / n;
     // Dry and wet, equal power, exact at the ends
@@ -199,6 +226,11 @@ void Core::Process(const float* const* in, float** out, size_t size)
              * ((lowpass ? filters_[0].Low() : filters_[0].High()) - l);
         r += filter_mix
              * ((lowpass ? filters_[1].Low() : filters_[1].High()) - r);
+        mute_gain_ = mute_gain_ < mute_target
+                         ? std::min(mute_target, mute_gain_ + mute_step)
+                         : std::max(mute_target, mute_gain_ - mute_step);
+        l *= mute_gain_;
+        r *= mute_gain_;
         float reverb_l, reverb_r;
         reverb_.Process(l, r, &reverb_l, &reverb_r);
         out[0][i] = l * reverb_dry_ + reverb_l * reverb_wet_;
@@ -237,8 +269,10 @@ void Core::UpdateCapture(size_t size)
         const size_t pre_roll = size_t(kPreRollSeconds * sample_rate_);
         const bool   tapped   = held_ < tap;
         capture_back_         = tapped ? held_ : 0;
-        capture_length_ = tapped ? size_t(kTapCaptureSeconds * sample_rate_)
-                                 : held_ + pre_roll;
+        capture_length_
+            = tapped ? size_t(tap_seconds_.load(std::memory_order_relaxed)
+                              * sample_rate_)
+                     : held_ + pre_roll;
         capture_ = Capture::Waiting;
     }
     was_record_ = record;
@@ -247,8 +281,14 @@ void Core::UpdateCapture(size_t size)
     Buffer&      target  = buffers_[1 - playing];
     if(capture_ == Capture::Waiting)
     {
-        // Grains started before the last swap can still read it. Only with
-        // swaps closer than the longest grain.
+        // The recording before is still pouring out, or grains started on it
+        // still read it. Only with swaps closer than the pour and the longest
+        // grain.
+        if(poured_from_)
+        {
+            capture_back_ += size;
+            return;
+        }
         for(const auto& grain : grains_)
         {
             if(grain.IsActive() && grain.Source() == &target)
@@ -273,6 +313,10 @@ void Core::UpdateCapture(size_t size)
     capture_ = Capture::Idle;
     if(step != Ring::Step::Done)
         return; // silence changes nothing
+    // Pours in over the one before, if there is one
+    poured_from_
+        = buffers_[playing].Length() > 0 ? &buffers_[playing] : nullptr;
+    pour_ = poured_from_ ? 0.0f : 1.0f;
     playing_.store(1 - playing, std::memory_order_release);
     restart_.store(true, std::memory_order_relaxed);
     recordings_.fetch_add(1, std::memory_order_release);
@@ -324,7 +368,13 @@ void Core::StartGrain(const Params& p,
         return;
 
     Grain::Latch latch;
-    latch.buffer = sound;
+    latch.buffer   = sound;
+    double to_read = 1.0; // from the recording playing to the one read
+    if(poured_from_ && 0.5f + 0.5f * Random() >= pour_)
+    {
+        latch.buffer = poured_from_;
+        to_read      = double(poured_from_->Length()) / double(sound->Length());
+    }
     // Each as Beads, over its range: position inside what is playing, size
     // between the knob's ends, exponential, any shape, pitch either way
     const double phase
@@ -332,7 +382,7 @@ void Core::StartGrain(const Params& p,
               ? source.phase
                     + Blend(p.rand_pos) * (0.5 + 0.5 * Random() - source.phase)
               : source.phase;
-    latch.position = source.start + phase * source.length;
+    latch.position = (source.start + phase * source.length) * to_read;
     if(p.rand_size != 0.0f && p.max_grain_ms > p.min_grain_ms)
     {
         const float octaves = std::log2(p.max_grain_ms / p.min_grain_ms);

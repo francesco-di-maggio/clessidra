@@ -47,6 +47,8 @@ class Core
     static constexpr float kReverbDecayMax  = 16.0f; // seconds
     // damping in the reverb's loop
     static constexpr float kReverbLowpassHz = 10000.0f;
+    // Mute: the fade of the grains, in and out
+    static constexpr float kMuteSeconds = 0.005f;
     // Filter on the grains, before the reverb. From off, exponential to the ends;
     // resonance rising with it from flat (Butterworth). Fades in over the first
     // kFilterFade of each side.
@@ -61,10 +63,13 @@ class Core
     // Recording. The input goes to the ring all the time. On release, a touch
     // shorter than kTapSeconds keeps the kTapCaptureSeconds before it, a longer
     // one the touch from kPreRollSeconds before it, up to the buffers'
-    // capacity. Copied to the buffer not playing, which then plays.
+    // capacity. Copied to the buffer not playing, which then plays: over
+    // kPourSeconds, each new grain reads it with odds rising from 0 to 1, the
+    // others the recording before.
     static constexpr size_t kNumBuffers        = 2;
     static constexpr float  kTapSeconds        = 0.3f;
     static constexpr float  kTapCaptureSeconds = 8.0f;
+    static constexpr float  kPourSeconds       = 2.0f;
     static constexpr float  kPreRollSeconds    = 0.05f;
     static constexpr size_t kCopyPerSample = 21; // × real time: 30 s in 1.4 s
     // ring written on during the copy
@@ -129,7 +134,9 @@ class Core
         float spread = 0.0f;
         float filter = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
-        float mix    = 1.0f; // 0 dry .. 1 wet, equal power
+        // The grains silent, faded over kMuteSeconds; the reverb rings on
+        bool  mute = false;
+        float mix  = 1.0f; // 0 dry .. 1 wet, equal power
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
@@ -160,6 +167,12 @@ class Core
     void Restart() { restart_.store(true, std::memory_order_relaxed); }
     // Main loop: true while the record pad is held
     void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
+    // What a tap keeps, seconds, up to the ring's capacity. kTapCaptureSeconds
+    // unless set: the browser tries others.
+    void SetTapSeconds(float seconds)
+    {
+        tap_seconds_.store(seconds, std::memory_order_relaxed);
+    }
     // New recordings so far: a change means Sound() is a new recording, and the
     // playhead has restarted
     uint32_t Recordings() const
@@ -221,7 +234,8 @@ class Core
         Copying
     };
 
-    // Starts a grain on a free voice at sample offset of the block
+    // Starts a grain on a free voice at sample offset of the block. While a
+    // new recording pours in, it may read the one before.
     void StartGrain(const Params& p,
                     const Source& source,
                     const Buffer* sound,
@@ -261,9 +275,13 @@ class Core
     std::atomic<size_t>             playing_{0};
     std::atomic<uint32_t>           recordings_{0};
     std::atomic<bool>               record_{false};
+    std::atomic<float>              tap_seconds_{kTapCaptureSeconds};
     bool                            was_record_ = false;
-    Capture                         capture_    = Capture::Idle;
-    size_t                          held_       = 0; // samples since the touch
+    // While a new recording pours in: the one before, and how far, 0..1
+    const Buffer* poured_from_ = nullptr;
+    float         pour_        = 1.0f;
+    Capture       capture_     = Capture::Idle;
+    size_t        held_        = 0; // samples since the touch
     size_t capture_back_   = 0; // from the recording's end to the next write
     size_t capture_length_ = 0;
 
@@ -275,10 +293,13 @@ class Core
     std::atomic<bool>                       restart_{false};
     uint32_t                                seed_ = 1;
     // This pass of the playhead: its draws for rand_length, and its length
-    float              pass_random_ = 0.5f;
-    float              pass_part_   = 0.5f;
-    float              pass_length_ = 1.0f;
-    float              grain_ms_    = 0.0f;
+    float pass_random_ = 0.5f;
+    float pass_part_   = 0.5f;
+    float pass_length_ = 1.0f;
+    // The selection's length in samples at the last block: a new length keeps
+    // the playhead where it is in the recording
+    double             sel_len_  = 0.0;
+    float              grain_ms_ = 0.0f;
     std::atomic<float> grain_level_{0.0f};
 
     // Level. Mean powers, smoothed: grains taken separately, their stereo sum,
@@ -297,6 +318,7 @@ class Core
     Limiter            limiter_;
     // Gains at the end of the last block
     float norm_gain_   = 0.0f;
+    float mute_gain_   = 1.0f;
     float reverb_dry_  = 1.0f;
     float reverb_wet_  = 0.0f;
     float input_gain_  = 1.0f;

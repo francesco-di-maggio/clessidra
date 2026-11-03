@@ -12,7 +12,7 @@ namespace clessidra
 class Layers
 {
   public:
-    static constexpr size_t kNumLayers = 3; // the knobs' own, and two held
+    static constexpr size_t kNumLayers = 2; // the knobs' own, and one held
     // knob within this of a value, or across it: picked up
     static constexpr float kPickUp = 0.02f;
 
