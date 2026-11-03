@@ -26,13 +26,12 @@ void Core::Init(float        sample_rate,
 
 void Core::Process(const float* const* in, float** out, size_t size)
 {
-    const Params  p        = slots_[slot_.load(std::memory_order_acquire)];
-    const Buffer& sound    = buffers_[playing_.load(std::memory_order_relaxed)];
-    const double  len      = double(sound.Length());
-    pass_length_           = LengthOnPass(p);
-    double       sel_len   = std::max(double(pass_length_) * len, 1.0);
-    const double sel_start = double(p.start) * len;
-    const float  density   = std::clamp(p.density, 0.0f, kMaxDensity);
+    const Params  p       = slots_[slot_.load(std::memory_order_acquire)];
+    const Buffer& sound   = buffers_[playing_.load(std::memory_order_relaxed)];
+    const double  len     = double(sound.Length());
+    const double  sel_len = std::max(double(p.length) * len, 1.0);
+    const double  sel_start = double(p.start) * len;
+    const float   density   = std::clamp(p.density, 0.0f, kMaxDensity);
     // A grain lasts grain_samples whatever its pitch, as the starts per second
     // do: no longer than the recording, and short enough for the voices to hold
     // whole windows at this density. Stolen, they would hardly rise.
@@ -50,43 +49,17 @@ void Core::Process(const float* const* in, float** out, size_t size)
         = len > 0.0 ? float(1000.0 * grain_samples / sample_rate_) : p.grain_ms;
 
     // A new length keeps the playhead where it is in the recording. Past the
-    // new end: a new pass. Frozen, the point stays where it is.
-    if(!p.freeze && sel_len_ > 0.0 && sel_len != sel_len_)
-    {
-        stream_.phase *= sel_len_ / sel_len;
-        if(stream_.phase >= 1.0)
-        {
-            stream_.phase = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
-            NewPass();
-            pass_length_ = LengthOnPass(p);
-            sel_len      = std::max(double(pass_length_) * len, 1.0);
-        }
-    }
+    // new end: what End does there.
+    if(sel_len_ > 0.0 && sel_len != sel_len_)
+        stream_.playhead.Scale(sel_len_ / sel_len);
+    sel_len_ = sel_len;
 
+    const bool backwards = p.speed < 0.0f;
     if(restart_.exchange(false, std::memory_order_relaxed))
     {
-        stream_.phase = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
-        NewPass();
+        stream_.playhead.Restart(backwards);
         // With a grain at once
         stream_.sched_phase = stream_.sched_next;
-        if(frozen_ && len > 0.0)
-            frozen_at_ = -double(p.scrub) * sel_len / len;
-    }
-    // Frozen: the point held as far from the selection's start as it was,
-    // whatever the length, moved by the scrub. Unfrozen: on from there, round
-    // the selection.
-    if(p.freeze && len > 0.0)
-    {
-        if(!frozen_)
-            frozen_at_ = stream_.phase * sel_len / len;
-        frozen_ = true;
-        stream_.phase
-            = (frozen_at_ * len + double(p.scrub) * sel_len) / sel_len;
-    }
-    else if(frozen_)
-    {
-        frozen_ = false;
-        stream_.phase -= std::floor(stream_.phase);
     }
     // A new trigger: from the start of its slice, with a grain at once
     for(size_t s = 0; s < kNumTriggers; s++)
@@ -95,33 +68,33 @@ void Core::Process(const float* const* in, float** out, size_t size)
         TriggerStream& state   = triggers_[s];
         if(trigger.id == state.id)
             continue;
-        state.id          = trigger.id;
-        state.on          = trigger.end > trigger.start && len > 0.0;
-        state.phase       = p.speed < 0.0f ? std::nextafter(1.0, 0.0) : 0.0;
+        state.id = trigger.id;
+        state.on = trigger.end > trigger.start && len > 0.0;
+        state.playhead.Restart(backwards);
         state.sched_phase = state.sched_next;
     }
 
-    double play_inc = p.freeze ? 0.0 : p.speed / sel_len; // phase per sample
-    const bool backwards = play_inc < 0.0;
+    const double   play_inc = p.freeze ? 0.0 : p.speed / sel_len; // per sample
+    const uint32_t drops    = drops_.load(std::memory_order_relaxed);
+    const bool     drop     = drops != drops_done_ && len > 0.0;
+    drops_done_             = drops;
 
     // Grain starts in this block, at the sample they fall on. A voice that ends
     // in this block is free from the next.
     for(size_t i = 0; i < size && len > 0.0; i++)
     {
-        // Round the selection. Each pass: its length.
-        stream_.phase += play_inc;
-        if(!p.freeze && (stream_.phase >= 1.0 || stream_.phase < 0.0))
+        // Through the selection, as End sets at its edges. Run out: no grains
+        // but a drop.
+        Playhead& playhead = stream_.playhead;
+        playhead.Advance(play_inc, p.end);
+        const bool due
+            = !playhead.Ended()
+              && Due(stream_, density / sample_rate_, p.rand_density);
+        if(due || (drop && i == 0))
         {
-            stream_.phase -= std::floor(stream_.phase);
-            NewPass();
-            pass_length_ = LengthOnPass(p);
-            sel_len      = std::max(double(pass_length_) * len, 1.0);
-            play_inc     = p.freeze ? 0.0 : p.speed / sel_len;
-        }
-        if(Due(stream_, density / sample_rate_, p.rand_density))
-        {
+            const bool   reverse = (p.speed < 0.0f) != (playhead.Heading() < 0);
             const Source source
-                = {sel_start, sel_len, stream_.phase, backwards};
+                = {sel_start, sel_len, playhead.Phase(), reverse};
             StartGrain(p, source, &sound, i);
         }
 
@@ -133,18 +106,16 @@ void Core::Process(const float* const* in, float** out, size_t size)
             if(!state.on)
                 continue;
             const Trigger& trigger = p.triggers[s];
-            if(!trigger.held
-               && (trigger.mode != Trigger::Mode::Once || p.freeze))
+            if(!trigger.held && (trigger.mode != End::Once || p.freeze))
             {
                 state.on = false;
                 continue;
             }
             const double slice
                 = std::max(double(trigger.end - trigger.start) * len, 1.0);
-            state.phase += p.freeze ? 0.0 : p.speed / slice;
-            if(trigger.mode == Trigger::Mode::Loop)
-                state.phase -= std::floor(state.phase);
-            else if(state.phase < 0.0 || state.phase >= 1.0)
+            state.playhead.Advance(p.freeze ? 0.0 : p.speed / slice,
+                                   trigger.mode);
+            if(state.playhead.Ended())
             {
                 state.on = false;
                 continue;
@@ -153,15 +124,16 @@ void Core::Process(const float* const* in, float** out, size_t size)
                 = std::clamp(trigger.density, 0.0f, kMaxDensity);
             if(!Due(state, trigger_density / sample_rate_, p.rand_density))
                 continue;
+            const bool reverse
+                = (p.speed < 0.0f) != (state.playhead.Heading() < 0);
             const Source source = {double(trigger.start) * len,
                                    slice,
-                                   state.phase,
-                                   p.speed < 0.0f};
+                                   state.playhead.Phase(),
+                                   reverse};
             StartGrain(p, source, &sound, i);
         }
     }
 
-    sel_len_ = sel_len;
     if(poured_from_)
     {
         pour_ += float(size) / (kPourSeconds * sample_rate_);
@@ -476,20 +448,6 @@ float Core::Blend(float amount)
     return amount > 0.0f
                ? std::min(amount, 1.0f)
                : std::min(-3.0f * amount * (0.5f + 0.5f * Random()), 1.0f);
-}
-
-float Core::LengthOnPass(const Params& p) const
-{
-    const float amount = std::clamp(p.rand_length, -1.0f, 1.0f);
-    const float blend
-        = amount >= 0.0f ? amount : std::min(-3.0f * amount * pass_part_, 1.0f);
-    return std::max(p.length + blend * (pass_random_ - p.length), kMinLength);
-}
-
-void Core::NewPass()
-{
-    pass_random_ = 0.5f + 0.5f * Random();
-    pass_part_   = 0.5f + 0.5f * Random();
 }
 
 float Core::Random()

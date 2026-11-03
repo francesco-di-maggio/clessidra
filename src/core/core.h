@@ -9,6 +9,7 @@
 #include "grain.h"
 #include "buffer.h"
 #include "limiter.h"
+#include "playhead.h"
 #include "ring.h"
 #include "svf.h"
 
@@ -32,7 +33,7 @@ class Core
     static constexpr size_t kSafetyVoices = 8;
     static constexpr float  kFadeSeconds  = 0.005f;
     // the furthest Params.rand_pitch takes a grain's pitch, either way
-    static constexpr float kRandPitchSemitones = 24.0f;
+    static constexpr float kRandPitchSemitones = 12.0f;
     // One jack or two: -3 dB on one, +3 dB on two in phase, not -6 and 0
     static constexpr float kInputSum = 0.7071f;
     // +6 dB after the grains, into the limiter: at equal power they sound
@@ -75,24 +76,18 @@ class Core
     // ring written on during the copy
     static constexpr float kCopyMarginSeconds = 0.5f;
 
-    // Pads: each plays a slice once, as its own stream of grains, on top of
-    // the playhead
+    // Pads: each plays a slice, as its own stream of grains, on top of the
+    // playhead. Once: to the end of the slice, held or not. Turn and Loop:
+    // while held.
     static constexpr size_t kNumTriggers = 7;
     struct Trigger
     {
-        // Once to the end of the slice; while held; round the slice while held
-        enum class Mode
-        {
-            Once,
-            Gate,
-            Loop
-        };
         float    start   = 0.0f; // of the sound, 0..1
         float    end     = 0.0f;
         float    density = 0.0f; // grains per second
         uint32_t id      = 0;    // a new id plays it again from its start
-        Mode     mode    = Mode::Once;
-        bool     held    = false; // released, frozen: it stops, as in Gate
+        End      mode    = End::Once;
+        bool     held    = false; // released, frozen: it stops
     };
 
     struct Params
@@ -103,9 +98,8 @@ class Core
         float length = 1.0f;
         float speed  = 1.0f;  // 1 = real time, negative = reverse
         bool  freeze = false; // the playhead held where it was, speed ignored
-        // Frozen: the point moved from where it froze, by this part of the
-        // selection, -1..1
-        float scrub    = 0.0f;
+        // At the end of the selection: stop, turn over, or round again
+        End   end      = End::Loop;
         float grain_ms = 100.0f; // grain size
         // the size's range, exponential: where rand_size takes it
         float min_grain_ms = 10.0f;
@@ -129,9 +123,6 @@ class Core
         // spread. Below, towards Beads' random starts: mostly short, a long
         // tail.
         float rand_density = 0.0f;
-        // The randomness of the selection's length, -1..1, as the others, drawn
-        // anew at each pass of the playhead
-        float rand_length = 0.0f;
         // 0..1, how much the grains differ: with the grains sounding, the pan
         // width
         float spread = 0.0f;
@@ -168,6 +159,9 @@ class Core
     // Main loop, after SetParams(). The playhead from the start of the
     // selection, at the next block.
     void Restart() { restart_.store(true, std::memory_order_relaxed); }
+    // Main loop: one grain at the playhead, at the next block, whatever the
+    // density
+    void Drop() { drops_.fetch_add(1, std::memory_order_relaxed); }
     // Main loop: true while the record pad is held
     void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
     // What a tap keeps, seconds, up to the ring's capacity. kTapCaptureSeconds
@@ -197,23 +191,27 @@ class Core
     // For tests, between blocks: the grains and the parameters in use
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
-    double        PlayheadPhase() const { return stream_.phase; }
-    // The selection's length on this pass, 0..1 of the sound
-    float PassLength() const { return pass_length_; }
+    double        PlayheadPhase() const { return stream_.playhead.Phase(); }
+    // Through the selection, what is left ahead of the playhead, 0..1: 0 once
+    // it has run out
+    float SandLeft() const { return float(stream_.playhead.Left()); }
     // A grain's size in use, ms: grain_ms within the recording and what the
     // voices hold at this density
     float GrainMs() const { return grain_ms_; }
     // A trigger sounding, and where it is in its slice, 0..1
     bool   TriggerOn(size_t i) const { return triggers_[i].on; }
-    double TriggerPhase(size_t i) const { return triggers_[i].phase; }
+    double TriggerPhase(size_t i) const
+    {
+        return triggers_[i].playhead.Phase();
+    }
 
   private:
     // The playhead over the selection, or a trigger over its slice
     struct Stream
     {
-        double phase       = 0.0;  // through its span, 0..1
-        double sched_phase = 0.0;  // grain starts, 1 = mean interval
-        float  sched_next  = 1.0f; // phase of the next start
+        Playhead playhead;
+        double   sched_phase = 0.0;  // grain starts, 1 = mean interval
+        float    sched_next  = 1.0f; // phase of the next start
     };
     struct TriggerStream : Stream
     {
@@ -260,9 +258,6 @@ class Core
     // How far towards the random value: the amount above 0, below it a
     // random part of three times it
     float Blend(float amount);
-    // The selection's length on this pass, as Randomise with the pass's draws
-    float LengthOnPass(const Params& p) const;
-    void  NewPass();
     float Random(); // uniform -1..1
 
     Params                params_; // the last set, main loop only
@@ -294,19 +289,13 @@ class Core
     Stream                                  stream_;
     std::array<TriggerStream, kNumTriggers> triggers_;
     std::atomic<bool>                       restart_{false};
-    uint32_t                                seed_ = 1;
-    // This pass of the playhead: its draws for rand_length, and its length
-    float pass_random_ = 0.5f;
-    float pass_part_   = 0.5f;
-    float pass_length_ = 1.0f;
+    std::atomic<uint32_t>                   drops_{0};
+    uint32_t                                drops_done_ = 0;
+    uint32_t                                seed_       = 1;
     // The selection's length in samples at the last block: a new length keeps
     // the playhead where it is in the recording
-    double sel_len_ = 0.0;
-    // Frozen: how far from the selection's start, as a part of the recording,
-    // before the scrub
-    bool               frozen_    = false;
-    double             frozen_at_ = 0.0;
-    float              grain_ms_  = 0.0f;
+    double             sel_len_  = 0.0;
+    float              grain_ms_ = 0.0f;
     std::atomic<float> grain_level_{0.0f};
 
     // Level. Mean powers, smoothed: grains taken separately, their stereo sum,

@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iterator>
-#include <Utility/dsp.h>
 
 namespace clessidra
 {
@@ -20,12 +18,11 @@ namespace
         return 0.5f;
     }
 
-    // Grains per second at amount 0..1, exponential
-    constexpr float kDensityMin = 0.3f;
-
-    float Rate(float amount)
+    // 0 below from, 1 above to, smooth between
+    float Ramp(float x, float from, float to)
     {
-        return kDensityMin * std::pow(Core::kMaxDensity / kDensityMin, amount);
+        const float t = std::clamp((x - from) / (to - from), 0.0f, 1.0f);
+        return t * t * (3.0f - 2.0f * t);
     }
 
     // A pad's pressure above a light touch, 0..1
@@ -37,23 +34,46 @@ namespace
                           1.0f);
     }
 
-    // +-24 semitones with stops at musical intervals, flat for the first third
-    // of each segment, smooth between them
+    // Grains per second at a flow, 0..1: none while closed, then exponential
+    float Density(float flow)
+    {
+        if(flow < CoreUI::kFlowOff)
+            return 0.0f;
+        const float open
+            = (flow - CoreUI::kFlowOff) / (1.0f - CoreUI::kFlowOff);
+        return CoreUI::kDensityMin
+               * std::pow(Core::kMaxDensity / CoreUI::kDensityMin, open);
+    }
+
+    // +-12 semitones with stops at unison, a detune, the fourth, the fifth and
+    // the octave: flat for the first third of each segment, smooth between
     float Semitones(float x)
     {
-        // Unison, a detune, then fourths, fifths and octaves: in tune in any
-        // key
-        static constexpr float kIntervals[]
-            = {0.0f, 0.1f, 5.0f, 7.0f, 12.0f, 17.0f, 19.0f, 24.0f, 24.0f};
+        static constexpr float kIntervals[] = {0.0f, 0.1f, 5.0f, 7.0f, 12.0f};
+        constexpr size_t       kSegments    = std::size(kIntervals) - 1;
         const float  centred  = 2.0f * std::clamp(x, 0.0f, 1.0f) - 1.0f;
-        const float  position = std::fabs(centred) * 7.0f;
-        const size_t i        = size_t(position);
-        const float  t
-            = std::max((position - float(i) - 1.0f / 3.0f) * 1.5f, 0.0f);
+        const float  position = std::fabs(centred) * float(kSegments);
+        const size_t i        = std::min(size_t(position), kSegments - 1);
+        const float  t        = std::clamp(
+            (position - float(i) - 1.0f / 3.0f) * 1.5f, 0.0f, 1.0f);
         const float smooth = t * t * (3.0f - 2.0f * t);
         const float value
             = kIntervals[i] + smooth * (kIntervals[i + 1] - kIntervals[i]);
         return centred < 0.0f ? -value : value;
+    }
+
+    // S32, Scatter, 0..1: from plain, periodic grains to random starts, then
+    // positions, sizes and shapes further from the playhead, wider pan, and
+    // over the top quarter random pitch. Each mostly near with a long tail, as
+    // sand falls.
+    void Scatter(float s, Core::Params& p)
+    {
+        p.rand_density = -std::min(2.0f * s, 1.0f);
+        p.rand_pos     = -s * s * s;
+        p.rand_size    = -s * s / 3.0f;
+        p.rand_shape   = -s * s / 3.0f;
+        p.rand_pitch   = -Ramp(s, CoreUI::kPitchScatterFrom, 1.0f) / 3.0f;
+        p.spread       = s;
     }
 
 } // namespace
@@ -61,15 +81,6 @@ namespace
 CoreUI::CoreUI()
 {
     EqualSlices();
-    // P11, shift: each knob's randomness, and the reverb on S37
-    for(auto k : {Controls::S30,
-                  Controls::S31,
-                  Controls::S32,
-                  Controls::S33,
-                  Controls::S34,
-                  Controls::S35})
-        layers_.Add(kShift, k, kShiftStart);
-    layers_.Add(kShift, Controls::S37, kReverbStart);
 }
 
 void CoreUI::EqualSlices()
@@ -82,104 +93,106 @@ void CoreUI::EqualSlices()
 void CoreUI::Process(const Controls& c, Core& core)
 {
     Core::Params p;
+    Record(c, core, p);
 
-    // P11 held: the shift layer
-    layer_ = c.touched[kShiftPad] ? kShift : kOwn;
-    layers_.Process(c.knobs, layer_);
-    // P11 + P01: the shift layer as at power-up, randomness off and some
-    // reverb, each knob taking its value up again once it reaches it
-    if(c.touched[kResetPad] && !reset_touched_ && layer_ == kShift)
-    {
-        for(size_t k = Controls::S30; k <= Controls::S35; k++)
-        {
-            layers_.Set(kShift, k, kShiftStart);
-            layers_.Hold(k);
-        }
-        layers_.Set(kShift, Controls::S37, kReverbStart);
-        layers_.Hold(Controls::S37);
-    }
-    reset_touched_ = c.touched[kResetPad];
-    const auto knob
-        = [this](Controls::Knob k) { return layers_.Value(kOwn, k); };
+    // S30, Position: where the sand starts, anywhere in the recording, round
+    // the end. S35, Length: how much sand.
+    p.start  = std::min(c.knobs[Controls::S30], 0.999f);
+    p.length = std::max(c.knobs[Controls::S35], Core::kMinLength);
 
-    // P10: record while held. With P11 held as it is touched: listen to the
-    // input instead, firmer for more of it. A new recording: its slices.
-    const bool rec = c.touched[kRecordPad];
-    if(rec && !rec_touched_)
-        listen_ = c.touched[kShiftPad];
-    rec_touched_ = rec;
-    record_      = rec && !listen_;
-    core.SetRecording(record_);
-    p.mix = 1.0f;
-    if(rec && listen_)
-        p.mix = 1.0f - kListenFrom
-                - (1.0f - kListenFrom) * Firm(c.pressure[kRecordPad]);
-    if(core.Recordings() != recordings_)
-    {
-        recordings_         = core.Recordings();
-        const Buffer& sound = core.Sound();
-        slices_ = FindSlices(sound.Data(), sound.Length(), kSampleRateHz);
-    }
-
-    // S30, position: where the selection starts, anywhere in the recording.
-    // S35, its length, round the end to the beginning past it.
-    const float seconds = float(core.SoundSamples()) / float(kSampleRateHz);
-    p.start             = std::min(knob(Controls::S30), 0.999f);
-    p.length            = std::max(knob(Controls::S35), Core::kMinLength);
-
-    const float semitones = Semitones(knob(Controls::S33));
-    const bool  unison    = semitones == 0.0f;
-    p.pitch               = std::exp2(semitones / 12.0f);
-
-    // S37, fader: filter, low-pass down, high-pass up, off at the centre.
-    // P11 + S37: reverb. P00 held: the grains muted, the reverb rings on.
-    p.filter = 2.0f * Detent(knob(Controls::S37), 0.05f) - 1.0f;
-    p.reverb = layers_.Value(kShift, Controls::S37);
-    p.mute   = c.touched[kMutePad];
-
-    // S36, speed: 0 to 4 times, 1 at the centre, with a detent. S09,
-    // direction: up forward, centre freeze, down reverse. Frozen, S36 scrubs
-    // the point through the selection; unfrozen, it picks the speed up again
-    // from where it was.
-    const Controls::Position way    = c.switches[Controls::S09];
-    const bool               frozen = way == Controls::Centre;
-    if(frozen && !frozen_)
-        speed_held_ = knob(Controls::S36);
-    if(!frozen && frozen_)
-    {
-        layers_.Set(kOwn, Controls::S36, speed_held_);
-        layers_.Hold(Controls::S36);
-    }
-    frozen_ = frozen;
-    const float speed
-        = Detent(frozen ? speed_held_ : knob(Controls::S36), 0.05f);
-    const bool speed_one = speed == 0.5f;
-    p.scrub              = frozen ? knob(Controls::S36) - speed_held_ : 0.0f;
-    p.freeze             = frozen || speed == 0.0f;
+    // S36, Speed: how fast the glass empties, stopped at the bottom, 1 at the
+    // centre, 4 at the top. S09: forward, held, reverse; flicked, the glass
+    // turned. S07, End: once, turn over, loop.
+    const float              speed = Detent(c.knobs[Controls::S36], 0.05f);
+    const Controls::Position way   = c.switches[Controls::S09];
+    p.freeze                       = way == Controls::Centre;
     p.speed = (way == Controls::Down ? -4.0f : 4.0f) * speed * speed;
+    const Controls::Position end = c.switches[Controls::S07];
+    p.end                        = end == Controls::Up
+                ? End::Once
+                : end == Controls::Centre ? End::Turn : End::Loop;
 
-    // S34, density: none at the bottom, then more towards the top.
-    // P11 + S34: how random the starts are, the triggers' alike.
-    const float density = knob(Controls::S34);
-    p.density           = density <= kDensityStop
-                    ? 0.0f
-                    : Rate((density - kDensityStop) / (1.0f - kDensityStop));
+    // S37, Flow: the neck. Density, a size, the window from percussive drops to
+    // a Hann cloud, and the reverb, more for a lone drop.
+    const float flow = c.knobs[Controls::S37];
+    p.density        = Density(flow);
+    p.window_shape   = 1.0f - 0.5f * Ramp(flow, kShapeFrom, kShapeTo);
+    p.reverb         = kReverbDrops + flow * (kReverbCloud - kReverbDrops);
 
-    // P02: the playhead from the start of the selection
+    // S31, Size: two octaves either way of Flow's, up to half the recording
+    const float seconds = float(core.SoundSamples()) / float(kSampleRateHz);
+    const float size    = Detent(c.knobs[Controls::S31], 0.05f);
+    const float flow_ms
+        = kFlowGrainMsLo * std::pow(kFlowGrainMsHi / kFlowGrainMsLo, flow);
+    const float top_ms
+        = seconds > 0.0f
+              ? std::clamp(500.0f * seconds, kMinGrainMs, kMaxGrainMs)
+              : kMaxGrainMs;
+    p.grain_ms = std::clamp(
+        flow_ms * std::exp2(4.0f * size - 2.0f), kMinGrainMs, top_ms);
+    p.min_grain_ms = kMinGrainMs;
+    p.max_grain_ms = top_ms;
+
+    // S32, Scatter, at least Flow's floor; P11 held shakes it towards the top
+    float scatter = std::max(c.knobs[Controls::S32],
+                             kCloudScatter * Ramp(flow, kCloudFrom, 1.0f));
+    if(c.touched[kShakePad])
+        scatter += (1.0f - scatter)
+                   * (kShakeFrom
+                      + (1.0f - kShakeFrom) * Firm(c.pressure[kShakePad]));
+    Scatter(scatter, p);
+
+    // S33, Pitch. S34, Tone: low-pass down, off at the centre, high-pass up.
+    const float semitones = Semitones(c.knobs[Controls::S33]);
+    p.pitch               = std::exp2(semitones / 12.0f);
+    const float tone      = Detent(c.knobs[Controls::S34], 0.05f);
+    p.filter              = 2.0f * tone - 1.0f;
+
+    // P00 held: mute
+    p.mute = c.touched[kMutePad];
+
+    Triggers(c, flow, p);
+    core.SetParams(p);
+    Pads(c, core);
+    Pulse(c, {semitones == 0.0f, speed == 0.5f, size == 0.5f, tone == 0.5f});
+}
+
+// P10: record while held. A tap keeps the seconds before it; held longer, the
+// input is heard with the grains. A new recording: its slices.
+void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
+{
+    const bool rec = c.touched[kRecordPad];
+    if(rec && !record_)
+        rec_since_ = c.now_ms;
+    record_ = rec;
+    core.SetRecording(rec);
+    const bool holding
+        = rec && c.now_ms - rec_since_ >= uint32_t(Core::kTapSeconds * 1000.0f);
+    p.mix = holding ? kMonitorMix : 1.0f;
+
+    if(core.Recordings() == recordings_)
+        return;
+    recordings_         = core.Recordings();
+    const Buffer& sound = core.Sound();
+    slices_ = FindSlices(sound.Data(), sound.Length(), kSampleRateHz);
+}
+
+// P01: a drop, one grain at the playhead. P02: the sand back to the top.
+void CoreUI::Pads(const Controls& c, Core& core)
+{
+    if(c.touched[kDropPad] && !drop_touched_)
+        core.Drop();
+    drop_touched_ = c.touched[kDropPad];
     if(c.touched[kRestartPad] && !restart_touched_)
         core.Restart();
     restart_touched_ = c.touched[kRestartPad];
+}
 
-    // S07, trigger mode: up once, centre while held, down round the slice
-    const Controls::Position mode         = c.switches[Controls::S07];
-    const auto               trigger_mode = mode == Controls::Up
-                                  ? Core::Trigger::Mode::Once
-                                  : mode == Controls::Centre
-                                        ? Core::Trigger::Mode::Gate
-                                        : Core::Trigger::Mode::Loop;
-
-    // P03-P09: each touch plays its slice, its own stream of grains, as S07
-    // sets. Pressure sets its density.
+// P03-P09: each touch plays its slice, its own stream of grains, as End sets:
+// once to its end, turned over or round while held. The fader's flow, at
+// least half open, opened further by pressure.
+void CoreUI::Triggers(const Controls& c, float flow, Core::Params& p)
+{
     for(size_t i = 0; i < kNumSlices; i++)
     {
         const size_t   pad     = kSlicePads[i];
@@ -191,61 +204,23 @@ void CoreUI::Process(const Controls& c, Core& core)
             trigger.end   = slices_[i + 1];
         }
         slice_touched_[i] = c.touched[pad];
-        trigger.mode      = trigger_mode;
+        trigger.mode      = p.end;
         trigger.held      = c.touched[pad];
-        if(c.touched[pad])
-            trigger.density = Rate(
-                kTriggerFrom + (1.0f - kTriggerFrom) * Firm(c.pressure[pad]));
+        if(!c.touched[pad])
+            continue;
+        const float open = std::max(flow, kSliceFlow);
+        trigger.density = Density(open + (1.0f - open) * Firm(c.pressure[pad]));
     }
     p.triggers = triggers_;
+}
 
-    // S31: grain size, exponential, kMinGrainMs to kCentreGrainMs at the
-    // centre, then up to half the sound, at most kMaxGrainMs: the whole travel
-    // sounds, whatever the recording
-    const float size_knob   = Detent(knob(Controls::S31), 0.05f);
-    const bool  size_centre = size_knob == 0.5f;
-    const float top_ms
-        = seconds > 0.0f
-              ? std::clamp(500.0f * seconds, kCentreGrainMs, kMaxGrainMs)
-              : kMaxGrainMs;
-    p.grain_ms = size_knob < 0.5f ? kMinGrainMs
-                                        * std::pow(kCentreGrainMs / kMinGrainMs,
-                                                   2.0f * size_knob)
-                                  : kCentreGrainMs
-                                        * std::pow(top_ms / kCentreGrainMs,
-                                                   2.0f * size_knob - 1.0f);
-    p.min_grain_ms = kMinGrainMs;
-    p.max_grain_ms = top_ms;
-
-    // S32: window shape
-    p.window_shape = knob(Controls::S32);
-
-    // P11 + S30 to S35: the randomness of position, size, shape, pitch,
-    // density and length, as Beads' attenuverters: off at the centre, an even
-    // spread up, mostly near with a long tail down
-    const auto random = [this](Controls::Knob k) {
-        return 2.0f * Detent(layers_.Value(kShift, k), 0.05f) - 1.0f;
-    };
-    p.rand_pos     = random(Controls::S30);
-    p.rand_size    = random(Controls::S31);
-    p.rand_shape   = random(Controls::S32);
-    p.rand_pitch   = random(Controls::S33);
-    p.rand_density = random(Controls::S34);
-    p.rand_length  = random(Controls::S35);
-
-    // Pan, as Beads: as wide as the grains differ, in every way
-    p.spread = std::min(std::fabs(p.rand_pos) + std::fabs(p.rand_size)
-                            + std::fabs(p.rand_shape) + std::fabs(p.rand_pitch)
-                            + std::fabs(p.rand_density),
-                        1.0f);
-
-    core.SetParams(p);
-
-
-    // Reaching a detent, or turning within it: a pulse
-    const std::array<bool, kNumDetents>  at = {unison, speed_one, size_centre};
-    const std::array<float, kNumDetents> knobs
-        = {knob(Controls::S33), knob(Controls::S36), knob(Controls::S31)};
+// Reaching a detent, or turning within it: a pulse
+void CoreUI::Pulse(const Controls& c, const std::array<bool, kNumDetents>& at)
+{
+    const std::array<float, kNumDetents> knobs = {c.knobs[Controls::S33],
+                                                  c.knobs[Controls::S36],
+                                                  c.knobs[Controls::S31],
+                                                  c.knobs[Controls::S34]};
     if(!detents_ready_)
     {
         // Power-up: no pulse
@@ -264,18 +239,16 @@ void CoreUI::Process(const Controls& c, Core& core)
     }
 }
 
-// Flashing while recording, the detent pulse, or a dim glow that follows the
-// grains' windows
+// Flashing while recording, the detent pulse, or a glow that follows the
+// grains, dimming as the sand runs out
 float CoreUI::Led(uint32_t now, const Core& core) const
 {
     if(record_)
         return (now / kFlashMs) % 2 == 0 ? 1.0f : 0.0f;
-    // The second layer: steady at the value of the knob last turned
+    const float sand = kSandFloor + (1.0f - kSandFloor) * core.SandLeft();
     const float brightness
-        = layer_ != kOwn && layers_.Turned()
-              ? layers_.TurnedValue()
-              : now < pulse_until_ ? 1.0f
-                                   : kGlow * std::min(1.0f, core.GrainLevel());
+        = now < pulse_until_ ? 1.0f
+                             : kGlow * sand * std::min(1.0f, core.GrainLevel());
     // Cubed: even steps to the eye
     return brightness * brightness * brightness;
 }

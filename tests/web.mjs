@@ -52,15 +52,18 @@ const view = () => f32(w.cl_view(), 19);
 const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_grain_fields() + g * 16, 4)[0]);
 const silence = () => 0;
 
-// Panel: speed 1, size at its centre, pitch unison, whole selection,
-// periodic grains, 70 a second, all wet
+// Panel: speed 1, Flow's size, pitch unison, tone off, whole selection, plain
+// grains, a stream, looped
 w.cl_knob(KNOB.S36, 0.5);
 w.cl_knob(KNOB.S31, 0.5);
+w.cl_knob(KNOB.S32, 0);
 w.cl_knob(KNOB.S33, 0.5);
+w.cl_knob(KNOB.S34, 0.5);
 w.cl_knob(KNOB.S30, 0);
 w.cl_knob(KNOB.S35, 1);
-w.cl_knob(KNOB.S34, 0.9);
-w.cl_knob(KNOB.S37, 1);
+w.cl_knob(KNOB.S37, 0.75);
+w.cl_switch(0, 1);
+w.cl_switch(1, 2);
 
 let r = run(3);
 check(r.finite && r.peak === 0, "nothing recorded: silent", r.peak.toFixed(3));

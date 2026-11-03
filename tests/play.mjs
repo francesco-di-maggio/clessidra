@@ -89,60 +89,31 @@ try {
   const values = await run(`[...document.querySelectorAll(".knob:not(.free) .value")].map((v) => v.textContent)`);
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
 
-  // Shift tapped: latched, Size turns its randomness. Tapped again: off.
-  // Held past the latch time: off on release. Latched, Rec listens.
+  // Shake held: Scatter acts higher, let go it settles. A drop and a restart
+  // do not break the page. One layer: no Shift anywhere.
   const pad = (name, down) => run(`document.querySelector('#keys .pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
   const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
-  const layer = () => run(`document.body.className`);
-  const size = await value("Size");
-  await pad("Shift", true);
-  await pad("Shift", false);
-  check((await layer()).includes("layer-shift"), "Shift tapped: latched", await layer());
-  await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Size Random"); for (let i = 0; i < 30; i++) k.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" })); })()`);
-  await sleep(300);
-  const random = await value("Size Random");
-  check(random !== "Off" && (await value("Size")) === size, "Shift latched: Size Random turns, Size stays", random);
-  await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Size"); for (let i = 0; i < 20; i++) k.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" })); })()`);
-  await sleep(300);
-  const turned = await value("Size");
-  check(turned !== size && (await value("Size Random")) === random, "Shift latched: Size still turns Size, Size Random stays", turned);
-  await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Size"); for (let i = 0; i < 20; i++) k.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" })); })()`);
-  await sleep(300);
-  await pad("Reset", true);
-  await pad("Reset", false);
-  await sleep(300);
-  const cleared = await value("Size Random");
-  check(cleared === "Off", "Shift + Reset: every randomness off", cleared);
-  await pad("Shift", true);
-  await pad("Shift", false);
-  await sleep(300);
-  check(!(await layer()).includes("layer-shift") && (await value("Size")) === size, "Shift tapped again: off, Size as it was", await value("Size"));
-  await pad("Shift", true);
-  await sleep(500);
-  await pad("Shift", false);
-  check(!(await layer()).includes("layer-shift"), "Shift held: off on release", await layer());
-  await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }))`);
-  const shiftAlone = await layer();
-  await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "Shift" }))`);
-  check(!shiftAlone.includes("layer-shift"), "⇧ alone: nothing, the system keeps it", shiftAlone);
-  const before = await run(`document.getElementById("held").textContent`);
-  await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "R", shiftKey: true }))`);
-  await sleep(400);
-  const keyListen = await run(`document.getElementById("held").textContent`);
-  await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "r" }))`);
-  await sleep(300);
-  check(keyListen === "Listen" && !(await layer()).includes("layer-shift") && (await run(`document.getElementById("held").textContent`)) === before, "⇧R: listens, nothing recorded, Shift off after", keyListen);
-
-  await pad("Shift", true);
-  await pad("Shift", false);
-  await pad("Record", true);
-  await sleep(500);
-  const listen = await run(`document.getElementById("held").textContent`);
-  await pad("Record", false);
+  const plain = await value("Scatter");
+  await pad("Shake", true);
   await sleep(1500);
-  check(listen === "Listen" && (await run(`document.getElementById("held").textContent`)) === held, "Shift + Rec: listens, nothing recorded", listen);
-  await pad("Shift", true);
-  await pad("Shift", false);
+  const shaken = await value("Scatter");
+  await pad("Shake", false);
+  await sleep(300);
+  const pc = (x) => (x === "Plain" ? 0 : parseInt(x));
+  check(pc(shaken) === 100 && (await value("Scatter")) === plain, "Shake held: Scatter up, let go it settles", `${plain} → ${shaken}`);
+  await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "s" }))`);
+  await sleep(600);
+  const keyShake = await value("Scatter");
+  await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "s" }))`);
+  check(pc(keyShake) > pc(plain), "S: shakes", keyShake);
+  await pad("Drop", true);
+  await pad("Drop", false);
+  await pad("Restart", true);
+  await pad("Restart", false);
+  await sleep(300);
+  const flow = await run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Flow").querySelector(".value").textContent`);
+  check(/\/s$/.test(flow), "Flow shows grains per second", flow);
+  check(!(await run(`document.body.textContent.includes("Shift")`)), "one layer: no Shift on the page");
 
   // A tap keeps the seconds set over the input
   await run(`[...document.querySelectorAll("#tap button")].find((b) => b.textContent === "4 s").click()`);

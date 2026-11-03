@@ -2,8 +2,8 @@
 // does.
 
 import { Audio, type Input } from "./audio";
-import { byId, CONTROLS, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { RESET_PAD, LAYER, MAX_RECORD_S, MUTE_PAD, SHIFT_PAD, RATE, RECORD_PAD, SLICE_PADS, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
+import { DROP_PAD, MAX_RECORD_S, MUTE_PAD, RATE, RECORD_PAD, RESTART_PAD, SHAKE_PAD, SLICE_PADS, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { GrainView } from "./grain";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
@@ -13,8 +13,6 @@ import { knob, meter, pad, segmented, type Handlers, type Widget } from "./widge
 const LIGHT = 0.35; // a touch, as the board's pads read it (0.3–0.5)
 const FIRM_S = 1.2; // held this long, a pad reaches full pressure
 const MIN_TOUCH_MS = 20; // shorter touches are released late, so a block sees them
-const LATCH_MS = 300; // a layer pad let go sooner stays on, as a latch
-const LAYER_PADS = new Map<number, number>([[SHIFT_PAD, LAYER.shift]]);
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const start = $<HTMLButtonElement>("start");
@@ -56,7 +54,7 @@ const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainView = new GrainView($<HTMLCanvasElement>("grain-view"));
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
-const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · ⇧R listen · M mute · 1–7 slices · Esc unlatch" };
+const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · S shake · D drop · M mute · 0 restart · 1–7 slices" };
 let focused: Control | null = null;
 const parts = new Map<string, Widget>();
 
@@ -73,65 +71,33 @@ function level(l: Level) {
 const inMeter = level(LEVELS[0]);
 const outMeter = level(LEVELS[1]);
 
-// A knob's function on a layer, if it has one
-function onLayer(c: Control, layer: number) {
-  if (c.layer || c.index < 0 || (c.type !== "knob" && c.type !== "fader")) return undefined;
-  return CONTROLS.find((l) => l.layer === layer && l.index === c.index);
-}
-
-// The layer Shift holds, or none. Each control's value as last set, its own or
-// on the layer.
-let layer = 0;
-const values = new Map<string, number>();
-
-// The rack: speed and selection, grain and filter. Each knob above, its
-// function on Shift small below it; each fader with its function on Shift
-// small beside it. Speed has none on Shift: it stays Speed, as on the board.
-function cell(parent: HTMLElement, kind = "") {
-  const e = document.createElement("div");
-  e.className = `cell ${kind}`;
-  parent.append(e);
-  return e;
-}
+// The rack: Speed, the sand and the grain, Flow. The deck: the switches each
+// side of the keys, white the slices first to last, black between them the
+// pads as they sit on the board.
 const RACK: [string, string[]][] = [
   ["speed", ["S36"]],
   ["selection", ["S30", "S35"]],
   ["grain", ["S31", "S32", "S33", "S34"]],
-  ["filter", ["S37"]],
+  ["flow", ["S37"]],
 ];
-const FREE: Control = { id: "free", type: "fader", index: -2, x: 0, y: 0, name: "Free", short: "—", board: "P11 + S36", does: "No function yet: Speed stays Speed.", initial: 0.5 };
-const none: Handlers = { onInput: () => {}, onPad: () => {}, onFocus: focus };
 for (const [tile, ids] of RACK) {
   for (const id of ids) {
-    const c = byId(id);
-    const twin = onLayer(c, LAYER.shift);
-    add(knob(c, cell($(tile)), on));
-    if (twin) {
-      add(knob(twin, cell($(tile), "twin"), on));
-      continue;
-    }
-    const free = knob(FREE, cell($(tile), "twin"), none);
-    free.root.classList.add("free");
-    free.root.removeAttribute("tabindex");
-    free.value?.("—");
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    $(tile).append(cell);
+    add(knob(byId(id), cell, on));
   }
 }
 
-// The keys between the two switches: the slices white, first to last; black
-// between them the pads as they sit on the board, record and shift, mute,
-// P01 and retrig
-add(segmented(byId("S09"), $("direction"), [[POSITION.up, "Forward"], [POSITION.centre, "Freeze"], [POSITION.down, "Reverse"]], on));
-add(segmented(byId("S07"), $("trigger"), [[POSITION.up, "Once"], [POSITION.centre, "Gate"], [POSITION.down, "Loop"]], on));
+add(segmented(byId("S09"), $("direction"), [[POSITION.up, "Forward"], [POSITION.centre, "Hold"], [POSITION.down, "Reverse"]], on));
+add(segmented(byId("S07"), $("end"), [[POSITION.up, "Once"], [POSITION.centre, "Turn"], [POSITION.down, "Loop"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)).root.classList.add("key"));
-const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Shift", 1], ["P00", "Mute", 3], ["P01", "Reset", 4], ["P02", "Retrig", 5]];
+const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Shake", 1], ["P00", "Mute", 3], ["P01", "Drop", 4], ["P02", "Restart", 5]];
 for (const [id, label, after] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
   w.root.classList.add("key", "black");
   if (id === "P10") w.root.classList.add("rec");
   w.root.style.left = `calc((100% - 24px) / 7 * ${after + 0.5} + ${after * 4 + 2}px)`;
-  if (!w.c.free) continue;
-  w.root.classList.add("free");
-  w.root.setAttribute("aria-disabled", "true");
 }
 
 // What a tap keeps: the board's 8 s, or the others to try
@@ -154,11 +120,6 @@ function tap(seconds: number) {
 for (const w of parts.values()) {
   if (w.c.type === "pad") w.draw(0);
   else set(w.c, w.c.initial ?? 0, false);
-  // and each knob's value on the layers it has none on its own widget
-  for (const l of Object.values(LAYER)) {
-    const on = onLayer(w.c, l);
-    if (on && !parts.has(on.id)) set(on, on.initial ?? 0, false);
-  }
 }
 tap(TAP_DEFAULT);
 hint();
@@ -179,49 +140,10 @@ function set(c: Control, value: number, show = true) {
     if (show) focus(c);
     return;
   }
-  // Each control sets its own value, Shift held or not: the page shows both
-  // layers. The firmware's knob drives the layer held, the other is set.
-  values.set(c.id, value);
   parts.get(c.id)?.draw(value);
-  const held = c.layer ? c.layer === layer : layer === 0 || !onLayer(c, layer);
   if (c.type === "switch") send({ type: "switch", index: c.index, position: value });
-  else if (held) send({ type: "knob", index: c.index, value });
-  else send({ type: "layer", layer: c.layer ?? 0, index: c.index, value });
+  else send({ type: "knob", index: c.index, value });
   if (show) focus(c);
-}
-
-// Shift holds its layer, or none. The firmware then reads each knob at its
-// value there, so its pick-up takes it without a jump. The page shows both
-// layers, so nothing on it changes but the pad.
-function setLayer(next: number) {
-  if (next === layer) return;
-  layer = next;
-  send({ type: "pad", index: SHIFT_PAD, touched: layer === LAYER.shift, pressure: layer === LAYER.shift ? 1 : 0 });
-  for (const w of parts.values()) {
-    const on = onLayer(w.c, layer);
-    if (!onLayer(w.c, LAYER.shift)) continue;
-    const value = values.get((on ?? w.c).id) ?? (on ?? w.c).initial ?? 0;
-    send({ type: "knob", index: w.c.index, value });
-  }
-  for (const [pad, l] of LAYER_PADS) parts.get(padOf(pad).id)!.draw(layer === l ? 0.6 : 0);
-  document.body.classList.toggle("layer-shift", layer === LAYER.shift);
-  if (focused) focus(focused);
-}
-
-// A layer pad: held, the layer while it is; tapped, a latch until tapped again
-const layerPress = new Map<number, { since: number; was: boolean }>();
-function pressLayer(c: Control, down: boolean) {
-  const l = LAYER_PADS.get(c.index)!;
-  if (down) {
-    if (!layerPress.has(c.index)) layerPress.set(c.index, { since: performance.now(), was: layer === l });
-    setLayer(l);
-    focus(c);
-    return;
-  }
-  const t = layerPress.get(c.index);
-  if (!t) return;
-  layerPress.delete(c.index);
-  if (layer === l && (t.was || performance.now() - t.since >= LATCH_MS)) setLayer(0);
 }
 
 // Pads: a pen's pressure where there is one, else a touch that firms up while held
@@ -235,14 +157,9 @@ const touches = new Map<number, Touch>(); // by pad index
 
 function press(c: Control, down: boolean, e: { pointerId?: number | string; pointerType?: string; pressure?: number }) {
   if (c.free) return;
-  // Shift + Reset: the shift layer as at the start, here as on the board
-  if (down && c.index === RESET_PAD && layer === LAYER.shift) for (const r of CONTROLS) if (r.layer === LAYER.shift) set(r, r.initial ?? 0.5, false);
-  if (LAYER_PADS.has(c.index)) return pressLayer(c, down);
   const who = e.pointerId ?? "key";
   let t = touches.get(c.index);
   if (down) {
-    // Rec touched with Shift on: it listens for this touch, as on the board
-    if (!t && c.index === RECORD_PAD) listening = layer === LAYER.shift;
     if (!t) touches.set(c.index, (t = { since: performance.now(), pointers: new Set(), pen: null, c }));
     t.pointers.add(who);
     if (e.pointerType === "pen" && e.pressure) t.pen = e.pressure;
@@ -275,44 +192,32 @@ addEventListener("pointermove", (e) => {
   for (const t of touches.values()) if (t.pointers.has(e.pointerId)) t.pen = e.pressure;
 });
 
-// Keys: R records, 1–7 trigger the slices, first to last
+// Keys: R record, S shake, D drop, M mute, 0 restart, 1–7 the slices, first to
+// last
+const KEYS: Record<string, number> = { r: RECORD_PAD, s: SHAKE_PAD, d: DROP_PAD, m: MUTE_PAD, "0": RESTART_PAD };
 function keyPad(e: KeyboardEvent) {
-  if (e.key.toLowerCase() === "r") return RECORD_PAD;
-  if (e.key.toLowerCase() === "m") return MUTE_PAD;
+  const key = e.key.toLowerCase();
+  if (key in KEYS) return KEYS[key];
   const n = Number(e.key);
   return n >= 1 && n <= 7 ? SLICE_PADS[n - 1] : null;
 }
-// ⇧ R: Rec with Shift, listening, Shift for that touch only. ⇧ alone does
-// nothing, so the system's shortcuts keep it.
-let keyShift = false;
 addEventListener("keydown", (e) => {
-  if (e.key === "Escape") setLayer(0);
   const index = keyPad(e);
   if (index === null || e.repeat || e.metaKey || e.ctrlKey || (e.target as Element).closest?.("input")) return;
-  if (index === RECORD_PAD && e.shiftKey && layer !== LAYER.shift) {
-    keyShift = true;
-    setLayer(LAYER.shift);
-  }
   press(padOf(index), true, { pointerId: `key${index}` });
 });
 addEventListener("keyup", (e) => {
   const index = keyPad(e);
-  if (index === null) return;
-  press(padOf(index), false, { pointerId: `key${index}` });
-  if (index !== RECORD_PAD || !keyShift) return;
-  keyShift = false;
-  setLayer(0);
+  if (index !== null) press(padOf(index), false, { pointerId: `key${index}` });
 });
 addEventListener("blur", () => {
   for (const t of [...touches.values()]) for (const who of [...t.pointers]) press(t.c, false, { pointerId: who });
-  for (const index of [...layerPress.keys()]) pressLayer(padOf(index), false);
 });
 
 // Seconds P10 has been held to record, 0 when it isn't
-let listening = false;
 function recording() {
   const t = touches.get(RECORD_PAD);
-  return t && !listening ? Math.min((performance.now() - t.since) / 1000, MAX_RECORD_S) : 0;
+  return t ? Math.min((performance.now() - t.since) / 1000, MAX_RECORD_S) : 0;
 }
 
 function hint() {
@@ -327,7 +232,7 @@ function hint() {
 function focus(c: Control) {
   focused = c;
   for (const w of parts.values()) w.root.classList.toggle("focus", w.c === c);
-  readout.name.textContent = `${c.board ?? c.id} ${c.name}`;
+  readout.name.textContent = `${c.id} ${c.name}`;
   readout.does.textContent = c.does ?? "";
   show();
 }
@@ -339,9 +244,8 @@ function show() {
   const v: Live = { sound: last.view[VIEW.sound], triggers, slices, recording: recording() };
   for (const w of parts.values()) if (w.c.index >= 0) w.value?.(w.c.value?.(last.params, v) ?? "");
   if (focused) readout.value.textContent = focused.value?.(last.params, v) ?? "";
-  const listen = listening && touches.has(RECORD_PAD);
-  held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : listen ? "Listen" : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
-  held.classList.toggle("on", v.recording > 0 || listen);
+  held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
+  held.classList.toggle("on", v.recording > 0);
   for (const w of parts.values()) if (w.c.slice !== undefined) w.root.classList.toggle("playing", triggers[w.c.slice]);
 }
 

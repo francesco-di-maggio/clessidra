@@ -36,14 +36,6 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 .touch .ctl:focus-visible .ring, .touch .ctl:focus-visible circle.pad, .touch .ctl:focus-visible .cap, .touch .ctl:focus-visible .slot { stroke: var(--accent); }
 .touch .ctl.active .ring, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke-width: 3; }
 .touch .jack { fill: none; stroke: var(--dim); stroke-width: 2; }
-/* Layers: one name per fader or knob shown, those with nothing on it dimmed,
-   the layer's pad lit */
-.touch .name.l1 { display: none; }
-.touch[data-layer="1"] .name.l0 { display: none; }
-.touch[data-layer="1"] .name.l1 { display: inline; }
-.touch[data-layer="1"] .no1 { opacity: 0.25; }
-.touch[data-layer="1"] [data-id="P11"] circle.pad { fill: var(--accent); stroke: var(--accent); }
-.touch[data-layer="1"] [data-id="P11"] text { fill: #fff; }
 
 @media print {
   header, nav, footer, .noprint { display: none !important; }

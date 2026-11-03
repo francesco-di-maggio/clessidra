@@ -1,8 +1,6 @@
 ---
 // The Simple Touch panel as a drawing: every control where it sits on the
-// board, at its starting value, with its name. A fader or knob carries its name
-// on each layer (l0 own, l1 P11): data-layer on the drawing shows one.
-// Built once, no script.
+// board, at its starting value, with its name. Built once, no script.
 import { CONTROLS, POSITION } from "../lib/controls";
 
 const KNOB_R = 40;
@@ -22,21 +20,16 @@ function arc(cx: number, cy: number, r: number, from: number, to: number) {
 const knobDeg = (v: number) => -SWEEP / 2 + v * SWEEP;
 const faderY = (v: number) => FADER.bottom - v * (FADER.bottom - FADER.top);
 const leverY = (p: number) => (p === POSITION.up ? -26 : p === POSITION.down ? 8 : -9);
-const LAYERS = ["", "P11+"];
-// The knob's function on each layer, if it has one
-const onLayers = (id: string) => LAYERS.map((l, i) => (i === 0 ? CONTROLS.find((c) => c.id === id) : CONTROLS.find((c) => c.id === l + id)));
-const none = (id: string) => onLayers(id).map((c, i) => (c ? "" : ` no${i}`)).join("");
-const names = (id: string) => onLayers(id).map((c) => c?.name ?? "–");
 ---
-<svg class="touch" viewBox="0 0 600 973" role="img" aria-label="The Simple Touch panel with each control's name" data-layer="0">
+<svg class="touch" viewBox="0 0 600 973" role="img" aria-label="The Simple Touch panel with each control's name">
   <rect class="plate" x="2" y="2" width="596" height="969" rx="18" />
   {[[50, 26], [550, 26], [50, 947], [550, 947]].map(([x, y]) => <rect class="hole" x={x - 18} y={y - 9} width="36" height="18" rx="9" />)}
   {[[118, "IN"], [196, "OUT"]].map(([y, label]) => (
     <g><circle class="jack" cx="34" cy={y} r="13" /><text class="code" x="34" y={Number(y) + 34}>{label}</text></g>
   ))}
-  {CONTROLS.filter((c) => !c.layer).map((c) => {
+  {CONTROLS.map((c) => {
     const v = c.initial ?? 0;
-    const cls = `ctl ${c.type}${c.free ? " free" : ""}${c.type === "knob" || c.type === "fader" ? none(c.id) : ""}`;
+    const cls = `ctl ${c.type}${c.free ? " free" : ""}`;
     if (c.type === "knob") {
       const [dx, dy] = polar(c.x, c.y, KNOB_R - 18, knobDeg(v));
       return (
@@ -46,7 +39,7 @@ const names = (id: string) => onLayers(id).map((c) => c?.name ?? "–");
           <circle class="ring" cx={c.x} cy={c.y} r={KNOB_R - 9} />
           <circle class="lever" cx={dx} cy={dy} r="4" />
           <text class="code" x={c.x} y={c.y + 5}>{c.id}</text>
-          {names(c.id).map((name, i) => <text class={`name l${i}`} x={c.x} y={c.y + KNOB_R + 24}>{name}</text>)}
+          <text class="name" x={c.x} y={c.y + KNOB_R + 24}>{c.name}</text>
         </g>
       );
     }
@@ -58,7 +51,7 @@ const names = (id: string) => onLayers(id).map((c) => c?.name ?? "–");
           <line class="travel" x1={c.x} x2={c.x} y1={y} y2={FADER.bottom} />
           <rect class="cap" x={c.x - 22} y={y - 10} width="44" height="20" rx="5" />
           <text class="code" x={c.x} y={FADER.top - 22}>{c.id}</text>
-          {names(c.id).map((name, i) => <text class={`name l${i}`} x={c.x} y={FADER.bottom + 38}>{name}</text>)}
+          <text class="name" x={c.x} y={FADER.bottom + 38}>{c.name}</text>
         </g>
       );
     }

@@ -67,10 +67,12 @@ enum Param : size_t
     kRandPos,
     kRandSize,
     kRandShape,
-    kRandLength,
+    kEnd,
     kGrainMsSet,
     kMinGrainMs,
     kMaxGrainMs,
+    kSpread,
+    kSandLeft,
     kNumParams
 };
 float params[kNumParams];
@@ -147,14 +149,6 @@ EXPORT void cl_pad(int pad, int touched, float pressure)
     controls.pressure[p] = pressure;
 }
 
-// A knob's function on a layer, set directly: the page has a control for each
-EXPORT void cl_layer(int layer, int knob, float value)
-{
-    ui.SetLayer(CoreUI::Layer(size_t(layer) % Layers::kNumLayers),
-                Controls::Knob(size_t(knob) % Controls::kNumKnobs),
-                value);
-}
-
 // What a tap keeps, seconds. Browser only: the board keeps
 // Core::kTapCaptureSeconds.
 EXPORT void cl_tap_seconds(float seconds)
@@ -183,10 +177,10 @@ EXPORT int cl_recordings()
 // The selection as Core::Process places it
 EXPORT const float* cl_view()
 {
-    const Core::Params& p     = core.CurrentParams();
-    const double        sound = double(core.SoundSamples());
-    const double sel_length = std::max(double(core.PassLength()) * sound, 1.0);
-    const double sel_start  = double(p.start) * sound;
+    const Core::Params& p          = core.CurrentParams();
+    const double        sound      = double(core.SoundSamples());
+    const double        sel_length = std::max(double(p.length) * sound, 1.0);
+    const double        sel_start  = double(p.start) * sound;
 
     view[kSound]           = float(sound);
     view[kSelectionStart]  = float(sel_start);
@@ -252,9 +246,11 @@ EXPORT const float* cl_params()
     params[kRandPos]      = p.rand_pos;
     params[kRandSize]     = p.rand_size;
     params[kRandShape]    = p.rand_shape;
-    params[kRandLength]   = p.rand_length;
+    params[kEnd]          = float(p.end);
     params[kGrainMsSet]   = p.grain_ms;
     params[kMinGrainMs]   = p.min_grain_ms;
     params[kMaxGrainMs]   = p.max_grain_ms;
+    params[kSpread]       = p.spread;
+    params[kSandLeft]     = core.SandLeft();
     return params;
 }

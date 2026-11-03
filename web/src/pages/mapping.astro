@@ -3,28 +3,24 @@ import Base from "../layouts/Base.astro";
 import TouchPanel from "../components/TouchPanel.astro";
 import { CONTROLS } from "../lib/controls";
 
-// What the help shows for each control, by id (layered ones as P11+S31)
-const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { board: c.board ?? c.id, name: c.name, does: c.does ?? "" }]));
+// What the help shows for each control, by id
+const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { name: c.name, does: c.does ?? "" }]));
 ---
-<Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch, on each of their two layers.">
+<Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch.">
 <h1>Mapping</h1>
-<p class="lead">Point at a control. P11, held, gives the knobs and faders a second layer.</p>
+<p class="lead">Point at a control. One layer: every control does one thing, where it is.</p>
 <div class="mapping">
   <div class="panel touch-panel"><TouchPanel /></div>
   <div class="stack">
-    <div id="layer" class="segmented vertical" role="group" aria-label="Layer">
-      <button type="button" data-layer="0" aria-pressed="true">Own</button>
-      <button type="button" data-layer="1" aria-pressed="false">P11 · Shift</button>
-    </div>
     <div class="panel help" aria-live="polite">
       <span id="help-board" class="label">Help</span>
       <b id="help-name">Point at a control</b>
-      <p id="help-does">⇧ shows P11's layer while held.</p>
+      <p id="help-does">Its name and what it does show here.</p>
     </div>
     <ul class="panel notes">
-      <li><span class="label">Pick-up</span>A knob takes over a value once it reaches it</li>
-      <li><span class="label">Randomness</span>Off at the centre, up even, down a long tail</li>
-      <li><span class="label">Listen</span>P11 + P10: the input, firmer for more</li>
+      <li><span class="label">Glass</span>The selection is the sand, Speed how fast it runs through</li>
+      <li><span class="label">Neck</span>Flow: drops, a stream, a cloud</li>
+      <li><span class="label">Turn</span>Flick S09 to turn the glass over</li>
     </ul>
   </div>
 </div>
@@ -32,48 +28,23 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
 </Base>
 
 <script>
-  // The layer shown, and the help for the control pointed at
-  interface Help { board: string; name: string; does: string }
+  // The help for the control pointed at
+  interface Help { name: string; does: string }
   const help: Record<string, Help> = JSON.parse(document.getElementById("help-data")!.textContent!);
   const panel = document.querySelector<SVGSVGElement>(".touch")!;
-  const buttons = [...document.querySelectorAll<HTMLButtonElement>("#layer button")];
   const out = { board: document.getElementById("help-board")!, name: document.getElementById("help-name")!, does: document.getElementById("help-does")! };
-  const PREFIX = ["", "P11+"];
-  let layer = 0;
-  let held = 0; // a key holding a layer
-  let pointed: string | null = null;
-
-  function show(n: number) {
-    panel.dataset.layer = String(n);
-    for (const b of buttons) b.setAttribute("aria-pressed", String(Number(b.dataset.layer) === n));
-    if (pointed) describe(pointed);
-  }
-  const current = () => held || layer;
 
   function describe(id: string) {
-    pointed = id;
     for (const g of panel.querySelectorAll(".ctl")) g.classList.toggle("active", (g as SVGGElement).dataset.id === id);
-    const n = current();
-    const layered = /^S3\d$/.test(id) && n > 0;
-    const h = help[layered ? PREFIX[n] + id : id];
-    out.board.textContent = layered ? `${PREFIX[n].slice(0, 3)} + ${id}` : (h?.board ?? id);
+    const h = help[id];
+    out.board.textContent = id;
     out.name.textContent = h?.name ?? "Free";
-    out.does.textContent = h?.does ?? (layered ? "Nothing on this layer: it keeps its own." : "No function yet.");
+    out.does.textContent = h?.does ?? "No function yet.";
   }
 
-  for (const b of buttons) b.addEventListener("click", () => show((layer = Number(b.dataset.layer))));
   for (const g of panel.querySelectorAll<SVGGElement>(".ctl")) {
     const id = g.dataset.id!;
     g.addEventListener("pointerenter", () => describe(id));
     g.addEventListener("focus", () => describe(id));
-    // The layer pad switches the layer, as holding it does on the board
-    if (id === "P11") g.addEventListener("click", () => show((layer = layer === 1 ? 0 : 1)));
   }
-  const key = (e: KeyboardEvent) => {
-    held = e.shiftKey ? 1 : 0;
-    show(current());
-  };
-  addEventListener("keydown", key);
-  addEventListener("keyup", key);
-  addEventListener("blur", () => ((held = 0), show(layer)));
 </script>

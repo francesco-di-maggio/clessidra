@@ -5,12 +5,11 @@ export const RATE = 48000; // config.h kSampleRateHz
 export const BLOCK = 128; // Web Audio's render quantum
 export const NUM_SLICES = 7; // onsets.h kNumSlices
 export const MAX_RECORD_S = 30; // config.h kBufferSeconds
-export const RECORD_PAD = 10; // CoreUI::kRecordPad
-export const SHIFT_PAD = 11; // CoreUI::kShiftPad
-export const LAYER = { shift: 1 } as const; // CoreUI::Layer
-export const RESTART_PAD = 2; // CoreUI::kRestartPad
 export const MUTE_PAD = 0; // CoreUI::kMutePad
-export const RESET_PAD = 1; // CoreUI::kResetPad
+export const DROP_PAD = 1; // CoreUI::kDropPad
+export const RESTART_PAD = 2; // CoreUI::kRestartPad
+export const RECORD_PAD = 10; // CoreUI::kRecordPad
+export const SHAKE_PAD = 11; // CoreUI::kShakePad
 export const SLICE_PADS = [3, 4, 8, 5, 6, 9, 7]; // CoreUI::kSlicePads
 // What a tap keeps, seconds: the board's (Core::kTapCaptureSeconds), and the
 // others the browser tries
@@ -23,9 +22,11 @@ export const INCOMING_COLUMNS = 1280;
 // cl_view, in samples of the recording
 export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, edges: 4, triggers: 4 + NUM_SLICES + 1 } as const;
 export const VIEW_SIZE = VIEW.triggers + NUM_SLICES;
-// cl_params, in the core's units. grainMs: the size in use, grainMsSet: as set
-export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randDensity: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, filter: 12, randPos: 13, randSize: 14, randShape: 15, randLength: 16, grainMsSet: 17, minGrainMs: 18, maxGrainMs: 19 } as const;
-export const PARAM_SIZE = 20;
+// cl_params, in the core's units. grainMs: the size in use, grainMsSet: as
+// set. end: End, 0 once, 1 turn, 2 loop. spread: Scatter as it acts, 0..1.
+// sandLeft: ahead of the playhead, 0..1.
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randDensity: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, filter: 12, randPos: 13, randSize: 14, randShape: 15, end: 16, grainMsSet: 17, minGrainMs: 18, maxGrainMs: 19, spread: 20, sandLeft: 21 } as const;
+export const PARAM_SIZE = 22;
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window shape, pan
 export const GRAIN_FIELDS = 4;
 
@@ -39,7 +40,6 @@ export interface Exports {
   cl_knob(knob: number, value: number): void;
   cl_switch(which: number, position: number): void;
   cl_pad(pad: number, touched: number, pressure: number): void;
-  cl_layer(layer: number, knob: number, value: number): void;
   cl_tap_seconds(seconds: number): void;
   cl_led(nowMs: number): number;
   cl_peaks(): number;
@@ -67,7 +67,6 @@ export interface Frame {
 // What the page sends: Controls' knobs, switches and pads
 export type Control =
   | { type: "knob"; index: number; value: number }
-  | { type: "layer"; layer: number; index: number; value: number }
   | { type: "tap"; index: -1; seconds: number }
   | { type: "switch"; index: number; position: number }
   | { type: "pad"; index: number; touched: boolean; pressure: number };

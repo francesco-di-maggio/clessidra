@@ -5,7 +5,7 @@
 import { PARAM } from "./engine";
 import { windowAt } from "./waveform";
 
-const RAND_PITCH = 24; // Core::kRandPitchSemitones
+const RAND_PITCH = 12; // Core::kRandPitchSemitones
 
 // How far randomness can move a value, as Core::Blend at its widest
 const reach = (amount: number) => (amount >= 0 ? Math.min(amount, 1) : Math.min(-3 * amount, 1));

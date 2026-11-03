@@ -1,15 +1,14 @@
 ---
 // The manual, two A4 pages in the style of Synthux's blank manual: the panel
-// with every control's name, then what each does on each layer. Printed to
+// with every control's name, then what each does. Printed to
 // clessidra-manual.pdf by web/manual.mjs.
 import "../styles/site.css";
 import TouchPanel from "../components/TouchPanel.astro";
 import { CONTROLS, LED } from "../lib/controls";
 
 const KNOBS = ["S36", "S37", "S30", "S35", "S31", "S32", "S33", "S34"];
-const LAYERS = ["", "P11+"];
-const byId = (id: string) => CONTROLS.find((c) => c.id === id);
-const OTHERS = ["P10", "P11", "P02", "P03", "S09", "S07"];
+const byId = (id: string) => CONTROLS.find((c) => c.id === id)!;
+const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02", "P03"];
 ---
 <!doctype html>
 <html lang="en" data-theme="light">
@@ -57,32 +56,24 @@ const OTHERS = ["P10", "P11", "P02", "P03", "S09", "S07"];
   </div>
   <div class="board"><TouchPanel /></div>
   <div class="box">
-    <p>Two layers: own, and P11 (Shift) held for each knob's randomness and the reverb.</p>
-    <p>Pick-up: a knob takes over a value once it reaches it.</p>
-    <p>Randomness: off at the centre, up even, down a long tail.</p>
+    <p>One layer: every control does one thing, where it is.</p>
+    <p>The selection is the sand. Speed sets how fast it runs through, Flow how it falls.</p>
+    <p>Flick S09 to turn the glass over.</p>
   </div>
 </div></section>
 
 <section class="page"><div class="frame">
-  <h2>Layers</h2>
-  <table>
-    <thead><tr><th>Control</th><th>Own</th><th>P11 Shift</th></tr></thead>
-    <tbody>
-      {KNOBS.map((k) => <tr><td>{k}</td>{LAYERS.map((l) => { const c = byId(l + k); return <td class={c ? "" : "free"}>{c?.name ?? "–"}</td>; })}</tr>)}
-    </tbody>
-  </table>
-
   <h2>Faders and Knobs</h2>
   <table>
     <tbody>
-      {KNOBS.flatMap((k) => LAYERS.map((l) => byId(l + k)).filter((c) => c !== undefined)).map((c) => <tr><td>{c.board ?? c.id}</td><td>{c.does}</td></tr>)}
+      {KNOBS.map(byId).map((c) => <tr><td>{c.id}</td><td><b>{c.name}</b>. {c.does}</td></tr>)}
     </tbody>
   </table>
 
   <h2>Pads and Switches</h2>
   <table>
     <tbody>
-      {OTHERS.map((id) => byId(id)!).map((c) => <tr><td>{c.slice === 0 ? "P03–P09" : c.id}</td><td>{c.does}</td></tr>)}
+      {OTHERS.map(byId).map((c) => <tr><td>{c.slice === 0 ? "P03–P09" : c.id}</td><td><b>{c.slice === 0 ? "Slices" : c.name}</b>. {c.does}</td></tr>)}
     </tbody>
   </table>
 

@@ -6,39 +6,35 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 
 <img src="touch.jpeg" width="300"/>
 
-Two layers: own, and P11 held (Shift: each knob's randomness, the reverb). A knob takes over a value once it reaches it.
+One layer: every control does one thing, where it is. The recording is the sand, the selection how much of it is in the glass.
 
-| Control | Own | P11 Shift |
+| Control | Name | Does |
 |---|---|---|
-| S30 | Position: selection start | Position random, per grain |
-| S35 | Length: selection length, past the end round to the start. The playhead stays where it is | Length random, per pass |
-| S31 | Size: 10 ms, 200 ms at the centre, up to half the recording, 4 s at most | Size random |
-| S32 | Shape: reverse percussive, Hann at the centre, percussive | Shape random |
-| S33 | Pitch: ±24 semitones, stops at 0, 0.1, 5, 7, 12, 17, 19, 24 | Pitch random |
-| S34 | Density: none at the bottom, 0.3 to 131 grains per second | Start randomness: periodic at the centre |
-| S36 | Speed: 0 to 4×, 1× at the centre, stopped at the bottom. Frozen: moves the point through the selection, the speed taken up again after | |
-| S37 | Filter: low-pass down, off at the centre, high-pass up | Reverb |
+| S36 | Speed | How fast the glass empties: stopped at the bottom, 1× at the centre, 4× at the top |
+| S37 | Flow | The neck: closed, single drops, a stream, a cloud. Moves density (0.3 to 131 grains per second), size (30 to 300 ms), window (percussive to Hann) and reverb (more for a lone drop) together. Near the top the cloud scatters by itself |
+| S30 | Position | Where the sand starts, anywhere in the recording. Held: moves the point |
+| S35 | Length | How much sand: the selection, past the end round to the start. The playhead stays where it is |
+| S31 | Size | A quarter to four times Flow's size, up to half the recording |
+| S32 | Scatter | Plain and periodic at 0. Up: random starts, places, sizes, shapes, wider pan, mostly near with a long tail. Top quarter: random pitch, up to ±12 semitones |
+| S33 | Pitch | ±12 semitones, stops at 0, 0.1, 5, 7, 12 |
+| S34 | Tone | Low-pass down, 20 kHz to 200 Hz. Off at the centre. High-pass up, to 2 kHz |
+| S09 | Direction | Forward, held, reverse. Flicked: the glass turned over |
+| S07 | End | When the sand runs out: up stops, centre turns over by itself, down loops. The slices too |
 
-Randomness, as Beads: off at the centre, up an even spread, down mostly near with a long tail.
-
-| Control | Function |
-|---|---|
-| P10 | Record. Tap: the last 8 s. Hold: until release, up to 30 s. A new recording pours in over 2 s |
-| P11 + P10 | Listen: the input passes, firmer for more. Nothing recorded |
-| P11 + P01 | Reset: every randomness off, the reverb back to 25 % |
-| P11 | Shift layer, held |
-| P00 | Mute, held: the grains silent, the reverb rings on |
-| P02 | Retrig: the playhead to the selection start |
-| P03–P09 | Slices at the recording's onsets. Each plays its own grains. Pressure sets their density. With S34 at the bottom, only the slices sound |
-| S09 | Direction: forward, freeze, reverse. Frozen, the point follows S30 and holds when S35 moves |
-| S07 | Trigger: once, while held, looped while held |
+| Pad | Name | Does |
+|---|---|---|
+| P10 | Record | Tap: the last 8 s. Hold: until release, up to 30 s, the input heard. A new recording pours in over 2 s |
+| P11 | Shake | Held: Scatter towards the top, firmer for more. Let go, it settles |
+| P00 | Mute | Held: the grains silent, the reverb rings on |
+| P01 | Drop | A touch: one grain at the playhead, whatever Flow |
+| P02 | Restart | The sand back to the top: the playhead to the selection start |
+| P03–P09 | Slices | At the recording's onsets. Each plays its own grains, as End sets. Flow at least half open, pressure opens it further |
 
 | LED | |
 |---|---|
-| Glow | Grains playing |
+| Glow | Grains falling, dimmer as the sand runs out |
 | Flash | Recording |
-| Pulse | At a centre: pitch unison, speed 1×, size 200 ms |
-| Steady | P11 held: brightness shows the value |
+| Pulse | At a centre: unison, speed 1×, Flow's size, tone off |
 
 ## Play in the Browser
 
