@@ -6,26 +6,25 @@ import { CONTROLS } from "../lib/controls";
 // What the help shows for each control, by id (layered ones as P11+S31)
 const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { board: c.board ?? c.id, name: c.name, does: c.does ?? "" }]));
 ---
-<Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch, on each of their three layers.">
+<Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch, on each of their two layers.">
 <h1>Mapping</h1>
-<p class="lead">Point at a control. P11 and P00, held, give the knobs two more layers.</p>
+<p class="lead">Point at a control. P11, held, gives the knobs and faders a second layer.</p>
 <div class="mapping">
   <div class="panel touch-panel"><TouchPanel /></div>
   <div class="stack">
     <div id="layer" class="segmented vertical" role="group" aria-label="Layer">
       <button type="button" data-layer="0" aria-pressed="true">Own</button>
       <button type="button" data-layer="1" aria-pressed="false">P11 · Shift</button>
-      <button type="button" data-layer="2" aria-pressed="false">P00 · FX</button>
     </div>
     <div class="panel help" aria-live="polite">
       <span id="help-board" class="label">Help</span>
       <b id="help-name">Point at a control</b>
-      <p id="help-does">⇧ shows P11's layer, ⌥ P00's, while held.</p>
+      <p id="help-does">⇧ shows P11's layer while held.</p>
     </div>
     <ul class="panel notes">
       <li><span class="label">Pick-up</span>A knob takes over a value once it reaches it</li>
       <li><span class="label">Randomness</span>Off at the centre, up even, down a long tail</li>
-      <li><span class="label">Both held</span>P00 over P11</li>
+      <li><span class="label">Listen</span>P11 + P10: the input, firmer for more</li>
     </ul>
   </div>
 </div>
@@ -39,7 +38,7 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
   const panel = document.querySelector<SVGSVGElement>(".touch")!;
   const buttons = [...document.querySelectorAll<HTMLButtonElement>("#layer button")];
   const out = { board: document.getElementById("help-board")!, name: document.getElementById("help-name")!, does: document.getElementById("help-does")! };
-  const PREFIX = ["", "P11+", "P00+"];
+  const PREFIX = ["", "P11+"];
   let layer = 0;
   let held = 0; // a key holding a layer
   let pointed: string | null = null;
@@ -59,7 +58,7 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
     const h = help[layered ? PREFIX[n] + id : id];
     out.board.textContent = layered ? `${PREFIX[n].slice(0, 3)} + ${id}` : (h?.board ?? id);
     out.name.textContent = h?.name ?? "Free";
-    out.does.textContent = h?.does ?? "Nothing on this layer.";
+    out.does.textContent = h?.does ?? (layered ? "Nothing on this layer: it keeps its own." : "No function yet.");
   }
 
   for (const b of buttons) b.addEventListener("click", () => show((layer = Number(b.dataset.layer))));
@@ -67,11 +66,11 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
     const id = g.dataset.id!;
     g.addEventListener("pointerenter", () => describe(id));
     g.addEventListener("focus", () => describe(id));
-    // The layer pads switch the layer, as holding them does on the board
-    if (id === "P11" || id === "P00") g.addEventListener("click", () => show((layer = layer === (id === "P11" ? 1 : 2) ? 0 : id === "P11" ? 1 : 2)));
+    // The layer pad switches the layer, as holding it does on the board
+    if (id === "P11") g.addEventListener("click", () => show((layer = layer === 1 ? 0 : 1)));
   }
   const key = (e: KeyboardEvent) => {
-    held = e.altKey ? 2 : e.shiftKey ? 1 : 0;
+    held = e.shiftKey ? 1 : 0;
     show(current());
   };
   addEventListener("keydown", key);

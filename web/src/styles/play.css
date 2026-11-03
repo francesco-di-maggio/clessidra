@@ -1,65 +1,21 @@
-/* Play: one screen in the family's column. Transport and levels, the incoming
-   strip, the buffer, the controls in the order the sound goes (playhead, grain,
-   FX, mix), the switches and the 12 pads, a readout line. Orange only for what
+/* Play: one screen in the family's column, every block a tile on one grid.
+   Transport and levels, incoming and a grain, the buffer, the rack
+   (speed, selection, grain, filter), the pads, the help. Orange only for what
    is on. */
-body.app { height: 100dvh; min-height: 0; overflow: hidden; }
-body.app main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 96px minmax(120px, 1fr) auto auto auto; gap: 10px; }
+body.app { height: 100dvh; min-height: 0; overflow: auto; }
+body.app main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 112px minmax(120px, 1fr) auto auto auto; gap: 10px; }
 .mark .slash { margin: 0 2px; }
 .led { display: flex; align-items: center; gap: 6px; }
 .led .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--accent) calc(var(--led, 0) * 100%), transparent); }
 
-/* Transport: Start, the source, In and Out */
-.transport { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 10px; align-items: center; }
-.levels { display: flex; gap: 14px; padding-left: 4px; }
-
-
-/* Incoming, the last 8 s of input, what a tap keeps. Beside it, a grain. */
-.scope { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; min-height: 0; }
-.incoming, .grain { padding: 0; overflow: hidden; }
-.incoming canvas, .grain canvas { display: block; width: 100%; height: 100%; }
-
-/* The buffer, its status in the corner */
-.view { position: relative; padding: 0; overflow: hidden; }
-.view canvas { display: block; width: 100%; height: 100%; }
-.held { position: absolute; top: 8px; right: 12px; font-variant-numeric: tabular-nums; pointer-events: none; }
-.held.on { color: var(--accent); }
-
-/* Controls: sections split by hairlines, two rows. A randomness small, below
-   its own. A held layer pad dims what it does not reach. */
-.strip { display: flex; align-items: stretch; padding: 10px 4px 12px; }
-.cluster { display: flex; flex-direction: column; align-items: stretch; gap: 8px; flex: auto; padding: 0 4px; }
-.cluster + .cluster { border-left: 1px solid var(--line); }
-.cluster .head { font: 500 10px/14px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); text-align: center; }
-.cluster .body { display: grid; grid-template-rows: auto auto; grid-auto-flow: column; justify-content: space-evenly; justify-items: center; gap: 10px 4px; }
-.cell.tall { grid-row: span 2; display: flex; }
-.cell.below .knob svg { width: 32px; height: 32px; }
-.cell.below .label { color: var(--dim); }
-.layer-shift .strip .knob:not(.random, .on1), .layer-fx .strip .knob:not(.fx, .on2) { opacity: 0.3; }
-.layer-shift .strip .knob.on1 .label, .layer-fx .strip .knob.on2 .label { color: var(--accent); }
-
-.knob { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 56px; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
-.knob .label, .switch .label { font-size: 10px; line-height: 14px; letter-spacing: 0.08em; white-space: nowrap; }
-.knob svg { width: 44px; height: 44px; }
-.knob .track, .knob .fill { fill: none; stroke-width: 2.5; stroke-linecap: round; }
-.knob .track { stroke: var(--line); }
-.knob .fill { stroke: var(--ink); }
-.knob .tick { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
-.knob line.track, .knob line.fill { stroke-width: 3; }
-.knob .cap { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
-.knob.dragging { cursor: ns-resize; }
-.knob.fader { height: 100%; }
-.knob.fader svg { flex: 1; width: 24px; height: auto; min-height: 0; }
-.knob .value { font: 500 11px/16px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
-.knob.focus .label, .knob:focus-visible .label, .switch.focus .label { color: var(--ink); }
-.knob:focus-visible svg { outline: 1.5px solid var(--accent); outline-offset: -2px; border-radius: 50%; }
-.knob.fader:focus-visible svg { outline-offset: 0; border-radius: var(--radius-control); }
-
-.switch { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.switch .segmented { height: auto; grid-auto-flow: row; width: 56px; }
-.switch .segmented button { height: 20px; font-size: 10px; letter-spacing: 0.04em; }
-.switch .segmented button + button { border-left: 0; border-top: 1px solid var(--line); }
+/* Two columns, 2 : 1, shared by the transport row and the scope row, so their
+   edges line up */
+.split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; }
+.scope { min-height: 0; }
+.transport { display: grid; grid-template-columns: var(--pair) minmax(0, 1fr); gap: 10px; }
 
 /* In and Out: a small dial, its name and value beside it, then a meter */
+.levels { border-radius: var(--radius-control); display: flex; align-items: center; justify-content: space-evenly; gap: 10px; padding: 0 10px; min-height: 44px; }
 .level { display: flex; align-items: center; gap: 6px; }
 .level .knob { display: grid; grid-template-columns: 28px auto; grid-template-rows: auto auto; column-gap: 6px; width: auto; align-items: center; }
 .level .knob svg { grid-row: 1 / 3; width: 28px; height: 28px; }
@@ -69,43 +25,119 @@ body.app main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1
 .meter i.on { background: var(--ink); }
 .meter i.clip { background: var(--accent); }
 
-/* Switches, then the 12 pads in two rows: record, the layers, P01 and
-   restart above, the slices below. As tall as the switches. */
-.pads { display: flex; gap: 10px; padding: 10px; align-items: flex-end; }
-.pads .group { display: flex; gap: 8px; padding-right: 10px; border-right: 1px solid var(--line); }
-.pads .grid { flex: 1; display: grid; gap: 6px; }
-.pads .pad-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; }
-.pads .pad { height: 37px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
-.pad:disabled { color: var(--dim); opacity: 0.5; cursor: default; }
-.pads .pad .sub { text-transform: none; white-space: nowrap; letter-spacing: 0; }
-#functions .pad .sub { display: none; }
+/* Incoming, what a tap keeps, its length above it. Beside it, a grain. */
+.incoming, .grain { position: relative; padding: 0; overflow: hidden; }
+.incoming { display: flex; flex-direction: column; }
+.incoming canvas { flex: 1; min-height: 0; }
+.incoming canvas, .grain canvas { display: block; width: 100%; height: 100%; }
+.segmented.tap { align-self: flex-end; margin: 8px 14px 0; height: 22px; width: auto; flex: none; }
+.segmented.tap button { min-width: 34px; padding: 0 6px; font-size: 10px; letter-spacing: 0.04em; }
+
+/* The buffer, its status in the corner */
+.view { position: relative; padding: 0; overflow: hidden; }
+.view canvas { display: block; width: 100%; height: 100%; }
+.held { position: absolute; top: 8px; right: 12px; font-variant-numeric: tabular-nums; pointer-events: none; }
+.held.on { color: var(--accent); }
+
+/* The rack: a fader pair in a tile at each edge, as wide as the switch tile
+   below it; the knobs in a tile between, as wide as the pads, selection and
+   grain behind a divider, the six and the divider evenly spaced. A knob above its function on Shift, small; a
+   fader beside its, narrow. */
+:root { --pair: 110px; }
+.rack { display: grid; grid-template-columns: var(--pair) minmax(0, 1fr) var(--pair); gap: 10px; }
+.rack .panel { padding: 10px 0; }
+.rack .knobs { padding: 10px 12px; }
+.knobs .group { display: contents; }
+.knobs .divider { grid-row: 1 / -1; width: 1px; margin: -10px 0; background: var(--line); }
+.rack .edge { display: flex; justify-content: center; gap: 4px; }
+.rack .edge .cell { width: 44px; }
+.rack .edge .cell.twin { width: 44px; }
+.knobs { display: grid; grid-template: auto auto / repeat(2, 58px) 4px repeat(4, 58px); grid-auto-flow: column; justify-content: space-between; justify-items: center; row-gap: 8px; }
+.cell.twin .knob svg { width: 32px; height: 32px; }
+.cell.twin .knob.fader svg { width: 16px; height: auto; }
+.cell.twin .label { color: var(--dim); }
+.knob.free { opacity: 0.35; cursor: default; }
+
+.knob { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 58px; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
+.knob .label, .switch .label { font-size: 10px; line-height: 14px; letter-spacing: 0.04em; white-space: nowrap; }
+.knob svg { width: 44px; height: 44px; }
+.knob .track, .knob .fill { fill: none; stroke-width: 2.5; stroke-linecap: round; }
+.knob .track { stroke: var(--line); }
+.knob .fill { stroke: var(--ink); }
+.knob .tick { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+.knob line.track, .knob line.fill { stroke-width: 2; }
+.cell.twin .knob line.track, .cell.twin .knob line.fill { stroke-width: 1.5; }
+.knob .cap { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.knob.fader svg * { vector-effect: non-scaling-stroke; }
+.knob.dragging { cursor: ns-resize; }
+.knob.fader { height: 100%; width: 100%; }
+.knob.fader svg { flex: 1 1 0; width: 24px; height: auto; min-height: 0; margin: 6px 0; }
+.knob .value { font: 500 11px/16px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
+.knob.focus .label, .knob:focus-visible .label, .switch.focus .label { color: var(--ink); }
+.knob:focus-visible svg { outline: 1.5px solid var(--accent); outline-offset: -2px; border-radius: 50%; }
+.knob.fader:focus-visible svg { outline-offset: 2px; border-radius: 6px; }
+.cell { display: flex; justify-content: center; min-width: 0; }
+
+.switch { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+.switch .segmented { height: 78px; grid-auto-flow: row; grid-auto-rows: 1fr; width: 100%; }
+.switch .segmented button { height: auto; font-size: 10px; letter-spacing: 0.04em; }
+.switch .segmented button + button { border-left: 0; border-top: 1px solid var(--line); }
+
+/* Black keys: the unselected switch's colour, a shade darker in light, where
+   it is too close to white */
+:root { --key-black: var(--bg); }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --key-black: color-mix(in srgb, var(--ink) 10%, var(--bg)); } }
+:root[data-theme="light"] { --key-black: color-mix(in srgb, var(--ink) 10%, var(--bg)); }
+
+/* The keys: the 12 pads as an octave, as tall as a switch and its name, a
+   switch tile each side. White keys the slices, a shade lighter than the
+   tile; black keys, wide enough for their names, the pads that record, hold
+   and restart, a shade darker. Orange only while on. */
+.deck { display: grid; grid-template-columns: var(--pair) minmax(0, 1fr) var(--pair); gap: 10px; }
+.deck .side { display: flex; padding: 10px; }
+.keys-tile { padding: 10px; }
+.keys { position: relative; height: 98px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .pad { display: grid; place-content: center; gap: 2px; width: 100%; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { font-size: 10px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.pad.key { height: 100%; place-content: end center; padding-bottom: 6px; font-size: 12px; letter-spacing: 0.02em; text-transform: uppercase; background: var(--surface); }
+.pad.key .sub { text-transform: none; white-space: nowrap; letter-spacing: 0; }
+.pad.key.black { position: absolute; top: 0; z-index: 1; width: calc((100% - 24px) / 7); height: 52%; padding: 0 0 6px; font-size: 10px; letter-spacing: 0;
+                 background: var(--key-black); border-color: var(--line); box-shadow: 0 2px 4px rgb(0 0 0 / 0.25); }
+.pad.key.black .sub { display: none; }
+.pad.key.free { color: var(--dim); cursor: default; }
 .pad.on .sub { color: inherit; opacity: 0.8; }
-.pad.playing { border-color: var(--ink); }
-.pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
+.pad.playing { border-color: var(--accent); }
+.pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
+.pad.rec.on .num::before { background: #fff; }
+.pad.on, .pad.key.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 
-/* Readout: the control and its value, what it does on the line below */
-.readout { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; height: 40px; margin: 0; padding: 0 2px; font-size: 13px; line-height: 20px; }
+/* Help: the control and its value, what it does on the line below, one
+   line each */
+.readout { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-content: center; height: calc(2 * 20px + 20px); margin: 0; padding: 10px 14px; font-size: 13px; line-height: 20px; }
 .readout .label { color: var(--ink); white-space: nowrap; }
 .readout .value { font: 500 13px/20px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.readout .does { grid-column: 1 / -1; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.readout .does { grid-column: 1 / -1; min-width: 0; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Short or narrow screens: the page scrolls rather than squeezing the controls */
-@media (max-height: 640px), (max-width: 600px) {
+@media (max-height: 760px), (max-width: 600px) {
   body.app { height: auto; min-height: 100dvh; overflow: auto; }
-  body.app main { grid-template-rows: auto auto 200px auto auto auto; }
-  .scope { grid-template-columns: 1fr; grid-auto-rows: 80px; }
+  body.app main { grid-template-rows: auto 112px 220px auto auto auto; }
 }
 @media (max-width: 600px) {
-  .transport { grid-template-columns: 1fr 2fr; }
-  .levels { grid-column: 1 / -1; }
-  .strip { flex-wrap: wrap; row-gap: 12px; }
-  .cluster { flex-basis: 100%; }
-  .cluster + .cluster { border-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
-  .pads { flex-wrap: wrap; }
-  .pads .group { border-right: 0; padding: 0; }
-  .readout { height: auto; }
-  .readout .does { white-space: normal; }
+  body.app main { grid-template-rows: none; grid-auto-rows: auto; }
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .scope { grid-auto-rows: 104px; }
+  .view { height: 200px; }
+  .deck { order: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .keys-tile { grid-column: 1 / -1; order: -1; }
+  .keys { height: 120px; gap: 3px; }
+  .pad.key .sub { display: none; }
+  .pad.key.black { font-size: 0; }
+  .pad.rec .num::before { margin: 0; }
+  .rack { order: 2; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .rack .edge { height: 180px; }
+  .knobs { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(2, 48px) 4px repeat(4, 48px); padding: 10px 8px; }
+  .knob { width: 52px; }
+  .readout { order: 3; }
 }

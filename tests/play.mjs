@@ -38,7 +38,7 @@ const server = createServer((req, res) => {
     res.end();
   }
 }).listen(PREVIEW);
-const browser = spawn(chrome, ["--headless=new", `--remote-debugging-port=${DEBUG}`, "--autoplay-policy=no-user-gesture-required", `--user-data-dir=${mkdtempSync(join(tmpdir(), "clessidra-"))}`, "about:blank"], { stdio: "ignore" });
+const browser = spawn(chrome, ["--headless=new", `--remote-debugging-port=${DEBUG}`, "--autoplay-policy=no-user-gesture-required", "--mute-audio", `--user-data-dir=${mkdtempSync(join(tmpdir(), "clessidra-"))}`, "about:blank"], { stdio: "ignore" });
 
 async function waitFor(url) {
   for (let i = 0; i < 80; i++) {
@@ -86,30 +86,70 @@ try {
   await sleep(1500);
   const held = await run(`document.getElementById("held").textContent`);
   check(/^2\.\d s$/.test(held), "R held 2 s: recorded", held);
-  const values = await run(`[...document.querySelectorAll(".knob .value")].map((v) => v.textContent)`);
+  const values = await run(`[...document.querySelectorAll(".knob:not(.free) .value")].map((v) => v.textContent)`);
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
 
   // Shift tapped: latched, Size turns its randomness. Tapped again: off.
-  // FX held past the latch time: off on release.
-  const pad = (name, down) => run(`document.querySelector('#functions .pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
+  // Held past the latch time: off on release. Latched, Rec listens.
+  const pad = (name, down) => run(`document.querySelector('#keys .pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
   const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
   const layer = () => run(`document.body.className`);
   const size = await value("Size");
   await pad("Shift", true);
   await pad("Shift", false);
   check((await layer()).includes("layer-shift"), "Shift tapped: latched", await layer());
-  await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Size"); for (let i = 0; i < 30; i++) k.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" })); })()`);
+  await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Size Random"); for (let i = 0; i < 30; i++) k.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" })); })()`);
   await sleep(300);
   const random = await value("Size Random");
-  check(random !== "Off" && (await value("Size")) === random, "Shift latched: Size turns its randomness", random);
+  check(random !== "Off" && (await value("Size")) === size, "Shift latched: Size Random turns, Size stays", random);
+  await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Size"); for (let i = 0; i < 20; i++) k.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" })); })()`);
+  await sleep(300);
+  const turned = await value("Size");
+  check(turned !== size && (await value("Size Random")) === random, "Shift latched: Size still turns Size, Size Random stays", turned);
+  await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Size"); for (let i = 0; i < 20; i++) k.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" })); })()`);
+  await sleep(300);
   await pad("Shift", true);
   await pad("Shift", false);
   await sleep(300);
   check(!(await layer()).includes("layer-shift") && (await value("Size")) === size, "Shift tapped again: off, Size as it was", await value("Size"));
-  await pad("FX", true);
+  await pad("Shift", true);
   await sleep(500);
-  await pad("FX", false);
-  check(!(await layer()).includes("layer-fx"), "FX held: off on release", await layer());
+  await pad("Shift", false);
+  check(!(await layer()).includes("layer-shift"), "Shift held: off on release", await layer());
+  await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }))`);
+  const shiftAlone = await layer();
+  await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "Shift" }))`);
+  check(!shiftAlone.includes("layer-shift"), "⇧ alone: nothing, the system keeps it", shiftAlone);
+  const before = await run(`document.getElementById("held").textContent`);
+  await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "R", shiftKey: true }))`);
+  await sleep(400);
+  const keyListen = await run(`document.getElementById("held").textContent`);
+  await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "r" }))`);
+  await sleep(300);
+  check(keyListen === "Listen" && !(await layer()).includes("layer-shift") && (await run(`document.getElementById("held").textContent`)) === before, "⇧R: listens, nothing recorded, Shift off after", keyListen);
+
+  await pad("Shift", true);
+  await pad("Shift", false);
+  await pad("Record", true);
+  await sleep(500);
+  const listen = await run(`document.getElementById("held").textContent`);
+  await pad("Record", false);
+  await sleep(1500);
+  check(listen === "Listen" && (await run(`document.getElementById("held").textContent`)) === held, "Shift + Rec: listens, nothing recorded", listen);
+  await pad("Shift", true);
+  await pad("Shift", false);
+
+  // A tap keeps the seconds set over the input
+  await run(`[...document.querySelectorAll("#tap button")].find((b) => b.textContent === "4 s").click()`);
+  await pad("Record", true);
+  await sleep(100);
+  await pad("Record", false);
+  await sleep(1500);
+  const tapped = await run(`document.getElementById("held").textContent`);
+  check(tapped === "4.0 s", "4 s set, Rec tapped: the last 4 s", tapped);
+  await run(`document.querySelector('#keys .pad[aria-label="Free"]').dispatchEvent(new PointerEvent("pointerenter"))`);
+  const free = await run(`document.getElementById("readout-does").textContent`);
+  check(free === "No function yet.", "P01 pointed at: the help says it is free", free);
   check(errors.length === 0, "no errors", errors.join(" | "));
   ws.close();
 } catch (err) {

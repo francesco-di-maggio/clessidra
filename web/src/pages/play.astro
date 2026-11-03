@@ -5,20 +5,23 @@ import "../styles/play.css";
 <Base title="Play" app description="Clessidra in the browser: the firmware as WebAssembly.">
   <span slot="end" class="label led">LED <span id="led" class="dot"></span></span>
 
-  <div class="transport">
-    <button id="start" class="control primary" type="button">Start</button>
-    <div id="input" class="segmented" role="group" aria-label="Input">
-      <button type="button" data-input="demo" aria-pressed="true">Demo</button>
-      <button type="button" data-input="mic" aria-pressed="false">Mic</button>
-      <button type="button" data-input="file" aria-pressed="false">File</button>
+  <div class="split">
+    <div class="transport">
+      <button id="start" class="control primary" type="button">Start</button>
+      <div id="input" class="segmented" role="group" aria-label="Input">
+        <button type="button" data-input="demo" aria-pressed="true">Demo</button>
+        <button type="button" data-input="mic" aria-pressed="false">Mic</button>
+        <button type="button" data-input="file" aria-pressed="false">File</button>
+      </div>
+      <input id="file" type="file" accept="audio/*" hidden>
     </div>
-    <div id="levels" class="levels"></div>
-    <input id="file" type="file" accept="audio/*" hidden>
+    <section id="levels" class="panel levels" aria-label="Input and output level, browser only"></section>
   </div>
 
-  <div class="scope">
-    <section class="panel incoming" aria-label="Incoming, the last 8 s">
-      <canvas id="incoming" role="img" aria-label="The input over the last 8 seconds"></canvas>
+  <div class="split scope">
+    <section class="panel incoming" aria-label="Incoming: what a tap keeps">
+      <div id="tap" class="segmented tap" role="radiogroup" aria-label="A tap keeps"></div>
+      <canvas id="incoming" role="img" aria-label="The input over the seconds a tap keeps"></canvas>
     </section>
     <section class="panel grain" aria-label="A grain">
       <canvas id="grain-view" role="img" aria-label="A grain's window at its size, and the range randomness reaches"></canvas>
@@ -30,21 +33,19 @@ import "../styles/play.css";
     <canvas id="buffer" role="img" aria-label="The recording: the selection, the playhead, the slices and the grains"></canvas>
   </section>
 
-  <section class="panel strip" aria-label="Controls in signal order, each randomness below its knob">
-    <div class="cluster"><span class="head">Playhead</span><div id="playhead" class="body"></div></div>
-    <div class="cluster"><span class="head">Grain</span><div id="grain" class="body"></div></div>
-    <div class="cluster"><span class="head">FX</span><div id="fx" class="body"></div></div>
-    <div class="cluster"><span class="head">Mix</span><div id="mix" class="body"></div></div>
-  </section>
-  <section class="panel pads" aria-label="Switches and the 12 pads">
-    <div id="switches" class="group" aria-label="Switches"></div>
-    <div class="grid">
-      <div id="functions" class="pad-row" aria-label="Record, layers and restart"></div>
-      <div id="slices" class="pad-row" aria-label="Slices"></div>
-    </div>
-  </section>
+  <div class="rack" aria-label="Faders and knobs, each function on Shift small below or beside">
+    <section id="speed" class="panel edge"></section>
+    <section class="panel knobs"><div id="selection" class="group"></div><i class="divider"></i><div id="grain" class="group"></div></section>
+    <section id="filter" class="panel edge"></section>
+  </div>
 
-  <p class="readout" aria-live="polite"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span><span id="readout-does" class="does"></span></p>
+  <div class="deck" aria-label="The switches and the 12 pads">
+    <section id="direction" class="panel side"></section>
+    <section class="panel keys-tile"><div id="keys" class="keys"></div></section>
+    <section id="trigger" class="panel side"></section>
+  </div>
+
+  <p class="panel readout" aria-live="polite"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span><span id="readout-does" class="does"></span></p>
 </Base>
 
 <script>

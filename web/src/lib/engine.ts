@@ -7,13 +7,17 @@ export const NUM_SLICES = 7; // onsets.h kNumSlices
 export const MAX_RECORD_S = 30; // config.h kBufferSeconds
 export const RECORD_PAD = 10; // CoreUI::kRecordPad
 export const SHIFT_PAD = 11; // CoreUI::kShiftPad
-export const FX_PAD = 0; // CoreUI::kFxPad
-export const LAYER = { shift: 1, fx: 2 } as const; // CoreUI::Layer
+export const LAYER = { shift: 1 } as const; // CoreUI::Layer
 export const RESTART_PAD = 2; // CoreUI::kRestartPad
+export const MUTE_PAD = 0; // CoreUI::kMutePad
 export const SLICE_PADS = [3, 4, 8, 5, 6, 9, 7]; // CoreUI::kSlicePads
-// The incoming strip: the last seconds a tap keeps (Core::kTapCaptureSeconds)
-export const INCOMING_SECONDS = 8;
-export const INCOMING_COLUMNS = 320;
+// What a tap keeps, seconds: the board's (Core::kTapCaptureSeconds), and the
+// others the browser tries
+export const TAP_SECONDS = [2, 4, 8, 16];
+export const TAP_DEFAULT = 8;
+// The incoming strip: the input over the longest of them
+export const INCOMING_SECONDS = 16;
+export const INCOMING_COLUMNS = 1280;
 
 // cl_view, in samples of the recording
 export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, edges: 4, triggers: 4 + NUM_SLICES + 1 } as const;
@@ -35,6 +39,7 @@ export interface Exports {
   cl_switch(which: number, position: number): void;
   cl_pad(pad: number, touched: number, pressure: number): void;
   cl_layer(layer: number, knob: number, value: number): void;
+  cl_tap_seconds(seconds: number): void;
   cl_led(nowMs: number): number;
   cl_peaks(): number;
   cl_columns(): number;
@@ -62,6 +67,7 @@ export interface Frame {
 export type Control =
   | { type: "knob"; index: number; value: number }
   | { type: "layer"; layer: number; index: number; value: number }
+  | { type: "tap"; index: -1; seconds: number }
   | { type: "switch"; index: number; position: number }
   | { type: "pad"; index: number; touched: boolean; pressure: number };
 

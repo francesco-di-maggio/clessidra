@@ -7,9 +7,9 @@ import TouchPanel from "../components/TouchPanel.astro";
 import { CONTROLS, LED } from "../lib/controls";
 
 const KNOBS = ["S36", "S37", "S30", "S35", "S31", "S32", "S33", "S34"];
-const LAYERS = ["", "P11+", "P00+"];
+const LAYERS = ["", "P11+"];
 const byId = (id: string) => CONTROLS.find((c) => c.id === id);
-const OTHERS = ["P10", "P11", "P00", "P02", "P03", "S09", "S07"];
+const OTHERS = ["P10", "P11", "P02", "P03", "S09", "S07"];
 ---
 <!doctype html>
 <html lang="en" data-theme="light">
@@ -57,7 +57,7 @@ const OTHERS = ["P10", "P11", "P00", "P02", "P03", "S09", "S07"];
   </div>
   <div class="board"><TouchPanel /></div>
   <div class="box">
-    <p>Three layers: own, P11 (Shift) held for each knob's randomness, P00 held for FX.</p>
+    <p>Two layers: own, and P11 (Shift) held for each knob's randomness and the reverb.</p>
     <p>Pick-up: a knob takes over a value once it reaches it.</p>
     <p>Randomness: off at the centre, up even, down a long tail.</p>
   </div>
@@ -66,7 +66,7 @@ const OTHERS = ["P10", "P11", "P00", "P02", "P03", "S09", "S07"];
 <section class="page"><div class="frame">
   <h2>Layers</h2>
   <table>
-    <thead><tr><th>Control</th><th>Own</th><th>P11 Shift</th><th>P00 FX</th></tr></thead>
+    <thead><tr><th>Control</th><th>Own</th><th>P11 Shift</th></tr></thead>
     <tbody>
       {KNOBS.map((k) => <tr><td>{k}</td>{LAYERS.map((l) => { const c = byId(l + k); return <td class={c ? "" : "free"}>{c?.name ?? "–"}</td>; })}</tr>)}
     </tbody>

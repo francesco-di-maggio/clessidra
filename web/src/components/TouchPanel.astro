@@ -1,7 +1,7 @@
 ---
 // The Simple Touch panel as a drawing: every control where it sits on the
 // board, at its starting value, with its name. A fader or knob carries its name
-// on each layer (l0 own, l1 P11, l2 P00): data-layer on the drawing shows one.
+// on each layer (l0 own, l1 P11): data-layer on the drawing shows one.
 // Built once, no script.
 import { CONTROLS, POSITION } from "../lib/controls";
 
@@ -22,7 +22,7 @@ function arc(cx: number, cy: number, r: number, from: number, to: number) {
 const knobDeg = (v: number) => -SWEEP / 2 + v * SWEEP;
 const faderY = (v: number) => FADER.bottom - v * (FADER.bottom - FADER.top);
 const leverY = (p: number) => (p === POSITION.up ? -26 : p === POSITION.down ? 8 : -9);
-const LAYERS = ["", "P11+", "P00+"];
+const LAYERS = ["", "P11+"];
 // The knob's function on each layer, if it has one
 const onLayers = (id: string) => LAYERS.map((l, i) => (i === 0 ? CONTROLS.find((c) => c.id === id) : CONTROLS.find((c) => c.id === l + id)));
 const none = (id: string) => onLayers(id).map((c, i) => (c ? "" : ` no${i}`)).join("");

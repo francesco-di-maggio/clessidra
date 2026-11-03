@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { FX_PAD, LAYER, PARAM, RATE, RECORD_PAD, RESTART_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
+import { LAYER, MUTE_PAD, PARAM, RATE, RECORD_PAD, RESTART_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -54,9 +54,14 @@ export const CONTROLS: Control[] = [
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
   },
   {
-    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Dry/Wet", initial: 0.5,
-    does: "Input and grains, equal power. 0 % dry, 100 % wet.",
-    value: (p) => percent(p[PARAM.mix]),
+    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Filter", initial: 0.5, bipolar: true, detent: true,
+    does: "Low-pass down, 20 kHz to 200 Hz. Off at the centre. High-pass up, to 2 kHz.",
+    value: (p) => {
+      const t = p[PARAM.filter];
+      if (t === 0) return "Off";
+      const hz = t < 0 ? 20000 * (200 / 20000) ** -t : 20 * (2000 / 20) ** t;
+      return `${t < 0 ? "LP" : "HP"} ${hz < 1000 ? Math.round(hz) : (hz / 1000).toFixed(1) + "k"}`;
+    },
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
@@ -93,8 +98,8 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
-    does: "Tap: the last 8 s. Hold: until release, up to 30 s.",
-    value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
+    does: "Tap: the last seconds, as set. Hold: up to 30 s. With Shift: listen, firmer for more.",
+    value: (p, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : p[PARAM.mix] < 1 ? `Listen ${percent(1 - p[PARAM.mix])}` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Direction", initial: POSITION.up,
@@ -119,34 +124,26 @@ export const CONTROLS: Control[] = [
     does: `${of} randomness ${per}. Off at the centre, up even, down a long tail.`,
     value: (p) => random(p[param]),
   })),
-  // P00 held: the FX, in the order the sound goes through them
   {
-    id: "P00+S31", type: "knob", index: 1, x: 0, y: 0, name: "Filter", initial: 0.5, bipolar: true, layer: LAYER.fx, board: "P00 + S31",
-    does: "Low-pass left, 20 kHz to 200 Hz. Off at the centre. High-pass right, to 2 kHz.",
-    value: (p) => {
-      const t = p[PARAM.filter];
-      if (t === 0) return "Off";
-      const hz = t < 0 ? 20000 * (200 / 20000) ** -t : 20 * (2000 / 20) ** t;
-      return `${t < 0 ? "LP" : "HP"} ${hz < 1000 ? Math.round(hz) : (hz / 1000).toFixed(1) + "k"}`;
-    },
-  },
-  {
-    id: "P00+S32", type: "knob", index: 2, x: 0, y: 0, name: "Reverb", initial: 0.25, layer: LAYER.fx, board: "P00 + S32",
+    id: "P11+S37", type: "fader", index: 7, x: 0, y: 0, name: "Reverb", initial: 0.25, layer: LAYER.shift, board: "P11 + S37",
     does: "Reverb on the grains. Amount and decay, 0.5 to 16 s.",
     value: (p) => percent(p[PARAM.reverb]),
   },
-  { id: "P11", type: "pad", index: SHIFT_PAD, ...padAt(SHIFT_PAD), name: "Shift", does: "Held: the knobs set their randomness." },
-  { id: "P00", type: "pad", index: FX_PAD, ...padAt(FX_PAD), name: "FX", does: "Held: S31 filter, S32 reverb. Over Shift." },
+  { id: "P11", type: "pad", index: SHIFT_PAD, ...padAt(SHIFT_PAD), name: "Shift", does: "Held: the knobs set their randomness, S37 the reverb. With Rec: listen." },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Trigger", initial: POSITION.up,
     does: "Slice pads: up once to the end, centre while held, down looped while held.",
     value: () => "",
   },
   {
-    id: "P02", type: "pad", index: RESTART_PAD, ...padAt(RESTART_PAD), name: "Restart",
+    id: "P02", type: "pad", index: RESTART_PAD, ...padAt(RESTART_PAD), name: "Retrig",
     does: "Playhead to the selection start.",
   },
-  ...[1].map((pad): Control => ({ id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: "Free", free: true })),
+  {
+    id: "P00", type: "pad", index: MUTE_PAD, ...padAt(MUTE_PAD), name: "Mute",
+    does: "Held: the grains silent, the reverb rings on.",
+  },
+  { id: "P01", type: "pad", index: 1, ...padAt(1), name: "Free", does: "No function yet.", free: true },
 ];
 
 export const byId = (id: string) => CONTROLS.find((c) => c.id === id)!;
@@ -156,7 +153,7 @@ export const LED: [string, string][] = [
   ["Glow", "Grains playing"],
   ["Flashing", "Recording"],
   ["Pulse", "At a centre: pitch unison, speed 1×, size 200 ms"],
-  ["Steady", "P11 or P00 held: the value of the knob last turned"],
+  ["Steady", "P11 held: the value of the knob last turned"],
 ];
 
 // Browser only: the level into the firmware and out of it. The board has its

@@ -38,13 +38,12 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 .touch .jack { fill: none; stroke: var(--dim); stroke-width: 2; }
 /* Layers: one name per fader or knob shown, those with nothing on it dimmed,
    the layer's pad lit */
-.touch .name.l1, .touch .name.l2 { display: none; }
-.touch[data-layer="1"] .name.l0, .touch[data-layer="2"] .name.l0 { display: none; }
-.touch[data-layer="1"] .name.l1, .touch[data-layer="2"] .name.l2 { display: inline; }
-.touch[data-layer="1"] .no1, .touch[data-layer="2"] .no2 { opacity: 0.25; }
-.touch[data-layer="1"] [data-id="P11"] circle.pad, .touch[data-layer="2"] [data-id="P00"] circle.pad { fill: var(--accent); stroke: var(--accent); }
-.touch[data-layer="1"] [data-id="P11"] text, .touch[data-layer="2"] [data-id="P00"] text { fill: #fff; }
-
+.touch .name.l1 { display: none; }
+.touch[data-layer="1"] .name.l0 { display: none; }
+.touch[data-layer="1"] .name.l1 { display: inline; }
+.touch[data-layer="1"] .no1 { opacity: 0.25; }
+.touch[data-layer="1"] [data-id="P11"] circle.pad { fill: var(--accent); stroke: var(--accent); }
+.touch[data-layer="1"] [data-id="P11"] text { fill: #fff; }
 
 @media print {
   header, nav, footer, .noprint { display: none !important; }

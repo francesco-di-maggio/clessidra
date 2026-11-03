@@ -14,8 +14,6 @@ export interface Widget {
   root: HTMLElement;
   draw: (value: number) => void;
   value?: (text: string) => void;
-  // A knob shown as another control: its label and drawing, a layer's
-  as?: (shown: Control) => void;
 }
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -48,19 +46,18 @@ function arc(from: number, to: number) {
   return `M${x0} ${y0}A${R} ${R} 0 ${to - from > 180 ? 1 : 0} 1 ${x1} ${y1}`;
 }
 
-// A knob: label, dial, value. Drag up and down (Shift: fine), arrows, double
+// A knob: label, dial, value. Drag up and down (Option: fine), arrows, double
 // click for the starting value. Bipolar knobs fill from their centre. A fader
 // on the board is drawn as one.
 export function knob(c: Control, parent: Element, h: Handlers): Widget {
   const root = html("div", { class: c.type === "fader" ? "knob fader" : "knob", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
   const label = html("span", { class: "label" }, root);
   label.textContent = c.short ?? c.name;
-  const dial = svg("svg", { viewBox: c.type === "fader" ? `0 0 24 ${FADER.height}` : "0 0 56 56", "aria-hidden": "true" }, root);
+  const dial = svg("svg", c.type === "fader" ? { viewBox: `0 0 24 ${FADER.height}`, preserveAspectRatio: "none", "aria-hidden": "true" } : { viewBox: "0 0 56 56", "aria-hidden": "true" }, root);
   const value = html("span", { class: "value" }, root);
   value.textContent = "–";
   let v = c.initial ?? 0;
-  const look = { ...c };
-  const draw = c.type === "fader" ? faderDrawing(look, dial) : dialDrawing(look, dial);
+  const draw = c.type === "fader" ? faderDrawing(c, dial) : dialDrawing(c, dial);
 
   let drag: { y: number; v: number } | null = null;
   root.addEventListener("pointerdown", (e) => {
@@ -71,7 +68,7 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
     drag = { y: e.clientY, v };
   });
   root.addEventListener("pointermove", (e) => {
-    if (drag) h.onInput(c, clamp(drag.v + ((drag.y - e.clientY) / 180) * (e.shiftKey ? 0.2 : 1)));
+    if (drag) h.onInput(c, clamp(drag.v + ((drag.y - e.clientY) / 180) * (e.altKey ? 0.2 : 1)));
   });
   const release = () => {
     drag = null;
@@ -94,15 +91,11 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
     root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
   };
   show(v);
-  const as = (shown: Control) => {
-    look.bipolar = shown.bipolar;
-    label.textContent = shown.short ?? shown.name;
-  };
-  return { c, root, draw: show, value: (text) => (value.textContent = text), as };
+  return { c, root, draw: show, value: (text) => (value.textContent = text) };
 }
 
-// A fader, as tall as a knob and its second layer: its slot, filled from the
-// bottom or, bipolar, the centre, and a cap. A stop at the centre marked.
+// A fader: its slot, filled from the bottom or, bipolar, the centre, and a
+// cap. A stop at the centre marked. It stretches to the height it is given.
 const FADER = { height: 112, top: 6, bottom: 106 };
 function faderDrawing(c: Control, dial: SVGSVGElement) {
   const mid = (FADER.top + FADER.bottom) / 2;
@@ -112,8 +105,7 @@ function faderDrawing(c: Control, dial: SVGSVGElement) {
   const cap = svg("rect", { class: "cap", x: 2, width: 20, height: 7, rx: 2 }, dial);
   return (x: number) => {
     const y = FADER.bottom - x * (FADER.bottom - FADER.top);
-    const from = c.bipolar ? mid : FADER.bottom;
-    fill.setAttribute("y1", String(from));
+    fill.setAttribute("y1", String(c.bipolar ? mid : FADER.bottom));
     fill.setAttribute("y2", String(y));
     cap.setAttribute("y", String(y - 3.5));
   };

@@ -1,8 +1,7 @@
-// The incoming strip: the input over the last seconds, newest at the right, as
-// dots, its scale below. What a tap on Rec keeps; the part being recorded in
-// orange.
+// The incoming strip: the input over the seconds a tap on Rec keeps, newest at
+// the right, as dots, its scale below. The part being recorded in orange.
 
-import { INCOMING_SECONDS } from "./engine";
+import { INCOMING_SECONDS, TAP_DEFAULT } from "./engine";
 
 const DOT = 4; // the grid, px
 
@@ -10,6 +9,7 @@ export class Incoming {
   private ctx: CanvasRenderingContext2D;
   private peaks: Float32Array = new Float32Array(0);
   recording = 0; // seconds held, 0 when not recording
+  seconds = TAP_DEFAULT; // shown, the newest of the INCOMING_SECONDS held
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
@@ -43,13 +43,15 @@ export class Incoming {
     const bottom = axis - 12;
     const rows = Math.floor((bottom - top) / 2 / DOT);
     const mid = (top + bottom) / 2;
-    const held = Math.min(this.recording / INCOMING_SECONDS, 1); // share of the strip, from the right
+    const held = Math.min(this.recording / this.seconds, 1); // share of the strip, from the right
+    const from = this.peaks.length * (1 - this.seconds / INCOMING_SECONDS);
+    const span = this.peaks.length - from;
     const quiet = new Path2D();
     const loud = new Path2D();
     const rec = new Path2D();
     for (let k = 0; k < cols; k++) {
-      const i0 = Math.floor((k / cols) * this.peaks.length);
-      const i1 = Math.max(i0 + 1, Math.floor(((k + 1) / cols) * this.peaks.length));
+      const i0 = Math.floor(from + (k / cols) * span);
+      const i1 = Math.max(i0 + 1, Math.floor(from + ((k + 1) / cols) * span));
       let peak = 0;
       for (let i = i0; i < i1 && i < this.peaks.length; i++) peak = Math.max(peak, this.peaks[i]);
       const n = Math.round(Math.min(1, peak) * rows);
@@ -68,8 +70,8 @@ export class Incoming {
     ctx.beginPath();
     ctx.moveTo(pad, axis - 7.5);
     ctx.lineTo(W - pad, axis - 7.5);
-    for (let s = 0; s <= INCOMING_SECONDS; s++) {
-      const x = Math.round(pad + (s / INCOMING_SECONDS) * width) + 0.5;
+    for (let s = 0; s <= this.seconds; s++) {
+      const x = Math.round(pad + (s / this.seconds) * width) + 0.5;
       ctx.moveTo(x, axis - 7.5);
       ctx.lineTo(x, axis - 3.5);
     }
@@ -78,7 +80,7 @@ export class Incoming {
     ctx.textBaseline = "middle";
     ctx.fillStyle = css.getPropertyValue("--dim");
     ctx.textAlign = "left";
-    ctx.fillText(`−${INCOMING_SECONDS} s`, pad, axis + 3);
+    ctx.fillText(`−${this.seconds} s`, pad, axis + 3);
     ctx.textAlign = "right";
     ctx.fillText("now", W - pad, axis + 3);
   }
