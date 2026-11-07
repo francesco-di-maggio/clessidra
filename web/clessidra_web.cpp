@@ -38,9 +38,8 @@ enum View : size_t
     kSelectionStart,
     kSelectionLength,
     kPlayhead,
-    kDropped,  // grains dropped so far, all voices sounding
-    kGestures, // each gesture's depth, 0..1
-    kNumView = kGestures + CoreUI::kNumGestures
+    kDropped, // grains dropped so far, all voices sounding
+    kNumView
 };
 float view[kNumView];
 
@@ -73,7 +72,6 @@ enum Param : size_t
     kMaxGrainMs,
     kSpread,
     kSandLeft,
-    kSand,
     kNumParams
 };
 float params[kNumParams];
@@ -124,10 +122,8 @@ EXPORT void cl_process(int size, uint32_t now_ms)
     float*       out[2] = {out_l, out_r};
     core.Process(in, out, std::min(size_t(size), kMaxBlock));
 
-    // A new sound, or the sand worn or live: drawn again
-    if(core.Recordings() != recordings
-       || (peaks_done == kColumns
-           && core.CurrentParams().sand != Core::Sand::Hold))
+    // A new sound: drawn again
+    if(core.Recordings() != recordings)
     {
         recordings = core.Recordings();
         peaks_done = 0;
@@ -193,8 +189,6 @@ EXPORT const float* cl_view()
     const double playhead = sel_start + core.PlayheadPhase() * sel_length;
     view[kPlayhead] = float(sound > 0.0 ? std::fmod(playhead, sound) : 0.0);
     view[kDropped]  = float(core.Dropped());
-    for(size_t g = 0; g < CoreUI::kNumGestures; g++)
-        view[kGestures + g] = ui.Depth(CoreUI::Gesture(g));
     return view;
 }
 
@@ -249,6 +243,5 @@ EXPORT const float* cl_params()
     params[kMaxGrainMs]   = p.max_grain_ms;
     params[kSpread]       = p.spread;
     params[kSandLeft]     = core.SandLeft();
-    params[kSand]         = float(int(p.sand));
     return params;
 }

@@ -17,7 +17,6 @@ void Core::Init(float        sample_rate,
     for(size_t i = 0; i < kNumBuffers; i++)
         buffers_[i].Init(buffers[i], buffer_size, sample_rate);
     dc_block_.Init(sample_rate);
-    wear_block_.Init(sample_rate);
     reverb_.Init(sample_rate);
     reverb_.SetLpFreq(kReverbLowpassHz);
     limiter_.Init(sample_rate);
@@ -61,9 +60,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const bool     seed     = seeds != seeds_done_ && len > 0.0;
     seeds_done_             = seeds;
 
-    // Where the playhead is, in samples of the recording, for the write head
     const size_t block = std::min(size, kMaxBlock);
-    size_t       at[kMaxBlock];
 
     // Grain starts in this block, at the sample they fall on. A voice that ends
     // in this block is free from the next.
@@ -73,12 +70,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
         // but a seed.
         playhead_.Advance(play_inc, p.end);
         const double phase = playhead_.Phase();
-        if(i < block)
-        {
-            const double here = sel_start + phase * sel_len;
-            at[i]             = size_t(here - len * std::floor(here / len));
-        }
-        const bool due
+        const bool   due
             = !playhead_.Ended()
               && Due(schedule_, density / sample_rate_, p.rand_density);
         if(due || (seed && i == 0))
@@ -100,16 +92,14 @@ void Core::Process(const float* const* in, float** out, size_t size)
 
     // Each grain through the block, into the mix and, by its send, the
     // reverb: its state stays in registers
-    float send_l[kMaxBlock], send_r[kMaxBlock], cover[kMaxBlock];
+    float send_l[kMaxBlock], send_r[kMaxBlock];
     std::fill(out[0], out[0] + size, 0.0f);
     std::fill(out[1], out[1] + size, 0.0f);
     std::fill(send_l, send_l + block, 0.0f);
     std::fill(send_r, send_r + block, 0.0f);
-    std::fill(cover, cover + block, 0.0f);
     Grain::Sums sums;
     for(auto& grain : grains_)
-        grain.Render(
-            grain_inc, out[0], out[1], send_l, send_r, cover, block, sums);
+        grain.Render(grain_inc, out[0], out[1], send_l, send_r, block, sums);
     float power_sum = 0.0f;
     for(size_t i = 0; i < block; i++)
         power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
@@ -163,12 +153,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float wet       = mix <= 0.0f ? 0.0f : std::sin(mix_angle);
     const float dry_step  = (dry - dry_gain_) / n;
     const float wet_step  = (wet - wet_gain_) / n;
-    // The write head at the playhead, while it moves through sand
-    const bool writing
-        = p.sand != Sand::Hold && !p.freeze && len > 0.0 && !playhead_.Ended();
-    float* const sand       = sound.Data();
-    float        sand_power = 0.0f; // what Wear replaces, and what it writes
-    float        fell_power = 0.0f;
     for(size_t i = 0; i < block; i++)
     {
         reverb_dry_ += reverb_dry_step;
@@ -199,29 +183,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
         const float mono = dc_block_.Process(kInputSum * (in_l + in_r));
         ring_.Write(mono);
 
-        // Into the sand at the playhead: the input, or the grains as they fall
-        // where they sound, at the sand's level: the headroom and the pan's
-        // -3 dB undone
-        if(writing)
-        {
-            float& grain_sand = sand[at[i]];
-            if(p.sand == Sand::Live)
-                grain_sand = mono;
-            else
-            {
-                const float grains
-                    = wear_block_.Process(0.7071f * (l + r)) * wear_gain_;
-                const float weight
-                    = kWearAmount * std::min(cover[i], 1.0f) * mute_gain_;
-                sand_power += weight * grain_sand * grain_sand;
-                fell_power += weight * grains * grains;
-                // Equal power: the grains differ from what they replace
-                const float angle = HALFPI_F * weight;
-                grain_sand        = std::cos(angle) * grain_sand
-                             + std::sin(angle) * std::tanh(grains);
-            }
-        }
-
         out[0][i] = l * reverb_dry_ + reverb_l * reverb_wet_;
         out[1][i] = r * reverb_dry_ + reverb_r * reverb_wet_;
         dry_gain_ += dry_step;
@@ -235,20 +196,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
     }
     for(size_t i = block; i < size; i++)
         out[0][i] = out[1][i] = 0.0f;
-    // Wear at the sand's level: the gain that brings what falls to what it
-    // replaces
-    if(fell_power > 1e-9f && sand_power > 1e-9f)
-    {
-        const float target
-            = std::clamp(wear_gain_ * std::sqrt(sand_power / fell_power),
-                         kWearGainMin,
-                         kWearGainMax);
-        daisysp::fonepole(
-            wear_gain_,
-            target,
-            std::min(1.0f, n / (kWearLevelSeconds * sample_rate_)));
-    }
-
     UpdateCapture(size);
 }
 
@@ -376,14 +323,18 @@ void Core::StartGrain(const Params& p,
         latch.buffer = poured_from_;
         to_read      = double(poured_from_->Length()) / double(sound->Length());
     }
-    // Each as Beads, over its range: position inside what is playing, size
-    // between the knob's ends, exponential, any shape, pitch either way. Level
-    // and reverb send as Giri's cloud.
-    const double phase
-        = p.rand_pos != 0.0f
-              ? source.phase
-                    + Blend(p.rand_pos) * (0.5 + 0.5 * Random() - source.phase)
-              : source.phase;
+    // Each over its range: position inside what is playing, size between the
+    // knob's ends, exponential, any shape, pitch either way. Position up: even
+    // within the amount around the playhead, as Giri's cloud, round the
+    // selection. Level and reverb send as Giri's cloud.
+    double phase = source.phase;
+    if(p.rand_pos > 0.0f)
+    {
+        phase += 0.5 * std::min(p.rand_pos, 1.0f) * Random();
+        phase -= std::floor(phase);
+    }
+    else if(p.rand_pos < 0.0f)
+        phase += Blend(p.rand_pos) * (0.5 + 0.5 * Random() - phase);
     latch.position = (source.start + phase * source.length) * to_read;
     if(p.rand_size != 0.0f && p.max_grain_ms > p.min_grain_ms)
     {

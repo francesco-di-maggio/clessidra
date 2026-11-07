@@ -2,14 +2,14 @@
 // is what is left of the selection, the pile below what has run. The neck
 // opens with Density. Each falling dot is a grain sounding: its height its
 // progress, its drift its pan, its brightness its window, its size the grain
-// size. Speed held: the glass on its side. Reverse: upside down. A flip turns
-// it over. All voices busy, the neck clogs: grains wait above it.
+// size. Speed held: the glass on its side. Reverse: upside down. All voices
+// busy, the neck clogs: grains wait above it.
 
 import { GRAIN_FIELDS, PARAM, VIEW, type Frame } from "./engine";
 import { windowAt } from "./waveform";
 
 const DOT = 4; // the sand's grid, px
-const MAX_DENSITY = 130.81278; // Core::kMaxDensity
+const MAX_OVERLAP = 16; // CoreUI::kMaxOverlap
 
 interface Colours {
   ink: string;
@@ -86,8 +86,8 @@ export class Hourglass {
     ctx.translate(W / 2, top + room / 2);
     ctx.rotate((this.angle * Math.PI) / 180);
 
-    const density = p ? p[PARAM.density] : 0;
-    const open = density > 0 ? Math.log(1 + density) / Math.log(1 + MAX_DENSITY) : 0;
+    const overlap = p ? (p[PARAM.density] * p[PARAM.grainMsSet]) / 1000 : 0;
+    const open = overlap > 0 ? Math.log(1 + overlap) / Math.log(1 + MAX_OVERLAP) : 0;
     const neck = Math.max(DOT / 2, open * w * 0.16);
     const glass = outline(w, h, neck);
 

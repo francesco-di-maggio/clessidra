@@ -23,8 +23,9 @@ class Core
     Core(const Core&) = delete;
     Core& operator=(const Core&) = delete;
 
-    // grains per second, Beads' kMaxGrainFrequency
-    static constexpr float kMaxDensity = 130.81278f;
+    // grains per second: a start every 8 samples at 48 kHz, more than the
+    // voices hold at the shortest size
+    static constexpr float kMaxDensity = 6000.0f;
     static constexpr float kMinLength
         = 0.01f; // of the sound: the shortest selection
     // Voices. All sounding, a new grain is dropped and counted, as Giri's cloud
@@ -75,23 +76,7 @@ class Core
     static constexpr size_t kCopyPerSample = 21; // × real time: 30 s in 1.4 s
     // ring written on during the copy
     static constexpr float kCopyMarginSeconds = 0.5f;
-    // The sand at the playhead, as it moves. Hold: untouched. Wear: where
-    // grains sound, they fall back into it at its level, high-passed and
-    // soft-clipped, up to kWearAmount of each sample replaced per pass; where
-    // none sound it stays. Live: the input replaces it.
-    enum class Sand
-    {
-        Hold,
-        Wear,
-        Live
-    };
-    static constexpr float kWearAmount = 0.3f;
-    // Wear's gain from the grains to the sand, measured: the level of the sand
-    // it replaces over the level it writes, smoothed, within these
-    static constexpr float kWearLevelSeconds = 0.5f;
-    static constexpr float kWearGainMin      = 0.25f;
-    static constexpr float kWearGainMax      = 4.0f;
-    // the longest block the write head follows
+    // the longest block the reverb sends hold
     static constexpr size_t kMaxBlock = 256;
 
     struct Params
@@ -115,9 +100,10 @@ class Core
         float window_shape = 0.5f;
         // Randomness of each grain, as Beads' attenuverters, -1..1: 0 none.
         // Above 0, each grain moved by the amount towards a random value: an
-        // even spread. Below, by a random part of three times it: mostly near,
-        // a long tail. Over each one's range: the selection or slice, the
-        // sizes, the shapes, kRandPitchSemitones either way.
+        // even spread, for the position within the amount around the
+        // playhead. Below, by a random part of three times it: mostly near, a
+        // long tail. Over each one's range: the selection, the sizes, the
+        // shapes, kRandPitchSemitones either way.
         float rand_pos   = 0.0f;
         float rand_size  = 0.0f;
         float rand_shape = 0.0f;
@@ -138,7 +124,6 @@ class Core
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
-        Sand  sand   = Sand::Hold;
         // Randomness of each grain's level and reverb send, -1..1 as the
         // others: level down to kRandGainDb, send from none to all
         float rand_gain = 0.0f;
@@ -203,8 +188,7 @@ class Core
     // Through the selection, what is left ahead of the playhead, 0..1: 0 once
     // it has run out
     float SandLeft() const { return float(playhead_.Left()); }
-    // A grain's size in use, ms: grain_ms within the recording and what the
-    // voices hold at this density
+    // A grain's size in use, ms: grain_ms within the recording
     float GrainMs() const { return grain_ms_; }
     // Grains dropped so far, all voices sounding: the neck clogged
     uint32_t Dropped() const
@@ -273,9 +257,6 @@ class Core
     std::array<Buffer, kNumBuffers> buffers_;
     std::atomic<size_t>             playing_{0};
     std::atomic<uint32_t>           dropped_{0};
-    // Wear: the grains, high-passed, before they fall back
-    daisysp::DcBlock wear_block_;
-    float            wear_gain_ = 1.0f;
 
     std::atomic<uint32_t> recordings_{0};
     std::atomic<bool>     record_{false};

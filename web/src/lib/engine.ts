@@ -8,10 +8,7 @@ export const SEED_PAD = 0; // CoreUI::kSeedPad
 export const MUTE_PAD = 1; // CoreUI::kMutePad
 export const RESTART_PAD = 2; // CoreUI::kRestartPad
 export const RECORD_PAD = 10; // CoreUI::kRecordPad
-// CoreUI::kGesturePads: Clog, Burst, Fine, Shake, Drag, Rush, Far, Reverse
 export const VOICES = 32; // Core::kNumVoices
-export const GESTURE_PADS = [3, 4, 8, 5, 6, 9, 7, 11];
-export const GESTURES = ["Clog", "Burst", "Fine", "Shake", "Drag", "Rush", "Far", "Reverse"];
 // What a tap keeps, seconds: the board's (Core::kTapCaptureSeconds), and the
 // others the browser tries
 export const TAP_SECONDS = [2, 4, 8, 16];
@@ -21,13 +18,13 @@ export const INCOMING_SECONDS = 16;
 export const INCOMING_COLUMNS = 1280;
 
 // cl_view, in samples of the recording
-export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped: 4, gestures: 5 } as const;
-export const VIEW_SIZE = VIEW.gestures + GESTURE_PADS.length;
+export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped: 4 } as const;
+export const VIEW_SIZE = 5;
 // cl_params, in the core's units. grainMs: the size in use, grainMsSet: as
 // set. end: End, 0 once, 1 turn, 2 loop. spread: Spray as it acts, 0..1.
 // sandLeft: ahead of the playhead, 0..1.
-export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randDensity: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, filter: 12, randPos: 13, randSize: 14, randShape: 15, end: 16, grainMsSet: 17, minGrainMs: 18, maxGrainMs: 19, spread: 20, sandLeft: 21, sand: 22 } as const;
-export const PARAM_SIZE = 23;
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randDensity: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, filter: 12, randPos: 13, randSize: 14, randShape: 15, end: 16, grainMsSet: 17, minGrainMs: 18, maxGrainMs: 19, spread: 20, sandLeft: 21 } as const;
+export const PARAM_SIZE = 22;
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window shape, pan
 export const GRAIN_FIELDS = 4;
 

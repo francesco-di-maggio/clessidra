@@ -47,14 +47,13 @@ class Grain
         float window_power = 0.0f; // squared windows
     };
 
-    // Adds the grain to left and right, by its send to send_l and send_r, and
-    // its window to cover, while active. inc: window phase per sample.
+    // Adds the grain to left and right, and by its send to send_l and send_r,
+    // while active. inc: window phase per sample.
     void Render(double inc,
                 float* left,
                 float* right,
                 float* send_l,
                 float* send_r,
-                float* cover,
                 size_t size,
                 Sums&  sums);
 

@@ -90,24 +90,17 @@ try {
   const values = await run(`[...document.querySelectorAll(".knob:not(.free) .value")].map((v) => v.textContent)`);
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
 
-  // A gesture bends the glass while held. A seed and a restart do not break
-  // the page. One layer: no Shift anywhere.
+  // Density: none at the centre, random above. A seed and a restart do not
+  // break the page. One layer: no Shift anywhere.
   const pad = (name, down) => run(`document.querySelector('#keys .pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
   const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
-  const before = await value("Density");
-  await pad("Clog", true);
-  await sleep(1500);
-  const clogged = await value("Density");
-  await pad("Clog", false);
-  await sleep(1500);
-  check((clogged === "None" ? 0 : parseFloat(clogged)) < parseFloat(before) && (await value("Density")) === before, "Clog held: Density down, let go it settles", `${before} → ${clogged}`);
+  const density = await value("Density");
+  check(/^Random /.test(density), "Density up: random grains at once", density);
   await pad("Seed", true);
   await pad("Seed", false);
   await pad("Restart", true);
   await pad("Restart", false);
   await sleep(300);
-  const flow = await run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Density").querySelector(".value").textContent`);
-  check(/\/s$/.test(flow), "Density shows grains per second", flow);
   check(!(await run(`document.body.textContent.includes("Shift")`)), "one layer: no Shift on the page");
 
   // A tap keeps the seconds set over the input

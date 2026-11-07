@@ -62,7 +62,6 @@ void Grain::Render(double inc,
                    float* right,
                    float* send_l,
                    float* send_r,
-                   float* cover,
                    size_t size,
                    Sums&  sums)
 {
@@ -105,7 +104,6 @@ void Grain::Render(double inc,
         right[n] += s * gain_r_;
         send_l[n] += s * send_gain_l;
         send_r[n] += s * send_gain_r;
-        cover[n] += window;
         power += s * s;
         window_sum += window;
         window_power += window * window;

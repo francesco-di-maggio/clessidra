@@ -171,7 +171,7 @@ struct Panel
         c.knobs[Controls::S30] = 0.0f;
         c.knobs[Controls::S35] = 1.0f;
         c.knobs[Controls::S32] = 0.0f;  // plain
-        c.knobs[Controls::S37] = 0.75f; // a stream, 28 grains per second
+        c.knobs[Controls::S37] = 0.75f; // random, about one grain at once
         c.switches             = {Controls::Up, Controls::Down}; // loop
     }
 
@@ -388,20 +388,12 @@ void Fuzz()
         if(next() < 0.1f)
             panel.c.switches[Controls::S07]
                 = Controls::Position(int(next() * 3.0f) % 3);
-        if(next() < 0.1f)
-            panel.c.switches[Controls::S09]
-                = Controls::Position(int(next() * 3.0f) % 3);
-        for(size_t pad : {CoreUI::kMutePad,
-                          CoreUI::kSeedPad,
-                          CoreUI::kRestartPad,
-                          CoreUI::kGesturePads[CoreUI::Reverse]})
+        for(size_t pad :
+            {CoreUI::kMutePad, CoreUI::kSeedPad, CoreUI::kRestartPad})
         {
             panel.c.touched[pad]  = next() < 0.1f;
             panel.c.pressure[pad] = next();
         }
-        const size_t pad      = CoreUI::kGesturePads[size_t(next() * 7.0f) % 7];
-        panel.c.touched[pad]  = next() < 0.3f;
-        panel.c.pressure[pad] = next();
         if(next() < 0.05f)
             panel.c.touched[CoreUI::kRecordPad]
                 = !panel.c.touched[CoreUI::kRecordPad];
@@ -456,14 +448,13 @@ std::vector<float> Window(float shape)
     latch.shape    = shape;
     grain.Start(latch, 0);
     std::vector<float> window(1000, 0.0f), right(1000, 0.0f), sl(1000),
-        sr(1000), cover(1000);
+        sr(1000);
     Grain::Sums sums;
     grain.Render(1.0 / 1000.0,
                  window.data(),
                  right.data(),
                  sl.data(),
                  sr.data(),
-                 cover.data(),
                  window.size(),
                  sums);
     return window;
@@ -640,80 +631,6 @@ void Ends()
         dropped == 1, "a drop: one grain, run out and closed", double(dropped));
 }
 
-// Sand: Hold leaves it, Wear lets the grains fall back into it, Live writes
-// the input into it, at the playhead
-void Sand()
-{
-    Rig r(1.0);
-    r.Fill(Sine);
-    // Mean difference from was, over the sound
-    auto changed = [&r](const std::vector<float>& was) {
-        double       diff = 0.0;
-        const float* s    = r.core.Sound().Data();
-        for(size_t i = 0; i < r.core.SoundSamples(); i++)
-            diff += std::fabs(s[i] - was[i]);
-        return diff / double(r.core.SoundSamples());
-    };
-    const std::vector<float> sound(
-        r.core.Sound().Data(), r.core.Sound().Data() + r.core.SoundSamples());
-    Core::Params p;
-    p.density = 50.0f;
-    r.core.SetParams(p);
-    r.Run(1.0, Silence);
-    Check(changed(sound) == 0.0, "sand held: untouched", changed(sound));
-
-    p.sand = Core::Sand::Wear;
-    r.core.SetParams(p);
-    r.Run(1.0, Silence);
-    const double worn = changed(sound);
-    Check(worn > 0.01 && r.finite, "sand worn: the grains fall back in", worn);
-
-    // Worn pass after pass: the sand keeps its level, sparse or dense
-    for(float d : {2.0f, 130.0f})
-    {
-        Rig          w(1.0);
-        Core::Params q;
-        w.Fill(Sine);
-        auto rms = [&w] {
-            double       s = 0.0;
-            const float* x = w.core.Sound().Data();
-            for(size_t i = 0; i < w.core.SoundSamples(); i++)
-                s += double(x[i]) * x[i];
-            return std::sqrt(s / double(w.core.SoundSamples()));
-        };
-        const double start = rms();
-        q.density          = d;
-        q.sand             = Core::Sand::Wear;
-        q.rand_pos         = -0.3f;
-        q.rand_density     = -1.0f;
-        w.core.SetParams(q);
-        w.Run(12.0, Silence);
-        Check(rms() / start > 0.5 && rms() / start < 2.0 && w.finite,
-              d < 10.0f ? "sand worn 12 passes, sparse: its level kept"
-                        : "sand worn 12 passes, dense: its level kept",
-              rms() / start);
-    }
-
-    // Mean level of the sound
-    auto level = [&r] {
-        double       sum = 0.0;
-        const float* s   = r.core.Sound().Data();
-        for(size_t i = 0; i < r.core.SoundSamples(); i++)
-            sum += std::fabs(s[i]);
-        return sum / double(r.core.SoundSamples());
-    };
-    p.sand = Core::Sand::Live;
-    r.core.SetParams(p);
-    r.Run(1.05, Silence);
-    Check(level() < 1e-3,
-          "sand live, silence in: a pass writes it over",
-          level());
-    p.freeze = true;
-    r.core.SetParams(p);
-    r.Run(0.1, Sine);
-    Check(level() < 1e-3, "sand live, held: nothing written", level());
-}
-
 // The selection round the end of the recording, and its length drawn per pass
 void Selection()
 {
@@ -868,8 +785,38 @@ void Randomness()
     Check(Near(mean, 0.5, 0.1) && far > 0.9,
           "position random up: even over the selection (mean)",
           mean);
-    far = spread(0.3f, &mean);
-    Check(far <= 0.3 + 0.01, "position random 0.3: within 0.3", far);
+    // Within 0.15 either way, round the selection
+    const auto nearest = [](float amount) {
+        Rig r(2.0);
+        r.Fill(Sine);
+        Core::Params p;
+        p.freeze   = true;
+        p.start    = 0.5f;
+        p.length   = 0.5f;
+        p.density  = 40.0f;
+        p.grain_ms = 20.0f;
+        p.rand_pos = amount;
+        r.core.SetParams(p);
+        double furthest = 0.0, before = 0.0;
+        r.Run(2.0, Silence, [&](size_t) {
+            for(const auto& g : r.core.Grains())
+            {
+                if(!g.IsActive() || g.Progress() > 0.1)
+                    continue;
+                double x = g.Settings().position / double(r.core.SoundSamples())
+                           - 0.5;
+                x              = 2.0 * x;
+                const double d = std::min(x, 1.0 - x);
+                furthest       = std::max(furthest, d);
+                before += x > 0.5;
+            }
+        });
+        return before > 0.0 ? furthest : -1.0;
+    };
+    const double near = nearest(0.3f);
+    Check(near > 0.1 && near <= 0.15 + 0.01,
+          "position random 0.3: within 0.15 either way, round the selection",
+          near);
     far = spread(-0.3f, &mean);
     Check(far > 0.6 && mean < 0.3,
           "position random -0.3: mostly near, a long tail (furthest)",
@@ -1005,6 +952,32 @@ void Voices()
     Check(r.finite, "the most density, long grains: output finite", 1.0);
 }
 
+// 16 grains at once, regular or random: as many sounding, on average
+void Cloud()
+{
+    for(float rand_density : {0.0f, -1.0f})
+    {
+        Rig r(2.0);
+        r.Fill(Sine);
+        Core::Params p;
+        p.grain_ms     = 100.0f;
+        p.density      = 16.0f * 1000.0f / p.grain_ms;
+        p.rand_density = rand_density;
+        r.core.SetParams(p);
+        r.Run(0.5, Silence);
+        double sum = 0.0, n = 0.0;
+        r.Run(4.0, Silence, [&](size_t) {
+            for(const auto& grain : r.core.Grains())
+                sum += grain.IsActive();
+            n++;
+        });
+        Check(Near(sum / n, 16.0, 1.5) && r.finite,
+              rand_density == 0.0f ? "16 at once, regular: 16 sounding (mean)"
+                                   : "16 at once, random: 16 sounding (mean)",
+              sum / n);
+    }
+}
+
 void Mapping()
 {
     Rig      r(2.0);
@@ -1030,26 +1003,41 @@ void Mapping()
           "S30 bottom, S35 top: the whole recording",
           p.length);
 
-    // S37, Density: none, sparse, dense
-    c.knobs[Controls::S37] = 0.0f;
+    // S37, Density, as Clouds: none at the centre, regular below, random
+    // above, 1/16 to 16 grains at once at the size
+    const auto at = [&](float x) {
+        c.knobs[Controls::S37] = x;
+        ui.Process(c, r.core);
+        return p;
+    };
+    const Core::Params closed  = at(0.5f);
+    const Core::Params rare    = at(0.5f + CoreUI::kDensityDetent + 1e-4f);
+    const Core::Params regular = at(0.0f);
+    const Core::Params cloud   = at(1.0f);
+    const auto         overlap = [](const Core::Params& q) {
+        return q.density * q.grain_ms / 1000.0f;
+    };
+    Check(closed.density == 0.0f, "S37 centre: none", closed.density);
+    Check(Near(overlap(rare), 1.0 / 16.0, 1e-3) && rare.rand_density == -1.0f,
+          "S37 just above the centre: random, 1/16 grain at once",
+          overlap(rare));
+    Check(Near(overlap(regular), 16.0, 1e-2) && regular.rand_density == 0.0f,
+          "S37 bottom: regular, 16 grains at once",
+          overlap(regular));
+    Check(Near(overlap(cloud), 16.0, 1e-2) && cloud.rand_density == -1.0f,
+          "S37 top: random, 16 grains at once",
+          overlap(cloud));
+    Check(rare.reverb > cloud.reverb && rare.grain_ms == cloud.grain_ms
+              && cloud.spread == 0.0f,
+          "S37: sparse grains in a big reverb, the size and spray their own",
+          rare.reverb);
+    c.knobs[Controls::S31] = 0.1f;
     ui.Process(c, r.core);
-    const Core::Params closed = p;
-    c.knobs[Controls::S37]    = 0.1f;
-    ui.Process(c, r.core);
-    const Core::Params drops = p;
-    c.knobs[Controls::S37]   = 1.0f;
-    ui.Process(c, r.core);
-    Check(closed.density == 0.0f && drops.density > 0.0f
-              && drops.density < 1.0f,
-          "S37 bottom: none, then single grains (per s)",
-          drops.density);
-    Check(Near(p.density, Core::kMaxDensity, 0.01),
-          "S37 top: the most density",
+    Check(Near(overlap(p), 16.0, 1e-2) && p.grain_ms < cloud.grain_ms,
+          "S37 top, smaller grains: more per second, as many at once",
           p.density);
-    Check(drops.reverb > p.reverb && drops.grain_ms == p.grain_ms
-              && p.spread == 0.0f,
-          "S37: sparse grains in a big reverb, the size and spray its own",
-          drops.reverb);
+    c.knobs[Controls::S31] = 0.5f;
+    ui.Process(c, r.core);
 
     // S31, Size: 5 ms to 2 s, 100 ms at the centre, at most half the recording
     Check(Near(p.grain_ms, 100.0, 0.5), "S31 centre: 100 ms", p.grain_ms);
@@ -1065,22 +1053,25 @@ void Mapping()
     c.knobs[Controls::S31] = 0.5f;
     c.knobs[Controls::S37] = 0.5f;
 
-    // S32, Spray: plain to disorder, pitch only over its top quarter
+    // S32, Spray: plain to scattered, evenly, the starts Density's
+    c.knobs[Controls::S37] = 0.75f;
     ui.Process(c, r.core);
-    Check(p.rand_density == 0.0f && p.rand_pos == 0.0f && p.rand_size == 0.0f
-              && p.rand_shape == 0.0f && p.rand_pitch == 0.0f
+    Check(p.rand_pos == 0.0f && p.rand_size == 0.0f && p.rand_shape == 0.0f
+              && p.rand_pitch == 0.0f && p.rand_gain == 0.0f
               && p.spread == 0.0f,
-          "S32 bottom: plain, periodic grains",
+          "S32 bottom: plain",
           p.spread);
     c.knobs[Controls::S32] = 0.5f;
     ui.Process(c, r.core);
-    Check(p.rand_density == -1.0f && p.rand_pos < 0.0f && p.rand_pitch == 0.0f,
-          "S32 half: random starts and places, no pitch yet",
+    Check(p.rand_pos > 0.0f && p.rand_pitch > 0.0f && p.rand_density == -1.0f
+              && p.rand_shape == 0.0f,
+          "S32 half: places and a little pitch, evenly, the starts as set",
           p.rand_pos);
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.rand_pos == -1.0f && p.rand_pitch < 0.0f && p.spread == 1.0f,
-          "S32 top: the most spray, random pitch, pan at its widest",
+    Check(p.rand_pos == 1.0f && p.rand_pitch == 1.0f && p.spread == 1.0f
+              && p.rand_gain == 1.0f && p.rand_send == 1.0f,
+          "S32 top: the whole selection, an octave either way, pan widest",
           p.rand_pitch);
     c.knobs[Controls::S32] = 0.0f;
 
@@ -1128,13 +1119,6 @@ void Mapping()
     c.switches[Controls::S07] = Controls::Centre;
     ui.Process(c, r.core);
     Check(p.end == End::Turn, "S07 centre: turn", 1);
-    c.switches[Controls::S09] = Controls::Centre;
-    ui.Process(c, r.core);
-    Check(p.sand == Core::Sand::Wear, "S09 centre: wear", 1);
-    c.switches[Controls::S09] = Controls::Down;
-    ui.Process(c, r.core);
-    Check(p.sand == Core::Sand::Live, "S09 down: live", 2);
-    c.switches[Controls::S09] = Controls::Up;
     c.switches[Controls::S07] = Controls::Down;
     ui.Process(c, r.core);
 
@@ -1143,7 +1127,7 @@ void Mapping()
         c.touched[pad] = on;
         ui.Process(c, r.core);
     };
-    c.knobs[Controls::S37] = 0.75f;
+    c.knobs[Controls::S37] = 1.0f;
     ui.Process(c, r.core);
     press(CoreUI::kRestartPad, true);
     press(CoreUI::kRestartPad, false);
@@ -1153,61 +1137,12 @@ void Mapping()
     const float less = ui.Led(100000, r.core);
     Check(full > 0.0f && less < full, "LED: dims as the sand runs out", less);
 
-    // Gestures: held they bend the glass, firm further; released it settles
-    auto hold = [&](CoreUI::Gesture g, float pressure, uint32_t ms) {
-        const size_t pad = CoreUI::kGesturePads[g];
-        c.touched[pad]   = pressure > 0.0f;
-        c.pressure[pad]  = pressure;
-        for(uint32_t t = 0; t < ms; t++)
-        {
-            c.now_ms++;
-            ui.Process(c, r.core);
-        }
-    };
-    c.knobs[Controls::S37] = 0.75f;
-    ui.Process(c, r.core);
-    const float dense = p.density;
-    hold(CoreUI::Clog, 1.0f, 200);
-    Check(p.density < 0.01f * dense, "Clog, firm: no grains", p.density);
-    hold(CoreUI::Clog, 0.0f, 2000);
-    Check(Near(p.density, dense, 0.01 * dense),
-          "Clog released: settled",
-          p.density);
-    hold(CoreUI::Burst, 0.3f, 200);
-    const float light = p.density;
-    hold(CoreUI::Burst, 1.0f, 200);
-    Check(light > dense && Near(p.density, Core::kMaxDensity, 0.5),
-          "Burst: light part way, firm the most density",
-          light);
-    hold(CoreUI::Burst, 0.0f, 2000);
-    hold(CoreUI::Fine, 1.0f, 200);
-    Check(Near(p.grain_ms, CoreUI::kFineMs, 0.1),
-          "Fine, firm: 8 ms grains",
-          p.grain_ms);
-    hold(CoreUI::Fine, 0.0f, 2000);
-    hold(CoreUI::Shake, 1.0f, 200);
-    Check(p.spread > 0.99f, "Shake, firm: all spray", p.spread);
-    hold(CoreUI::Shake, 0.0f, 2000);
-    hold(CoreUI::Drag, 1.0f, 200);
-    Check(p.freeze, "Drag, firm: held", p.speed);
-    hold(CoreUI::Drag, 0.0f, 2000);
-    hold(CoreUI::Rush, 1.0f, 200);
-    Check(Near(p.speed, 4.0, 0.01), "Rush, firm: 4 times", p.speed);
-    hold(CoreUI::Rush, 0.0f, 2000);
-    hold(CoreUI::Far, 1.0f, 200);
-    Check(p.reverb > 0.99f, "Far, firm: all reverb", p.reverb);
-    hold(CoreUI::Far, 0.0f, 2000);
-    hold(CoreUI::Reverse, 1.0f, 200);
-    Check(Near(p.speed, -1.0, 0.01), "Reverse, firm: the other way", p.speed);
-    hold(CoreUI::Reverse, 0.0f, 2000);
-    Check(Near(p.speed, 1.0, 0.01), "Reverse released: forward again", p.speed);
-
     // P01 held: mute. P00: a seed. P02: from the start.
     press(CoreUI::kMutePad, true);
     Check(p.mute, "P01 held: mute", 1);
     press(CoreUI::kMutePad, false);
     Check(!p.mute, "P01 released: sound", 0);
-    c.knobs[Controls::S37] = 0.0f;
+    c.knobs[Controls::S37] = 0.5f;
     ui.Process(c, r.core);
     r.Run(0.5, Silence);
     press(CoreUI::kSeedPad, true);
@@ -1253,13 +1188,13 @@ int main()
     Filter();
     Mute();
     Ends();
-    Sand();
     Selection();
     Pour();
     Randomness();
     Starts();
     Pan();
     Voices();
+    Cloud();
     Mapping();
     std::printf("%s\n",
                 failures ? "Some checks failed." : "All checks passed.");

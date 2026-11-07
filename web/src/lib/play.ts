@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { GESTURE_PADS, GESTURES, GRAIN_FIELDS, VOICES, MAX_RECORD_S, MUTE_PAD, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, MUTE_PAD, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { GrainView } from "./grain";
 import { Hourglass } from "./hourglass";
 import { Incoming } from "./incoming";
@@ -60,7 +60,7 @@ const glass = { sand: $("glass-sand"), voices: $("glass-voices"), clog: $("glass
 const clog = { dropped: 0, at: 0, rate: 0 };
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
-const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · D seed · M mute · 0 restart · 1–8 gestures" };
+const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · D seed · M mute · 0 restart" };
 let focused: Control | null = null;
 
 const parts = new Map<string, Widget>();
@@ -79,19 +79,22 @@ const inMeter = level(LEVELS[0]);
 const outMeter = level(LEVELS[1]);
 
 // As on the board: a fader at each edge, the knobs in their cells, the
-// switches between Position and Length. The keys: white the gestures left to
-// highest, black between them the other pads.
+// switches between Position and Length. The keys: white P03–P09, black between
+// them the others. Pads not assigned yet are dimmed.
 add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
-add(segmented(byId("S09"), $("sand"), [[POSITION.up, "Hold"], [POSITION.centre, "Wear"], [POSITION.down, "Live"]], on));
+add(segmented(byId("S09"), $("s09"), [[POSITION.up, "–"], [POSITION.centre, "–"], [POSITION.down, "–"]], on)).root.classList.add("free");
 add(segmented(byId("S07"), $("end"), [[POSITION.up, "Once"], [POSITION.centre, "Turn"], [POSITION.down, "Loop"]], on));
-GESTURE_PADS.slice(0, 7).forEach((index, i) => add(pad(padOf(index), $("keys"), GESTURES[i], on)).root.classList.add("key"));
-const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Reverse", 1], ["P00", "Seed", 3], ["P01", "Mute", 4], ["P02", "Restart", 5]];
+for (const index of [3, 4, 5, 6, 7, 8, 9]) {
+  const c = padOf(index);
+  add(pad(c, $("keys"), c.name, on)).root.classList.add("key", ...(c.free ? ["free"] : []));
+}
+const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "P11", 1], ["P00", "Seed", 3], ["P01", "Mute", 4], ["P02", "Restart", 5]];
 for (const [id, label, after] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
-  w.root.classList.add("key", "black");
+  w.root.classList.add("key", "black", ...(w.c.free ? ["free"] : []));
   if (id === "P10") w.root.classList.add("rec");
   w.root.style.left = `calc((100% - 24px) / 7 * ${after + 0.5} + ${after * 4 + 2}px)`;
 }
@@ -132,11 +135,12 @@ function set(c: Control, value: number, show = true) {
     parts.get(c.id)!.draw(value);
     LEVELS_VALUE.set(c.id, value);
     audio.setGain(c.id === "IN" ? "input" : "output", level.gain(value));
-    parts.get(c.id)!.value?.(level.value!(new Float32Array(0), { sound: 0, gestures: [], recording: 0 }));
+    parts.get(c.id)!.value?.(level.value!(new Float32Array(0), { sound: 0, recording: 0 }));
     if (show) focus(c);
     return;
   }
   parts.get(c.id)?.draw(value);
+  if (c.free) return;
   if (c.type === "switch") send({ type: "switch", index: c.index, position: value });
   else send({ type: "knob", index: c.index, value });
   if (show) focus(c);
@@ -188,14 +192,11 @@ addEventListener("pointermove", (e) => {
   for (const t of touches.values()) if (t.pointers.has(e.pointerId)) t.pen = e.pressure;
 });
 
-// Keys: R record, D seed, M mute, 0 restart, 1–8 the gestures, left to right
-// and Reverse
+// Keys: R record, D seed, M mute, 0 restart
 const KEYS: Record<string, number> = { r: RECORD_PAD, d: SEED_PAD, m: MUTE_PAD, "0": RESTART_PAD };
 function keyPad(e: KeyboardEvent) {
   const key = e.key.toLowerCase();
-  if (key in KEYS) return KEYS[key];
-  const n = Number(e.key);
-  return n >= 1 && n <= 8 ? GESTURE_PADS[n - 1] : null;
+  return key in KEYS ? KEYS[key] : null;
 }
 addEventListener("keydown", (e) => {
   const index = keyPad(e);
@@ -235,8 +236,7 @@ function focus(c: Control) {
 
 function show() {
   if (!last) return;
-  const gestures = GESTURE_PADS.map((_, i) => last!.view[VIEW.gestures + i]);
-  const v: Live = { sound: last.view[VIEW.sound], gestures, recording: recording() };
+  const v: Live = { sound: last.view[VIEW.sound], recording: recording() };
   for (const w of parts.values()) if (w.c.index >= 0) w.value?.(w.c.value?.(last.params, v) ?? "");
   if (focused) readout.value.textContent = focused.value?.(last.params, v) ?? "";
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
@@ -253,7 +253,6 @@ function show() {
   glass.clog.classList.toggle("on", clog.rate > 0);
   glass.voices.textContent = `${Math.round(last.grains.length / GRAIN_FIELDS)}/${VOICES}`;
   hourglass.clogged = clog.rate > 0;
-  for (const w of parts.values()) if (w.c.gesture !== undefined) w.root.classList.toggle("playing", gestures[w.c.gesture] > 0.01);
 }
 
 function onMessage(m: FromWorklet) {
