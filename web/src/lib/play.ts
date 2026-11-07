@@ -3,8 +3,9 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { MAX_RECORD_S, MUTE_PAD, NOTE_PADS, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, FLIP_PAD, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { MAX_RECORD_S, MUTE_PAD, NOTE_PADS, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, FLIP_PAD, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { GrainView } from "./grain";
+import { Hourglass } from "./hourglass";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { Waveform } from "./waveform";
@@ -47,11 +48,14 @@ function refresh() {
   const { params, view } = preview.read();
   last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), params, view };
   grainView.update(params);
+  hourglass.update(last);
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainView = new GrainView($<HTMLCanvasElement>("grain-view"));
+const hourglass = new Hourglass($<HTMLCanvasElement>("hourglass"));
+const glass = { sand: $("glass-sand"), fallen: $("glass-fallen"), flips: $("glass-flips") };
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
 const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · F flip · D seed · M mute · 0 restart · 1–7 notes" };
@@ -71,23 +75,12 @@ function level(l: Level) {
 const inMeter = level(LEVELS[0]);
 const outMeter = level(LEVELS[1]);
 
-// The rack: Speed, the sand and the grain, Density. The deck: the switches each
-// side of the keys, white the notes lowest to highest, black between them the
-// pads as they sit on the board.
-const RACK: [string, string[]][] = [
-  ["speed", ["S36"]],
-  ["selection", ["S30", "S35"]],
-  ["grain", ["S31", "S32", "S33", "S34"]],
-  ["flow", ["S37"]],
-];
-for (const [tile, ids] of RACK) {
-  for (const id of ids) {
-    const cell = document.createElement("div");
-    cell.className = "cell";
-    $(tile).append(cell);
-    add(knob(byId(id), cell, on));
-  }
-}
+// As on the board: a fader at each edge, the knobs in their cells, the
+// switches between Position and Length. The keys: white the notes lowest to
+// highest, black between them the other pads.
+add(knob(byId("S36"), $("speed"), on));
+add(knob(byId("S37"), $("density"), on));
+for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
 add(segmented(byId("S09"), $("scale"), [[POSITION.up, "Major"], [POSITION.centre, "Minor"], [POSITION.down, "Penta"]], on));
 add(segmented(byId("S07"), $("end"), [[POSITION.up, "Once"], [POSITION.centre, "Flip"], [POSITION.down, "Loop"]], on));
@@ -124,9 +117,9 @@ for (const w of parts.values()) {
 tap(TAP_DEFAULT);
 hint();
 // Leaving the controls, nothing focused in them: the hint again
-for (const panel of document.querySelectorAll(".levels, .rack, .deck")) {
+for (const panel of document.querySelectorAll(".levels, .instrument")) {
   panel.addEventListener("pointerleave", () => {
-    if (!document.activeElement?.closest(".levels, .rack, .deck")) hint();
+    if (!document.activeElement?.closest(".levels, .instrument")) hint();
   });
 }
 
@@ -249,6 +242,9 @@ function show() {
   if (focused) readout.value.textContent = focused.value?.(last.params, v) ?? "";
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   held.classList.toggle("on", v.recording > 0);
+  glass.sand.textContent = v.sound ? `${Math.round(last.params[PARAM.sandLeft] * 100)} %` : "–";
+  glass.fallen.textContent = `${(v.fallen / RATE).toFixed(1)} s`;
+  glass.flips.textContent = String(last.view[VIEW.flips]);
   for (const w of parts.values()) if (w.c.note !== undefined) w.root.classList.toggle("playing", notes[w.c.note]);
 }
 
@@ -262,6 +258,7 @@ function onMessage(m: FromWorklet) {
     waveform.update(m);
     incoming.update(m.incoming);
     grainView.update(m.params);
+    hourglass.update(m);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);

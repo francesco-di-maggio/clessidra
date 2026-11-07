@@ -2,6 +2,7 @@
 // The manual, two A4 pages in the style of Synthux's blank manual: the panel
 // with every control's name, then what each does. Printed to
 // clessidra-manual.pdf by web/manual.mjs.
+import "../styles/tokens.css";
 import "../styles/site.css";
 import TouchPanel from "../components/TouchPanel.astro";
 import { CONTROLS, LED } from "../lib/controls";
@@ -15,7 +16,6 @@ const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02", "P03"];
 <head>
 <meta charset="utf-8">
 <title>Clessidra · Manual</title>
-<link rel="stylesheet" href="https://francescodimaggio.nl/style/v1/tokens.css">
 <style>
   @page { size: A4; margin: 0; }
   html, body { margin: 0; background: #fff; color: #111; font: 10pt/1.4 var(--sans); }

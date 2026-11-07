@@ -26,6 +26,7 @@ export interface Control {
   initial?: number;
   bipolar?: boolean; // drawn from its centre
   detent?: boolean; // stops at its centre
+  scale?: { at: number; label: string }[]; // a fader's marks, 0..1 of its travel
   note?: number;
   free?: boolean;
   does?: string;
@@ -39,6 +40,16 @@ const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : "
 const END = ["Once", "Flip", "Loop"]; // Core's End
 const SCALES: Record<number, string> = { 1: "Major", 0: "Minor", 2: "Pentatonic" }; // by S09's position
 
+// Speed's stops, as CoreUI's Stops(): each flat over the first third of its
+// segment, marked at the middle of it
+const speedAt = (stop: number, sign: number) => 0.5 + (sign * (stop === 3 ? 3 : stop + 1 / 6)) / 6;
+const SPEED_SCALE = [3, 2, 1].map((s, i) => ({ at: speedAt(s, 1), label: ["4×", "2×", "1×"][i] }))
+  .concat([{ at: 0.5, label: "0" }])
+  .concat([1, 2, 3].map((s, i) => ({ at: speedAt(s, -1), label: ["1×", "2×", "4×"][i] })));
+// Density's grains per second where the fader puts them (CoreUI::GrainsPerSecond)
+const densityAt = (perSecond: number) => 0.02 + (0.98 * Math.log(perSecond / 0.3)) / Math.log(130.81278 / 0.3);
+const DENSITY_SCALE = [100, 10, 1].map((d) => ({ at: densityAt(d), label: `${d}` })).concat([{ at: 0, label: "0" }]);
+
 const PAD_AT: Record<number, [number, number]> = {
   0: [150, 620], 1: [310, 610], 2: [412, 625], 3: [48, 800], 4: [170, 765], 5: [285, 795],
   6: [420, 788], 7: [555, 835], 8: [190, 915], 9: [405, 920], 10: [240, 50], 11: [370, 50],
@@ -47,12 +58,12 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 
 export const CONTROLS: Control[] = [
   {
-    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.5 + 1.15 / 6, bipolar: true, detent: true,
+    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.5 + 1.15 / 6, bipolar: true, detent: true, scale: SPEED_SCALE,
     does: "Held at the centre. Up forward, down reverse. Stops at 1, 2 and 4×.",
     value: (p) => (p[PARAM.freeze] ? "Held" : `${signed(p[PARAM.speed], 2)}×`),
   },
   {
-    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.75,
+    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.75, scale: DENSITY_SCALE,
     does: "None at the bottom, 0.3 to 131 grains per second. Size and reverb follow.",
     value: (p) => {
       const d = p[PARAM.density];

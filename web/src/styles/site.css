@@ -1,4 +1,4 @@
-/* Clessidra: the site's own parts. The family's shared base comes from francescodimaggio.nl/style/v1/. */
+/* Clessidra: the site's parts, over tokens.css and base.css */
 /* Pages cross-fade; none with reduced motion */
 @view-transition { navigation: auto; }
 @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }

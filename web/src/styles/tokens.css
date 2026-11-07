@@ -1,0 +1,17 @@
+/* Clessidra's colours, type and sizes. Black and white, one red for what is
+   on. Dot-matrix figures for the wordmark and readouts, a mono for labels. */
+:root {
+  --bg: #f3f3f1; --surface: #ffffff; --ink: #0a0a0a; --dim: #6e6e6b; --line: #e1e1dd; --well: #ebebe8; --key: #2b2b2b; --key-ink: #f3f3f1;
+  --accent: #e5332a; --ok: #22b35e; --err: #e5332a;
+  --sans: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --dot: "Doto", "IBM Plex Mono", ui-monospace, monospace;
+  --radius: 18px; --radius-control: 10px;
+  --unit: 8px;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #000000; --surface: #0e0e0f; --ink: #f2f2f2; --dim: #7d7d82; --line: #222225; --well: #161618; --key: #000000; --key-ink: #f2f2f2; --accent: #ff3b30; }
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; --bg: #000000; --surface: #0e0e0f; --ink: #f2f2f2; --dim: #7d7d82; --line: #222225; --well: #161618; --key: #000000; --key-ink: #f2f2f2; --accent: #ff3b30; }

@@ -3,9 +3,7 @@ import Base from "../layouts/Base.astro";
 import "../styles/play.css";
 ---
 <Base title="Play" app description="Clessidra in the browser: the firmware as WebAssembly.">
-  <span slot="end" class="label led">LED <span id="led" class="dot"></span></span>
-
-  <div class="split">
+  <Fragment slot="end">
     <div class="transport">
       <button id="start" class="control primary" type="button">Start</button>
       <div id="input" class="segmented" role="group" aria-label="Input">
@@ -15,37 +13,57 @@ import "../styles/play.css";
       </div>
       <input id="file" type="file" accept="audio/*" hidden>
     </div>
-    <section id="levels" class="panel levels" aria-label="Input and output level, browser only"></section>
-  </div>
+    <div id="levels" class="levels" aria-label="Input and output level, browser only"></div>
+    <span class="label led" title="The board's LED">LED <span id="led" class="dot"></span></span>
+  </Fragment>
 
-  <div class="split scope">
-    <section class="panel incoming" aria-label="Incoming: what a tap keeps">
+  <div class="instrument">
+    <section class="tile buffer" aria-label="Recording">
+      <span class="label tag">Recording</span>
+      <span id="held" class="figure held">Empty</span>
+      <canvas id="buffer" role="img" aria-label="The recording: the selection, the playhead and the grains"></canvas>
+    </section>
+
+    <section class="tile glass" aria-label="Hourglass">
+      <span class="label tag">Hourglass</span>
+      <canvas id="hourglass" role="img" aria-label="The hourglass: the sand left, the grains falling, the sand fallen"></canvas>
+      <dl class="facts">
+        <dt>Sand</dt><dd id="glass-sand">–</dd>
+        <dt>Fallen</dt><dd id="glass-fallen">–</dd>
+        <dt>Flips</dt><dd id="glass-flips">0</dd>
+      </dl>
+    </section>
+
+    <section class="tile incoming" aria-label="Input: what a tap keeps">
+      <span class="label tag">Input</span>
       <div id="tap" class="segmented tap" role="radiogroup" aria-label="A tap keeps"></div>
       <canvas id="incoming" role="img" aria-label="The input over the seconds a tap keeps"></canvas>
     </section>
-    <section class="panel grain" aria-label="A grain">
+
+    <section class="tile grain" aria-label="Grain">
+      <span class="label tag">Grain</span>
       <canvas id="grain-view" role="img" aria-label="A grain's window at its size, and the range randomness reaches"></canvas>
     </section>
+
+    <section id="speed" class="tile fader" aria-label="Speed"></section>
+
+    <section class="tile knobs" aria-label="Knobs and switches, as on the board">
+      <div id="k-S31" class="cell"></div>
+      <div id="k-S32" class="cell"></div>
+      <div id="k-S33" class="cell"></div>
+      <div id="k-S34" class="cell"></div>
+      <div id="k-S30" class="cell"></div>
+      <div id="scale" class="cell wide"></div>
+      <div id="end" class="cell wide"></div>
+      <div id="k-S35" class="cell"></div>
+    </section>
+
+    <section id="density" class="tile fader" aria-label="Density"></section>
+
+    <section class="tile keys-tile" aria-label="The 12 pads"><div id="keys" class="keys"></div></section>
+
+    <p class="tile readout" aria-live="polite"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span><span id="readout-does" class="does"></span></p>
   </div>
-
-  <section class="panel view" aria-label="Buffer">
-    <span id="held" class="label held">Empty</span>
-    <canvas id="buffer" role="img" aria-label="The recording: the selection, the playhead and the grains"></canvas>
-  </section>
-
-  <div class="rack" aria-label="Speed, the sand, the grain and Density">
-    <section id="speed" class="panel edge"></section>
-    <section class="panel knobs"><div id="selection" class="group"></div><i class="divider"></i><div id="grain" class="group"></div></section>
-    <section id="flow" class="panel edge"></section>
-  </div>
-
-  <div class="deck" aria-label="The switches and the 12 pads">
-    <section id="scale" class="panel side"></section>
-    <section class="panel keys-tile"><div id="keys" class="keys"></div></section>
-    <section id="end" class="panel side"></section>
-  </div>
-
-  <p class="panel readout" aria-live="polite"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span><span id="readout-does" class="does"></span></p>
 </Base>
 
 <script>

@@ -53,7 +53,14 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
   const root = html("div", { class: c.type === "fader" ? "knob fader" : "knob", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
   const label = html("span", { class: "label" }, root);
   label.textContent = c.name;
-  const dial = svg("svg", c.type === "fader" ? { viewBox: `0 0 24 ${FADER.height}`, preserveAspectRatio: "none", "aria-hidden": "true" } : { viewBox: "0 0 56 56", "aria-hidden": "true" }, root);
+  // A fader's slot stretches to its tile, its scale written beside it
+  const holder = c.type === "fader" ? html("div", { class: "rail" }, root) : root;
+  const dial = svg("svg", c.type === "fader" ? { viewBox: `0 0 24 ${FADER.height}`, preserveAspectRatio: "none", "aria-hidden": "true" } : { viewBox: "0 0 56 56", "aria-hidden": "true" }, holder);
+  for (const s of c.type === "fader" ? (c.scale ?? []) : []) {
+    const mark = html("span", { class: "mark-at" }, holder);
+    mark.textContent = s.label;
+    mark.style.top = `${((FADER.bottom - s.at * (FADER.bottom - FADER.top)) / FADER.height) * 100}%`;
+  }
   const value = html("span", { class: "value" }, root);
   value.textContent = "–";
   let v = c.initial ?? 0;
@@ -99,7 +106,11 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
 const FADER = { height: 112, top: 6, bottom: 106 };
 function faderDrawing(c: Control, dial: SVGSVGElement) {
   const mid = (FADER.top + FADER.bottom) / 2;
-  svg("line", { class: "track", x1: 12, x2: 12, y1: FADER.top, y2: FADER.bottom }, dial);
+  svg("line", { class: "slot", x1: 12, x2: 12, y1: FADER.top, y2: FADER.bottom }, dial);
+  for (const s of c.scale ?? []) {
+    const y = FADER.bottom - s.at * (FADER.bottom - FADER.top);
+    svg("line", { class: "tick-at", x1: 19, x2: 24, y1: y, y2: y }, dial);
+  }
   if (c.detent) svg("line", { class: "track", x1: 4, x2: 20, y1: mid, y2: mid }, dial);
   const fill = svg("line", { class: "fill", x1: 12, x2: 12 }, dial);
   const cap = svg("rect", { class: "cap", x: 2, width: 20, height: 7, rx: 2 }, dial);
