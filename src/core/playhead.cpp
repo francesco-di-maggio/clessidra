@@ -14,38 +14,32 @@ namespace
 void Playhead::Restart(bool backwards)
 {
     phase_   = backwards ? kLast : 0.0;
-    heading_ = 1;
     forward_ = !backwards;
     ended_   = false;
+    wrapped_ = false;
 }
 
 void Playhead::Advance(double step, End end)
 {
-    if(end != End::Turn)
-        heading_ = 1;
-    const double move = step * heading_;
-    if(move != 0.0)
+    wrapped_ = false;
+    if(step != 0.0)
     {
-        if(ended_ && (move > 0.0) == forward_)
+        if(ended_ && (step > 0.0) == forward_)
             return;
-        forward_ = move > 0.0;
+        forward_ = step > 0.0;
         ended_   = false;
     }
-    phase_ += move;
+    phase_ += step;
     if(phase_ >= 0.0 && phase_ < 1.0)
         return;
 
-    const bool past_end = phase_ >= 1.0;
-    switch(end)
+    if(end == End::Loop)
     {
-        case End::Loop: phase_ -= std::floor(phase_); break;
-        case End::Turn:
-            phase_   = past_end ? 2.0 - phase_ : -phase_;
-            heading_ = -heading_;
-            forward_ = !past_end;
-            break;
-        case End::Once: ended_ = true; break;
+        phase_ -= std::floor(phase_);
+        wrapped_ = true;
     }
+    else
+        ended_ = true;
     phase_ = std::clamp(phase_, 0.0, kLast);
 }
 

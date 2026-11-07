@@ -394,7 +394,7 @@ void Fuzz()
         for(size_t pad : {CoreUI::kMutePad,
                           CoreUI::kSeedPad,
                           CoreUI::kRestartPad,
-                          CoreUI::kShakePad})
+                          CoreUI::kFlipPad})
         {
             panel.c.touched[pad]  = next() < 0.1f;
             panel.c.pressure[pad] = next();
@@ -688,21 +688,6 @@ void Ends()
           "once, run out, turned by hand: runs back",
           r.core.PlayheadPhase());
 
-    p.speed = 4.0f;
-    p.end   = End::Turn;
-    r.core.SetParams(p);
-    r.core.Restart();
-    r.Run(0.2, Silence);
-    const double before = r.core.PlayheadPhase();
-    r.Run(0.125, Silence);
-    Check(before > 0.5 && r.core.PlayheadPhase() < before,
-          "turn: at the end, it turns over and runs back",
-          r.core.PlayheadPhase());
-    r.Run(0.2, Silence);
-    const double back = r.core.PlayheadPhase();
-    r.Run(0.05, Silence);
-    Check(r.core.PlayheadPhase() > back, "turn: and over again", back);
-
     p.end     = End::Once;
     p.density = 0.0f;
     r.core.SetParams(p);
@@ -711,6 +696,81 @@ void Ends()
     const size_t dropped = Starts(r, 0.2);
     Check(
         dropped == 1, "a drop: one grain, run out and closed", double(dropped));
+}
+
+// RMS of samples [from, to) of b
+double Rms(const Buffer& b, size_t from, size_t to)
+{
+    double sum = 0.0;
+    for(size_t i = from; i < to; i++)
+        sum += double(b.Samples()[i]) * b.Samples()[i];
+    return std::sqrt(sum / double(std::max<size_t>(to - from, 1)));
+}
+
+// Flip: the grains fall into the bottom bulb; turned over, it plays, the last
+// grain first, at the level they fell at
+void Flips()
+{
+    Rig r(1.0);
+    // Rising: what falls rises too, turned over it falls
+    r.Fill([](double t) { return float(std::fmod(t, 1.0)) * Sine(t); });
+    const double rising = Rms(r.core.Sound(), 0, r.core.SoundSamples());
+    Core::Params p;
+    p.density  = 100.0f;
+    p.grain_ms = 20.0f;
+    p.end      = End::Flip;
+    r.core.SetParams(p);
+    r.core.Restart();
+    r.Run(0.5, Silence);
+    Check(Near(r.core.Fallen(), 0.5, 0.02),
+          "flip: half the sand fallen in half a second (s)",
+          r.core.Fallen());
+    r.Run(0.6, Silence);
+    const Buffer& up = r.core.Sound();
+    const size_t  n  = up.Length();
+    Check(r.core.Flips() == 1 && Near(double(n) / kRate, 1.0, 0.05),
+          "flip: run out, turned over, what fell plays (s)",
+          double(n) / kRate);
+    const double first = Rms(up, 0, n / 2), second = Rms(up, n / 2, n);
+    Check(first > 1.5 * second,
+          "flip: the last grain first, rising now falls (first / second)",
+          first / second);
+    const double level = Rms(up, 0, n) / rising;
+    Check(level > 0.5 && level < 2.0,
+          "flip: at the level it fell (over the recording)",
+          level);
+
+    // By hand, in Loop
+    p.end = End::Loop;
+    r.core.SetParams(p);
+    r.Run(0.3, Silence);
+    r.core.Flip();
+    r.Run(0.01, Silence);
+    Check(r.core.Flips() == 2 && r.core.PlayheadPhase() < 0.05,
+          "flip by hand: turned over, from the start",
+          double(r.core.Flips()));
+
+    // Nothing fallen: it only starts again
+    p.density = 0.0f;
+    r.core.SetParams(p);
+    r.Run(0.2, Silence); // the last grains end
+    p.end = End::Flip;
+    r.core.SetParams(p);
+    r.core.Restart();
+    r.Run(2.5, Silence);
+    Check(r.core.Flips() == 2 && r.core.SoundSamples() > 0,
+          "flip, nothing fallen: the sound stays",
+          double(r.core.Flips()));
+
+    // A new recording after flips: it still lands and plays
+    p.density = 50.0f;
+    r.core.SetParams(p);
+    const uint32_t before = r.core.Recordings();
+    r.Record(0.5, Sine);
+    const double kept = Rms(r, 0.5);
+    Check(r.core.Recordings() == before + 1 && kept > 0.01,
+          "after flips: a new recording lands and plays (rms)",
+          kept);
 }
 
 // The selection round the end of the recording, and its length drawn per pass
@@ -1094,20 +1154,20 @@ void Mapping()
           p.rand_pitch);
     c.knobs[Controls::S32] = 0.0f;
 
-    // P11, Shake: lightly some, firmly all; let go, it settles
-    c.touched[CoreUI::kShakePad]  = true;
-    c.pressure[CoreUI::kShakePad] = 0.3f;
+    // P11: a touch turns the glass over, once
+    r.Run(0.5, Silence);
+    const uint32_t flips        = r.core.Flips();
+    c.touched[CoreUI::kFlipPad] = true;
     ui.Process(c, r.core);
-    const float light             = p.spread;
-    c.pressure[CoreUI::kShakePad] = 1.0f;
+    r.Run(0.01, Silence);
     ui.Process(c, r.core);
-    const float firm             = p.spread;
-    c.touched[CoreUI::kShakePad] = false;
+    r.Run(0.01, Silence);
+    c.touched[CoreUI::kFlipPad] = false;
     ui.Process(c, r.core);
-    Check(Near(light, CoreUI::kShakeFrom, 1e-6) && firm == 1.0f
-              && p.spread == 0.0f,
-          "P11: shaken lightly, firmly, then settled (spread)",
-          light);
+    r.Run(0.01, Silence);
+    Check(r.core.Flips() == flips + 1,
+          "P11: one flip a touch",
+          double(r.core.Flips() - flips));
 
     // S33, Pitch: Beads' stops, the fifth and two octaves
     c.knobs[Controls::S33] = 0.5f + 4.15f / 12.0f; // on the fifth
@@ -1152,7 +1212,7 @@ void Mapping()
     Check(p.end == End::Once, "S07 up: once", 0);
     c.switches[Controls::S07] = Controls::Centre;
     ui.Process(c, r.core);
-    Check(p.end == End::Turn, "S07 centre: turn", 1);
+    Check(p.end == End::Flip, "S07 centre: flip", 1);
     c.switches[Controls::S07] = Controls::Down;
     ui.Process(c, r.core);
 
@@ -1266,6 +1326,7 @@ int main()
     Mute();
     Notes();
     Ends();
+    Flips();
     Selection();
     Pour();
     Randomness();

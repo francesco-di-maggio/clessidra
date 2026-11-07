@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { MUTE_PAD, NOTE_PADS, PARAM, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, SHAKE_PAD } from "./engine";
+import { FLIP_PAD, MUTE_PAD, NOTE_PADS, PARAM, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -11,6 +11,7 @@ export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Sw
 export interface Live {
   sound: number; // samples recorded
   notes: boolean[]; // each note pad sounding
+  fallen: number; // samples in the bottom bulb
   scale: number; // S09's position
   recording: number; // seconds P10 has been held, 0 when not
 }
@@ -35,7 +36,7 @@ const seconds = (samples: number) => `${(samples / RATE).toFixed(samples < RATE 
 const percent = (x: number) => `${Math.round(x * 100)} %`;
 const ms = (x: number) => (x < 1000 ? `${Math.round(x)} ms` : `${(x / 1000).toFixed(2)} s`);
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
-const END = ["Once", "Turn", "Loop"]; // Core's End
+const END = ["Once", "Flip", "Loop"]; // Core's End
 const SCALES: Record<number, string> = { 1: "Major", 0: "Minor", 2: "Pentatonic" }; // by S09's position
 
 const PAD_AT: Record<number, [number, number]> = {
@@ -97,9 +98,9 @@ export const CONTROLS: Control[] = [
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
-    id: "P11", type: "pad", index: SHAKE_PAD, ...padAt(SHAKE_PAD), name: "Shake",
-    does: "Held: Spray towards the top, firmer for more. Let go, it settles.",
-    value: (p) => percent(p[PARAM.spread]),
+    id: "P11", type: "pad", index: FLIP_PAD, ...padAt(FLIP_PAD), name: "Flip",
+    does: "The glass turned over: what has fallen plays, the last grain first.",
+    value: (_, v) => `${seconds(v.fallen)} fallen`,
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Scale", initial: POSITION.up,
@@ -108,7 +109,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "End", initial: POSITION.down,
-    does: "When the playhead runs out: up stops, centre turns over, down loops.",
+    does: "When the playhead runs out: up stops, centre flips the glass, down loops.",
     value: (p) => END[p[PARAM.end]] ?? "",
   },
   {

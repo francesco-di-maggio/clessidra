@@ -21,7 +21,7 @@ class CoreUI
     static constexpr size_t kMutePad    = 1;  // held: the grains silent
     static constexpr size_t kRestartPad = 2;  // the playhead back to the start
     static constexpr size_t kRecordPad  = 10; // tap or hold
-    static constexpr size_t kShakePad   = 11; // held: Spray towards the top
+    static constexpr size_t kFlipPad    = 11; // the glass turned over
     // Notes, lowest to highest: pads left to right on the faceplate, top to
     // bottom within a column
     static constexpr size_t kNotePads[] = {3, 4, 8, 5, 6, 9, 7};
@@ -50,8 +50,6 @@ class CoreUI
     static constexpr float kMaxGrainMs = 4000.0f;
     // S32, Spray: random pitch over its top quarter
     static constexpr float kPitchSprayFrom = 0.75f;
-    // P11, Shake: Spray towards the top, part way at a light touch
-    static constexpr float kShakeFrom = 0.3f;
     // pad pressure above a light touch (Pads: measured 0.3-0.5)
     static constexpr float kPressFrom = 0.5f;
     // A note's density: the fader's, at least this, raised by pressure
@@ -92,6 +90,7 @@ class CoreUI
     bool     record_          = false;
     uint32_t rec_since_       = 0; // ms
     bool     seed_touched_    = false;
+    bool     flip_touched_    = false;
     bool     restart_touched_ = false;
     // LED. Times in ms, shown until they pass.
     uint32_t pulse_until_ = 0;

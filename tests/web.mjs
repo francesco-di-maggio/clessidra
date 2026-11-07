@@ -7,7 +7,7 @@ const BLOCK = 128;
 const KNOB = { S30: 0, S31: 1, S32: 2, S33: 3, S34: 4, S35: 5, S36: 6, S37: 7 };
 const SPEED_1 = 0.5 + 1.15 / 6; // S36 on its first stop up
 const RECORD = 10; // CoreUI::kRecordPad
-const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, notes: 4 };
+const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, flips: 4, fallen: 5, notes: 6 };
 
 let failed = 0;
 function check(ok, what, value) {
@@ -128,6 +128,16 @@ check(view()[V.notes] === 1, "P03 held: the first note sounds");
 w.cl_pad(3, 0, 0);
 run(0.1, silence);
 check(view()[V.notes] === 0, "P03 released: silent");
+
+// P11: the glass turned over, what has fallen plays
+const before = view()[V.flips];
+const fallen = view()[V.fallen];
+w.cl_pad(11, 1, 0.8);
+run(0.05, silence);
+w.cl_pad(11, 0, 0);
+run(0.05, silence);
+v = view();
+check(fallen > 0 && v[V.flips] === before + 1 && Math.abs(v[V.sound] - fallen) < 0.1 * RATE, "P11: flipped, what had fallen plays", (v[V.sound] / RATE).toFixed(2));
 check(w.cl_led(Math.floor(now)) >= 0, "LED in range");
 
 if (failed) {

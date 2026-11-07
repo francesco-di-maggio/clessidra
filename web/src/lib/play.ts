@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { MAX_RECORD_S, MUTE_PAD, NOTE_PADS, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, SHAKE_PAD, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { MAX_RECORD_S, MUTE_PAD, NOTE_PADS, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, FLIP_PAD, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { GrainView } from "./grain";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
@@ -54,7 +54,7 @@ const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainView = new GrainView($<HTMLCanvasElement>("grain-view"));
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
-const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · S shake · D seed · M mute · 0 restart · 1–7 notes" };
+const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · F flip · D seed · M mute · 0 restart · 1–7 notes" };
 let focused: Control | null = null;
 const parts = new Map<string, Widget>();
 
@@ -90,9 +90,9 @@ for (const [tile, ids] of RACK) {
 }
 
 add(segmented(byId("S09"), $("scale"), [[POSITION.up, "Major"], [POSITION.centre, "Minor"], [POSITION.down, "Penta"]], on));
-add(segmented(byId("S07"), $("end"), [[POSITION.up, "Once"], [POSITION.centre, "Turn"], [POSITION.down, "Loop"]], on));
+add(segmented(byId("S07"), $("end"), [[POSITION.up, "Once"], [POSITION.centre, "Flip"], [POSITION.down, "Loop"]], on));
 NOTE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)).root.classList.add("key"));
-const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Shake", 1], ["P00", "Seed", 3], ["P01", "Mute", 4], ["P02", "Restart", 5]];
+const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Flip", 1], ["P00", "Seed", 3], ["P01", "Mute", 4], ["P02", "Restart", 5]];
 for (const [id, label, after] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
   w.root.classList.add("key", "black");
@@ -140,7 +140,7 @@ function set(c: Control, value: number, show = true) {
     parts.get(c.id)!.draw(value);
     LEVELS_VALUE.set(c.id, value);
     audio.setGain(c.id === "IN" ? "input" : "output", level.gain(value));
-    parts.get(c.id)!.value?.(level.value!(new Float32Array(0), { sound: 0, notes: [], scale: POSITION.up, recording: 0 }));
+    parts.get(c.id)!.value?.(level.value!(new Float32Array(0), { sound: 0, notes: [], fallen: 0, scale: POSITION.up, recording: 0 }));
     if (show) focus(c);
     return;
   }
@@ -196,9 +196,9 @@ addEventListener("pointermove", (e) => {
   for (const t of touches.values()) if (t.pointers.has(e.pointerId)) t.pen = e.pressure;
 });
 
-// Keys: R record, S shake, D seed, M mute, 0 restart, 1–7 the notes, lowest to
+// Keys: R record, F flip, D seed, M mute, 0 restart, 1–7 the notes, lowest to
 // highest
-const KEYS: Record<string, number> = { r: RECORD_PAD, s: SHAKE_PAD, d: SEED_PAD, m: MUTE_PAD, "0": RESTART_PAD };
+const KEYS: Record<string, number> = { r: RECORD_PAD, f: FLIP_PAD, d: SEED_PAD, m: MUTE_PAD, "0": RESTART_PAD };
 function keyPad(e: KeyboardEvent) {
   const key = e.key.toLowerCase();
   if (key in KEYS) return KEYS[key];
@@ -244,7 +244,7 @@ function focus(c: Control) {
 function show() {
   if (!last) return;
   const notes = NOTE_PADS.map((_, i) => last!.view[VIEW.notes + i] > 0);
-  const v: Live = { sound: last.view[VIEW.sound], notes, scale, recording: recording() };
+  const v: Live = { sound: last.view[VIEW.sound], notes, fallen: last.view[VIEW.fallen], scale, recording: recording() };
   for (const w of parts.values()) if (w.c.index >= 0) w.value?.(w.c.value?.(last.params, v) ?? "");
   if (focused) readout.value.textContent = focused.value?.(last.params, v) ?? "";
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";

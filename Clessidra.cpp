@@ -70,7 +70,7 @@ namespace
     {
         touch.Init(kSampleRate, kBlockSize);
         daisy::DaisySeed& seed      = touch.seed;
-        float* const      buffers[] = {sound[0], sound[1]};
+        float* const      buffers[] = {sound[0], sound[1], sound[2]};
         core.Init(seed.AudioSampleRate(),
                   ring,
                   kRingSamples,

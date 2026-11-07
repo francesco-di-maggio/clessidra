@@ -30,6 +30,7 @@ float    in_l[kMaxBlock], in_r[kMaxBlock], out_l[kMaxBlock], out_r[kMaxBlock];
 float    peaks[kColumns];
 size_t   peaks_done = kColumns; // columns of the recording playing
 uint32_t recordings = 0;
+uint32_t flips      = 0;
 
 // What the page draws, in samples of the recording unless noted
 enum View : size_t
@@ -38,7 +39,9 @@ enum View : size_t
     kSelectionStart,
     kSelectionLength,
     kPlayhead,
-    kNotes, // each 1 while it sounds, 0 when not
+    kFlips,  // flips so far
+    kFallen, // samples fallen into the bottom bulb
+    kNotes,  // each 1 while it sounds, 0 when not
     kNumView = kNotes + Core::kNumNotes
 };
 float view[kNumView];
@@ -86,7 +89,7 @@ void UpdatePeaks()
         const size_t to   = (peaks_done + 1) * b.Length() / kColumns;
         float        peak = 0.0f;
         for(size_t i = from; i < to; i++)
-            peak = std::max(peak, std::fabs(b.Data()[i]));
+            peak = std::max(peak, std::fabs(b.Samples()[i]));
         peaks[peaks_done] = peak;
     }
 }
@@ -98,7 +101,7 @@ EXPORT int cl_init(float sample_rate)
     // The mapping counts in kSampleRateHz, as on the board
     if(sample_rate != float(kSampleRateHz))
         return 0;
-    float* const buffers[] = {sound[0], sound[1]};
+    float* const buffers[] = {sound[0], sound[1], sound[2]};
     core.Init(sample_rate, ring, kRingSamples, buffers, kBufferSamples);
     return 1;
 }
@@ -122,9 +125,11 @@ EXPORT void cl_process(int size, uint32_t now_ms)
     float*       out[2] = {out_l, out_r};
     core.Process(in, out, std::min(size_t(size), kMaxBlock));
 
-    if(core.Recordings() != recordings)
+    // A new sound: recorded, or what had fallen, flipped
+    if(core.Recordings() != recordings || core.Flips() != flips)
     {
         recordings = core.Recordings();
+        flips      = core.Flips();
         peaks_done = 0;
     }
     UpdatePeaks();
@@ -187,6 +192,8 @@ EXPORT const float* cl_view()
     // Past the end, round to the start
     const double playhead = sel_start + core.PlayheadPhase() * sel_length;
     view[kPlayhead] = float(sound > 0.0 ? std::fmod(playhead, sound) : 0.0);
+    view[kFlips]    = float(core.Flips());
+    view[kFallen]   = core.Fallen() * float(kSampleRateHz);
     for(size_t i = 0; i < Core::kNumNotes; i++)
         view[kNotes + i] = core.NoteOn(i) ? 1.0f : 0.0f;
     return view;

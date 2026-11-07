@@ -96,14 +96,14 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.length = std::max(c.knobs[Controls::S35], Core::kMinLength);
 
     // S36, Speed: stopped at the centre, forward up, reverse down, at 1, 2
-    // and 4 times. S07, End: once, turn over, loop.
+    // and 4 times. S07, End: once, flip, loop.
     const float speed            = Stops(c.knobs[Controls::S36], kSpeeds);
     p.freeze                     = speed == 0.0f;
     p.speed                      = speed;
     const Controls::Position end = c.switches[Controls::S07];
     p.end                        = end == Controls::Up
                 ? End::Once
-                : end == Controls::Centre ? End::Turn : End::Loop;
+                : end == Controls::Centre ? End::Flip : End::Loop;
 
     // S37, Density: grains per second, with a size and reverb that follow,
     // more for a lone grain
@@ -131,14 +131,10 @@ void CoreUI::Process(const Controls& c, Core& core)
     const float shape = Detent(c.knobs[Controls::S34], 0.05f);
     p.window_shape    = shape;
 
-    // S32, Spray, at least Density's floor; P11 held sprays towards the top
-    float spray = std::max(c.knobs[Controls::S32],
-                           kCloudSpray * Ramp(density, kCloudFrom, 1.0f));
-    if(c.touched[kShakePad])
-        spray += (1.0f - spray)
-                 * (kShakeFrom
-                    + (1.0f - kShakeFrom) * Firm(c.pressure[kShakePad]));
-    Spray(spray, p);
+    // S32, Spray, at least Density's floor
+    Spray(std::max(c.knobs[Controls::S32],
+                   kCloudSpray * Ramp(density, kCloudFrom, 1.0f)),
+          p);
 
     // S33, Pitch
     const float semitones = Stops(c.knobs[Controls::S33], kIntervals);
@@ -172,9 +168,12 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
 }
 
 // P00: Seed, one grain at the playhead, as Beads' button. P02: the playhead
-// back to the start.
+// back to the start. P11: the glass turned over.
 void CoreUI::Pads(const Controls& c, Core& core)
 {
+    if(c.touched[kFlipPad] && !flip_touched_)
+        core.Flip();
+    flip_touched_ = c.touched[kFlipPad];
     if(c.touched[kSeedPad] && !seed_touched_)
         core.Seed();
     seed_touched_ = c.touched[kSeedPad];
