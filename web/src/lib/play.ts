@@ -60,6 +60,8 @@ let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
 const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · F flip · D seed · M mute · 0 restart · 1–7 notes" };
 let focused: Control | null = null;
+// S09's position, for the Scale readout
+let scale: number = POSITION.up;
 const parts = new Map<string, Widget>();
 
 const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
@@ -122,9 +124,6 @@ for (const panel of document.querySelectorAll(".levels, .instrument")) {
     if (!document.activeElement?.closest(".levels, .instrument")) hint();
   });
 }
-
-// S09's position, for the Scale readout
-let scale: number = POSITION.up;
 
 function set(c: Control, value: number, show = true) {
   if (c.id === "S09") scale = value;
