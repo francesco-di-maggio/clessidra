@@ -34,10 +34,15 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float   density   = std::clamp(p.density, 0.0f, kMaxDensity);
     // A grain lasts grain_samples whatever its pitch, as the starts per second
     // do: no longer than the recording, and short enough for the voices to hold
-    // whole windows at this density. Stolen, they would hardly rise.
+    // whole windows at the density of the playhead and the triggers sounding
+    // together. Stolen, they would hardly rise.
+    float all_density = density;
+    for(size_t s = 0; s < kNumTriggers; s++)
+        if(p.triggers[s].held || triggers_[s].on)
+            all_density += std::clamp(p.triggers[s].density, 0.0f, kMaxDensity);
     const double most_samples
-        = density > 0.0f
-              ? double(kNumVoices - kSafetyVoices) * sample_rate_ / density
+        = all_density > 0.0f
+              ? double(kNumVoices - kSafetyVoices) * sample_rate_ / all_density
               : len;
     const double grain_samples
         = std::clamp(p.grain_ms * 0.001 * sample_rate_,
