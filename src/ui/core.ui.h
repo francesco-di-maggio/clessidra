@@ -29,33 +29,30 @@ class CoreUI
     static_assert(std::size(kSlicePads) == kNumSlices);
     static_assert(kNumSlices == Core::kNumTriggers);
 
-    // S37, Flow: the neck, from closed to single drops, a stream and a cloud.
-    // Density, size, window and reverb follow the one gesture.
-    static constexpr float kFlowOff       = 0.02f;  // closed below this
-    static constexpr float kDensityMin    = 0.3f;   // grains per second
-    static constexpr float kFlowGrainMsLo = 30.0f;  // drops
-    static constexpr float kFlowGrainMsHi = 300.0f; // cloud
-    static constexpr float kReverbDrops   = 0.7f;   // alone in a big glass
-    static constexpr float kReverbCloud   = 0.15f;
-    // window: percussive up to kShapeFrom, Hann from kShapeTo
-    static constexpr float kShapeFrom = 0.25f;
-    static constexpr float kShapeTo   = 0.6f;
-    // From kCloudFrom, Scatter at least kCloudScatter at the top: grains that
-    // all read the same spot sum to the recording, not a cloud
-    static constexpr float kCloudFrom    = 0.6f;
-    static constexpr float kCloudScatter = 0.3f;
+    // S37, Density: none at the bottom, then grains per second, exponential.
+    // A size and the reverb follow it.
+    static constexpr float kDensityOff       = 0.02f;  // none below this
+    static constexpr float kDensityMin       = 0.3f;   // grains per second
+    static constexpr float kDensityGrainMsLo = 30.0f;  // sparse
+    static constexpr float kDensityGrainMsHi = 300.0f; // dense
+    static constexpr float kReverbSparse     = 0.7f;   // a lone grain
+    static constexpr float kReverbDense      = 0.15f;
+    // From kCloudFrom, Spray at least kCloudSpray at the top: grains that all
+    // read the same spot sum to the recording, not a cloud
+    static constexpr float kCloudFrom  = 0.6f;
+    static constexpr float kCloudSpray = 0.3f;
 
-    // S31, Size: two octaves either way of Flow's, within these
+    // S31, Size: two octaves either way of Density's, within these
     static constexpr float kMinGrainMs = 10.0f;
     static constexpr float kMaxGrainMs = 4000.0f;
-    // S32, Scatter: random pitch over its top quarter
-    static constexpr float kPitchScatterFrom = 0.75f;
-    // P11, Shake: Scatter towards the top, part way at a light touch
+    // S32, Spray: random pitch over its top quarter
+    static constexpr float kPitchSprayFrom = 0.75f;
+    // P11, Shake: Spray towards the top, part way at a light touch
     static constexpr float kShakeFrom = 0.3f;
     // pad pressure above a light touch (Pads: measured 0.3-0.5)
     static constexpr float kPressFrom = 0.5f;
-    // A slice's flow: the fader's, at least this, opened by pressure
-    static constexpr float kSliceFlow = 0.5f;
+    // A slice's density: the fader's, at least this, opened by pressure
+    static constexpr float kSliceDensity = 0.5f;
     // P10 held past a tap: the input heard with the grains, equal power
     static constexpr float kMonitorMix = 0.5f;
 
@@ -83,13 +80,13 @@ class CoreUI
     const std::array<float, kNumSlices + 1>& Slices() const { return slices_; }
 
   private:
-    // Pitch unison, speed 1, size centre, tone off
+    // Pitch unison, speed 1 either way, size centre, Hann
     static constexpr size_t kNumDetents = 4;
 
     void EqualSlices();
     void Record(const Controls& c, Core& core, Core::Params& p);
     void Pads(const Controls& c, Core& core);
-    void Triggers(const Controls& c, float flow, Core::Params& p);
+    void Triggers(const Controls& c, float density, Core::Params& p);
     void Pulse(const Controls& c, const std::array<bool, kNumDetents>& at);
 
     std::array<bool, kNumSlices>          slice_touched_{};

@@ -45,13 +45,13 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 
 export const CONTROLS: Control[] = [
   {
-    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.5, detent: true,
-    does: "How fast the glass empties: stopped at the bottom, 1× at the centre, 4× at the top.",
-    value: (p) => (p[PARAM.freeze] ? "Held" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
+    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: 0.5 + 1.15 / 6, bipolar: true, detent: true,
+    does: "Held at the centre. Up forward, down reverse. Stops at 1, 2 and 4×.",
+    value: (p) => (p[PARAM.freeze] ? "Held" : `${signed(p[PARAM.speed], 2)}×`),
   },
   {
-    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Flow", initial: 0.75,
-    does: "The neck: closed, single drops, a stream, a cloud. Density, size, window, reverb.",
+    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.75,
+    does: "None at the bottom, 0.3 to 131 grains per second. Size and reverb follow.",
     value: (p) => {
       const d = p[PARAM.density];
       return d === 0 ? "Closed" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
@@ -69,27 +69,25 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
-    does: "Grain size: a quarter to four times Flow's, up to half the recording.",
+    does: "Grain size: a quarter to four times Density's, up to half the recording.",
     value: (p) => ms(p[PARAM.grainMs]),
   },
   {
-    id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Scatter", initial: 0,
+    id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
     does: "Plain at 0. Up: random starts, places, sizes, pan. Top quarter: pitch.",
     value: (p) => (p[PARAM.spread] === 0 ? "Plain" : percent(p[PARAM.spread])),
   },
   {
     id: "S33", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,
-    does: "±12 semitones. Stops at 0, 0.1, 5, 7, 12.",
+    does: "±24 semitones. Stops at 0, 1, 3, 4, 7, 12, 24, as Beads.",
     value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
   },
   {
-    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Tone", initial: 0.5, bipolar: true, detent: true,
-    does: "Low-pass down, 20 kHz to 200 Hz. Off at the centre. High-pass up, to 2 kHz.",
+    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 0.5, bipolar: true, detent: true,
+    does: "The grain's window: reverse percussive down, Hann at the centre, percussive up.",
     value: (p) => {
-      const t = p[PARAM.filter];
-      if (t === 0) return "Off";
-      const hz = t < 0 ? 20000 * (200 / 20000) ** -t : 20 * (2000 / 20) ** t;
-      return `${t < 0 ? "LP" : "HP"} ${hz < 1000 ? Math.round(hz) : (hz / 1000).toFixed(1) + "k"}`;
+      const s = p[PARAM.shape];
+      return s === 0.5 ? "Hann" : s < 0.5 ? `Rev ${percent(1 - 2 * s)}` : `Perc ${percent(2 * s - 1)}`;
     },
   },
   {
@@ -99,13 +97,11 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P11", type: "pad", index: SHAKE_PAD, ...padAt(SHAKE_PAD), name: "Shake",
-    does: "Held: Scatter towards the top, firmer for more. Let go, it settles.",
+    does: "Held: Spray towards the top, firmer for more. Let go, it settles.",
     value: (p) => percent(p[PARAM.spread]),
   },
   {
-    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Direction", initial: POSITION.up,
-    does: "Up forward, centre held, down reverse. Flicked: the glass turned over.",
-    value: (p) => (p[PARAM.freeze] ? "Held" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
+    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "S09", initial: POSITION.up, free: true,
   },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "End", initial: POSITION.down,
@@ -118,7 +114,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P01", type: "pad", index: DROP_PAD, ...padAt(DROP_PAD), name: "Drop",
-    does: "A touch: one grain at the playhead, whatever Flow.",
+    does: "A touch: one grain at the playhead, whatever Density.",
   },
   {
     id: "P02", type: "pad", index: RESTART_PAD, ...padAt(RESTART_PAD), name: "Restart",
@@ -126,7 +122,7 @@ export const CONTROLS: Control[] = [
   },
   ...SLICE_PADS.map((pad, i): Control => ({
     id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Slice ${i + 1}`, slice: i,
-    does: "Plays its slice with its own grains, as End sets. Pressure opens its flow.",
+    does: "Plays its slice with its own grains, as End sets. Pressure raises its density.",
     value: (_, v) => (v.slices[i] ? seconds(v.slices[i]) : ""),
   })),
 ];
@@ -137,7 +133,7 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 export const LED: [string, string][] = [
   ["Glow", "Grains falling, dimmer as the sand runs out"],
   ["Flashing", "Recording"],
-  ["Pulse", "At a centre: unison, speed 1×, Flow's size, tone off"],
+  ["Pulse", "At a stop: unison, speed 1× either way, Density's size, Hann"],
 ];
 
 // Browser only: the level into the firmware and out of it. The board has its

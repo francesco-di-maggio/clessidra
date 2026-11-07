@@ -71,7 +71,7 @@ function level(l: Level) {
 const inMeter = level(LEVELS[0]);
 const outMeter = level(LEVELS[1]);
 
-// The rack: Speed, the sand and the grain, Flow. The deck: the switches each
+// The rack: Speed, the sand and the grain, Density. The deck: the switches each
 // side of the keys, white the slices first to last, black between them the
 // pads as they sit on the board.
 const RACK: [string, string[]][] = [
@@ -89,7 +89,6 @@ for (const [tile, ids] of RACK) {
   }
 }
 
-add(segmented(byId("S09"), $("direction"), [[POSITION.up, "Forward"], [POSITION.centre, "Hold"], [POSITION.down, "Reverse"]], on));
 add(segmented(byId("S07"), $("end"), [[POSITION.up, "Once"], [POSITION.centre, "Turn"], [POSITION.down, "Loop"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)).root.classList.add("key"));
 const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Shake", 1], ["P00", "Mute", 3], ["P01", "Drop", 4], ["P02", "Restart", 5]];

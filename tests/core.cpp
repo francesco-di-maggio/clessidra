@@ -426,7 +426,7 @@ void Fuzz()
     panel.c.knobs[Controls::S33] = 0.5f;
     panel.c.knobs[Controls::S34] = 0.5f;
     panel.c.knobs[Controls::S35] = 1.0f;
-    panel.c.knobs[Controls::S36] = 0.5f;
+    panel.c.knobs[Controls::S36] = 0.5f + 1.15f / 6.0f; // 1×
     panel.c.knobs[Controls::S37] = 0.75f;
     panel.c.switches             = {Controls::Up, Controls::Down};
     panel.c.touched.fill(false);
@@ -1039,20 +1039,22 @@ void Mapping()
     c.knobs[Controls::S30] = 0.0f;
     c.knobs[Controls::S32] = 0.0f;
     c.knobs[Controls::S35] = 1.0f;
+    c.knobs[Controls::S36] = 0.5f + 1.15f / 6.0f; // on 1×
     c.switches             = {Controls::Up, Controls::Down};
     ui.Process(c, r.core);
     const Core::Params& p = r.core.CurrentParams();
     Check(Near(p.speed, 1.0, 1e-6) && !p.freeze && p.end == End::Loop,
-          "S36 centre, S09 up, S07 down: speed 1 forward, loop",
+          "S36 on its first stop up, S07 down: speed 1 forward, loop",
           p.speed);
-    Check(Near(p.pitch, 1.0, 1e-6) && p.filter == 0.0f && p.mix == 1.0f,
-          "S33, S34 centre: unison, tone off, all wet",
+    Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.filter == 0.0f
+              && p.mix == 1.0f,
+          "S33, S34 centre: unison, Hann, no filter, all wet",
           p.pitch);
     Check(p.start == 0.0f && p.length == 1.0f,
           "S30 bottom, S35 top: the whole recording",
           p.length);
 
-    // S37, Flow: closed, drops, a stream, a cloud
+    // S37, Density: none, sparse, dense
     c.knobs[Controls::S37] = 0.0f;
     ui.Process(c, r.core);
     const Core::Params closed = p;
@@ -1063,27 +1065,25 @@ void Mapping()
     ui.Process(c, r.core);
     Check(closed.density == 0.0f && drops.density > 0.0f
               && drops.density < 1.0f,
-          "S37 bottom: closed, then single drops (per s)",
+          "S37 bottom: none, then single grains (per s)",
           drops.density);
     Check(Near(p.density, Core::kMaxDensity, 0.01),
           "S37 top: the most density",
           p.density);
-    Check(drops.window_shape == 1.0f && p.window_shape == 0.5f,
-          "S37: percussive drops, a Hann cloud",
-          drops.window_shape);
-    Check(drops.reverb > p.reverb && drops.grain_ms < p.grain_ms,
-          "S37: drops short in a big reverb, the cloud long and closer",
-          drops.reverb);
-    Check(Near(p.grain_ms, CoreUI::kFlowGrainMsHi, 0.5)
-              && Near(closed.grain_ms, CoreUI::kFlowGrainMsLo, 0.01),
-          "S31 centre: Flow's size, 30 to 300 ms (ms)",
+    Check(
+        drops.reverb > p.reverb && drops.grain_ms < p.grain_ms,
+        "S37: sparse grains short in a big reverb, dense ones long and closer",
+        drops.reverb);
+    Check(Near(p.grain_ms, CoreUI::kDensityGrainMsHi, 0.5)
+              && Near(closed.grain_ms, CoreUI::kDensityGrainMsLo, 0.01),
+          "S31 centre: Density's size, 30 to 300 ms (ms)",
           p.grain_ms);
-    Check(Near(p.spread, CoreUI::kCloudScatter, 1e-6) && p.rand_density < 0.0f
+    Check(Near(p.spread, CoreUI::kCloudSpray, 1e-6) && p.rand_density < 0.0f
               && closed.spread == 0.0f,
-          "S37 top: the cloud scatters by itself, S32 at 0",
+          "S37 top: the cloud sprays by itself, S32 at 0",
           p.spread);
 
-    // S31: two octaves either way of Flow's
+    // S31: two octaves either way of Density's
     c.knobs[Controls::S37] = 0.5f;
     ui.Process(c, r.core);
     const float flow_ms    = p.grain_ms;
@@ -1094,7 +1094,7 @@ void Mapping()
     ui.Process(c, r.core);
     Check(Near(small, flow_ms / 4.0, 0.01)
               && Near(p.grain_ms, flow_ms * 4.0, 0.1),
-          "S31: a quarter to four times Flow's size (ms)",
+          "S31: a quarter to four times Density's size (ms)",
           p.grain_ms);
     c.knobs[Controls::S37] = 1.0f;
     ui.Process(c, r.core);
@@ -1104,7 +1104,7 @@ void Mapping()
     c.knobs[Controls::S31] = 0.5f;
     c.knobs[Controls::S37] = 0.5f;
 
-    // S32, Scatter: plain to disorder, pitch only over its top quarter
+    // S32, Spray: plain to disorder, pitch only over its top quarter
     ui.Process(c, r.core);
     Check(p.rand_density == 0.0f && p.rand_pos == 0.0f && p.rand_size == 0.0f
               && p.rand_shape == 0.0f && p.rand_pitch == 0.0f
@@ -1119,7 +1119,7 @@ void Mapping()
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
     Check(p.rand_pos == -1.0f && p.rand_pitch < 0.0f && p.spread == 1.0f,
-          "S32 top: the most scatter, random pitch, pan at its widest",
+          "S32 top: the most spray, random pitch, pan at its widest",
           p.rand_pitch);
     c.knobs[Controls::S32] = 0.0f;
 
@@ -1138,41 +1138,44 @@ void Mapping()
           "P11: shaken lightly, firmly, then settled (spread)",
           light);
 
-    // S33, Pitch: stops at the fifth and the octave
-    c.knobs[Controls::S33] = 0.5f + 3.15f / 8.0f; // on the fifth
+    // S33, Pitch: Beads' stops, the fifth and two octaves
+    c.knobs[Controls::S33] = 0.5f + 4.15f / 12.0f; // on the fifth
     ui.Process(c, r.core);
     Check(Near(p.pitch, std::exp2(7.0 / 12.0), 1e-3),
           "S33: a stop at a fifth",
           p.pitch);
     c.knobs[Controls::S33] = 0.0f;
     ui.Process(c, r.core);
-    Check(Near(p.pitch, 0.5, 1e-3), "S33 bottom: an octave down", p.pitch);
+    Check(Near(p.pitch, 0.25, 1e-3), "S33 bottom: two octaves down", p.pitch);
     c.knobs[Controls::S33] = 0.5f;
 
-    // S34, Tone
+    // S34, Shape: the window, reverse percussive to percussive
     c.knobs[Controls::S34] = 0.0f;
     ui.Process(c, r.core);
-    Check(p.filter == -1.0f, "S34 down: low-pass", p.filter);
+    Check(p.window_shape == 0.0f, "S34 down: reverse percussive", 0.0);
     c.knobs[Controls::S34] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.filter == 1.0f, "S34 up: high-pass", p.filter);
+    Check(p.window_shape == 1.0f && p.filter == 0.0f,
+          "S34 up: percussive",
+          p.window_shape);
     c.knobs[Controls::S34] = 0.5f;
 
-    // S36, S09, S07
+    // S36, Speed: stopped at the centre, either way to 4 times. S07
     c.knobs[Controls::S36] = 1.0f;
     ui.Process(c, r.core);
     Check(Near(p.speed, 4.0, 1e-6), "S36 top: 4 times", p.speed);
     c.knobs[Controls::S36] = 0.0f;
     ui.Process(c, r.core);
-    Check(p.speed == 0.0f, "S36 bottom: stopped", p.speed);
-    c.knobs[Controls::S36]    = 0.5f;
-    c.switches[Controls::S09] = Controls::Down;
+    Check(Near(p.speed, -4.0, 1e-6), "S36 bottom: 4 times reverse", p.speed);
+    c.knobs[Controls::S36] = 0.5f;
     ui.Process(c, r.core);
-    Check(Near(p.speed, -1.0, 1e-6), "S09 down: reverse", p.speed);
-    c.switches[Controls::S09] = Controls::Centre;
+    Check(p.freeze && p.speed == 0.0f, "S36 centre: held", p.speed);
+    c.knobs[Controls::S36] = 0.5f - 1.15f / 6.0f;
     ui.Process(c, r.core);
-    Check(p.freeze, "S09 centre: held", p.speed);
-    c.switches[Controls::S09] = Controls::Up;
+    Check(Near(p.speed, -1.0, 1e-6) && !p.freeze,
+          "S36 first stop down: 1 reverse",
+          p.speed);
+    c.knobs[Controls::S36]    = 0.5f + 1.15f / 6.0f;
     c.switches[Controls::S07] = Controls::Up;
     ui.Process(c, r.core);
     Check(p.end == End::Once, "S07 up: once", 0);

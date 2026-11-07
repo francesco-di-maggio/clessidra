@@ -10,31 +10,30 @@ One layer: every control does one thing, where it is. The recording is the sand,
 
 | Control | Name | Does |
 |---|---|---|
-| S36 | Speed | How fast the glass empties: stopped at the bottom, 1× at the centre, 4× at the top |
-| S37 | Flow | The neck: closed, single drops, a stream, a cloud. Moves density (0.3 to 131 grains per second), size (30 to 300 ms), window (percussive to Hann) and reverb (more for a lone drop) together. Near the top the cloud scatters by itself |
+| S36 | Speed | Held at the centre. Up forward, down reverse, with stops at 1, 2 and 4× |
+| S37 | Density | None at the bottom, then 0.3 to 131 grains per second. Size (30 to 300 ms) and reverb (more for a lone grain) follow. Near the top the cloud sprays by itself |
 | S30 | Position | Where the sand starts, anywhere in the recording. Held: moves the point |
 | S35 | Length | How much sand: the selection, past the end round to the start. The playhead stays where it is |
-| S31 | Size | A quarter to four times Flow's size, up to half the recording |
-| S32 | Scatter | Plain and periodic at 0. Up: random starts, places, sizes, shapes, wider pan, mostly near with a long tail. Top quarter: random pitch, up to ±12 semitones |
-| S33 | Pitch | ±12 semitones, stops at 0, 0.1, 5, 7, 12 |
-| S34 | Tone | Low-pass down, 20 kHz to 200 Hz. Off at the centre. High-pass up, to 2 kHz |
-| S09 | Direction | Forward, held, reverse. Flicked: the glass turned over |
+| S31 | Size | A quarter to four times Density's size, up to half the recording |
+| S32 | Spray | Plain and periodic at 0. Up: random starts, places, sizes, shapes, wider pan, mostly near with a long tail. Top quarter: random pitch, up to ±12 semitones |
+| S33 | Pitch | ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24 (Beads) |
+| S34 | Shape | The grain's window: reverse percussive down, Hann at the centre, percussive up |
 | S07 | End | When the sand runs out: up stops, centre turns over by itself, down loops. The slices too |
 
 | Pad | Name | Does |
 |---|---|---|
 | P10 | Record | Tap: the last 8 s. Hold: until release, up to 30 s, the input heard. A new recording pours in over 2 s |
-| P11 | Shake | Held: Scatter towards the top, firmer for more. Let go, it settles |
+| P11 | Shake | Held: Spray towards the top, firmer for more. Let go, it settles |
 | P00 | Mute | Held: the grains silent, the reverb rings on |
-| P01 | Drop | A touch: one grain at the playhead, whatever Flow |
+| P01 | Drop | A touch: one grain at the playhead, whatever Density |
 | P02 | Restart | The sand back to the top: the playhead to the selection start |
-| P03–P09 | Slices | At the recording's onsets. Each plays its own grains, as End sets. Flow at least half open, pressure opens it further |
+| P03–P09 | Slices | At the recording's onsets. Each plays its own grains, as End sets. Density at least half, pressure raises it |
 
 | LED | |
 |---|---|
 | Glow | Grains falling, dimmer as the sand runs out |
 | Flash | Recording |
-| Pulse | At a centre: unison, speed 1×, Flow's size, tone off |
+| Pulse | At a stop: unison, speed 1× either way, Density's size, Hann |
 
 ## Play in the Browser
 

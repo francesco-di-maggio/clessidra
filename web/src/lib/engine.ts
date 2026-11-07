@@ -23,7 +23,7 @@ export const INCOMING_COLUMNS = 1280;
 export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, edges: 4, triggers: 4 + NUM_SLICES + 1 } as const;
 export const VIEW_SIZE = VIEW.triggers + NUM_SLICES;
 // cl_params, in the core's units. grainMs: the size in use, grainMsSet: as
-// set. end: End, 0 once, 1 turn, 2 loop. spread: Scatter as it acts, 0..1.
+// set. end: End, 0 once, 1 turn, 2 loop. spread: Spray as it acts, 0..1.
 // sandLeft: ahead of the playhead, 0..1.
 export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randDensity: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, filter: 12, randPos: 13, randSize: 14, randShape: 15, end: 16, grainMsSet: 17, minGrainMs: 18, maxGrainMs: 19, spread: 20, sandLeft: 21 } as const;
 export const PARAM_SIZE = 22;

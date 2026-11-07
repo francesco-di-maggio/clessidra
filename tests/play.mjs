@@ -89,21 +89,21 @@ try {
   const values = await run(`[...document.querySelectorAll(".knob:not(.free) .value")].map((v) => v.textContent)`);
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
 
-  // Shake held: Scatter acts higher, let go it settles. A drop and a restart
+  // Shake held: Spray acts higher, let go it settles. A drop and a restart
   // do not break the page. One layer: no Shift anywhere.
   const pad = (name, down) => run(`document.querySelector('#keys .pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
   const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
-  const plain = await value("Scatter");
+  const plain = await value("Spray");
   await pad("Shake", true);
   await sleep(1500);
-  const shaken = await value("Scatter");
+  const shaken = await value("Spray");
   await pad("Shake", false);
   await sleep(300);
   const pc = (x) => (x === "Plain" ? 0 : parseInt(x));
-  check(pc(shaken) === 100 && (await value("Scatter")) === plain, "Shake held: Scatter up, let go it settles", `${plain} → ${shaken}`);
+  check(pc(shaken) === 100 && (await value("Spray")) === plain, "Shake held: Spray up, let go it settles", `${plain} → ${shaken}`);
   await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "s" }))`);
   await sleep(600);
-  const keyShake = await value("Scatter");
+  const keyShake = await value("Spray");
   await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "s" }))`);
   check(pc(keyShake) > pc(plain), "S: shakes", keyShake);
   await pad("Drop", true);
@@ -111,8 +111,8 @@ try {
   await pad("Restart", true);
   await pad("Restart", false);
   await sleep(300);
-  const flow = await run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Flow").querySelector(".value").textContent`);
-  check(/\/s$/.test(flow), "Flow shows grains per second", flow);
+  const flow = await run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Density").querySelector(".value").textContent`);
+  check(/\/s$/.test(flow), "Density shows grains per second", flow);
   check(!(await run(`document.body.textContent.includes("Shift")`)), "one layer: no Shift on the page");
 
   // A tap keeps the seconds set over the input

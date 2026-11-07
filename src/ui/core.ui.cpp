@@ -34,45 +34,50 @@ namespace
                           1.0f);
     }
 
-    // Grains per second at a flow, 0..1: none while closed, then exponential
-    float Density(float flow)
+    // Grains per second at density, 0..1: none at the bottom, then exponential
+    float GrainsPerSecond(float density)
     {
-        if(flow < CoreUI::kFlowOff)
+        if(density < CoreUI::kDensityOff)
             return 0.0f;
         const float open
-            = (flow - CoreUI::kFlowOff) / (1.0f - CoreUI::kFlowOff);
+            = (density - CoreUI::kDensityOff) / (1.0f - CoreUI::kDensityOff);
         return CoreUI::kDensityMin
                * std::pow(Core::kMaxDensity / CoreUI::kDensityMin, open);
     }
 
-    // +-12 semitones with stops at unison, a detune, the fourth, the fifth and
-    // the octave: flat for the first third of each segment, smooth between
-    float Semitones(float x)
+    // Beads' detune law (cv_reader.h, LAW_DETUNE): either side of the centre,
+    // the stops in turn, flat for the first third of each segment, smooth
+    // between
+    template <size_t N>
+    float Stops(float x, const float (&stops)[N])
     {
-        static constexpr float kIntervals[] = {0.0f, 0.1f, 5.0f, 7.0f, 12.0f};
-        constexpr size_t       kSegments    = std::size(kIntervals) - 1;
-        const float  centred  = 2.0f * std::clamp(x, 0.0f, 1.0f) - 1.0f;
-        const float  position = std::fabs(centred) * float(kSegments);
-        const size_t i        = std::min(size_t(position), kSegments - 1);
-        const float  t        = std::clamp(
+        constexpr size_t kSegments = N - 1;
+        const float      centred   = 2.0f * std::clamp(x, 0.0f, 1.0f) - 1.0f;
+        const float      position  = std::fabs(centred) * float(kSegments);
+        const size_t     i         = std::min(size_t(position), kSegments - 1);
+        const float      t         = std::clamp(
             (position - float(i) - 1.0f / 3.0f) * 1.5f, 0.0f, 1.0f);
         const float smooth = t * t * (3.0f - 2.0f * t);
-        const float value
-            = kIntervals[i] + smooth * (kIntervals[i + 1] - kIntervals[i]);
+        const float value  = stops[i] + smooth * (stops[i + 1] - stops[i]);
         return centred < 0.0f ? -value : value;
     }
 
-    // S32, Scatter, 0..1: from plain, periodic grains to random starts, then
+    // Semitones: Beads' intervals, +-24
+    constexpr float kIntervals[] = {0.0f, 1.0f, 3.0f, 4.0f, 7.0f, 12.0f, 24.0f};
+    // Speed: stopped at the centre, 1, 2 and 4 times either way
+    constexpr float kSpeeds[] = {0.0f, 1.0f, 2.0f, 4.0f};
+
+    // S32, Spray, 0..1: from plain, periodic grains to random starts, then
     // positions, sizes and shapes further from the playhead, wider pan, and
     // over the top quarter random pitch. Each mostly near with a long tail, as
-    // sand falls.
-    void Scatter(float s, Core::Params& p)
+    // Beads' attenurandomizers turned left.
+    void Spray(float s, Core::Params& p)
     {
         p.rand_density = -std::min(2.0f * s, 1.0f);
         p.rand_pos     = -s * s * s;
         p.rand_size    = -s * s / 3.0f;
         p.rand_shape   = -s * s / 3.0f;
-        p.rand_pitch   = -Ramp(s, CoreUI::kPitchScatterFrom, 1.0f) / 3.0f;
+        p.rand_pitch   = -Ramp(s, CoreUI::kPitchSprayFrom, 1.0f) / 3.0f;
         p.spread       = s;
     }
 
@@ -100,61 +105,66 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.start  = std::min(c.knobs[Controls::S30], 0.999f);
     p.length = std::max(c.knobs[Controls::S35], Core::kMinLength);
 
-    // S36, Speed: how fast the glass empties, stopped at the bottom, 1 at the
-    // centre, 4 at the top. S09: forward, held, reverse; flicked, the glass
-    // turned. S07, End: once, turn over, loop.
-    const float              speed = Detent(c.knobs[Controls::S36], 0.05f);
-    const Controls::Position way   = c.switches[Controls::S09];
-    p.freeze                       = way == Controls::Centre;
-    p.speed = (way == Controls::Down ? -4.0f : 4.0f) * speed * speed;
+    // S36, Speed: stopped at the centre, forward up, reverse down, at 1, 2
+    // and 4 times. S07, End: once, turn over, loop.
+    const float speed            = Stops(c.knobs[Controls::S36], kSpeeds);
+    p.freeze                     = speed == 0.0f;
+    p.speed                      = speed;
     const Controls::Position end = c.switches[Controls::S07];
     p.end                        = end == Controls::Up
                 ? End::Once
                 : end == Controls::Centre ? End::Turn : End::Loop;
 
-    // S37, Flow: the neck. Density, a size, the window from percussive drops to
-    // a Hann cloud, and the reverb, more for a lone drop.
-    const float flow = c.knobs[Controls::S37];
-    p.density        = Density(flow);
-    p.window_shape   = 1.0f - 0.5f * Ramp(flow, kShapeFrom, kShapeTo);
-    p.reverb         = kReverbDrops + flow * (kReverbCloud - kReverbDrops);
+    // S37, Density: grains per second, with a size and reverb that follow,
+    // more for a lone grain
+    const float density = c.knobs[Controls::S37];
+    p.density           = GrainsPerSecond(density);
+    p.reverb = kReverbSparse + density * (kReverbDense - kReverbSparse);
 
-    // S31, Size: two octaves either way of Flow's, up to half the recording
+    // S31, Size: two octaves either way of Density's, up to half the recording
     const float seconds = float(core.SoundSamples()) / float(kSampleRateHz);
     const float size    = Detent(c.knobs[Controls::S31], 0.05f);
-    const float flow_ms
-        = kFlowGrainMsLo * std::pow(kFlowGrainMsHi / kFlowGrainMsLo, flow);
+    const float density_ms
+        = kDensityGrainMsLo
+          * std::pow(kDensityGrainMsHi / kDensityGrainMsLo, density);
     const float top_ms
         = seconds > 0.0f
               ? std::clamp(500.0f * seconds, kMinGrainMs, kMaxGrainMs)
               : kMaxGrainMs;
     p.grain_ms = std::clamp(
-        flow_ms * std::exp2(4.0f * size - 2.0f), kMinGrainMs, top_ms);
+        density_ms * std::exp2(4.0f * size - 2.0f), kMinGrainMs, top_ms);
     p.min_grain_ms = kMinGrainMs;
     p.max_grain_ms = top_ms;
 
-    // S32, Scatter, at least Flow's floor; P11 held shakes it towards the top
-    float scatter = std::max(c.knobs[Controls::S32],
-                             kCloudScatter * Ramp(flow, kCloudFrom, 1.0f));
-    if(c.touched[kShakePad])
-        scatter += (1.0f - scatter)
-                   * (kShakeFrom
-                      + (1.0f - kShakeFrom) * Firm(c.pressure[kShakePad]));
-    Scatter(scatter, p);
+    // S34, Shape: the grain's window, reverse percussive, Hann at the centre,
+    // percussive
+    const float shape = Detent(c.knobs[Controls::S34], 0.05f);
+    p.window_shape    = shape;
 
-    // S33, Pitch. S34, Tone: low-pass down, off at the centre, high-pass up.
-    const float semitones = Semitones(c.knobs[Controls::S33]);
+    // S32, Spray, at least Density's floor; P11 held sprays towards the top
+    float spray = std::max(c.knobs[Controls::S32],
+                           kCloudSpray * Ramp(density, kCloudFrom, 1.0f));
+    if(c.touched[kShakePad])
+        spray += (1.0f - spray)
+                 * (kShakeFrom
+                    + (1.0f - kShakeFrom) * Firm(c.pressure[kShakePad]));
+    Spray(spray, p);
+
+    // S33, Pitch
+    const float semitones = Stops(c.knobs[Controls::S33], kIntervals);
     p.pitch               = std::exp2(semitones / 12.0f);
-    const float tone      = Detent(c.knobs[Controls::S34], 0.05f);
-    p.filter              = 2.0f * tone - 1.0f;
 
     // P00 held: mute
     p.mute = c.touched[kMutePad];
 
-    Triggers(c, flow, p);
+    Triggers(c, density, p);
     core.SetParams(p);
     Pads(c, core);
-    Pulse(c, {semitones == 0.0f, speed == 0.5f, size == 0.5f, tone == 0.5f});
+    Pulse(c,
+          {semitones == 0.0f,
+           std::fabs(speed) == 1.0f,
+           size == 0.5f,
+           shape == 0.5f});
 }
 
 // P10: record while held. A tap keeps the seconds before it; held longer, the
@@ -189,9 +199,9 @@ void CoreUI::Pads(const Controls& c, Core& core)
 }
 
 // P03-P09: each touch plays its slice, its own stream of grains, as End sets:
-// once to its end, turned over or round while held. The fader's flow, at
+// once to its end, turned over or round while held. The fader's density, at
 // least half open, opened further by pressure.
-void CoreUI::Triggers(const Controls& c, float flow, Core::Params& p)
+void CoreUI::Triggers(const Controls& c, float density, Core::Params& p)
 {
     for(size_t i = 0; i < kNumSlices; i++)
     {
@@ -208,8 +218,9 @@ void CoreUI::Triggers(const Controls& c, float flow, Core::Params& p)
         trigger.held      = c.touched[pad];
         if(!c.touched[pad])
             continue;
-        const float open = std::max(flow, kSliceFlow);
-        trigger.density = Density(open + (1.0f - open) * Firm(c.pressure[pad]));
+        const float open = std::max(density, kSliceDensity);
+        trigger.density
+            = GrainsPerSecond(open + (1.0f - open) * Firm(c.pressure[pad]));
     }
     p.triggers = triggers_;
 }
