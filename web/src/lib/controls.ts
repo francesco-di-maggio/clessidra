@@ -3,16 +3,14 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { FLIP_PAD, MUTE_PAD, NOTE_PADS, PARAM, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD } from "./engine";
+import { GESTURE_PADS, GESTURES, MUTE_PAD, PARAM, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
 // What a readout knows besides the parameters
 export interface Live {
   sound: number; // samples recorded
-  notes: boolean[]; // each note pad sounding
-  fallen: number; // samples in the bottom bulb
-  scale: number; // S09's position
+  gestures: number[]; // each gesture's depth, 0..1
   recording: number; // seconds P10 has been held, 0 when not
 }
 
@@ -27,7 +25,7 @@ export interface Control {
   bipolar?: boolean; // drawn from its centre
   detent?: boolean; // stops at its centre
   scale?: { at: number; label: string }[]; // a fader's marks, 0..1 of its travel
-  note?: number;
+  gesture?: number; // index in GESTURES
   free?: boolean;
   does?: string;
   value?: (p: Float32Array, v: Live) => string;
@@ -37,8 +35,8 @@ const seconds = (samples: number) => `${(samples / RATE).toFixed(samples < RATE 
 const percent = (x: number) => `${Math.round(x * 100)} %`;
 const ms = (x: number) => (x < 1000 ? `${Math.round(x)} ms` : `${(x / 1000).toFixed(2)} s`);
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
-const END = ["Once", "Flip", "Loop"]; // Core's End
-const SCALES: Record<number, string> = { 1: "Major", 0: "Minor", 2: "Pentatonic" }; // by S09's position
+const END = ["Once", "Turn", "Loop"]; // Core's End
+const SAND = ["Hold", "Wear", "Live"]; // Core::Sand
 
 // Speed's stops, as CoreUI's Stops(): each flat over the first third of its
 // segment, marked at the middle of it
@@ -49,6 +47,18 @@ const SPEED_SCALE = [3, 2, 1].map((s, i) => ({ at: speedAt(s, 1), label: ["4×",
 // Density's grains per second where the fader puts them (CoreUI::GrainsPerSecond)
 const densityAt = (perSecond: number) => 0.02 + (0.98 * Math.log(perSecond / 0.3)) / Math.log(130.81278 / 0.3);
 const DENSITY_SCALE = [100, 10, 1].map((d) => ({ at: densityAt(d), label: `${d}` })).concat([{ at: 0, label: "0" }]);
+
+// What each gesture does while held. Pressure goes further, release settles.
+const GESTURE_DOES = [
+  "Held: towards no grains, the neck clogged.",
+  "Held: towards the most grains.",
+  "Held: towards 8 ms grains, fine sand.",
+  "Held: towards all the spray.",
+  "Held: the playhead slows to a stop.",
+  "Held: the playhead rushes to 4×.",
+  "Held: the grains move far, all reverb.",
+  "Held: the playhead runs back, through a stop.",
+];
 
 const PAD_AT: Record<number, [number, number]> = {
   0: [150, 620], 1: [310, 610], 2: [412, 625], 3: [48, 800], 4: [170, 765], 5: [285, 795],
@@ -64,10 +74,10 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.75, scale: DENSITY_SCALE,
-    does: "None at the bottom, 0.3 to 131 grains per second. Size and reverb follow.",
+    does: "None at the bottom, then 0.3 to 131 grains per second. All voices busy: the grain is dropped. The reverb follows.",
     value: (p) => {
       const d = p[PARAM.density];
-      return d === 0 ? "Closed" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
+      return d === 0 ? "None" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
     },
   },
   {
@@ -82,12 +92,12 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
-    does: "Grain size: a quarter to four times Density's, up to half the recording.",
+    does: "Grain length, 5 ms to 2 s, 100 ms at the centre, at most half the recording.",
     value: (p) => ms(p[PARAM.grainMs]),
   },
   {
     id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
-    does: "Plain at 0. Up: random starts, places, sizes, pan. Top quarter: pitch.",
+    does: "Plain at 0. Up: random starts, places, sizes, shapes, levels, reverb sends, pan. Top quarter: pitch.",
     value: (p) => (p[PARAM.spread] === 0 ? "Plain" : percent(p[PARAM.spread])),
   },
   {
@@ -109,18 +119,13 @@ export const CONTROLS: Control[] = [
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
-    id: "P11", type: "pad", index: FLIP_PAD, ...padAt(FLIP_PAD), name: "Flip",
-    does: "The glass turned over: what has fallen plays, the last grain first.",
-    value: (_, v) => `${seconds(v.fallen)} fallen`,
-  },
-  {
-    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Scale", initial: POSITION.up,
-    does: "The notes' scale: up major, centre minor, down major pentatonic.",
-    value: (_, v) => SCALES[v.scale] ?? "",
+    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Sand", initial: POSITION.up,
+    does: "At the playhead as it moves. Up: held. Centre: worn, the grains fall back in. Down: live, the input writes over it.",
+    value: (p) => SAND[p[PARAM.sand]] ?? "",
   },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "End", initial: POSITION.down,
-    does: "When the playhead runs out: up stops, centre flips the glass, down loops.",
+    does: "When the playhead runs out: up stops, centre turns back, down loops.",
     value: (p) => END[p[PARAM.end]] ?? "",
   },
   {
@@ -135,10 +140,10 @@ export const CONTROLS: Control[] = [
     id: "P02", type: "pad", index: RESTART_PAD, ...padAt(RESTART_PAD), name: "Restart",
     does: "The sand back to the top: the playhead to the selection start.",
   },
-  ...NOTE_PADS.map((pad, i): Control => ({
-    id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Note ${i + 1}`, note: i,
-    does: "Held: grains at the playhead, a degree of S09's scale above Pitch. Pressure raises its density.",
-    value: (_, v) => (v.notes[i] ? "On" : ""),
+  ...GESTURE_PADS.map((pad, i): Control => ({
+    id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: GESTURES[i], gesture: i,
+    does: GESTURE_DOES[i],
+    value: (_, v) => (v.gestures[i] ? percent(v.gestures[i]) : ""),
   })),
 ];
 
@@ -148,7 +153,7 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 export const LED: [string, string][] = [
   ["Glow", "Grains falling, dimmer as the sand runs out"],
   ["Flashing", "Recording"],
-  ["Pulse", "At a stop: unison, speed 1× either way, Density's size, Hann"],
+  ["Pulse", "At a stop: unison, speed 1× either way, 100 ms, Hann"],
 ];
 
 // Browser only: the level into the firmware and out of it. The board has its

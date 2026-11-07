@@ -17,6 +17,7 @@ void Core::Init(float        sample_rate,
     for(size_t i = 0; i < kNumBuffers; i++)
         buffers_[i].Init(buffers[i], buffer_size, sample_rate);
     dc_block_.Init(sample_rate);
+    wear_block_.Init(sample_rate);
     reverb_.Init(sample_rate);
     reverb_.SetLpFreq(kReverbLowpassHz);
     limiter_.Init(sample_rate);
@@ -27,41 +28,15 @@ void Core::Init(float        sample_rate,
 void Core::Process(const float* const* in, float** out, size_t size)
 {
     const Params p         = slots_[slot_.load(std::memory_order_acquire)];
-    const bool   backwards = p.speed < 0.0f;
-    // Turned over by hand, or by itself when the sand has run out
-    const uint32_t flip_asks = flip_asks_.load(std::memory_order_relaxed);
-    if(flip_asks != flip_asks_done_
-       || (p.end == End::Flip && playhead_.Ended()))
-    {
-        flip_asks_done_ = flip_asks;
-        TurnOver(backwards);
-    }
-    const Buffer& sound   = buffers_[playing_.load(std::memory_order_relaxed)];
-    const double  len     = double(sound.Length());
-    const double  sel_len = std::max(double(p.length) * len, 1.0);
-    const double  sel_start = double(p.start) * len;
-    // The playhead and the notes held share kMaxDensity: past it, each
-    // thinned by the same share
-    float all_density = std::clamp(p.density, 0.0f, kMaxDensity);
-    for(const Note& note : p.notes)
-        if(note.held)
-            all_density += std::clamp(note.density, 0.0f, kMaxDensity);
-    const float share
-        = all_density > kMaxDensity ? kMaxDensity / all_density : 1.0f;
-    all_density         = std::min(all_density, kMaxDensity);
-    const float density = share * std::clamp(p.density, 0.0f, kMaxDensity);
+    Buffer&      sound     = buffers_[playing_.load(std::memory_order_relaxed)];
+    const double len       = double(sound.Length());
+    const double sel_len   = std::max(double(p.length) * len, 1.0);
+    const double sel_start = double(p.start) * len;
+    const float  density   = std::clamp(p.density, 0.0f, kMaxDensity);
     // A grain lasts grain_samples whatever its pitch, as the starts per second
-    // do: no longer than the recording, and short enough for the voices to hold
-    // whole windows at all the streams' density. Stolen, they would hardly
-    // rise.
-    const double most_samples
-        = all_density > 0.0f
-              ? double(kNumVoices - kSafetyVoices) * sample_rate_ / all_density
-              : len;
-    const double grain_samples
-        = std::clamp(p.grain_ms * 0.001 * sample_rate_,
-                     1.0,
-                     std::max(std::min(len, most_samples), 1.0));
+    // do, no longer than the recording
+    const double grain_samples = std::clamp(
+        p.grain_ms * 0.001 * sample_rate_, 1.0, std::max(len, 1.0));
     const double grain_inc = 1.0 / grain_samples;
     // Nothing recorded: no grains, the size as set
     grain_ms_
@@ -73,21 +48,12 @@ void Core::Process(const float* const* in, float** out, size_t size)
         playhead_.Scale(sel_len_ / sel_len);
     sel_len_ = sel_len;
 
+    const bool backwards = p.speed < 0.0f;
     if(restart_.exchange(false, std::memory_order_relaxed))
     {
         playhead_.Restart(backwards);
-        fallen_.store(0, std::memory_order_relaxed);
-        grain_fell_ = false;
         // With a grain at once
         schedule_.phase = schedule_.next;
-    }
-    // A note touched: a grain at once
-    for(size_t s = 0; s < kNumNotes; s++)
-    {
-        NoteStream& note = notes_[s];
-        if(p.notes[s].held && !note.on)
-            note.schedule.phase = note.schedule.next;
-        note.on = p.notes[s].held;
     }
 
     const double   play_inc = p.freeze ? 0.0 : p.speed / sel_len; // per sample
@@ -95,12 +61,9 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const bool     seed     = seeds != seeds_done_ && len > 0.0;
     seeds_done_             = seeds;
 
-    // Where the playhead reads
-    const auto here = [&] {
-        return Source{sel_start, sel_len, playhead_.Phase(), backwards};
-    };
-    // Round the end in Loop: a new pass, the bottom bulb empty again
-    bool wrapped = false;
+    // Where the playhead is, in samples of the recording, for the write head
+    const size_t block = std::min(size, kMaxBlock);
+    size_t       at[kMaxBlock];
 
     // Grain starts in this block, at the sample they fall on. A voice that ends
     // in this block is free from the next.
@@ -109,30 +72,19 @@ void Core::Process(const float* const* in, float** out, size_t size)
         // Through the selection, as End sets at its edges. Run out: no grains
         // but a seed.
         playhead_.Advance(play_inc, p.end);
-        wrapped = wrapped || playhead_.Wrapped();
-        if(playhead_.Ended())
+        const double phase = playhead_.Phase();
+        if(i < block)
         {
-            if(seed && i == 0)
-                StartGrain(p, here(), &sound, p.pitch, i);
-            continue;
+            const double here = sel_start + phase * sel_len;
+            at[i]             = size_t(here - len * std::floor(here / len));
         }
-        const Source source = here();
-        if(Due(schedule_, density / sample_rate_, p.rand_density)
-           || (seed && i == 0))
-            StartGrain(p, source, &sound, p.pitch, i);
-
-        // Notes: at the playhead, each at its pitch
-        for(size_t s = 0; s < kNumNotes; s++)
+        const bool due
+            = !playhead_.Ended()
+              && Due(schedule_, density / sample_rate_, p.rand_density);
+        if(due || (seed && i == 0))
         {
-            if(!notes_[s].on)
-                continue;
-            const Note& note = p.notes[s];
-            const float note_density
-                = share * std::clamp(note.density, 0.0f, kMaxDensity);
-            if(Due(notes_[s].schedule,
-                   note_density / sample_rate_,
-                   p.rand_density))
-                StartGrain(p, source, &sound, p.pitch * note.pitch, i);
+            const bool reverse = (p.speed < 0.0f) != (playhead_.Heading() < 0);
+            StartGrain(p, {sel_start, sel_len, phase, reverse}, &sound, i);
         }
     }
 
@@ -146,19 +98,23 @@ void Core::Process(const float* const* in, float** out, size_t size)
         }
     }
 
-    // Each grain through the block: its state stays in registers
+    // Each grain through the block, into the mix and, by its send, the
+    // reverb: its state stays in registers
+    float send_l[kMaxBlock], send_r[kMaxBlock];
     std::fill(out[0], out[0] + size, 0.0f);
     std::fill(out[1], out[1] + size, 0.0f);
+    std::fill(send_l, send_l + block, 0.0f);
+    std::fill(send_r, send_r + block, 0.0f);
     Grain::Sums sums;
     for(auto& grain : grains_)
-        grain.Render(grain_inc, out[0], out[1], size, sums);
+        grain.Render(grain_inc, out[0], out[1], send_l, send_r, block, sums);
     float power_sum = 0.0f;
-    for(size_t i = 0; i < size; i++)
+    for(size_t i = 0; i < block; i++)
         power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
 
-    const float n = float(size);
+    const float n = float(block);
     grain_level_.store(sums.window / n, std::memory_order_relaxed);
-    Normalise(sums.power / n, power_sum / n, sums.window_power / n, size);
+    Normalise(sums.power / n, power_sum / n, sums.window_power / n, block);
 
     // ReverbSc, measured with a 10 kHz lowpass: T60 = 3 * kLoop /
     // -log10(feedback) within 20 %, output gain kGain / sqrt(1 - feedback^2)
@@ -205,19 +161,11 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float wet       = mix <= 0.0f ? 0.0f : std::sin(mix_angle);
     const float dry_step  = (dry - dry_gain_) / n;
     const float wet_step  = (wet - wet_gain_) / n;
-    // The grains falling into the bottom bulb, until it is full, while the
-    // sand runs or grains still sound, once nothing reads it
-    Buffer&      bottom = buffers_[bottom_];
-    const size_t room   = bottom.Capacity();
-    size_t       fallen = wrapped ? 0 : fallen_.load(std::memory_order_relaxed);
-    if(wrapped)
-        grain_fell_ = false;
-    const bool falling = len > 0.0 && (!playhead_.Ended() || sums.window > 0.0f)
-                         && !Reading(bottom);
-    grain_fell_       = grain_fell_ || (falling && sums.window > 0.0f);
-    float fall_mono   = 0.0f;
-    float fall_stereo = 0.0f;
-    for(size_t i = 0; i < size; i++)
+    // The write head at the playhead, while it moves through sand
+    const bool writing
+        = p.sand != Sand::Hold && !p.freeze && len > 0.0 && !playhead_.Ended();
+    float* const sand = sound.Data();
+    for(size_t i = 0; i < block; i++)
     {
         reverb_dry_ += reverb_dry_step;
         reverb_wet_ += reverb_wet_step;
@@ -235,25 +183,30 @@ void Core::Process(const float* const* in, float** out, size_t size)
                          : std::max(mute_target, mute_gain_ - mute_step);
         l *= mute_gain_;
         r *= mute_gain_;
-        if(falling && fallen < room)
-        {
-            const float mono = 0.5f * (l + r);
-            fall_mono += mono * mono;
-            fall_stereo += 0.5f * (l * l + r * r);
-            bottom.Data()[room - 1 - fallen] = mono * fall_gain_;
-            fallen++;
-        }
-        float reverb_l, reverb_r;
-        reverb_.Process(l, r, &reverb_l, &reverb_r);
-        out[0][i] = l * reverb_dry_ + reverb_l * reverb_wet_;
-        out[1][i] = r * reverb_dry_ + reverb_r * reverb_wet_;
+        const float gain = norm_gain_ * mute_gain_;
+        float       reverb_l, reverb_r;
+        reverb_.Process(
+            send_l[i] * gain, send_r[i] * gain, &reverb_l, &reverb_r);
 
         // The input, always into the ring
         input_gain_ += input_step;
         const float in_l = in[0][i] * input_gain_;
         const float in_r = in[1][i] * input_gain_;
-        ring_.Write(dc_block_.Process(kInputSum * (in_l + in_r)));
+        const float mono = dc_block_.Process(kInputSum * (in_l + in_r));
+        ring_.Write(mono);
 
+        // Into the sand at the playhead: the input, or the grains as they fall
+        if(writing)
+        {
+            float&      grain_sand = sand[at[i]];
+            const float fell = std::tanh(wear_block_.Process(0.5f * (l + r)));
+            grain_sand       = p.sand == Sand::Live
+                             ? mono
+                             : grain_sand + kWearAmount * (fell - grain_sand);
+        }
+
+        out[0][i] = l * reverb_dry_ + reverb_l * reverb_wet_;
+        out[1][i] = r * reverb_dry_ + reverb_r * reverb_wet_;
         dry_gain_ += dry_step;
         wet_gain_ += wet_step;
         out[0][i] = out[0][i] * kOutputGain * wet_gain_ + in_l * dry_gain_;
@@ -263,52 +216,10 @@ void Core::Process(const float* const* in, float** out, size_t size)
         out[0][i] *= output_gain_;
         out[1][i] *= output_gain_;
     }
-
-    fallen_.store(fallen, std::memory_order_relaxed);
-    // Mono at the grains' level: from 0 dB for grains alike left and right to
-    // +6 dB for opposite ones
-    if(fall_mono > 1e-12f)
-    {
-        const float target
-            = std::clamp(std::sqrt(fall_stereo / fall_mono), 1.0f, 2.0f);
-        fall_gain_ += (target - fall_gain_)
-                      * std::min(1.0f, n / (kFallLevelSeconds * sample_rate_));
-    }
+    for(size_t i = block; i < size; i++)
+        out[0][i] = out[1][i] = 0.0f;
 
     UpdateCapture(size);
-}
-
-void Core::TurnOver(bool backwards)
-{
-    const size_t fallen = fallen_.load(std::memory_order_relaxed);
-    // Not while a recording is copied: it writes the third buffer
-    if(grain_fell_ && fallen >= size_t(kMinFallSeconds * sample_rate_)
-       && capture_ == Capture::Idle)
-    {
-        const size_t playing = playing_.load(std::memory_order_relaxed);
-        Buffer&      b       = buffers_[bottom_];
-        b.Finish(fallen, b.Capacity() - fallen);
-        const size_t up = bottom_;
-        bottom_         = kNumBuffers - up - playing; // the third
-        playing_.store(up, std::memory_order_release);
-        flips_.fetch_add(1, std::memory_order_release);
-        // The selection over the new sound, the playhead from its start
-        sel_len_ = 0.0;
-    }
-    fallen_.store(0, std::memory_order_relaxed);
-    grain_fell_ = false;
-    playhead_.Restart(backwards);
-    schedule_.phase = schedule_.next;
-}
-
-bool Core::Reading(const Buffer& b) const
-{
-    if(poured_from_ == &b)
-        return true;
-    for(const auto& grain : grains_)
-        if(grain.IsActive() && grain.Source() == &b)
-            return true;
-    return false;
 }
 
 void Core::UpdateCapture(size_t size)
@@ -334,7 +245,7 @@ void Core::UpdateCapture(size_t size)
     was_record_ = record;
 
     const size_t playing = playing_.load(std::memory_order_relaxed);
-    const size_t next    = kNumBuffers - playing - bottom_; // the third
+    const size_t next    = 1 - playing;
     Buffer&      target  = buffers_[next];
     if(capture_ == Capture::Waiting)
     {
@@ -410,7 +321,6 @@ void Core::Normalise(float  power_grains,
 void Core::StartGrain(const Params& p,
                       const Source& source,
                       const Buffer* sound,
-                      float         pitch,
                       size_t        offset)
 {
     Grain* grain  = nullptr;
@@ -423,7 +333,10 @@ void Core::StartGrain(const Params& p,
             grain = &g;
     }
     if(!grain)
+    {
+        dropped_.fetch_add(1, std::memory_order_relaxed);
         return;
+    }
 
     Grain::Latch latch;
     latch.buffer   = sound;
@@ -434,7 +347,8 @@ void Core::StartGrain(const Params& p,
         to_read      = double(poured_from_->Length()) / double(sound->Length());
     }
     // Each as Beads, over its range: position inside what is playing, size
-    // between the knob's ends, exponential, any shape, pitch either way
+    // between the knob's ends, exponential, any shape, pitch either way. Level
+    // and reverb send as Giri's cloud.
     const double phase
         = p.rand_pos != 0.0f
               ? source.phase
@@ -454,29 +368,20 @@ void Core::StartGrain(const Params& p,
         = p.rand_pitch != 0.0f
               ? Random() * Blend(p.rand_pitch) * kRandPitchSemitones
               : 0.0f;
-    latch.rate = pitch * std::exp2(semitones / 12.0f);
+    latch.rate = p.pitch * std::exp2(semitones / 12.0f);
     if(source.backwards)
         latch.rate = -latch.rate;
+    if(p.rand_gain != 0.0f)
+        latch.gain = std::pow(10.0f,
+                              kRandGainDb / 20.0f * Blend(p.rand_gain)
+                                  * (0.5f + 0.5f * Random()));
+    latch.send = p.rand_send != 0.0f ? Randomise(1.0f, p.rand_send) : 1.0f;
     // Width with the grains sounding and how much they differ: a lone grain
     // near the centre, most of the others too
     const float width = 0.5f * float(active + 1) * p.spread;
     const float scale = 0.5f - 0.5f * Random();
     latch.pan         = 0.5f + 0.5f * Random() * std::min(width * scale, 1.0f);
     grain->Start(latch, offset);
-
-    // Keeps voices free for the next grains
-    if(active + 1 + kSafetyVoices <= kNumVoices)
-        return;
-    Grain* furthest = nullptr;
-    for(auto& g : grains_)
-    {
-        if(&g == grain || !g.IsActive() || g.IsFading())
-            continue;
-        if(!furthest || g.Progress() > furthest->Progress())
-            furthest = &g;
-    }
-    if(furthest)
-        furthest->FadeOut(size_t(kFadeSeconds * sample_rate_));
 }
 
 bool Core::Due(Schedule& s, double sched_inc, float rand_density)

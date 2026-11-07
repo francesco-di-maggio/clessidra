@@ -39,7 +39,7 @@ body.app main { min-height: 0; }
 .tile { position: relative; min-width: 0; min-height: 0; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .tile .tag { position: absolute; top: 10px; left: 14px; z-index: 1; pointer-events: none; }
 .tile canvas { display: block; width: 100%; height: 100%; }
-.figure { font: 700 15px/20px var(--dot); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+.figure { font: 500 13px/20px var(--mono); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
 
 .buffer { grid-area: buf; }
 .held { position: absolute; top: 9px; right: 14px; z-index: 1; pointer-events: none; }
@@ -48,7 +48,8 @@ body.app main { min-height: 0; }
 .glass { grid-area: glass; display: grid; grid-template-rows: minmax(0, 1fr) auto; }
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; padding: 10px 14px 12px; border-top: 1px solid var(--line); }
 .facts dt { font: 500 10px/18px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
-.facts dd { margin: 0; text-align: right; font: 700 14px/18px var(--dot); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+.facts dd { margin: 0; text-align: right; font: 500 12px/18px var(--mono); font-variant-numeric: tabular-nums; }
+.facts dd.on { color: var(--accent); }
 
 .incoming { grid-area: inc; display: flex; flex-direction: column; }
 .incoming canvas { flex: 1; min-height: 0; }
@@ -84,8 +85,8 @@ body.app main { min-height: 0; }
 .knob .slot { stroke: var(--well); stroke-width: 8; stroke-linecap: round; }
 .knob .tick-at { stroke: var(--dim); stroke-width: 1; }
 .mark-at { position: absolute; left: calc(50% + 24px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
-.knob.fader .value { font-size: 18px; line-height: 24px; }
-.knob .value { font: 700 14px/18px var(--dot); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
+.knob.fader .value { font-size: 13px; line-height: 20px; }
+.knob .value { font: 500 12px/18px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
 .knob.focus .label, .knob:focus-visible .label, .switch.focus .label { color: var(--ink); }
 .knob:focus-visible svg { outline: 1.5px solid var(--accent); outline-offset: -2px; border-radius: 50%; }
 .knob.fader:focus-visible svg { outline-offset: 2px; border-radius: 6px; }
@@ -102,10 +103,11 @@ body.app main { min-height: 0; }
 .pad { display: grid; place-content: center; gap: 2px; width: 100%; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { font-size: 10px; color: var(--dim); font-variant-numeric: tabular-nums; }
-.pad.key { height: 100%; place-content: end center; padding-bottom: 8px; font: 700 14px var(--dot); letter-spacing: 0.04em; background: var(--well); }
+.pad.key { height: 100%; place-content: end center; padding-bottom: 8px; font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.pad.key .sub { color: var(--bg); opacity: 0.6; }
 .pad.key .sub { font: 500 10px var(--mono); white-space: nowrap; }
 .pad.key.black { position: absolute; top: 0; z-index: 1; width: calc((100% - 24px) / 7); height: 54%; padding: 0 0 8px; font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
-                 background: var(--key); color: var(--key-ink); border-color: var(--line); }
+                 background: var(--surface); color: var(--ink); border-color: var(--line); }
 .pad.key.black .sub { display: none; }
 .pad.on .sub { color: inherit; opacity: 0.8; }
 .pad.playing { border-color: var(--accent); }
@@ -116,7 +118,7 @@ body.app main { min-height: 0; }
 /* Help: the control and its value, then what it does, on one line */
 .readout { grid-area: help; display: flex; align-items: center; gap: 12px; padding: 0 14px; font-size: 13px; line-height: 20px; }
 .readout .label { color: var(--ink); white-space: nowrap; }
-.readout .value { font: 700 14px/20px var(--dot); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.readout .value { font: 500 13px/20px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .readout .does { min-width: 0; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Laptops with little height: the page scrolls rather than squeezing */

@@ -1,6 +1,7 @@
 // The Play page in headless Chrome: Start, record with R, and the firmware
 // answers. Serves web/dist itself. From the repo: make test, after make web.
-// Chrome from $CHROME, or where it usually is.
+// Chrome from $CHROME, or where it usually is. With a URL argument, that page
+// instead, as the dev server serves it.
 import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -52,7 +53,7 @@ async function waitFor(url) {
 }
 
 try {
-  const page = `http://localhost:${PREVIEW}/clessidra/play/`;
+  const page = process.argv[2] ?? `http://localhost:${PREVIEW}/clessidra/play/`;
   await waitFor(page);
   const targets = await (await waitFor(`http://127.0.0.1:${DEBUG}/json`)).json();
   const ws = new WebSocket(targets.find((t) => t.type === "page").webSocketDebuggerUrl);
@@ -89,16 +90,17 @@ try {
   const values = await run(`[...document.querySelectorAll(".knob:not(.free) .value")].map((v) => v.textContent)`);
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
 
-  // Flip: what has fallen plays, a new sound. A seed and a restart do not
-  // break the page. One layer: no Shift anywhere.
+  // A gesture bends the glass while held. A seed and a restart do not break
+  // the page. One layer: no Shift anywhere.
   const pad = (name, down) => run(`document.querySelector('#keys .pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
   const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
-  await sleep(700);
-  await pad("Flip", true);
-  await pad("Flip", false);
-  await sleep(300);
-  const flipped = await run(`document.getElementById("held").textContent`);
-  check(/^\d+\.\d s$/.test(flipped) && flipped !== held, "Flip: what had fallen plays", `${held} → ${flipped}`);
+  const before = await value("Density");
+  await pad("Clog", true);
+  await sleep(1500);
+  const clogged = await value("Density");
+  await pad("Clog", false);
+  await sleep(1500);
+  check((clogged === "None" ? 0 : parseFloat(clogged)) < parseFloat(before) && (await value("Density")) === before, "Clog held: Density down, let go it settles", `${before} → ${clogged}`);
   await pad("Seed", true);
   await pad("Seed", false);
   await pad("Restart", true);

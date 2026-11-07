@@ -23,17 +23,17 @@ class Core
     Core(const Core&) = delete;
     Core& operator=(const Core&) = delete;
 
-    // grains per second, three octaves above middle C: of all the streams together
+    // grains per second, Beads' kMaxGrainFrequency
     static constexpr float kMaxDensity = 130.81278f;
     static constexpr float kMinLength
         = 0.01f; // of the sound: the shortest selection
+    // Voices. All sounding, a new grain is dropped and counted, as Giri's cloud
+    // does: the neck clogs. Grains keep their size.
     static constexpr size_t kNumVoices = 32;
-    // Voices kept free: over this many sounding, the furthest along fades out,
-    // so a new grain always starts
-    static constexpr size_t kSafetyVoices = 8;
-    static constexpr float  kFadeSeconds  = 0.005f;
     // the furthest Params.rand_pitch takes a grain's pitch, either way
     static constexpr float kRandPitchSemitones = 12.0f;
+    // the quietest Params.rand_gain takes a grain
+    static constexpr float kRandGainDb = -18.0f;
     // One jack or two: -3 dB on one, +3 dB on two in phase, not -6 and 0
     static constexpr float kInputSum = 0.7071f;
     // +6 dB after the grains, into the limiter: at equal power they sound
@@ -64,11 +64,10 @@ class Core
     // Recording. The input goes to the ring all the time. On release, a touch
     // shorter than kTapSeconds keeps the kTapCaptureSeconds before it, a longer
     // one the touch from kPreRollSeconds before it, up to the buffers'
-    // capacity. Copied to the buffer neither playing nor falling, which then
-    // plays: over kPourSeconds, each new grain reads it with odds rising from 0
-    // to 1, the others the recording before.
-    static constexpr size_t kNumBuffers = 3;
-    static_assert(kNumBuffers == 3, "playing, falling and the third");
+    // capacity. Copied to the buffer not playing, which then plays: over
+    // kPourSeconds, each new grain reads it with odds rising from 0 to 1, the
+    // others the recording before.
+    static constexpr size_t kNumBuffers        = 2;
     static constexpr float  kTapSeconds        = 0.3f;
     static constexpr float  kTapCaptureSeconds = 8.0f;
     static constexpr float  kPourSeconds       = 2.0f;
@@ -76,23 +75,19 @@ class Core
     static constexpr size_t kCopyPerSample = 21; // × real time: 30 s in 1.4 s
     // ring written on during the copy
     static constexpr float kCopyMarginSeconds = 0.5f;
-    // The bottom bulb: the grains as they fall, before the reverb, written to
-    // a third buffer from its end towards its start, at the grains' level.
-    // Flipped, it plays: the last grain to fall first. Less than this fallen,
-    // or no grain at all, a flip only starts the sand again.
-    static constexpr float kMinFallSeconds = 0.05f;
-    // smoothing of the level the grains fall at
-    static constexpr float kFallLevelSeconds = 0.05f;
-
-    // Notes: while held, each its own stream of grains at the playhead, on top
-    // of it, at its pitch. Silent once the playhead has run out.
-    static constexpr size_t kNumNotes = 7;
-    struct Note
+    // The sand at the playhead, as it moves. Hold: untouched. Wear: the grains
+    // fall back into it, high-passed and soft-clipped, kWearAmount of each
+    // sample replaced per pass (the live granulator's feedback). Live: the
+    // input replaces it.
+    enum class Sand
     {
-        float density = 0.0f; // grains per second
-        float pitch   = 1.0f; // times Params.pitch
-        bool  held    = false;
+        Hold,
+        Wear,
+        Live
     };
+    static constexpr float kWearAmount = 0.3f;
+    // the longest block the write head follows
+    static constexpr size_t kMaxBlock = 256;
 
     struct Params
     {
@@ -138,7 +133,11 @@ class Core
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
-        std::array<Note, kNumNotes> notes{};
+        Sand  sand   = Sand::Hold;
+        // Randomness of each grain's level and reverb send, -1..1 as the
+        // others: level down to kRandGainDb, send from none to all
+        float rand_gain = 0.0f;
+        float rand_send = 0.0f;
     };
 
     // ring: ring_size floats. buffers: kNumBuffers of buffer_size floats, the
@@ -166,16 +165,6 @@ class Core
     // Main loop: one grain at the playhead, at the next block, whatever the
     // density
     void Seed() { seeds_.fetch_add(1, std::memory_order_relaxed); }
-    // Main loop: the glass turned over at the next block, what has fallen
-    // playing, the playhead from the start
-    void Flip() { flip_asks_.fetch_add(1, std::memory_order_relaxed); }
-    // Flips so far: a change means Sound() is what had fallen
-    uint32_t Flips() const { return flips_.load(std::memory_order_acquire); }
-    // Seconds fallen since the sand last started
-    float Fallen() const
-    {
-        return float(fallen_.load(std::memory_order_relaxed)) / sample_rate_;
-    }
     // Main loop: true while the record pad is held
     void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
     // What a tap keeps, seconds, up to the ring's capacity. kTapCaptureSeconds
@@ -212,8 +201,11 @@ class Core
     // A grain's size in use, ms: grain_ms within the recording and what the
     // voices hold at this density
     float GrainMs() const { return grain_ms_; }
-    // A note sounding
-    bool NoteOn(size_t i) const { return notes_[i].on; }
+    // Grains dropped so far, all voices sounding: the neck clogged
+    uint32_t Dropped() const
+    {
+        return dropped_.load(std::memory_order_relaxed);
+    }
 
   private:
     // Grain starts
@@ -221,11 +213,6 @@ class Core
     {
         double phase = 0.0;  // 1 = mean interval
         float  next  = 1.0f; // phase of the next start
-    };
-    struct NoteStream
-    {
-        Schedule schedule;
-        bool     on = false;
     };
 
     // Where a grain reads
@@ -244,12 +231,11 @@ class Core
         Copying
     };
 
-    // Starts a grain on a free voice at sample offset of the block, at pitch.
-    // While a new recording pours in, it may read the one before.
+    // Starts a grain on a free voice at sample offset of the block, or drops
+    // it. While a new recording pours in, it may read the one before.
     void StartGrain(const Params& p,
                     const Source& source,
                     const Buffer* sound,
-                    float         pitch,
                     size_t        offset);
     // End of Process(), after the ring is written: on release, copies the
     // recording to the buffer not playing once its grains have ended, then
@@ -257,10 +243,6 @@ class Core
     void UpdateCapture(size_t size);
     // Advances grain starts by one sample; true when a grain starts
     bool Due(Schedule& s, double sched_inc, float rand_density);
-    // Turns the glass over: what has fallen plays, from the start
-    void TurnOver(bool backwards);
-    // A grain reads b, or the pour does
-    bool Reading(const Buffer& b) const;
     // Updates norm_ from the mean powers of the last block
     void  Normalise(float  power_grains,
                     float  power_sum,
@@ -285,15 +267,10 @@ class Core
     Ring                            ring_;
     std::array<Buffer, kNumBuffers> buffers_;
     std::atomic<size_t>             playing_{0};
-    // The buffer the grains fall into, what has fallen in it, samples, and the
-    // gain from the stereo grains to it, mono at their level
-    size_t                bottom_ = 1;
-    std::atomic<size_t>   fallen_{0};
-    bool                  grain_fell_ = false; // since the sand started
-    float                 fall_gain_  = 1.0f;
-    std::atomic<uint32_t> flip_asks_{0};
-    uint32_t              flip_asks_done_ = 0;
-    std::atomic<uint32_t> flips_{0};
+    std::atomic<uint32_t>           dropped_{0};
+    // Wear: the grains, high-passed, before they fall back
+    daisysp::DcBlock wear_block_;
+
     std::atomic<uint32_t> recordings_{0};
     std::atomic<bool>     record_{false};
     std::atomic<float>    tap_seconds_{kTapCaptureSeconds};
@@ -308,14 +285,14 @@ class Core
 
     // Grains. Running positions in double: float steps reach 1/32 sample at 8
     // s.
-    std::array<Grain, kNumVoices>     grains_;
-    Playhead                          playhead_;
-    Schedule                          schedule_;
-    std::array<NoteStream, kNumNotes> notes_;
-    std::atomic<bool>                 restart_{false};
-    std::atomic<uint32_t>             seeds_{0};
-    uint32_t                          seeds_done_ = 0;
-    uint32_t                          seed_       = 1;
+    std::array<Grain, kNumVoices> grains_;
+    Playhead                      playhead_;
+    Schedule                      schedule_;
+
+    std::atomic<bool>     restart_{false};
+    std::atomic<uint32_t> seeds_{0};
+    uint32_t              seeds_done_ = 0;
+    uint32_t              seed_       = 1;
     // The selection's length in samples at the last block: a new length keeps
     // the playhead where it is in the recording
     double             sel_len_  = 0.0;

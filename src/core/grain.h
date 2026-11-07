@@ -20,6 +20,7 @@ class Grain
         // window: 0 reverse percussive, 0.5 Hann, 1 percussive
         float shape = 0.5f;
         float gain  = 1.0f;
+        float send  = 1.0f; // into the reverb, of the grain
         float size  = 1.0f; // of the grain size passed to Render()
     };
 
@@ -46,9 +47,15 @@ class Grain
         float window_power = 0.0f; // squared windows
     };
 
-    // Adds the grain to left and right while active. inc: window phase per
-    // sample.
-    void Render(double inc, float* left, float* right, size_t size, Sums& sums);
+    // Adds the grain to left and right, and by its send to send_l and send_r,
+    // while active. inc: window phase per sample.
+    void Render(double inc,
+                float* left,
+                float* right,
+                float* send_l,
+                float* send_r,
+                size_t size,
+                Sums&  sums);
 
   private:
     static constexpr size_t kWindowSize = 512;

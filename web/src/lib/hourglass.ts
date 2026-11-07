@@ -3,14 +3,13 @@
 // opens with Density. Each falling dot is a grain sounding: its height its
 // progress, its drift its pan, its brightness its window, its size the grain
 // size. Speed held: the glass on its side. Reverse: upside down. A flip turns
-// it over.
+// it over. All voices busy, the neck clogs: grains wait above it.
 
 import { GRAIN_FIELDS, PARAM, VIEW, type Frame } from "./engine";
 import { windowAt } from "./waveform";
 
 const DOT = 4; // the sand's grid, px
 const MAX_DENSITY = 130.81278; // Core::kMaxDensity
-const TURN_MS = 420; // a flip, turned over
 
 interface Colours {
   ink: string;
@@ -24,9 +23,8 @@ export class Hourglass {
   private frame: Frame | null = null;
   private c!: Colours;
   private angle = 0; // drawn, degrees
-  private flips = 0;
-  private turnFrom = 0; // ms, a flip's start
   private raf = 0;
+  clogged = false; // grains dropped lately
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
@@ -44,9 +42,6 @@ export class Hourglass {
   }
 
   update(frame: Frame) {
-    const flips = frame.view[VIEW.flips] ?? 0;
-    if (this.frame && flips > this.flips) this.turnFrom = performance.now();
-    this.flips = flips;
     this.frame = frame;
     if (!this.raf) this.raf = requestAnimationFrame(() => this.tick());
   }
@@ -60,7 +55,7 @@ export class Hourglass {
     this.angle += (target - this.angle) * 0.18;
     if (Math.abs(target - this.angle) < 0.2) this.angle = target;
     this.draw();
-    if (this.angle !== target || performance.now() - this.turnFrom < TURN_MS) this.raf = requestAnimationFrame(() => this.tick());
+    if (this.angle !== target) this.raf = requestAnimationFrame(() => this.tick());
   }
 
   draw() {
@@ -79,8 +74,6 @@ export class Hourglass {
     const sound = f ? f.view[VIEW.sound] : 0;
 
     // The glass, fitted upright or on its side, whichever it is turning to
-    const turning = performance.now() - this.turnFrom;
-    const turn = turning < TURN_MS ? 180 * (1 - easeOut(turning / TURN_MS)) : 0;
     // Below the tile's name, inset as the other tiles' drawings
     const side = Math.abs(Math.sin((this.angle * Math.PI) / 180));
     const top = 34;
@@ -91,7 +84,7 @@ export class Hourglass {
     const w = h * ratio;
     ctx.save();
     ctx.translate(W / 2, top + room / 2);
-    ctx.rotate(((this.angle + turn) * Math.PI) / 180);
+    ctx.rotate((this.angle * Math.PI) / 180);
 
     const density = p ? p[PARAM.density] : 0;
     const open = density > 0 ? Math.log(1 + density) / Math.log(1 + MAX_DENSITY) : 0;
@@ -133,12 +126,22 @@ export class Hourglass {
         ctx.fill();
       }
       ctx.globalAlpha = 1;
+      // Clogged: grains waiting above the neck
+      if (this.clogged) {
+        ctx.fillStyle = c.ink;
+        for (let k = 0; k < 9; k++) {
+          const y = -DOT * (1 + Math.floor(k / 3));
+          const x = ((k % 3) - 1) * DOT * 0.9 * (1 + Math.floor(k / 3) * 0.6);
+          ctx.beginPath();
+          ctx.arc(x, y, 1.4, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      }
     }
     ctx.restore();
   }
 }
 
-const easeOut = (t: number) => 1 - (1 - t) ** 3;
 
 // The glass's outline: two bulbs meeting at the neck. half(y) is the inside's
 // half width at height y from the neck; level(k, neck) how high k of a bulb's

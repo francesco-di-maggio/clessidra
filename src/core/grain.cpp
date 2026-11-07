@@ -60,6 +60,8 @@ void Grain::FadeOut(size_t samples)
 void Grain::Render(double inc,
                    float* left,
                    float* right,
+                   float* send_l,
+                   float* send_r,
                    size_t size,
                    Sums&  sums)
 {
@@ -67,10 +69,12 @@ void Grain::Render(double inc,
         return;
 
     // Locals: the compiler keeps them in registers through the loop
-    const Buffer& buffer = *latch_.buffer;
-    double        phase  = phase_;
-    double        read   = read_;
-    const float   gain   = latch_.gain;
+    const Buffer& buffer      = *latch_.buffer;
+    double        phase       = phase_;
+    double        read        = read_;
+    const float   gain        = latch_.gain;
+    const float   send_gain_l = gain_l_ * latch_.send;
+    const float   send_gain_r = gain_r_ * latch_.send;
     inc /= double(latch_.size);
     float power        = 0.0f;
     float window_sum   = 0.0f;
@@ -98,6 +102,8 @@ void Grain::Render(double inc,
         const float  s        = buffer.Read(position) * window * gain;
         left[n] += s * gain_l_;
         right[n] += s * gain_r_;
+        send_l[n] += s * send_gain_l;
+        send_r[n] += s * send_gain_r;
         power += s * s;
         window_sum += window;
         window_power += window * window;

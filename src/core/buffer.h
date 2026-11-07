@@ -7,8 +7,7 @@
 namespace clessidra
 {
 // Mono recording in external memory, read by the grains. Filled by
-// Ring::Copy() from the start, or by the core's flip towards the start from
-// the end, with short fades at both ends so it has no clicks at its edges.
+// Ring::Copy(), with short fades at both ends so it has no clicks at its edges.
 class Buffer
 {
   public:
@@ -17,13 +16,11 @@ class Buffer
     // mem: capacity floats, zeroed here (SDRAM content is undefined at boot)
     void Init(float* mem, size_t capacity, float sample_rate);
 
-    // After writing length samples to Data() from start: sets what plays,
-    // fades its ends
-    void Finish(size_t length, size_t start = 0);
-    // The whole memory, to write
-    float* Data() { return mem_; }
-    // What plays, Length() samples
-    const float* Samples() const { return mem_ + start_; }
+    // After writing length samples to Data(): sets the length, fades the ends
+    void         Finish(size_t length);
+    float*       Data() { return mem_; }
+    const float* Data() const { return mem_; }
+    const float* Samples() const { return mem_; } // what plays
     size_t       Capacity() const { return capacity_; }
     size_t       Length() const { return length_; }
 
@@ -33,7 +30,6 @@ class Buffer
   private:
     float* mem_          = nullptr;
     size_t capacity_     = 0;
-    size_t start_        = 0;
     size_t length_       = 0;
     size_t fade_samples_ = 1;
 };
@@ -51,8 +47,7 @@ inline float Buffer::Read(double pos) const
     const size_t i0   = std::min(static_cast<size_t>(pos), length_ - 1);
     const size_t i1   = (i0 + 1 < length_) ? i0 + 1 : 0;
     const float  frac = float(pos - double(i0));
-    const float* s    = mem_ + start_;
-    return s[i0] + frac * (s[i1] - s[i0]);
+    return mem_[i0] + frac * (mem_[i1] - mem_[i0]);
 }
 
 } // namespace clessidra

@@ -7,7 +7,7 @@ const BLOCK = 128;
 const KNOB = { S30: 0, S31: 1, S32: 2, S33: 3, S34: 4, S35: 5, S36: 6, S37: 7 };
 const SPEED_1 = 0.5 + 1.15 / 6; // S36 on its first stop up
 const RECORD = 10; // CoreUI::kRecordPad
-const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, flips: 4, fallen: 5, notes: 6 };
+const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped: 4, gestures: 5 };
 
 let failed = 0;
 function check(ok, what, value) {
@@ -49,7 +49,7 @@ function run(seconds, input = pluck) {
   return { peak, finite };
 }
 
-const view = () => f32(w.cl_view(), 19);
+const view = () => f32(w.cl_view(), 13);
 const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_grain_fields() + g * 16, 4)[0]);
 const silence = () => 0;
 
@@ -121,23 +121,22 @@ run(0.1, silence);
 const params = f32(w.cl_params(), 13);
 check(Math.abs(params[0] - 1) < 1e-6, "Speed on its first stop: 1", params[0]);
 
-// A note pad: it sounds while held
-w.cl_pad(3, 1, 0.8);
-run(0.1, silence);
-check(view()[V.notes] === 1, "P03 held: the first note sounds");
+// P03, Clog: held firm, no grains; released, it settles back
+w.cl_pad(3, 1, 1);
+run(0.3, silence);
+check(view()[V.gestures] > 0.99 && f32(w.cl_params(), 13)[2] < 1, "P03 held firm: clogged, no grains", f32(w.cl_params(), 13)[2].toFixed(2));
 w.cl_pad(3, 0, 0);
-run(0.1, silence);
-check(view()[V.notes] === 0, "P03 released: silent");
+run(2, silence);
+check(view()[V.gestures] === 0 && f32(w.cl_params(), 13)[2] > 1, "P03 released: settled", f32(w.cl_params(), 13)[2].toFixed(1));
 
-// P11: the glass turned over, what has fallen plays
-const before = view()[V.flips];
-const fallen = view()[V.fallen];
-w.cl_pad(11, 1, 0.8);
-run(0.05, silence);
-w.cl_pad(11, 0, 0);
-run(0.05, silence);
-v = view();
-check(fallen > 0 && v[V.flips] === before + 1 && Math.abs(v[V.sound] - fallen) < 0.1 * RATE, "P11: flipped, what had fallen plays", (v[V.sound] / RATE).toFixed(2));
+// The most density, the longest grains: the voices fill, the rest dropped
+const dropped = view()[V.dropped];
+w.cl_knob(KNOB.S37, 1);
+w.cl_knob(KNOB.S31, 1);
+run(2, silence);
+check(view()[V.dropped] > dropped, "voices full: grains dropped and counted", view()[V.dropped] - dropped);
+w.cl_knob(KNOB.S37, 0.75);
+w.cl_knob(KNOB.S31, 0.5);
 check(w.cl_led(Math.floor(now)) >= 0, "LED in range");
 
 if (failed) {

@@ -23,6 +23,15 @@ if command -v em++ > /dev/null; then
     npm --prefix web run build > /dev/null
     echo "== Play page"
     node tests/play.mjs
+    # Unbundled, as the dev server runs it: what the build hides, such as a
+    # variable used before its declaration
+    echo "== Play page, dev server"
+    # Astro runs one detached dev server: started here, or already running
+    dev=$(npm --prefix web run dev 2>&1)
+    url=$(echo "$dev" | grep -o 'http://localhost:[0-9]*' | head -1)
+    stop() { case "$dev" in *"already running"*) ;; *) (cd web && npx astro dev stop > /dev/null) ;; esac; }
+    node tests/play.mjs "$url/clessidra/play/" || { stop; exit 1; }
+    stop
 else
     echo "== Web: skipped, no em++"
 fi

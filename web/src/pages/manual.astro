@@ -9,7 +9,7 @@ import { CONTROLS, LED } from "../lib/controls";
 
 const KNOBS = ["S36", "S37", "S30", "S35", "S31", "S32", "S33", "S34"];
 const byId = (id: string) => CONTROLS.find((c) => c.id === id)!;
-const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02", "P03"];
+const OTHERS = ["S09", "S07", "P10", "P00", "P01", "P02", "P03", "P04", "P08", "P05", "P06", "P09", "P07", "P11"];
 ---
 <!doctype html>
 <html lang="en" data-theme="light">
@@ -73,7 +73,7 @@ const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02", "P03"];
   <h2>Pads and Switches</h2>
   <table>
     <tbody>
-      {OTHERS.map(byId).map((c) => <tr><td>{c.note === 0 ? "P03–P09" : c.id}</td><td><b>{c.note === 0 ? "Notes" : c.name}</b>. {c.does}</td></tr>)}
+      {OTHERS.map(byId).map((c) => <tr><td>{c.id}</td><td><b>{c.name}</b>. {c.does}</td></tr>)}
     </tbody>
   </table>
 

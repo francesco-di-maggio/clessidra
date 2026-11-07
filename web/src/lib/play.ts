@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { MAX_RECORD_S, MUTE_PAD, NOTE_PADS, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, FLIP_PAD, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { GESTURE_PADS, GESTURES, GRAIN_FIELDS, VOICES, MAX_RECORD_S, MUTE_PAD, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { GrainView } from "./grain";
 import { Hourglass } from "./hourglass";
 import { Incoming } from "./incoming";
@@ -55,13 +55,14 @@ const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainView = new GrainView($<HTMLCanvasElement>("grain-view"));
 const hourglass = new Hourglass($<HTMLCanvasElement>("hourglass"));
-const glass = { sand: $("glass-sand"), fallen: $("glass-fallen"), flips: $("glass-flips") };
+const glass = { sand: $("glass-sand"), voices: $("glass-voices"), clog: $("glass-clog") };
+// Grains dropped per second, from the count and the time between views
+const clog = { dropped: 0, at: 0, rate: 0 };
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
-const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · F flip · D seed · M mute · 0 restart · 1–7 notes" };
+const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · D seed · M mute · 0 restart · 1–8 gestures" };
 let focused: Control | null = null;
-// S09's position, for the Scale readout
-let scale: number = POSITION.up;
+
 const parts = new Map<string, Widget>();
 
 const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
@@ -78,16 +79,16 @@ const inMeter = level(LEVELS[0]);
 const outMeter = level(LEVELS[1]);
 
 // As on the board: a fader at each edge, the knobs in their cells, the
-// switches between Position and Length. The keys: white the notes lowest to
+// switches between Position and Length. The keys: white the gestures left to
 // highest, black between them the other pads.
 add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
-add(segmented(byId("S09"), $("scale"), [[POSITION.up, "Major"], [POSITION.centre, "Minor"], [POSITION.down, "Penta"]], on));
-add(segmented(byId("S07"), $("end"), [[POSITION.up, "Once"], [POSITION.centre, "Flip"], [POSITION.down, "Loop"]], on));
-NOTE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)).root.classList.add("key"));
-const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Flip", 1], ["P00", "Seed", 3], ["P01", "Mute", 4], ["P02", "Restart", 5]];
+add(segmented(byId("S09"), $("sand"), [[POSITION.up, "Hold"], [POSITION.centre, "Wear"], [POSITION.down, "Live"]], on));
+add(segmented(byId("S07"), $("end"), [[POSITION.up, "Once"], [POSITION.centre, "Turn"], [POSITION.down, "Loop"]], on));
+GESTURE_PADS.slice(0, 7).forEach((index, i) => add(pad(padOf(index), $("keys"), GESTURES[i], on)).root.classList.add("key"));
+const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Reverse", 1], ["P00", "Seed", 3], ["P01", "Mute", 4], ["P02", "Restart", 5]];
 for (const [id, label, after] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
   w.root.classList.add("key", "black");
@@ -126,13 +127,12 @@ for (const panel of document.querySelectorAll(".levels, .instrument")) {
 }
 
 function set(c: Control, value: number, show = true) {
-  if (c.id === "S09") scale = value;
   if (c.index < 0) {
     const level = c as Level;
     parts.get(c.id)!.draw(value);
     LEVELS_VALUE.set(c.id, value);
     audio.setGain(c.id === "IN" ? "input" : "output", level.gain(value));
-    parts.get(c.id)!.value?.(level.value!(new Float32Array(0), { sound: 0, notes: [], fallen: 0, scale: POSITION.up, recording: 0 }));
+    parts.get(c.id)!.value?.(level.value!(new Float32Array(0), { sound: 0, gestures: [], recording: 0 }));
     if (show) focus(c);
     return;
   }
@@ -188,14 +188,14 @@ addEventListener("pointermove", (e) => {
   for (const t of touches.values()) if (t.pointers.has(e.pointerId)) t.pen = e.pressure;
 });
 
-// Keys: R record, F flip, D seed, M mute, 0 restart, 1–7 the notes, lowest to
-// highest
-const KEYS: Record<string, number> = { r: RECORD_PAD, f: FLIP_PAD, d: SEED_PAD, m: MUTE_PAD, "0": RESTART_PAD };
+// Keys: R record, D seed, M mute, 0 restart, 1–8 the gestures, left to right
+// and Reverse
+const KEYS: Record<string, number> = { r: RECORD_PAD, d: SEED_PAD, m: MUTE_PAD, "0": RESTART_PAD };
 function keyPad(e: KeyboardEvent) {
   const key = e.key.toLowerCase();
   if (key in KEYS) return KEYS[key];
   const n = Number(e.key);
-  return n >= 1 && n <= 7 ? NOTE_PADS[n - 1] : null;
+  return n >= 1 && n <= 8 ? GESTURE_PADS[n - 1] : null;
 }
 addEventListener("keydown", (e) => {
   const index = keyPad(e);
@@ -235,16 +235,25 @@ function focus(c: Control) {
 
 function show() {
   if (!last) return;
-  const notes = NOTE_PADS.map((_, i) => last!.view[VIEW.notes + i] > 0);
-  const v: Live = { sound: last.view[VIEW.sound], notes, fallen: last.view[VIEW.fallen], scale, recording: recording() };
+  const gestures = GESTURE_PADS.map((_, i) => last!.view[VIEW.gestures + i]);
+  const v: Live = { sound: last.view[VIEW.sound], gestures, recording: recording() };
   for (const w of parts.values()) if (w.c.index >= 0) w.value?.(w.c.value?.(last.params, v) ?? "");
   if (focused) readout.value.textContent = focused.value?.(last.params, v) ?? "";
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   held.classList.toggle("on", v.recording > 0);
   glass.sand.textContent = v.sound ? `${Math.round(last.params[PARAM.sandLeft] * 100)} %` : "–";
-  glass.fallen.textContent = `${(v.fallen / RATE).toFixed(1)} s`;
-  glass.flips.textContent = String(last.view[VIEW.flips]);
-  for (const w of parts.values()) if (w.c.note !== undefined) w.root.classList.toggle("playing", notes[w.c.note]);
+  const now = performance.now();
+  const dropped = last.view[VIEW.dropped];
+  if (now - clog.at > 500) {
+    clog.rate = clog.at ? Math.max(0, (dropped - clog.dropped) / ((now - clog.at) / 1000)) : 0;
+    clog.dropped = dropped;
+    clog.at = now;
+  }
+  glass.clog.textContent = `${Math.round(clog.rate)}/s`;
+  glass.clog.classList.toggle("on", clog.rate > 0);
+  glass.voices.textContent = `${Math.round(last.grains.length / GRAIN_FIELDS)}/${VOICES}`;
+  hourglass.clogged = clog.rate > 0;
+  for (const w of parts.values()) if (w.c.gesture !== undefined) w.root.classList.toggle("playing", gestures[w.c.gesture] > 0.01);
 }
 
 function onMessage(m: FromWorklet) {

@@ -78,6 +78,8 @@ namespace
         p.rand_size    = -s * s / 3.0f;
         p.rand_shape   = -s * s / 3.0f;
         p.rand_pitch   = -Ramp(s, CoreUI::kPitchSprayFrom, 1.0f) / 3.0f;
+        p.rand_gain    = -s * s / 3.0f;
+        p.rand_send    = -s * s / 3.0f;
         p.spread       = s;
     }
 
@@ -96,33 +98,33 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.length = std::max(c.knobs[Controls::S35], Core::kMinLength);
 
     // S36, Speed: stopped at the centre, forward up, reverse down, at 1, 2
-    // and 4 times. S07, End: once, flip, loop.
-    const float speed            = Stops(c.knobs[Controls::S36], kSpeeds);
-    p.freeze                     = speed == 0.0f;
-    p.speed                      = speed;
-    const Controls::Position end = c.switches[Controls::S07];
-    p.end                        = end == Controls::Up
+    // and 4 times. S07, End: once, turn, loop. S09, Sand: hold, wear, live.
+    const float              speed = Stops(c.knobs[Controls::S36], kSpeeds);
+    const Controls::Position end   = c.switches[Controls::S07];
+    p.end                          = end == Controls::Up
                 ? End::Once
-                : end == Controls::Centre ? End::Flip : End::Loop;
+                : end == Controls::Centre ? End::Turn : End::Loop;
+    const Controls::Position sand = c.switches[Controls::S09];
+    p.sand                        = sand == Controls::Up ? Core::Sand::Hold
+                                  : sand == Controls::Centre ? Core::Sand::Wear
+                                                             : Core::Sand::Live;
 
-    // S37, Density: grains per second, with a size and reverb that follow,
-    // more for a lone grain
+    // S37, Density: grains per second, the reverb following, more for a lone
+    // grain
     const float density = c.knobs[Controls::S37];
     p.density           = GrainsPerSecond(density);
     p.reverb = kReverbSparse + density * (kReverbDense - kReverbSparse);
 
-    // S31, Size: two octaves either way of Density's, up to half the recording
+    // S31, Size: kMinGrainMs to kMaxGrainMs, exponential, 100 ms at the
+    // centre, up to half the recording
     const float seconds = float(core.SoundSamples()) / float(kSampleRateHz);
     const float size    = Detent(c.knobs[Controls::S31], 0.05f);
-    const float density_ms
-        = kDensityGrainMsLo
-          * std::pow(kDensityGrainMsHi / kDensityGrainMsLo, density);
     const float top_ms
         = seconds > 0.0f
               ? std::clamp(500.0f * seconds, kMinGrainMs, kMaxGrainMs)
               : kMaxGrainMs;
-    p.grain_ms = std::clamp(
-        density_ms * std::exp2(4.0f * size - 2.0f), kMinGrainMs, top_ms);
+    p.grain_ms = std::min(
+        kMinGrainMs * std::pow(kMaxGrainMs / kMinGrainMs, size), top_ms);
     p.min_grain_ms = kMinGrainMs;
     p.max_grain_ms = top_ms;
 
@@ -131,11 +133,6 @@ void CoreUI::Process(const Controls& c, Core& core)
     const float shape = Detent(c.knobs[Controls::S34], 0.05f);
     p.window_shape    = shape;
 
-    // S32, Spray, at least Density's floor
-    Spray(std::max(c.knobs[Controls::S32],
-                   kCloudSpray * Ramp(density, kCloudFrom, 1.0f)),
-          p);
-
     // S33, Pitch
     const float semitones = Stops(c.knobs[Controls::S33], kIntervals);
     p.pitch               = std::exp2(semitones / 12.0f);
@@ -143,7 +140,9 @@ void CoreUI::Process(const Controls& c, Core& core)
     // P01 held: mute
     p.mute = c.touched[kMutePad];
 
-    Notes(c, density, p);
+    // The gestures bend all of it while held, S32's Spray among it
+    p.speed = speed;
+    Gestures(c, c.knobs[Controls::S32], p);
     core.SetParams(p);
     Pads(c, core);
     Pulse(c,
@@ -151,6 +150,47 @@ void CoreUI::Process(const Controls& c, Core& core)
            std::fabs(speed) == 1.0f,
            size == 0.5f,
            shape == 0.5f});
+}
+
+// P03-P09, P11: held, each bends the glass, pressure further, and settles back
+// on release: towards no grains, the most grains, the finest, the most spray,
+// stopped, the fastest, the farthest, reversed. Then Spray and the playhead.
+void CoreUI::Gestures(const Controls& c, float spray, Core::Params& p)
+{
+    const uint32_t dt = c.now_ms - gesture_ms_;
+    gesture_ms_       = c.now_ms;
+    std::array<float, kNumGestures> d{};
+    for(size_t g = 0; g < kNumGestures; g++)
+    {
+        const size_t pad    = kGesturePads[g];
+        const float  target = c.touched[pad] ? kGestureLight
+                                                  + (1.0f - kGestureLight)
+                                                        * Firm(c.pressure[pad])
+                                            : 0.0f;
+        const float ms
+            = target > depth_[g] ? kGestureAttackMs : kGestureReleaseMs;
+        depth_[g] += (target - depth_[g]) * (1.0f - std::exp(-float(dt) / ms));
+        if(std::fabs(target - depth_[g]) < 5e-3f)
+            depth_[g] = target;
+        d[g] = depth_[g];
+    }
+
+    p.density *= 1.0f - d[Clog];
+    p.density += d[Burst] * (Core::kMaxDensity - p.density);
+    p.grain_ms *= std::pow(kFineMs / p.grain_ms, d[Fine]);
+    spray += d[Shake] * (1.0f - spray);
+    p.reverb += d[Far] * (1.0f - p.reverb);
+
+    float       speed = p.speed * (1.0f - d[Drag]);
+    const float way   = speed < 0.0f ? -1.0f : 1.0f;
+    speed
+        += way * d[Rush] * (kSpeeds[std::size(kSpeeds) - 1] - std::fabs(speed));
+    // Through zero, as a tape run back
+    speed *= 1.0f - 2.0f * d[Reverse];
+    p.speed  = speed;
+    p.freeze = std::fabs(speed) < kStopped;
+
+    Spray(spray, p);
 }
 
 // P10: record while held. A tap keeps the seconds before it, held longer the
@@ -168,39 +208,15 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
 }
 
 // P00: Seed, one grain at the playhead, as Beads' button. P02: the playhead
-// back to the start. P11: the glass turned over.
+// back to the start.
 void CoreUI::Pads(const Controls& c, Core& core)
 {
-    if(c.touched[kFlipPad] && !flip_touched_)
-        core.Flip();
-    flip_touched_ = c.touched[kFlipPad];
     if(c.touched[kSeedPad] && !seed_touched_)
         core.Seed();
     seed_touched_ = c.touched[kSeedPad];
     if(c.touched[kRestartPad] && !restart_touched_)
         core.Restart();
     restart_touched_ = c.touched[kRestartPad];
-}
-
-// P03-P09: while held, each a note of S09's scale above Pitch, its own grains
-// at the playhead. The fader's density, at least half, raised by pressure.
-void CoreUI::Notes(const Controls& c, float density, Core::Params& p)
-{
-    const Controls::Position scale = c.switches[Controls::S09];
-    const float*             semitones
-        = scale == Controls::Up
-              ? kMajor
-              : scale == Controls::Centre ? kMinor : kPentatonic;
-    for(size_t i = 0; i < Core::kNumNotes; i++)
-    {
-        const size_t pad  = kNotePads[i];
-        Core::Note&  note = p.notes[i];
-        note.held         = c.touched[pad];
-        note.pitch        = std::exp2(semitones[i] / 12.0f);
-        const float open  = std::max(density, kNoteDensity);
-        note.density
-            = GrainsPerSecond(open + (1.0f - open) * Firm(c.pressure[pad]));
-    }
 }
 
 // Reaching a detent, or turning within it: a pulse

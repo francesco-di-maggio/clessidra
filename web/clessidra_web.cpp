@@ -30,7 +30,6 @@ float    in_l[kMaxBlock], in_r[kMaxBlock], out_l[kMaxBlock], out_r[kMaxBlock];
 float    peaks[kColumns];
 size_t   peaks_done = kColumns; // columns of the recording playing
 uint32_t recordings = 0;
-uint32_t flips      = 0;
 
 // What the page draws, in samples of the recording unless noted
 enum View : size_t
@@ -39,10 +38,9 @@ enum View : size_t
     kSelectionStart,
     kSelectionLength,
     kPlayhead,
-    kFlips,  // flips so far
-    kFallen, // samples fallen into the bottom bulb
-    kNotes,  // each 1 while it sounds, 0 when not
-    kNumView = kNotes + Core::kNumNotes
+    kDropped,  // grains dropped so far, all voices sounding
+    kGestures, // each gesture's depth, 0..1
+    kNumView = kGestures + CoreUI::kNumGestures
 };
 float view[kNumView];
 
@@ -75,6 +73,7 @@ enum Param : size_t
     kMaxGrainMs,
     kSpread,
     kSandLeft,
+    kSand,
     kNumParams
 };
 float params[kNumParams];
@@ -125,11 +124,12 @@ EXPORT void cl_process(int size, uint32_t now_ms)
     float*       out[2] = {out_l, out_r};
     core.Process(in, out, std::min(size_t(size), kMaxBlock));
 
-    // A new sound: recorded, or what had fallen, flipped
-    if(core.Recordings() != recordings || core.Flips() != flips)
+    // A new sound, or the sand worn or live: drawn again
+    if(core.Recordings() != recordings
+       || (peaks_done == kColumns
+           && core.CurrentParams().sand != Core::Sand::Hold))
     {
         recordings = core.Recordings();
-        flips      = core.Flips();
         peaks_done = 0;
     }
     UpdatePeaks();
@@ -192,10 +192,9 @@ EXPORT const float* cl_view()
     // Past the end, round to the start
     const double playhead = sel_start + core.PlayheadPhase() * sel_length;
     view[kPlayhead] = float(sound > 0.0 ? std::fmod(playhead, sound) : 0.0);
-    view[kFlips]    = float(core.Flips());
-    view[kFallen]   = core.Fallen() * float(kSampleRateHz);
-    for(size_t i = 0; i < Core::kNumNotes; i++)
-        view[kNotes + i] = core.NoteOn(i) ? 1.0f : 0.0f;
+    view[kDropped]  = float(core.Dropped());
+    for(size_t g = 0; g < CoreUI::kNumGestures; g++)
+        view[kGestures + g] = ui.Depth(CoreUI::Gesture(g));
     return view;
 }
 
@@ -250,5 +249,6 @@ EXPORT const float* cl_params()
     params[kMaxGrainMs]   = p.max_grain_ms;
     params[kSpread]       = p.spread;
     params[kSandLeft]     = core.SandLeft();
+    params[kSand]         = float(int(p.sand));
     return params;
 }
