@@ -456,13 +456,14 @@ std::vector<float> Window(float shape)
     latch.shape    = shape;
     grain.Start(latch, 0);
     std::vector<float> window(1000, 0.0f), right(1000, 0.0f), sl(1000),
-        sr(1000);
+        sr(1000), cover(1000);
     Grain::Sums sums;
     grain.Render(1.0 / 1000.0,
                  window.data(),
                  right.data(),
                  sl.data(),
                  sr.data(),
+                 cover.data(),
                  window.size(),
                  sums);
     return window;
@@ -666,6 +667,32 @@ void Sand()
     r.Run(1.0, Silence);
     const double worn = changed(sound);
     Check(worn > 0.01 && r.finite, "sand worn: the grains fall back in", worn);
+
+    // Worn pass after pass: the sand keeps its level, sparse or dense
+    for(float d : {2.0f, 130.0f})
+    {
+        Rig          w(1.0);
+        Core::Params q;
+        w.Fill(Sine);
+        auto rms = [&w] {
+            double       s = 0.0;
+            const float* x = w.core.Sound().Data();
+            for(size_t i = 0; i < w.core.SoundSamples(); i++)
+                s += double(x[i]) * x[i];
+            return std::sqrt(s / double(w.core.SoundSamples()));
+        };
+        const double start = rms();
+        q.density          = d;
+        q.sand             = Core::Sand::Wear;
+        q.rand_pos         = -0.3f;
+        q.rand_density     = -1.0f;
+        w.core.SetParams(q);
+        w.Run(12.0, Silence);
+        Check(rms() / start > 0.5 && rms() / start < 2.0 && w.finite,
+              d < 10.0f ? "sand worn 12 passes, sparse: its level kept"
+                        : "sand worn 12 passes, dense: its level kept",
+              rms() / start);
+    }
 
     // Mean level of the sound
     auto level = [&r] {

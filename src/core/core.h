@@ -75,10 +75,10 @@ class Core
     static constexpr size_t kCopyPerSample = 21; // × real time: 30 s in 1.4 s
     // ring written on during the copy
     static constexpr float kCopyMarginSeconds = 0.5f;
-    // The sand at the playhead, as it moves. Hold: untouched. Wear: the grains
-    // fall back into it, high-passed and soft-clipped, kWearAmount of each
-    // sample replaced per pass (the live granulator's feedback). Live: the
-    // input replaces it.
+    // The sand at the playhead, as it moves. Hold: untouched. Wear: where
+    // grains sound, they fall back into it at its level, high-passed and
+    // soft-clipped, up to kWearAmount of each sample replaced per pass; where
+    // none sound it stays. Live: the input replaces it.
     enum class Sand
     {
         Hold,
@@ -86,6 +86,11 @@ class Core
         Live
     };
     static constexpr float kWearAmount = 0.3f;
+    // Wear's gain from the grains to the sand, measured: the level of the sand
+    // it replaces over the level it writes, smoothed, within these
+    static constexpr float kWearLevelSeconds = 0.5f;
+    static constexpr float kWearGainMin      = 0.25f;
+    static constexpr float kWearGainMax      = 4.0f;
     // the longest block the write head follows
     static constexpr size_t kMaxBlock = 256;
 
@@ -270,6 +275,7 @@ class Core
     std::atomic<uint32_t>           dropped_{0};
     // Wear: the grains, high-passed, before they fall back
     daisysp::DcBlock wear_block_;
+    float            wear_gain_ = 1.0f;
 
     std::atomic<uint32_t> recordings_{0};
     std::atomic<bool>     record_{false};

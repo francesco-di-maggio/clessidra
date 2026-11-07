@@ -100,14 +100,16 @@ void Core::Process(const float* const* in, float** out, size_t size)
 
     // Each grain through the block, into the mix and, by its send, the
     // reverb: its state stays in registers
-    float send_l[kMaxBlock], send_r[kMaxBlock];
+    float send_l[kMaxBlock], send_r[kMaxBlock], cover[kMaxBlock];
     std::fill(out[0], out[0] + size, 0.0f);
     std::fill(out[1], out[1] + size, 0.0f);
     std::fill(send_l, send_l + block, 0.0f);
     std::fill(send_r, send_r + block, 0.0f);
+    std::fill(cover, cover + block, 0.0f);
     Grain::Sums sums;
     for(auto& grain : grains_)
-        grain.Render(grain_inc, out[0], out[1], send_l, send_r, block, sums);
+        grain.Render(
+            grain_inc, out[0], out[1], send_l, send_r, cover, block, sums);
     float power_sum = 0.0f;
     for(size_t i = 0; i < block; i++)
         power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
@@ -164,7 +166,9 @@ void Core::Process(const float* const* in, float** out, size_t size)
     // The write head at the playhead, while it moves through sand
     const bool writing
         = p.sand != Sand::Hold && !p.freeze && len > 0.0 && !playhead_.Ended();
-    float* const sand = sound.Data();
+    float* const sand       = sound.Data();
+    float        sand_power = 0.0f; // what Wear replaces, and what it writes
+    float        fell_power = 0.0f;
     for(size_t i = 0; i < block; i++)
     {
         reverb_dry_ += reverb_dry_step;
@@ -196,13 +200,26 @@ void Core::Process(const float* const* in, float** out, size_t size)
         ring_.Write(mono);
 
         // Into the sand at the playhead: the input, or the grains as they fall
+        // where they sound, at the sand's level: the headroom and the pan's
+        // -3 dB undone
         if(writing)
         {
-            float&      grain_sand = sand[at[i]];
-            const float fell = std::tanh(wear_block_.Process(0.5f * (l + r)));
-            grain_sand       = p.sand == Sand::Live
-                             ? mono
-                             : grain_sand + kWearAmount * (fell - grain_sand);
+            float& grain_sand = sand[at[i]];
+            if(p.sand == Sand::Live)
+                grain_sand = mono;
+            else
+            {
+                const float grains
+                    = wear_block_.Process(0.7071f * (l + r)) * wear_gain_;
+                const float weight
+                    = kWearAmount * std::min(cover[i], 1.0f) * mute_gain_;
+                sand_power += weight * grain_sand * grain_sand;
+                fell_power += weight * grains * grains;
+                // Equal power: the grains differ from what they replace
+                const float angle = HALFPI_F * weight;
+                grain_sand        = std::cos(angle) * grain_sand
+                             + std::sin(angle) * std::tanh(grains);
+            }
         }
 
         out[0][i] = l * reverb_dry_ + reverb_l * reverb_wet_;
@@ -218,6 +235,19 @@ void Core::Process(const float* const* in, float** out, size_t size)
     }
     for(size_t i = block; i < size; i++)
         out[0][i] = out[1][i] = 0.0f;
+    // Wear at the sand's level: the gain that brings what falls to what it
+    // replaces
+    if(fell_power > 1e-9f && sand_power > 1e-9f)
+    {
+        const float target
+            = std::clamp(wear_gain_ * std::sqrt(sand_power / fell_power),
+                         kWearGainMin,
+                         kWearGainMax);
+        daisysp::fonepole(
+            wear_gain_,
+            target,
+            std::min(1.0f, n / (kWearLevelSeconds * sample_rate_)));
+    }
 
     UpdateCapture(size);
 }
