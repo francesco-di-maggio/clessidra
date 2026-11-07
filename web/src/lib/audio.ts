@@ -90,7 +90,7 @@ function loop(ctx: AudioContext, buffer: AudioBuffer) {
 }
 
 // A plucked phrase, made here (Karplus-Strong): the demo needs no sound file.
-// Notes of different lengths and levels, so the slices find onsets.
+// Notes of different lengths and levels.
 function demo(ctx: AudioContext) {
   const rate = ctx.sampleRate;
   const notes: [number, number, number][] = [

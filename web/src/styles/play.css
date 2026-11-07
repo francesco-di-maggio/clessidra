@@ -86,7 +86,7 @@ body.app main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1
    switch tile each side. White keys the slices, in a selected switch's
    colour; black keys, as wide, the pads that record, shift, mute and retrig,
    in an unselected one's. Orange only while on. */
-.deck { display: grid; grid-template-columns: minmax(0, 1fr) var(--pair); gap: 10px; }
+.deck { display: grid; grid-template-columns: var(--pair) minmax(0, 1fr) var(--pair); gap: 10px; }
 .deck .side { display: flex; padding: 10px; }
 .keys-tile { padding: 10px; }
 .keys { position: relative; height: 98px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
@@ -122,7 +122,7 @@ body.app main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1
   .split { grid-template-columns: minmax(0, 1fr); }
   .scope { grid-auto-rows: 104px; }
   .view { height: 200px; }
-  .deck { order: 1; grid-template-columns: minmax(0, 1fr); }
+  .deck { order: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .keys-tile { grid-column: 1 / -1; order: -1; }
   .keys { height: 120px; gap: 3px; }
   .pad.key .sub { display: none; }

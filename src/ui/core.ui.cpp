@@ -83,17 +83,7 @@ namespace
 
 } // namespace
 
-CoreUI::CoreUI()
-{
-    EqualSlices();
-}
-
-void CoreUI::EqualSlices()
-{
-    for(size_t i = 0; i < kNumSlices; i++)
-        slices_[i] = float(i) / float(kNumSlices);
-    slices_[kNumSlices] = 1.0f;
-}
+CoreUI::CoreUI() = default;
 
 void CoreUI::Process(const Controls& c, Core& core)
 {
@@ -154,10 +144,10 @@ void CoreUI::Process(const Controls& c, Core& core)
     const float semitones = Stops(c.knobs[Controls::S33], kIntervals);
     p.pitch               = std::exp2(semitones / 12.0f);
 
-    // P00 held: mute
+    // P01 held: mute
     p.mute = c.touched[kMutePad];
 
-    Triggers(c, density, p);
+    Notes(c, density, p);
     core.SetParams(p);
     Pads(c, core);
     Pulse(c,
@@ -167,8 +157,8 @@ void CoreUI::Process(const Controls& c, Core& core)
            shape == 0.5f});
 }
 
-// P10: record while held. A tap keeps the seconds before it; held longer, the
-// input is heard with the grains. A new recording: its slices.
+// P10: record while held. A tap keeps the seconds before it, held longer the
+// input is heard with the grains.
 void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
 {
     const bool rec = c.touched[kRecordPad];
@@ -179,50 +169,39 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
     const bool holding
         = rec && c.now_ms - rec_since_ >= uint32_t(Core::kTapSeconds * 1000.0f);
     p.mix = holding ? kMonitorMix : 1.0f;
-
-    if(core.Recordings() == recordings_)
-        return;
-    recordings_         = core.Recordings();
-    const Buffer& sound = core.Sound();
-    slices_ = FindSlices(sound.Data(), sound.Length(), kSampleRateHz);
 }
 
-// P01: a drop, one grain at the playhead. P02: the sand back to the top.
+// P00: Seed, one grain at the playhead, as Beads' button. P02: the playhead
+// back to the start.
 void CoreUI::Pads(const Controls& c, Core& core)
 {
-    if(c.touched[kDropPad] && !drop_touched_)
-        core.Drop();
-    drop_touched_ = c.touched[kDropPad];
+    if(c.touched[kSeedPad] && !seed_touched_)
+        core.Seed();
+    seed_touched_ = c.touched[kSeedPad];
     if(c.touched[kRestartPad] && !restart_touched_)
         core.Restart();
     restart_touched_ = c.touched[kRestartPad];
 }
 
-// P03-P09: each touch plays its slice, its own stream of grains, as End sets:
-// once to its end, turned over or round while held. The fader's density, at
-// least half open, opened further by pressure.
-void CoreUI::Triggers(const Controls& c, float density, Core::Params& p)
+// P03-P09: while held, each a note of S09's scale above Pitch, its own grains
+// at the playhead. The fader's density, at least half, raised by pressure.
+void CoreUI::Notes(const Controls& c, float density, Core::Params& p)
 {
-    for(size_t i = 0; i < kNumSlices; i++)
+    const Controls::Position scale = c.switches[Controls::S09];
+    const float*             semitones
+        = scale == Controls::Up
+              ? kMajor
+              : scale == Controls::Centre ? kMinor : kPentatonic;
+    for(size_t i = 0; i < Core::kNumNotes; i++)
     {
-        const size_t   pad     = kSlicePads[i];
-        Core::Trigger& trigger = triggers_[i];
-        if(c.touched[pad] && !slice_touched_[i])
-        {
-            trigger.id++;
-            trigger.start = slices_[i];
-            trigger.end   = slices_[i + 1];
-        }
-        slice_touched_[i] = c.touched[pad];
-        trigger.mode      = p.end;
-        trigger.held      = c.touched[pad];
-        if(!c.touched[pad])
-            continue;
-        const float open = std::max(density, kSliceDensity);
-        trigger.density
+        const size_t pad  = kNotePads[i];
+        Core::Note&  note = p.notes[i];
+        note.held         = c.touched[pad];
+        note.pitch        = std::exp2(semitones[i] / 12.0f);
+        const float open  = std::max(density, kNoteDensity);
+        note.density
             = GrainsPerSecond(open + (1.0f - open) * Firm(c.pressure[pad]));
     }
-    p.triggers = triggers_;
 }
 
 // Reaching a detent, or turning within it: a pulse

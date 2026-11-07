@@ -3,15 +3,15 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { DROP_PAD, MUTE_PAD, PARAM, RATE, RECORD_PAD, RESTART_PAD, SHAKE_PAD, SLICE_PADS } from "./engine";
+import { MUTE_PAD, NOTE_PADS, PARAM, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, SHAKE_PAD } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
 // What a readout knows besides the parameters
 export interface Live {
   sound: number; // samples recorded
-  triggers: boolean[]; // each slice pad's trigger sounding
-  slices: number[]; // each slice's length, samples
+  notes: boolean[]; // each note pad sounding
+  scale: number; // S09's position
   recording: number; // seconds P10 has been held, 0 when not
 }
 
@@ -25,7 +25,7 @@ export interface Control {
   initial?: number;
   bipolar?: boolean; // drawn from its centre
   detent?: boolean; // stops at its centre
-  slice?: number;
+  note?: number;
   free?: boolean;
   does?: string;
   value?: (p: Float32Array, v: Live) => string;
@@ -36,6 +36,7 @@ const percent = (x: number) => `${Math.round(x * 100)} %`;
 const ms = (x: number) => (x < 1000 ? `${Math.round(x)} ms` : `${(x / 1000).toFixed(2)} s`);
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
 const END = ["Once", "Turn", "Loop"]; // Core's End
+const SCALES: Record<number, string> = { 1: "Major", 0: "Minor", 2: "Pentatonic" }; // by S09's position
 
 const PAD_AT: Record<number, [number, number]> = {
   0: [150, 620], 1: [310, 610], 2: [412, 625], 3: [48, 800], 4: [170, 765], 5: [285, 795],
@@ -101,29 +102,31 @@ export const CONTROLS: Control[] = [
     value: (p) => percent(p[PARAM.spread]),
   },
   {
-    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "S09", initial: POSITION.up, free: true,
+    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Scale", initial: POSITION.up,
+    does: "The notes' scale: up major, centre minor, down major pentatonic.",
+    value: (_, v) => SCALES[v.scale] ?? "",
   },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "End", initial: POSITION.down,
-    does: "When the sand runs out: up stops, centre turns over, down loops. Slices too.",
+    does: "When the playhead runs out: up stops, centre turns over, down loops.",
     value: (p) => END[p[PARAM.end]] ?? "",
   },
   {
-    id: "P00", type: "pad", index: MUTE_PAD, ...padAt(MUTE_PAD), name: "Mute",
+    id: "P01", type: "pad", index: MUTE_PAD, ...padAt(MUTE_PAD), name: "Mute",
     does: "Held: the grains silent, the reverb rings on.",
   },
   {
-    id: "P01", type: "pad", index: DROP_PAD, ...padAt(DROP_PAD), name: "Drop",
-    does: "A touch: one grain at the playhead, whatever Density.",
+    id: "P00", type: "pad", index: SEED_PAD, ...padAt(SEED_PAD), name: "Seed",
+    does: "A touch: one grain at the playhead, whatever Density, as Beads' Seed.",
   },
   {
     id: "P02", type: "pad", index: RESTART_PAD, ...padAt(RESTART_PAD), name: "Restart",
     does: "The sand back to the top: the playhead to the selection start.",
   },
-  ...SLICE_PADS.map((pad, i): Control => ({
-    id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Slice ${i + 1}`, slice: i,
-    does: "Plays its slice with its own grains, as End sets. Pressure raises its density.",
-    value: (_, v) => (v.slices[i] ? seconds(v.slices[i]) : ""),
+  ...NOTE_PADS.map((pad, i): Control => ({
+    id: `P${String(pad).padStart(2, "0")}`, type: "pad", index: pad, ...padAt(pad), name: `Note ${i + 1}`, note: i,
+    does: "Held: grains at the playhead, a degree of S09's scale above Pitch. Pressure raises its density.",
+    value: (_, v) => (v.notes[i] ? "On" : ""),
   })),
 ];
 

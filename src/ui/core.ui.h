@@ -6,7 +6,6 @@
 #include <iterator>
 #include "core/config.h"
 #include "core/core.h"
-#include "core/onsets.h"
 #include "hw/controls.h"
 
 namespace clessidra
@@ -18,16 +17,20 @@ class CoreUI
 {
   public:
     // Pads
-    static constexpr size_t kMutePad    = 0;  // held: the grains silent
-    static constexpr size_t kDropPad    = 1;  // a touch: one grain
-    static constexpr size_t kRestartPad = 2;  // the sand back to the top
+    static constexpr size_t kSeedPad    = 0;  // a touch: one grain
+    static constexpr size_t kMutePad    = 1;  // held: the grains silent
+    static constexpr size_t kRestartPad = 2;  // the playhead back to the start
     static constexpr size_t kRecordPad  = 10; // tap or hold
-    static constexpr size_t kShakePad   = 11; // held: the sand shaken
-    // Slices, first to last in the buffer: pads left to right on the
-    // faceplate, top to bottom within a column
-    static constexpr size_t kSlicePads[] = {3, 4, 8, 5, 6, 9, 7};
-    static_assert(std::size(kSlicePads) == kNumSlices);
-    static_assert(kNumSlices == Core::kNumTriggers);
+    static constexpr size_t kShakePad   = 11; // held: Spray towards the top
+    // Notes, lowest to highest: pads left to right on the faceplate, top to
+    // bottom within a column
+    static constexpr size_t kNotePads[] = {3, 4, 8, 5, 6, 9, 7};
+    static_assert(std::size(kNotePads) == Core::kNumNotes);
+    // S09, the notes' scale, semitones above Pitch: up major, centre minor,
+    // down major pentatonic
+    static constexpr float kMajor[]      = {0, 2, 4, 5, 7, 9, 11};
+    static constexpr float kMinor[]      = {0, 2, 3, 5, 7, 8, 10};
+    static constexpr float kPentatonic[] = {0, 2, 4, 7, 9, 12, 14};
 
     // S37, Density: none at the bottom, then grains per second, exponential.
     // A size and the reverb follow it.
@@ -51,8 +54,8 @@ class CoreUI
     static constexpr float kShakeFrom = 0.3f;
     // pad pressure above a light touch (Pads: measured 0.3-0.5)
     static constexpr float kPressFrom = 0.5f;
-    // A slice's density: the fader's, at least this, opened by pressure
-    static constexpr float kSliceDensity = 0.5f;
+    // A note's density: the fader's, at least this, raised by pressure
+    static constexpr float kNoteDensity = 0.5f;
     // P10 held past a tap: the input heard with the grains, equal power
     static constexpr float kMonitorMix = 0.5f;
 
@@ -76,27 +79,20 @@ class CoreUI
     void Process(const Controls& c, Core& core);
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
     float Led(uint32_t now_ms, const Core& core) const;
-    // For displays: slice edges, of the recording
-    const std::array<float, kNumSlices + 1>& Slices() const { return slices_; }
 
   private:
     // Pitch unison, speed 1 either way, size centre, Hann
     static constexpr size_t kNumDetents = 4;
 
-    void EqualSlices();
     void Record(const Controls& c, Core& core, Core::Params& p);
     void Pads(const Controls& c, Core& core);
-    void Triggers(const Controls& c, float density, Core::Params& p);
+    void Notes(const Controls& c, float density, Core::Params& p);
     void Pulse(const Controls& c, const std::array<bool, kNumDetents>& at);
 
-    std::array<bool, kNumSlices>          slice_touched_{};
-    std::array<Core::Trigger, kNumSlices> triggers_{};
-    std::array<float, kNumSlices + 1>     slices_{}; // edges, of the recording
-    uint32_t                              recordings_      = 0;
-    bool                                  record_          = false;
-    uint32_t                              rec_since_       = 0; // ms
-    bool                                  drop_touched_    = false;
-    bool                                  restart_touched_ = false;
+    bool     record_          = false;
+    uint32_t rec_since_       = 0; // ms
+    bool     seed_touched_    = false;
+    bool     restart_touched_ = false;
     // LED. Times in ms, shown until they pass.
     uint32_t pulse_until_ = 0;
     // At each detent, and the knob when the pulse last started

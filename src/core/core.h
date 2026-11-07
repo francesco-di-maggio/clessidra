@@ -23,7 +23,7 @@ class Core
     Core(const Core&) = delete;
     Core& operator=(const Core&) = delete;
 
-    // grains per second, three octaves above middle C
+    // grains per second, three octaves above middle C: of all the streams together
     static constexpr float kMaxDensity = 130.81278f;
     static constexpr float kMinLength
         = 0.01f; // of the sound: the shortest selection
@@ -76,18 +76,14 @@ class Core
     // ring written on during the copy
     static constexpr float kCopyMarginSeconds = 0.5f;
 
-    // Pads: each plays a slice, as its own stream of grains, on top of the
-    // playhead. Once: to the end of the slice, held or not. Turn and Loop:
-    // while held.
-    static constexpr size_t kNumTriggers = 7;
-    struct Trigger
+    // Notes: while held, each its own stream of grains at the playhead, on top
+    // of it, at its pitch. Silent once the playhead has run out.
+    static constexpr size_t kNumNotes = 7;
+    struct Note
     {
-        float    start   = 0.0f; // of the sound, 0..1
-        float    end     = 0.0f;
-        float    density = 0.0f; // grains per second
-        uint32_t id      = 0;    // a new id plays it again from its start
-        End      mode    = End::Once;
-        bool     held    = false; // released, frozen: it stops
+        float density = 0.0f; // grains per second
+        float pitch   = 1.0f; // times Params.pitch
+        bool  held    = false;
     };
 
     struct Params
@@ -134,7 +130,7 @@ class Core
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
-        std::array<Trigger, kNumTriggers> triggers{};
+        std::array<Note, kNumNotes> notes{};
     };
 
     // ring: ring_size floats. buffers: kNumBuffers of buffer_size floats, the
@@ -161,7 +157,7 @@ class Core
     void Restart() { restart_.store(true, std::memory_order_relaxed); }
     // Main loop: one grain at the playhead, at the next block, whatever the
     // density
-    void Drop() { drops_.fetch_add(1, std::memory_order_relaxed); }
+    void Seed() { seeds_.fetch_add(1, std::memory_order_relaxed); }
     // Main loop: true while the record pad is held
     void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
     // What a tap keeps, seconds, up to the ring's capacity. kTapCaptureSeconds
@@ -191,31 +187,26 @@ class Core
     // For tests, between blocks: the grains and the parameters in use
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
-    double        PlayheadPhase() const { return stream_.playhead.Phase(); }
+    double        PlayheadPhase() const { return playhead_.Phase(); }
     // Through the selection, what is left ahead of the playhead, 0..1: 0 once
     // it has run out
-    float SandLeft() const { return float(stream_.playhead.Left()); }
+    float SandLeft() const { return float(playhead_.Left()); }
     // A grain's size in use, ms: grain_ms within the recording and what the
     // voices hold at this density
     float GrainMs() const { return grain_ms_; }
-    // A trigger sounding, and where it is in its slice, 0..1
-    bool   TriggerOn(size_t i) const { return triggers_[i].on; }
-    double TriggerPhase(size_t i) const
-    {
-        return triggers_[i].playhead.Phase();
-    }
+    // A note sounding
+    bool NoteOn(size_t i) const { return notes_[i].on; }
 
   private:
-    // The playhead over the selection, or a trigger over its slice
-    struct Stream
+    // Grain starts
+    struct Schedule
     {
-        Playhead playhead;
-        double   sched_phase = 0.0;  // grain starts, 1 = mean interval
-        float    sched_next  = 1.0f; // phase of the next start
+        double phase = 0.0;  // 1 = mean interval
+        float  next  = 1.0f; // phase of the next start
     };
-    struct TriggerStream : Stream
+    struct NoteStream
     {
-        uint32_t id = 0;
+        Schedule schedule;
         bool     on = false;
     };
 
@@ -235,18 +226,19 @@ class Core
         Copying
     };
 
-    // Starts a grain on a free voice at sample offset of the block. While a
-    // new recording pours in, it may read the one before.
+    // Starts a grain on a free voice at sample offset of the block, at pitch.
+    // While a new recording pours in, it may read the one before.
     void StartGrain(const Params& p,
                     const Source& source,
                     const Buffer* sound,
+                    float         pitch,
                     size_t        offset);
     // End of Process(), after the ring is written: on release, copies the
     // recording to the buffer not playing once its grains have ended, then
     // plays it
     void UpdateCapture(size_t size);
-    // Advances a stream's grain starts by one sample; true when a grain starts
-    bool Due(Stream& s, double sched_inc, float rand_density);
+    // Advances grain starts by one sample; true when a grain starts
+    bool Due(Schedule& s, double sched_inc, float rand_density);
     // Updates norm_ from the mean powers of the last block
     void  Normalise(float  power_grains,
                     float  power_sum,
@@ -285,13 +277,14 @@ class Core
 
     // Grains. Running positions in double: float steps reach 1/32 sample at 8
     // s.
-    std::array<Grain, kNumVoices>           grains_;
-    Stream                                  stream_;
-    std::array<TriggerStream, kNumTriggers> triggers_;
-    std::atomic<bool>                       restart_{false};
-    std::atomic<uint32_t>                   drops_{0};
-    uint32_t                                drops_done_ = 0;
-    uint32_t                                seed_       = 1;
+    std::array<Grain, kNumVoices>     grains_;
+    Playhead                          playhead_;
+    Schedule                          schedule_;
+    std::array<NoteStream, kNumNotes> notes_;
+    std::atomic<bool>                 restart_{false};
+    std::atomic<uint32_t>             seeds_{0};
+    uint32_t                          seeds_done_ = 0;
+    uint32_t                          seed_       = 1;
     // The selection's length in samples at the last block: a new length keeps
     // the playhead where it is in the recording
     double             sel_len_  = 0.0;

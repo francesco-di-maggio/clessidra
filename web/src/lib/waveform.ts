@@ -1,8 +1,8 @@
 // The buffer: the recording playing, the selection the playhead moves through,
-// the slices, and every grain at the point it reads, high for left and low for
+// and every grain at the point it reads, high for left and low for
 // right. Laid out to the canvas's size.
 
-import { GRAIN_FIELDS, NUM_SLICES, RATE, VIEW, type Frame } from "./engine";
+import { GRAIN_FIELDS, RATE, VIEW, type Frame } from "./engine";
 
 // Grain::Render's window at progress x for shape: Hann at 0.5, percussive
 // towards 1, reversed towards 0
@@ -74,7 +74,7 @@ export class Waveform {
     const width = W - 2 * pad;
     const top = 28; // the status line above
     const axis = H - 14; // seconds
-    const bottom = axis - 38; // the slices below it
+    const bottom = axis - 18;
     const mid = (top + bottom) / 2;
     const half = (bottom - top) / 2 - 6;
     const f = this.frame;
@@ -118,26 +118,6 @@ export class Waveform {
     ctx.lineWidth = 1.5;
     bracket(ctx, a, top, bottom, 1);
     bracket(ctx, b > pad + width + 0.5 ? b - width : b, top, bottom, -1);
-
-    // Slices, under the sound
-    ctx.strokeStyle = c.dim;
-    ctx.font = `500 10px ${c.mono}`;
-    for (let i = 0; i <= NUM_SLICES; i++) line(ctx, x(v[VIEW.edges + i]), bottom + 6, x(v[VIEW.edges + i]), bottom + 14);
-    for (let i = 0; i < NUM_SLICES; i++) {
-      const sa = x(v[VIEW.edges + i]);
-      const sb = x(v[VIEW.edges + i + 1]);
-      if (sb - sa < 14) continue;
-      ctx.fillStyle = v[VIEW.triggers + i] >= 0 ? c.accent : c.dim;
-      ctx.fillText(`${i + 1}`, (sa + sb) / 2, bottom + 22);
-    }
-
-    // Triggers sounding: a short orange mark where each is
-    ctx.strokeStyle = c.accent;
-    ctx.lineWidth = 2;
-    for (let i = 0; i < NUM_SLICES; i++) {
-      const at = v[VIEW.triggers + i];
-      if (at >= 0) line(ctx, x(at), bottom - 10, x(at), bottom + 14);
-    }
 
     // The playhead: now
     ctx.lineWidth = 1.5;

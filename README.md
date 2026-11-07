@@ -18,16 +18,17 @@ One layer: every control does one thing, where it is. The recording is the sand,
 | S32 | Spray | Plain and periodic at 0. Up: random starts, places, sizes, shapes, wider pan, mostly near with a long tail. Top quarter: random pitch, up to ±12 semitones |
 | S33 | Pitch | ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24 (Beads) |
 | S34 | Shape | The grain's window: reverse percussive down, Hann at the centre, percussive up |
-| S07 | End | When the sand runs out: up stops, centre turns over by itself, down loops. The slices too |
+| S07 | End | When the playhead runs out: up stops, centre turns over by itself, down loops |
+| S09 | Scale | The notes' scale: up major, centre minor, down major pentatonic |
 
 | Pad | Name | Does |
 |---|---|---|
 | P10 | Record | Tap: the last 8 s. Hold: until release, up to 30 s, the input heard. A new recording pours in over 2 s |
 | P11 | Shake | Held: Spray towards the top, firmer for more. Let go, it settles |
-| P00 | Mute | Held: the grains silent, the reverb rings on |
-| P01 | Drop | A touch: one grain at the playhead, whatever Density |
+| P00 | Seed | A touch: one grain at the playhead, whatever Density, as Beads' Seed |
+| P01 | Mute | Held: the grains silent, the reverb rings on |
 | P02 | Restart | The sand back to the top: the playhead to the selection start |
-| P03–P09 | Slices | At the recording's onsets. Each plays its own grains, as End sets. Density at least half, pressure raises it |
+| P03–P09 | Notes | Held: grains at the playhead, the degrees of S09's scale above Pitch, lowest to highest. Density at least half, pressure raises it. Together with the playhead at most 131 grains per second. Silent once the playhead has run out |
 
 | LED | |
 |---|---|

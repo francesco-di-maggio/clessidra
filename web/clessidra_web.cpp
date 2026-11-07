@@ -38,9 +38,8 @@ enum View : size_t
     kSelectionStart,
     kSelectionLength,
     kPlayhead,
-    kSliceEdges,
-    kTriggers = kSliceEdges + kNumSlices + 1, // where each is, -1 when silent
-    kNumView  = kTriggers + Core::kNumTriggers
+    kNotes, // each 1 while it sounds, 0 when not
+    kNumView = kNotes + Core::kNumNotes
 };
 float view[kNumView];
 
@@ -188,16 +187,8 @@ EXPORT const float* cl_view()
     // Past the end, round to the start
     const double playhead = sel_start + core.PlayheadPhase() * sel_length;
     view[kPlayhead] = float(sound > 0.0 ? std::fmod(playhead, sound) : 0.0);
-    for(size_t i = 0; i <= kNumSlices; i++)
-        view[kSliceEdges + i] = float(ui.Slices()[i] * sound);
-    for(size_t i = 0; i < Core::kNumTriggers; i++)
-    {
-        const Core::Trigger& s = p.triggers[i];
-        view[kTriggers + i]
-            = core.TriggerOn(i) ? float(
-                  (s.start + core.TriggerPhase(i) * (s.end - s.start)) * sound)
-                                : -1.0f;
-    }
+    for(size_t i = 0; i < Core::kNumNotes; i++)
+        view[kNotes + i] = core.NoteOn(i) ? 1.0f : 0.0f;
     return view;
 }
 

@@ -392,14 +392,14 @@ void Fuzz()
             panel.c.switches[Controls::S09]
                 = Controls::Position(int(next() * 3.0f) % 3);
         for(size_t pad : {CoreUI::kMutePad,
-                          CoreUI::kDropPad,
+                          CoreUI::kSeedPad,
                           CoreUI::kRestartPad,
                           CoreUI::kShakePad})
         {
             panel.c.touched[pad]  = next() < 0.1f;
             panel.c.pressure[pad] = next();
         }
-        const size_t pad      = CoreUI::kSlicePads[size_t(next() * 7.0f) % 7];
+        const size_t pad      = CoreUI::kNotePads[size_t(next() * 7.0f) % 7];
         panel.c.touched[pad]  = next() < 0.3f;
         panel.c.pressure[pad] = next();
         if(next() < 0.05f)
@@ -435,17 +435,6 @@ void Fuzz()
     panel.Record(2.0, Sine);
     const double kept = PanelRms(panel, 2.0, Silence);
     Check(kept > 0.05, "after it all: a new recording plays (rms)", kept);
-
-    // A slice without width, as a torn parameter copy gave: nothing breaks
-    Rig          zero(1.0);
-    Core::Params none;
-    zero.Fill(Sine);
-    none.triggers[0] = {0.5f, 0.5f, Core::kMaxDensity, 1};
-    zero.core.SetParams(none);
-    zero.Run(0.5, Sine);
-    Check(zero.finite && !zero.core.TriggerOn(0),
-          "a slice without width: silent, output finite",
-          1.0);
 }
 
 // One grain of 1000 samples over a buffer of ones: its window, sample by
@@ -554,13 +543,13 @@ void Mute()
     r.core.SetParams(p);
     Rms(r, 0.01);
     Check(Rms(r, 0.2) < 1e-4 && playing > 0.01,
-          "P00 held, no reverb: silent",
+          "P01 held, no reverb: silent",
           Rms(r, 0.2));
     p.mute = false;
     r.core.SetParams(p);
     Rms(r, 0.01);
     Check(Near(Rms(r, 0.5), playing, 0.5 * playing),
-          "P00 released: the grains as before",
+          "P01 released: the grains as before",
           Rms(r, 0.5));
 
     p.reverb = 0.8f;
@@ -572,56 +561,69 @@ void Mute()
     Rms(r, 2.75);
     const double later = Rms(r, 0.25);
     Check(tail > 0.01 && later < 0.5 * tail,
-          "P00 held, reverb: the tail rings on, fading",
+          "P01 held, reverb: the tail rings on, fading",
           later / tail);
 }
 
-// Triggers: once to the end of their slice, while held, or round it while held
-void Triggers()
+size_t Starts(Rig& r, double seconds);
+
+// Notes: while held, grains at the playhead at their pitch, none once the
+// playhead has run out
+void Notes()
 {
     Rig r(1.0);
     r.Fill(Sine);
     Core::Params p;
+    p.density  = 0.0f;
+    p.pitch    = 0.5f;
+    p.notes[2] = {50.0f, 1.5f, true};
+    r.core.SetParams(p);
+    r.Run(0.1, Silence);
+    bool   at_pitch = true;
+    size_t sounding = 0;
+    for(const auto& g : r.core.Grains())
+    {
+        if(!g.IsActive())
+            continue;
+        sounding++;
+        at_pitch = at_pitch && Near(g.Settings().rate, 0.75, 1e-6);
+    }
+    Check(sounding > 0 && at_pitch && r.core.NoteOn(2),
+          "note held: grains at Pitch times its pitch",
+          double(sounding));
+    p.notes[2].held = false;
+    r.core.SetParams(p);
+    r.Run(0.3, Silence); // the last grains end
+    const size_t after = Starts(r, 0.2);
+    Check(after == 0 && !r.core.NoteOn(2),
+          "note released: no more grains",
+          double(after));
+
+    // Every note held, all at the most: together no more than the most
+    p.density = Core::kMaxDensity;
+    for(auto& note : p.notes)
+        note = {Core::kMaxDensity, 1.0f, true};
+    r.core.SetParams(p);
+    const double per_second = double(Starts(r, 1.0));
+    Check(Near(per_second, Core::kMaxDensity, 0.15 * Core::kMaxDensity),
+          "all notes and the playhead at the most: they share it (per s)",
+          per_second);
+    for(auto& note : p.notes)
+        note.held = false;
     p.density = 0.0f;
-    // Seconds a trigger sounds over slice 1/7 at speed 1, held for held seconds
-    auto lasts = [&r, &p](End mode, double held, uint32_t id) {
-        p.triggers[0] = {0.0f, 1.0f / 7.0f, 50.0f, id, mode, true};
-        r.core.SetParams(p);
-        double seconds = 0.0;
-        while(seconds < 0.6)
-        {
-            if(seconds >= held && p.triggers[0].held)
-            {
-                p.triggers[0].held = false;
-                r.core.SetParams(p);
-            }
-            r.Run(0.001, Silence);
-            seconds += 0.001;
-            if(!r.core.TriggerOn(0))
-                break;
-        }
-        return seconds;
-    };
-    const double once = lasts(End::Once, 0.01, 1);
-    Check(Near(once, 1.0 / 7.0, 0.005),
-          "trigger once: through its slice, released early (s)",
-          once);
-    const double turn = lasts(End::Turn, 0.4, 2);
-    Check(Near(turn, 0.4, 0.003),
-          "trigger turn: back and forth in its slice while held (s)",
-          turn);
-    const double early = lasts(End::Turn, 0.05, 5);
-    Check(
-        Near(early, 0.05, 0.003), "trigger turn: stops on release (s)", early);
-    const double loop = lasts(End::Loop, 0.4, 3);
-    Check(Near(loop, 0.4, 0.003),
-          "trigger loop: round its slice while held, past its end (s)",
-          loop);
-    p.freeze          = true;
-    const double cold = lasts(End::Once, 0.05, 4);
-    Check(Near(cold, 0.05, 0.003),
-          "trigger once, frozen: stops on release (s)",
-          cold);
+
+    p.end           = End::Once;
+    p.speed         = 4.0f;
+    p.notes[2].held = true;
+    r.core.SetParams(p);
+    r.core.Restart();
+    r.Run(0.5, Silence);
+    const size_t ended = Starts(r, 0.2);
+    Check(ended == 0, "note held, the playhead run out: silent", double(ended));
+    p.notes[2].held = false;
+    p.end           = End::Loop;
+    p.speed         = 1.0f;
+    p.pitch         = 1.0f;
 
     // The playhead goes round the selection, and starts it again on Restart
     p.freeze  = false;
@@ -705,7 +707,7 @@ void Ends()
     p.density = 0.0f;
     r.core.SetParams(p);
     r.Run(1.0, Silence);
-    r.core.Drop();
+    r.core.Seed();
     const size_t dropped = Starts(r, 0.2);
     Check(
         dropped == 1, "a drop: one grain, run out and closed", double(dropped));
@@ -998,37 +1000,6 @@ void Voices()
     Check(r.finite, "the most density, long grains: output finite", 1.0);
 }
 
-void Onsets()
-{
-    // Clicks on silence: an edge at each, within 10 ms, first to last
-    std::vector<float>          clicks(4 * kRate, 0.0f);
-    const std::array<double, 6> times = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
-    for(double t : times)
-    {
-        for(size_t i = 0; i < 480; i++)
-            clicks[size_t(t * kRate) + i] = 0.5f * (i % 2 ? 1.0f : -1.0f);
-    }
-    const auto edges = FindSlices(clicks.data(), clicks.size(), kRate);
-    bool       found = edges[0] == 0.0f && edges[kNumSlices] == 1.0f;
-    for(size_t i = 0; i < times.size(); i++)
-        found = found && Near(edges[i + 1] * 4.0, times[i], 0.01);
-    Check(found,
-          "onsets: an edge at each click (second edge, s)",
-          edges[1] * 4.0);
-
-    // A sustained sound: slices all the same
-    std::vector<float> sine(4 * kRate);
-    for(size_t i = 0; i < sine.size(); i++)
-        sine[i] = Sine(double(i) / kRate);
-    const auto even   = FindSlices(sine.data(), sine.size(), kRate);
-    bool       rising = true;
-    for(size_t i = 0; i < kNumSlices; i++)
-        rising = rising && even[i + 1] > even[i];
-    Check(rising && even[kNumSlices] == 1.0f,
-          "onsets: none found, the slices still rise to the end",
-          even[1]);
-}
-
 void Mapping()
 {
     Rig      r(2.0);
@@ -1200,48 +1171,62 @@ void Mapping()
     const float less = ui.Led(100000, r.core);
     Check(full > 0.0f && less < full, "LED: dims as the sand runs out", less);
 
-    // A slice pad: a trigger of its own, the playhead untouched. Pressure
-    // opens its flow.
+    // A note pad: grains of its own at the playhead, in S09's scale above
+    // Pitch. Pressure raises its density.
     const float  density = p.density;
     const double phase   = r.core.PlayheadPhase();
-    const size_t place   = CoreUI::kSlicePads[3];
-    c.pressure[place]    = 0.3f;
-    press(place, true);
+    const size_t key     = CoreUI::kNotePads[4];
+    c.pressure[key]      = 0.3f;
+    press(key, true);
     r.Run(0.001, Silence);
-    Check(p.density == density && r.core.TriggerOn(3)
-              && Near(p.triggers[3].density, density, 0.01),
-          "slice touched lightly: Flow's density, the playhead as it was",
-          p.triggers[3].density);
+    Check(p.density == density && r.core.NoteOn(4)
+              && Near(p.notes[4].density, density, 0.01),
+          "note touched lightly: Density's, the playhead as it was",
+          p.notes[4].density);
     Check(std::fabs(r.core.PlayheadPhase() - phase) < 0.01,
-          "slice touched: the playhead goes on",
+          "note touched: the playhead goes on",
           r.core.PlayheadPhase());
-    c.pressure[place] = 1.0f;
+    Check(Near(p.notes[4].pitch, std::exp2(7.0 / 12.0), 1e-6),
+          "S09 up, fifth pad: a fifth, major",
+          p.notes[4].pitch);
+    c.switches[Controls::S09] = Controls::Centre;
     ui.Process(c, r.core);
-    Check(Near(p.triggers[3].density, Core::kMaxDensity, 0.01),
-          "slice pressed hard: the most density",
-          p.triggers[3].density);
+    Check(Near(p.notes[2].pitch, std::exp2(3.0 / 12.0), 1e-6),
+          "S09 centre, third pad: a minor third",
+          p.notes[2].pitch);
+    c.switches[Controls::S09] = Controls::Down;
+    ui.Process(c, r.core);
+    Check(Near(p.notes[6].pitch, std::exp2(14.0 / 12.0), 1e-6),
+          "S09 down, last pad: the ninth above the octave, pentatonic",
+          p.notes[6].pitch);
+    c.switches[Controls::S09] = Controls::Up;
+    c.pressure[key]           = 1.0f;
+    ui.Process(c, r.core);
+    Check(Near(p.notes[4].density, Core::kMaxDensity, 0.01),
+          "note pressed hard: the most density",
+          p.notes[4].density);
     c.knobs[Controls::S37] = 0.0f;
-    c.pressure[place]      = 0.3f;
+    c.pressure[key]        = 0.3f;
     ui.Process(c, r.core);
-    Check(p.triggers[3].density > 1.0f && p.triggers[3].mode == End::Loop,
-          "slice, Flow closed: half open, as End sets",
-          p.triggers[3].density);
-    press(place, false);
+    Check(p.notes[4].density > 1.0f,
+          "note, Density at 0: at least half",
+          p.notes[4].density);
+    press(key, false);
     c.knobs[Controls::S37] = 0.75f;
 
-    // P00 held: mute. P01: a drop. P02: from the start.
+    // P01 held: mute. P00: a seed. P02: from the start.
     press(CoreUI::kMutePad, true);
-    Check(p.mute, "P00 held: mute", 1);
+    Check(p.mute, "P01 held: mute", 1);
     press(CoreUI::kMutePad, false);
-    Check(!p.mute, "P00 released: sound", 0);
+    Check(!p.mute, "P01 released: sound", 0);
     c.knobs[Controls::S37] = 0.0f;
     ui.Process(c, r.core);
     r.Run(0.5, Silence);
-    press(CoreUI::kDropPad, true);
+    press(CoreUI::kSeedPad, true);
     const size_t one = Starts(r, 0.1);
-    press(CoreUI::kDropPad, false);
+    press(CoreUI::kSeedPad, false);
     const size_t none = Starts(r, 0.1);
-    Check(one == 1 && none == 0, "P01: one drop a touch", double(one));
+    Check(one == 1 && none == 0, "P00: one grain a touch", double(one));
     c.knobs[Controls::S37] = 0.75f;
     ui.Process(c, r.core);
     r.Run(0.3, Silence);
@@ -1279,7 +1264,7 @@ int main()
     Windows();
     Filter();
     Mute();
-    Triggers();
+    Notes();
     Ends();
     Selection();
     Pour();
@@ -1287,7 +1272,6 @@ int main()
     Starts();
     Pan();
     Voices();
-    Onsets();
     Mapping();
     std::printf("%s\n",
                 failures ? "Some checks failed." : "All checks passed.");

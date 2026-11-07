@@ -106,8 +106,8 @@ try {
   const keyShake = await value("Spray");
   await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "s" }))`);
   check(pc(keyShake) > pc(plain), "S: shakes", keyShake);
-  await pad("Drop", true);
-  await pad("Drop", false);
+  await pad("Seed", true);
+  await pad("Seed", false);
   await pad("Restart", true);
   await pad("Restart", false);
   await sleep(300);

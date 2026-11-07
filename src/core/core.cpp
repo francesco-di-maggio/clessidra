@@ -31,15 +31,20 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const double  len     = double(sound.Length());
     const double  sel_len = std::max(double(p.length) * len, 1.0);
     const double  sel_start = double(p.start) * len;
-    const float   density   = std::clamp(p.density, 0.0f, kMaxDensity);
+    // The playhead and the notes held share kMaxDensity: past it, each
+    // thinned by the same share
+    float all_density = std::clamp(p.density, 0.0f, kMaxDensity);
+    for(const Note& note : p.notes)
+        if(note.held)
+            all_density += std::clamp(note.density, 0.0f, kMaxDensity);
+    const float share
+        = all_density > kMaxDensity ? kMaxDensity / all_density : 1.0f;
+    all_density         = std::min(all_density, kMaxDensity);
+    const float density = share * std::clamp(p.density, 0.0f, kMaxDensity);
     // A grain lasts grain_samples whatever its pitch, as the starts per second
     // do: no longer than the recording, and short enough for the voices to hold
-    // whole windows at the density of the playhead and the triggers sounding
-    // together. Stolen, they would hardly rise.
-    float all_density = density;
-    for(size_t s = 0; s < kNumTriggers; s++)
-        if(p.triggers[s].held || triggers_[s].on)
-            all_density += std::clamp(p.triggers[s].density, 0.0f, kMaxDensity);
+    // whole windows at all the streams' density. Stolen, they would hardly
+    // rise.
     const double most_samples
         = all_density > 0.0f
               ? double(kNumVoices - kSafetyVoices) * sample_rate_ / all_density
@@ -56,86 +61,66 @@ void Core::Process(const float* const* in, float** out, size_t size)
     // A new length keeps the playhead where it is in the recording. Past the
     // new end: what End does there.
     if(sel_len_ > 0.0 && sel_len != sel_len_)
-        stream_.playhead.Scale(sel_len_ / sel_len);
+        playhead_.Scale(sel_len_ / sel_len);
     sel_len_ = sel_len;
 
     const bool backwards = p.speed < 0.0f;
     if(restart_.exchange(false, std::memory_order_relaxed))
     {
-        stream_.playhead.Restart(backwards);
+        playhead_.Restart(backwards);
         // With a grain at once
-        stream_.sched_phase = stream_.sched_next;
+        schedule_.phase = schedule_.next;
     }
-    // A new trigger: from the start of its slice, with a grain at once
-    for(size_t s = 0; s < kNumTriggers; s++)
+    // A note touched: a grain at once
+    for(size_t s = 0; s < kNumNotes; s++)
     {
-        const Trigger& trigger = p.triggers[s];
-        TriggerStream& state   = triggers_[s];
-        if(trigger.id == state.id)
-            continue;
-        state.id = trigger.id;
-        state.on = trigger.end > trigger.start && len > 0.0;
-        state.playhead.Restart(backwards);
-        state.sched_phase = state.sched_next;
+        NoteStream& note = notes_[s];
+        if(p.notes[s].held && !note.on)
+            note.schedule.phase = note.schedule.next;
+        note.on = p.notes[s].held;
     }
 
     const double   play_inc = p.freeze ? 0.0 : p.speed / sel_len; // per sample
-    const uint32_t drops    = drops_.load(std::memory_order_relaxed);
-    const bool     drop     = drops != drops_done_ && len > 0.0;
-    drops_done_             = drops;
+    const uint32_t seeds    = seeds_.load(std::memory_order_relaxed);
+    const bool     seed     = seeds != seeds_done_ && len > 0.0;
+    seeds_done_             = seeds;
+
+    // Where the playhead reads, reversed when it heads against the speed
+    const auto here = [&] {
+        const bool reverse = (p.speed < 0.0f) != (playhead_.Heading() < 0);
+        return Source{sel_start, sel_len, playhead_.Phase(), reverse};
+    };
 
     // Grain starts in this block, at the sample they fall on. A voice that ends
     // in this block is free from the next.
     for(size_t i = 0; i < size && len > 0.0; i++)
     {
         // Through the selection, as End sets at its edges. Run out: no grains
-        // but a drop.
-        Playhead& playhead = stream_.playhead;
-        playhead.Advance(play_inc, p.end);
-        const bool due
-            = !playhead.Ended()
-              && Due(stream_, density / sample_rate_, p.rand_density);
-        if(due || (drop && i == 0))
+        // but a seed.
+        playhead_.Advance(play_inc, p.end);
+        if(playhead_.Ended())
         {
-            const bool   reverse = (p.speed < 0.0f) != (playhead.Heading() < 0);
-            const Source source
-                = {sel_start, sel_len, playhead.Phase(), reverse};
-            StartGrain(p, source, &sound, i);
+            if(seed && i == 0)
+                StartGrain(p, here(), &sound, p.pitch, i);
+            continue;
         }
+        const Source source = here();
+        if(Due(schedule_, density / sample_rate_, p.rand_density)
+           || (seed && i == 0))
+            StartGrain(p, source, &sound, p.pitch, i);
 
-        // Triggers: through their slice at the playhead's speed. Released,
-        // only Once goes on, and not while frozen.
-        for(size_t s = 0; s < kNumTriggers; s++)
+        // Notes: at the playhead, each at its pitch
+        for(size_t s = 0; s < kNumNotes; s++)
         {
-            TriggerStream& state = triggers_[s];
-            if(!state.on)
+            if(!notes_[s].on)
                 continue;
-            const Trigger& trigger = p.triggers[s];
-            if(!trigger.held && (trigger.mode != End::Once || p.freeze))
-            {
-                state.on = false;
-                continue;
-            }
-            const double slice
-                = std::max(double(trigger.end - trigger.start) * len, 1.0);
-            state.playhead.Advance(p.freeze ? 0.0 : p.speed / slice,
-                                   trigger.mode);
-            if(state.playhead.Ended())
-            {
-                state.on = false;
-                continue;
-            }
-            const float trigger_density
-                = std::clamp(trigger.density, 0.0f, kMaxDensity);
-            if(!Due(state, trigger_density / sample_rate_, p.rand_density))
-                continue;
-            const bool reverse
-                = (p.speed < 0.0f) != (state.playhead.Heading() < 0);
-            const Source source = {double(trigger.start) * len,
-                                   slice,
-                                   state.playhead.Phase(),
-                                   reverse};
-            StartGrain(p, source, &sound, i);
+            const Note& note = p.notes[s];
+            const float note_density
+                = share * std::clamp(note.density, 0.0f, kMaxDensity);
+            if(Due(notes_[s].schedule,
+                   note_density / sample_rate_,
+                   p.rand_density))
+                StartGrain(p, source, &sound, p.pitch * note.pitch, i);
         }
     }
 
@@ -348,6 +333,7 @@ void Core::Normalise(float  power_grains,
 void Core::StartGrain(const Params& p,
                       const Source& source,
                       const Buffer* sound,
+                      float         pitch,
                       size_t        offset)
 {
     Grain* grain  = nullptr;
@@ -391,7 +377,7 @@ void Core::StartGrain(const Params& p,
         = p.rand_pitch != 0.0f
               ? Random() * Blend(p.rand_pitch) * kRandPitchSemitones
               : 0.0f;
-    latch.rate = p.pitch * std::exp2(semitones / 12.0f);
+    latch.rate = pitch * std::exp2(semitones / 12.0f);
     if(source.backwards)
         latch.rate = -latch.rate;
     // Width with the grains sounding and how much they differ: a lone grain
@@ -416,15 +402,15 @@ void Core::StartGrain(const Params& p,
         furthest->FadeOut(size_t(kFadeSeconds * sample_rate_));
 }
 
-bool Core::Due(Stream& s, double sched_inc, float rand_density)
+bool Core::Due(Schedule& s, double sched_inc, float rand_density)
 {
-    s.sched_phase += sched_inc;
-    if(s.sched_phase < s.sched_next)
+    s.phase += sched_inc;
+    if(s.phase < s.next)
         return false;
-    s.sched_phase -= s.sched_next;
-    s.sched_next = Interval(rand_density);
+    s.phase -= s.next;
+    s.next = Interval(rand_density);
     // At most one start per sample
-    s.sched_phase = std::min(s.sched_phase, double(s.sched_next));
+    s.phase = std::min(s.phase, double(s.next));
     return true;
 }
 

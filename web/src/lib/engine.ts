@@ -3,14 +3,14 @@
 
 export const RATE = 48000; // config.h kSampleRateHz
 export const BLOCK = 128; // Web Audio's render quantum
-export const NUM_SLICES = 7; // onsets.h kNumSlices
+export const NUM_NOTES = 7; // Core::kNumNotes
 export const MAX_RECORD_S = 30; // config.h kBufferSeconds
-export const MUTE_PAD = 0; // CoreUI::kMutePad
-export const DROP_PAD = 1; // CoreUI::kDropPad
+export const SEED_PAD = 0; // CoreUI::kSeedPad
+export const MUTE_PAD = 1; // CoreUI::kMutePad
 export const RESTART_PAD = 2; // CoreUI::kRestartPad
 export const RECORD_PAD = 10; // CoreUI::kRecordPad
 export const SHAKE_PAD = 11; // CoreUI::kShakePad
-export const SLICE_PADS = [3, 4, 8, 5, 6, 9, 7]; // CoreUI::kSlicePads
+export const NOTE_PADS = [3, 4, 8, 5, 6, 9, 7]; // CoreUI::kNotePads
 // What a tap keeps, seconds: the board's (Core::kTapCaptureSeconds), and the
 // others the browser tries
 export const TAP_SECONDS = [2, 4, 8, 16];
@@ -20,8 +20,8 @@ export const INCOMING_SECONDS = 16;
 export const INCOMING_COLUMNS = 1280;
 
 // cl_view, in samples of the recording
-export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, edges: 4, triggers: 4 + NUM_SLICES + 1 } as const;
-export const VIEW_SIZE = VIEW.triggers + NUM_SLICES;
+export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, notes: 4 } as const;
+export const VIEW_SIZE = VIEW.notes + NUM_NOTES;
 // cl_params, in the core's units. grainMs: the size in use, grainMsSet: as
 // set. end: End, 0 once, 1 turn, 2 loop. spread: Spray as it acts, 0..1.
 // sandLeft: ahead of the playhead, 0..1.

@@ -7,7 +7,7 @@ const BLOCK = 128;
 const KNOB = { S30: 0, S31: 1, S32: 2, S33: 3, S34: 4, S35: 5, S36: 6, S37: 7 };
 const SPEED_1 = 0.5 + 1.15 / 6; // S36 on its first stop up
 const RECORD = 10; // CoreUI::kRecordPad
-const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, edges: 4, triggers: 12 };
+const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, notes: 4 };
 
 let failed = 0;
 function check(ok, what, value) {
@@ -27,7 +27,7 @@ check(w.cl_init(RATE) === 1, "starts at 48 kHz");
 const io = [w.cl_input(0), w.cl_input(1), w.cl_output(0), w.cl_output(1)].map((p) => f32(p, BLOCK));
 let now = 0;
 let t = 0;
-// Plucks: a decaying tone every half second, so the slices find onsets
+// Plucks: a decaying tone every half second
 const pluck = () => {
   const s = (t++ % (RATE / 2)) / RATE;
   return 0.4 * Math.exp(-8 * s) * Math.sin(2 * Math.PI * 330 * s);
@@ -80,8 +80,6 @@ r = run(2, silence);
 check(r.finite && r.peak > 0.01 && r.peak <= 1, "the recording plays, under full scale", r.peak.toFixed(3));
 const peaks = f32(w.cl_peaks(), w.cl_columns());
 check(peaks.some((p) => p > 0.1), "the waveform shows the recording");
-const edges = Array.from(view().slice(V.edges, V.edges + 8));
-check(edges.every((e, i) => i === 0 || e > edges[i - 1]), "slices at the onsets, in order", edges.map((e) => (e / RATE).toFixed(2)).join(" "));
 
 // A tap keeps the last 8 s
 run(9);
@@ -123,13 +121,13 @@ run(0.1, silence);
 const params = f32(w.cl_params(), 13);
 check(Math.abs(params[0] - 1) < 1e-6, "Speed on its first stop: 1", params[0]);
 
-// A slice pad: its trigger sounds inside its slice
+// A note pad: it sounds while held
 w.cl_pad(3, 1, 0.8);
 run(0.1, silence);
-v = view();
-const at = v[V.triggers];
-check(at >= v[V.edges] && at <= v[V.edges + 1], "P03: a trigger in slice 1", (at / RATE).toFixed(2));
+check(view()[V.notes] === 1, "P03 held: the first note sounds");
 w.cl_pad(3, 0, 0);
+run(0.1, silence);
+check(view()[V.notes] === 0, "P03 released: silent");
 check(w.cl_led(Math.floor(now)) >= 0, "LED in range");
 
 if (failed) {
