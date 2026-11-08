@@ -47,18 +47,25 @@ void Core::Process(const float* const* in, float** out, size_t size)
         playhead_.Scale(sel_len_ / sel_len);
     sel_len_ = sel_len;
 
-    const bool backwards = p.speed < 0.0f;
-    if(restart_.exchange(false, std::memory_order_relaxed))
+    if(restart_)
     {
-        playhead_.Restart(backwards);
+        restart_ = false;
+        playhead_.Restart(p.speed < 0.0f);
         // With a grain at once
         schedule_.phase = schedule_.next;
     }
+    if(turn_.exchange(false, std::memory_order_relaxed))
+        playhead_.Turn();
+    // A grain at once, the starts counted from it
+    const float jump = jump_.exchange(-1.0f, std::memory_order_relaxed);
+    if(jump >= 0.0f)
+    {
+        playhead_.Jump(jump);
+        schedule_.phase = 0.0;
+    }
+    const bool now = jump >= 0.0f && len > 0.0;
 
-    const double   play_inc = p.freeze ? 0.0 : p.speed / sel_len; // per sample
-    const uint32_t seeds    = seeds_.load(std::memory_order_relaxed);
-    const bool     seed     = seeds != seeds_done_ && len > 0.0;
-    seeds_done_             = seeds;
+    const double play_inc = p.freeze ? 0.0 : p.speed / sel_len; // per sample
 
     const size_t block = std::min(size, kMaxBlock);
 
@@ -67,13 +74,13 @@ void Core::Process(const float* const* in, float** out, size_t size)
     for(size_t i = 0; i < size && len > 0.0; i++)
     {
         // Through the selection, as End sets at its edges. Run out: no grains
-        // but a seed.
+        // but one at once.
         playhead_.Advance(play_inc, p.end);
         const double phase = playhead_.Phase();
         const bool   due
             = !playhead_.Ended()
-              && Due(schedule_, density / sample_rate_, p.rand_density);
-        if(due || (seed && i == 0))
+              && Due(schedule_, density / sample_rate_, p.random_starts);
+        if(due || (now && i == 0))
         {
             const bool reverse = (p.speed < 0.0f) != (playhead_.Heading() < 0);
             StartGrain(p, {sel_start, sel_len, phase, reverse}, &sound, i);
@@ -125,21 +132,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float reverb_wet_step
         = (reverb_gain * std::sin(reverb_angle) - reverb_wet_) / n;
 
-    const float filter_coeff
-        = 1.0f - std::exp(-n / (kFilterSeconds * sample_rate_));
-    daisysp::fonepole(filter_, std::clamp(p.filter, -1.0f, 1.0f), filter_coeff);
-    const float amount  = std::fabs(filter_);
-    const bool  lowpass = filter_ < 0.0f;
-    const float filter_hz
-        = lowpass
-              ? kLowpassOffHz * std::pow(kLowpassMinHz / kLowpassOffHz, amount)
-              : kHighpassOffHz
-                    * std::pow(kHighpassMaxHz / kHighpassOffHz, amount);
-    const float filter_q   = kFilterQMin + amount * (kFilterQMax - kFilterQMin);
-    const float filter_mix = std::min(1.0f, amount / kFilterFade);
-    for(auto& filter : filters_)
-        filter.Set(filter_hz, filter_q, sample_rate_);
-
     const float mute_target = p.mute ? 0.0f : 1.0f;
     const float mute_step   = 1.0f / (kMuteSeconds * sample_rate_);
     const float norm_step   = (norm_ - norm_gain_) / n;
@@ -158,14 +150,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
         reverb_dry_ += reverb_dry_step;
         reverb_wet_ += reverb_wet_step;
         norm_gain_ += norm_step;
-        float l = out[0][i] * norm_gain_;
-        float r = out[1][i] * norm_gain_;
-        filters_[0].Process(l);
-        filters_[1].Process(r);
-        l += filter_mix
-             * ((lowpass ? filters_[0].Low() : filters_[0].High()) - l);
-        r += filter_mix
-             * ((lowpass ? filters_[1].Low() : filters_[1].High()) - r);
+        float l    = out[0][i] * norm_gain_;
+        float r    = out[1][i] * norm_gain_;
         mute_gain_ = mute_gain_ < mute_target
                          ? std::min(mute_target, mute_gain_ + mute_step)
                          : std::max(mute_target, mute_gain_ - mute_step);
@@ -263,7 +249,7 @@ void Core::UpdateCapture(size_t size)
         = buffers_[playing].Length() > 0 ? &buffers_[playing] : nullptr;
     pour_ = poured_from_ ? 0.0f : 1.0f;
     playing_.store(next, std::memory_order_release);
-    restart_.store(true, std::memory_order_relaxed);
+    restart_ = true;
     recordings_.fetch_add(1, std::memory_order_release);
 }
 
@@ -323,40 +309,34 @@ void Core::StartGrain(const Params& p,
         latch.buffer = poured_from_;
         to_read      = double(poured_from_->Length()) / double(sound->Length());
     }
-    // Each over its range: position inside what is playing, size between the
-    // knob's ends, exponential, any shape, pitch either way. Position up: even
-    // within the amount around the playhead, as Giri's cloud, round the
-    // selection. Level and reverb send as Giri's cloud.
+    // Each evenly over its range: position within the amount around the
+    // playhead, round the selection, size between its ends, exponential,
+    // pitch either way, level, reverb send
     double phase = source.phase;
     if(p.rand_pos > 0.0f)
     {
         phase += 0.5 * std::min(p.rand_pos, 1.0f) * Random();
         phase -= std::floor(phase);
     }
-    else if(p.rand_pos < 0.0f)
-        phase += Blend(p.rand_pos) * (0.5 + 0.5 * Random() - phase);
     latch.position = (source.start + phase * source.length) * to_read;
-    if(p.rand_size != 0.0f && p.max_grain_ms > p.min_grain_ms)
+    if(p.rand_size > 0.0f && p.max_grain_ms > p.min_grain_ms)
     {
         const float octaves = std::log2(p.max_grain_ms / p.min_grain_ms);
         const float size    = std::clamp(
             std::log2(p.grain_ms / p.min_grain_ms) / octaves, 0.0f, 1.0f);
         latch.size = std::exp2((Randomise(size, p.rand_size) - size) * octaves);
     }
-    latch.shape = p.rand_shape != 0.0f ? Randomise(p.window_shape, p.rand_shape)
-                                       : p.window_shape;
+    latch.shape = p.window_shape;
     const float semitones
-        = p.rand_pitch != 0.0f
-              ? Random() * Blend(p.rand_pitch) * kRandPitchSemitones
-              : 0.0f;
+        = Random() * std::clamp(p.rand_pitch, 0.0f, 1.0f) * kRandPitchSemitones;
     latch.rate = p.pitch * std::exp2(semitones / 12.0f);
     if(source.backwards)
         latch.rate = -latch.rate;
-    if(p.rand_gain != 0.0f)
+    if(p.rand_gain > 0.0f)
         latch.gain = std::pow(10.0f,
-                              kRandGainDb / 20.0f * Blend(p.rand_gain)
+                              kRandGainDb / 20.0f * std::min(p.rand_gain, 1.0f)
                                   * (0.5f + 0.5f * Random()));
-    latch.send = p.rand_send != 0.0f ? Randomise(1.0f, p.rand_send) : 1.0f;
+    latch.send = Randomise(1.0f, p.rand_send);
     // Width with the grains sounding and how much they differ: a lone grain
     // near the centre, most of the others too
     const float width = 0.5f * float(active + 1) * p.spread;
@@ -365,7 +345,7 @@ void Core::StartGrain(const Params& p,
     grain->Start(latch, offset);
 }
 
-bool Core::Due(Schedule& s, double sched_inc, float rand_density)
+bool Core::Due(Schedule& s, double sched_inc, bool random)
 {
     // None at no density, not even the grain at once of a restart
     if(sched_inc <= 0.0)
@@ -374,37 +354,27 @@ bool Core::Due(Schedule& s, double sched_inc, float rand_density)
     if(s.phase < s.next)
         return false;
     s.phase -= s.next;
-    s.next = Interval(rand_density);
+    s.next = Interval(random);
     // At most one start per sample
     s.phase = std::min(s.phase, double(s.next));
     return true;
 }
 
-float Core::Interval(float rand_density)
+float Core::Interval(bool random)
 {
-    // Mean 1 at any amount. Up: an even spread. Down, at -1: Beads' random
-    // starts, nearly Poisson without the closest starts and the longest gaps.
-    // kMean: of the series on 0.1..1.
-    if(rand_density >= 0.0f)
-        return 1.0f + std::min(rand_density, 1.0f) * Random();
+    if(!random)
+        return 1.0f;
+    // -ln(1 - x) to its fourth term, x even on 0.1..1: nearly exponential
+    // (Poisson) without the closest starts and the longest gaps. kMean: of the
+    // series, for a mean of 1.
     static constexpr float kMean = 0.883f;
     const float            x     = 0.1f + 0.9f * (0.5f - 0.5f * Random());
-    const float            random
-        = x * (1.0f + x * (0.5f + x * (0.3333f + x * 0.25f))) / kMean;
-    const float amount = std::min(-rand_density, 1.0f);
-    return 1.0f - amount + amount * random;
+    return x * (1.0f + x * (0.5f + x * (0.3333f + x * 0.25f))) / kMean;
 }
 
 float Core::Randomise(float x, float amount)
 {
-    return x + Blend(amount) * (0.5f + 0.5f * Random() - x);
-}
-
-float Core::Blend(float amount)
-{
-    return amount > 0.0f
-               ? std::min(amount, 1.0f)
-               : std::min(-3.0f * amount * (0.5f + 0.5f * Random()), 1.0f);
+    return x + std::clamp(amount, 0.0f, 1.0f) * (0.5f + 0.5f * Random() - x);
 }
 
 float Core::Random()

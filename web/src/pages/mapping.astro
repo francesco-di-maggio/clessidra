@@ -4,7 +4,7 @@ import TouchPanel from "../components/TouchPanel.astro";
 import { CONTROLS } from "../lib/controls";
 
 // What the help shows for each control, by id
-const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { name: c.name, does: c.does ?? "" }]));
+const help = Object.fromEntries(CONTROLS.map((c) => [c.id, { name: c.name, does: c.does ?? "" }]));
 ---
 <Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch.">
 <h1>Mapping</h1>
@@ -18,9 +18,9 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
       <p id="help-does">Its name and what it does show here.</p>
     </div>
     <ul class="panel notes">
-      <li><span class="label">Glass</span>The selection is the sand, Speed how fast it runs through</li>
+      <li><span class="label">Glass</span>The recording is the sand, Speed how fast it runs through</li>
       <li><span class="label">Density</span>Regular below the centre, random above: drops, a stream, a cloud</li>
-      <li><span class="label">Held</span>Speed at its centre: the playhead stops</li>
+      <li><span class="label">Hands</span>Places to play it, Turn to reverse it, Hold and Shake to grab it</li>
     </ul>
   </div>
 </div>

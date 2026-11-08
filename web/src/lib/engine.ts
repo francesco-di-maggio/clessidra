@@ -4,10 +4,13 @@
 export const RATE = 48000; // config.h kSampleRateHz
 export const BLOCK = 128; // Web Audio's render quantum
 export const MAX_RECORD_S = 30; // config.h kBufferSeconds
-export const SEED_PAD = 0; // CoreUI::kSeedPad
-export const MUTE_PAD = 1; // CoreUI::kMutePad
-export const RESTART_PAD = 2; // CoreUI::kRestartPad
-export const RECORD_PAD = 10; // CoreUI::kRecordPad
+// CoreUI's pads
+export const SHAKE_PAD = 0;
+export const MUTE_PAD = 1;
+export const HOLD_PAD = 2;
+export const PLACE_PADS = [3, 4, 8, 5, 9, 6, 7]; // P03–P09, left to right
+export const RECORD_PAD = 10;
+export const TURN_PAD = 11;
 export const VOICES = 32; // Core::kNumVoices
 // What a tap keeps, seconds: the board's (Core::kTapCaptureSeconds), and the
 // others the browser tries
@@ -21,10 +24,11 @@ export const INCOMING_COLUMNS = 1280;
 export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped: 4 } as const;
 export const VIEW_SIZE = 5;
 // cl_params, in the core's units. grainMs: the size in use, grainMsSet: as
-// set. end: End, 0 once, 1 turn, 2 loop. spread: Spray as it acts, 0..1.
-// sandLeft: ahead of the playhead, 0..1.
-export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randDensity: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, filter: 12, randPos: 13, randSize: 14, randShape: 15, end: 16, grainMsSet: 17, minGrainMs: 18, maxGrainMs: 19, spread: 20, sandLeft: 21 } as const;
-export const PARAM_SIZE = 22;
+// set. randomStarts: 1 random, 0 regular. end: End, 0 once, 1 turn, 2 loop.
+// spread: Spray as it acts, 0..1. sandLeft: ahead of the playhead, 0..1.
+// heading: 1 upright, -1 turned over.
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randomStarts: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, randPos: 12, randSize: 13, end: 14, grainMsSet: 15, minGrainMs: 16, maxGrainMs: 17, spread: 18, sandLeft: 19, heading: 20 } as const;
+export const PARAM_SIZE = 21;
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window shape, pan
 export const GRAIN_FIELDS = 4;
 

@@ -5,11 +5,11 @@
 import "../styles/tokens.css";
 import "../styles/site.css";
 import TouchPanel from "../components/TouchPanel.astro";
-import { CONTROLS, LED } from "../lib/controls";
+import { CONTROLS, LED, PLAY } from "../lib/controls";
 
 const KNOBS = ["S36", "S37", "S30", "S35", "S31", "S32", "S33", "S34"];
 const byId = (id: string) => CONTROLS.find((c) => c.id === id)!;
-const OTHERS = ["S07", "P10", "P00", "P01", "P02"];
+const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02"];
 ---
 <!doctype html>
 <html lang="en" data-theme="light">
@@ -38,8 +38,7 @@ const OTHERS = ["S07", "P10", "P00", "P01", "P02"];
   table { width: 100%; border-collapse: collapse; margin-bottom: 5mm; font-size: 8.5pt; line-height: 1.3; }
   th { text-align: left; font: 500 7pt var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: #777; padding: 0 2mm 1.5mm 0; border-bottom: 0.3mm solid #111; }
   td { padding: 1mm 2mm 1mm 0; border-bottom: 0.2mm solid #ccc; vertical-align: top; }
-  td:first-child { font: 500 8.5pt var(--mono); white-space: nowrap; width: 18mm; }
-  td.free { color: #aaa; }
+  td:first-child { font: 500 8.5pt var(--mono); white-space: nowrap; width: 26mm; }
   .touch { --ink: #111; --dim: #777; --line: #bbb; --surface: #fff; --accent: #111; }
 </style>
 </head>
@@ -57,8 +56,8 @@ const OTHERS = ["S07", "P10", "P00", "P01", "P02"];
   <div class="board"><TouchPanel /></div>
   <div class="box">
     <p>One layer: every control does one thing, where it is.</p>
-    <p>The selection is the sand. Speed sets how fast it runs through, Density how it falls.</p>
-    <p>Speed at its centre holds the playhead. Density at its centre: no grains but Seed.</p>
+    <p>Record a sound: it is the sand. Speed sets how fast it runs, Density how it falls.</p>
+    <p>Density at its centre: no grains but the places'. Speed at its centre: the sand held.</p>
   </div>
 </div></section>
 
@@ -74,8 +73,13 @@ const OTHERS = ["S07", "P10", "P00", "P01", "P02"];
   <table>
     <tbody>
       {OTHERS.map(byId).map((c) => <tr><td>{c.id}</td><td><b>{c.name}</b>. {c.does}</td></tr>)}
-      <tr><td class="free">S09, P03–P09, P11</td><td class="free">Not assigned yet.</td></tr>
+      <tr><td>P03–P09</td><td><b>Places</b>. The selection in sevenths, left to right on the board: P03, P04, P08, P05, P09, P06, P07. A touch: the playhead there, a grain at once, the beat from it. Held: it stays there.</td></tr>
     </tbody>
+  </table>
+
+  <h2>To Play</h2>
+  <table>
+    <tbody>{PLAY.map(([sound, how]) => <tr><td>{sound}</td><td>{how}</td></tr>)}</tbody>
   </table>
 
   <h2>LED</h2>

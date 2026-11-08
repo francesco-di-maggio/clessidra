@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, MUTE_PAD, RATE, RECORD_PAD, RESTART_PAD, SEED_PAD, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, HOLD_PAD, MUTE_PAD, PLACE_PADS, RATE, RECORD_PAD, SHAKE_PAD, TURN_PAD, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { GrainView } from "./grain";
 import { Hourglass } from "./hourglass";
 import { Incoming } from "./incoming";
@@ -60,7 +60,7 @@ const glass = { sand: $("glass-sand"), voices: $("glass-voices"), clog: $("glass
 const clog = { dropped: 0, at: 0, rate: 0 };
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
-const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · D seed · M mute · 0 restart" };
+const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · 1–7 places · T turn · S shake · M mute · H hold" };
 let focused: Control | null = null;
 
 const parts = new Map<string, Widget>();
@@ -79,22 +79,19 @@ const inMeter = level(LEVELS[0]);
 const outMeter = level(LEVELS[1]);
 
 // As on the board: a fader at each edge, the knobs in their cells, the
-// switches between Position and Length. The keys: white P03–P09, black between
-// them the others. Pads not assigned yet are dimmed.
+// switches between Position and Length. The keys: white the places in order,
+// black between them the others.
 add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
-add(segmented(byId("S09"), $("s09"), [[POSITION.up, "–"], [POSITION.centre, "–"], [POSITION.down, "–"]], on)).root.classList.add("free");
+add(segmented(byId("S09"), $("s09"), [[POSITION.up, "Long"], [POSITION.centre, "Short"], [POSITION.down, "Off"]], on));
 add(segmented(byId("S07"), $("end"), [[POSITION.up, "Once"], [POSITION.centre, "Turn"], [POSITION.down, "Loop"]], on));
-for (const index of [3, 4, 5, 6, 7, 8, 9]) {
-  const c = padOf(index);
-  add(pad(c, $("keys"), c.name, on)).root.classList.add("key", ...(c.free ? ["free"] : []));
-}
-const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "P11", 1], ["P00", "Seed", 3], ["P01", "Mute", 4], ["P02", "Restart", 5]];
+PLACE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)).root.classList.add("key"));
+const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Turn", 1], ["P00", "Shake", 3], ["P01", "Mute", 4], ["P02", "Hold", 5]];
 for (const [id, label, after] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
-  w.root.classList.add("key", "black", ...(w.c.free ? ["free"] : []));
+  w.root.classList.add("key", "black");
   if (id === "P10") w.root.classList.add("rec");
   w.root.style.left = `calc((100% - 24px) / 7 * ${after + 0.5} + ${after * 4 + 2}px)`;
 }
@@ -140,7 +137,6 @@ function set(c: Control, value: number, show = true) {
     return;
   }
   parts.get(c.id)?.draw(value);
-  if (c.free) return;
   if (c.type === "switch") send({ type: "switch", index: c.index, position: value });
   else send({ type: "knob", index: c.index, value });
   if (show) focus(c);
@@ -156,7 +152,6 @@ interface Touch {
 const touches = new Map<number, Touch>(); // by pad index
 
 function press(c: Control, down: boolean, e: { pointerId?: number | string; pointerType?: string; pressure?: number }) {
-  if (c.free) return;
   const who = e.pointerId ?? "key";
   let t = touches.get(c.index);
   if (down) {
@@ -192,8 +187,9 @@ addEventListener("pointermove", (e) => {
   for (const t of touches.values()) if (t.pointers.has(e.pointerId)) t.pen = e.pressure;
 });
 
-// Keys: R record, D seed, M mute, 0 restart
-const KEYS: Record<string, number> = { r: RECORD_PAD, d: SEED_PAD, m: MUTE_PAD, "0": RESTART_PAD };
+// Keys: 1–7 the places, R record, T turn, S shake, M mute, H hold
+const KEYS: Record<string, number> = { r: RECORD_PAD, t: TURN_PAD, s: SHAKE_PAD, m: MUTE_PAD, h: HOLD_PAD };
+PLACE_PADS.forEach((index, i) => (KEYS[`${i + 1}`] = index));
 function keyPad(e: KeyboardEvent) {
   const key = e.key.toLowerCase();
   return key in KEYS ? KEYS[key] : null;

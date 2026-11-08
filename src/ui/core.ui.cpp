@@ -28,9 +28,8 @@ namespace
             1.0f);
     }
 
-    // Beads' detune law (cv_reader.h, LAW_DETUNE): either side of the centre,
-    // the stops in turn, flat for the first third of each segment, smooth
-    // between
+    // Either side of the centre, the stops in turn: flat for the first third
+    // of each segment, smooth between
     template <size_t N>
     float Stops(float x, const float (&stops)[N])
     {
@@ -45,15 +44,15 @@ namespace
         return centred < 0.0f ? -value : value;
     }
 
-    // Semitones: Beads' intervals, +-24
+    // Semitones, +-24: unison, minor and major third, fifth, octaves
     constexpr float kIntervals[] = {0.0f, 1.0f, 3.0f, 4.0f, 7.0f, 12.0f, 24.0f};
-    // Speed: stopped at the centre, 1, 2 and 4 times either way
-    constexpr float kSpeeds[] = {0.0f, 1.0f, 2.0f, 4.0f};
+    // Speed either way: held at the centre, stretched to a quarter and a half,
+    // real time, two and four times
+    constexpr float kSpeeds[] = {0.0f, 0.25f, 0.5f, 1.0f, 2.0f, 4.0f};
 
-    // S32, Spray, 0..1: how far each grain strays from the playhead, in the
-    // sound only, evenly as Giri's cloud: position within the amount around
-    // it, then size, pitch, pan, level and reverb send. The starts are
-    // Density's.
+    // S32, Spray, 0..1: how far each grain strays from the playhead, evenly:
+    // position within the amount around it, then size, pitch, pan, level and
+    // reverb send
     void Spray(float s, Core::Params& p)
     {
         p.rand_pos   = s * s;
@@ -62,6 +61,20 @@ namespace
         p.rand_gain  = s;
         p.rand_send  = s;
         p.spread     = s;
+    }
+
+    float Reverb(Controls::Position s09)
+    {
+        return s09 == Controls::Up
+                   ? CoreUI::kReverbLong
+                   : s09 == Controls::Centre ? CoreUI::kReverbShort : 0.0f;
+    }
+
+    End EndOf(Controls::Position s07)
+    {
+        return s07 == Controls::Up
+                   ? End::Once
+                   : s07 == Controls::Centre ? End::Turn : End::Loop;
     }
 
 } // namespace
@@ -78,16 +91,14 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.start  = std::min(c.knobs[Controls::S30], 0.999f);
     p.length = std::max(c.knobs[Controls::S35], Core::kMinLength);
 
-    // S36, Speed: stopped at the centre, forward up, reverse down, at 1, 2
-    // and 4 times: the time stretched, the grains' pitch their own. S07, End:
-    // once, turn, loop.
-    const float speed            = Stops(c.knobs[Controls::S36], kSpeeds);
-    p.speed                      = speed;
-    p.freeze                     = speed == 0.0f;
-    const Controls::Position end = c.switches[Controls::S07];
-    p.end                        = end == Controls::Up
-                ? End::Once
-                : end == Controls::Centre ? End::Turn : End::Loop;
+    // S36, Speed: held at the centre, forward up, reverse down: the time
+    // stretched, the grains' pitch their own. P02 or a place held: held too.
+    // S07, End: once, turn, loop.
+    const float speed = Stops(c.knobs[Controls::S36], kSpeeds);
+    const bool  place = Pads(c, core);
+    p.speed           = speed;
+    p.freeze          = speed == 0.0f || place || c.touched[kHoldPad];
+    p.end             = EndOf(c.switches[Controls::S07]);
 
     // S31, Size: kMinGrainMs to kMaxGrainMs, exponential, 100 ms at the
     // centre, up to half the recording
@@ -103,14 +114,12 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.max_grain_ms = top_ms;
 
     // S37, Density: grains at once, so per second at this size. Below the
-    // centre regular, above random. The reverb following, more for a lone
-    // grain.
+    // centre regular, above random.
     const float side = Side(c.knobs[Controls::S37]);
     const float overlap
         = kMinOverlap * std::pow(kMaxOverlap / kMinOverlap, side);
-    p.density      = side > 0.0f ? overlap * 1000.0f / p.grain_ms : 0.0f;
-    p.rand_density = c.knobs[Controls::S37] > 0.5f ? -1.0f : 0.0f;
-    p.reverb       = kReverbSparse + side * (kReverbDense - kReverbSparse);
+    p.density       = side > 0.0f ? overlap * 1000.0f / p.grain_ms : 0.0f;
+    p.random_starts = c.knobs[Controls::S37] > 0.5f;
 
     // S34, Shape: the grain's window, reverse percussive, Hann at the centre,
     // percussive
@@ -121,12 +130,12 @@ void CoreUI::Process(const Controls& c, Core& core)
     const float semitones = Stops(c.knobs[Controls::S33], kIntervals);
     p.pitch               = std::exp2(semitones / 12.0f);
 
-    // P01 held: mute
-    p.mute = c.touched[kMutePad];
+    // S09, Reverb. P01 held: mute. P00 held: Spray at its top.
+    p.reverb = Reverb(c.switches[Controls::S09]);
+    p.mute   = c.touched[kMutePad];
+    Spray(c.touched[kShakePad] ? 1.0f : c.knobs[Controls::S32], p);
 
-    Spray(c.knobs[Controls::S32], p);
     core.SetParams(p);
-    Pads(c, core);
     Pulse(c,
           {semitones == 0.0f,
            std::fabs(speed) == 1.0f,
@@ -148,16 +157,26 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
     p.mix = holding ? kMonitorMix : 1.0f;
 }
 
-// P00: Seed, one grain at the playhead, as Beads' button. P02: the playhead
-// back to the start.
-void CoreUI::Pads(const Controls& c, Core& core)
+// P11: the glass turned over. P03-P09: the selection in sevenths, left to
+// right. A touch jumps the playhead to its place with a grain at once, the
+// starts counted from it.
+bool CoreUI::Pads(const Controls& c, Core& core)
 {
-    if(c.touched[kSeedPad] && !seed_touched_)
-        core.Seed();
-    seed_touched_ = c.touched[kSeedPad];
-    if(c.touched[kRestartPad] && !restart_touched_)
-        core.Restart();
-    restart_touched_ = c.touched[kRestartPad];
+    const bool turn = c.touched[kTurnPad];
+    if(turn && !turn_touched_)
+        core.Turn();
+    turn_touched_ = turn;
+
+    bool held = false;
+    for(size_t i = 0; i < kNumPlaces; i++)
+    {
+        const bool touched = c.touched[kPlacePads[i]];
+        if(touched && !places_touched_[i])
+            core.Jump(float(i) / float(kNumPlaces));
+        places_touched_[i] = touched;
+        held               = held || touched;
+    }
+    return held;
 }
 
 // Reaching a detent, or turning within it: a pulse

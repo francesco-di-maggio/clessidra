@@ -19,10 +19,14 @@ void Playhead::Restart(bool backwards)
     ended_   = false;
 }
 
+void Playhead::Jump(double phase)
+{
+    phase_ = std::clamp(phase, 0.0, kLast);
+    ended_ = false;
+}
+
 void Playhead::Advance(double step, End end)
 {
-    if(end != End::Turn)
-        heading_ = 1;
     const double move = step * heading_;
     if(move != 0.0)
     {

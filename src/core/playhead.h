@@ -12,21 +12,26 @@ enum class End
 };
 
 // A point through a span, 0..1, moved by a signed step per sample. Turned
-// over, its steps run the other way.
+// over, its steps run the other way until turned back.
 class Playhead
 {
   public:
-    // From the start of the span, or from its end when moving backwards
+    // From the start of the span, or from its end when moving backwards,
+    // upright
     void Restart(bool backwards);
+    // To a point of the span, sand in the glass again
+    void Jump(double phase);
+    // The glass turned over by hand: from here, the other way
+    void Turn() { heading_ = -heading_; }
     // One sample. Once it has run out, it waits at the edge until a step the
-    // other way: the glass turned by hand.
+    // other way.
     void Advance(double step, End end);
     // The span changed: the point kept where it is, phase scaled by factor
     void Scale(double factor) { phase_ *= factor; }
 
     double Phase() const { return phase_; }
     bool   Ended() const { return ended_; }
-    // 1, or -1 while turned over
+    // 1 upright, -1 turned over
     int Heading() const { return heading_; }
     // Of the span, what is left ahead in the last direction moved, 0..1
     double Left() const;

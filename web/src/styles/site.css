@@ -30,9 +30,6 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 .touch .lever { fill: var(--ink); }
 .touch .code { font: 600 15px var(--mono); letter-spacing: 0.04em; fill: var(--dim); text-anchor: middle; pointer-events: none; }
 .touch .name { font: 500 16px var(--sans); fill: var(--ink); text-anchor: middle; pointer-events: none; }
-.touch .free .ring, .touch .free circle.pad, .touch .free .slot { stroke: var(--line); }
-.touch .free .name { fill: var(--dim); font-weight: 400; }
-.touch .free { cursor: default; }
 .touch .ctl:focus-visible .ring, .touch .ctl:focus-visible circle.pad, .touch .ctl:focus-visible .cap, .touch .ctl:focus-visible .slot { stroke: var(--accent); }
 .touch .ctl.active .ring, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke-width: 3; }
 .touch .jack { fill: none; stroke: var(--dim); stroke-width: 2; }

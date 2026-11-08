@@ -2,8 +2,8 @@
 // is what is left of the selection, the pile below what has run. The neck
 // opens with Density. Each falling dot is a grain sounding: its height its
 // progress, its drift its pan, its brightness its window, its size the grain
-// size. Speed held: the glass on its side. Reverse: upside down. All voices
-// busy, the neck clogs: grains wait above it.
+// size. Held: the glass on its side. Running backwards, by Speed or turned
+// over: upside down. All voices busy, the neck clogs: grains wait above it.
 
 import { GRAIN_FIELDS, PARAM, VIEW, type Frame } from "./engine";
 import { windowAt } from "./waveform";
@@ -51,7 +51,8 @@ export class Hourglass {
     this.raf = 0;
     const p = this.frame?.params;
     if (!p) return;
-    const target = (p[PARAM.speed] < 0 ? 180 : 0) + (p[PARAM.freeze] ? 90 : 0);
+    const backwards = p[PARAM.speed] < 0 !== p[PARAM.heading] < 0;
+    const target = (backwards ? 180 : 0) + (p[PARAM.freeze] ? 90 : 0);
     this.angle += (target - this.angle) * 0.18;
     if (Math.abs(target - this.angle) < 0.2) this.angle = target;
     this.draw();
@@ -85,6 +86,9 @@ export class Hourglass {
     ctx.save();
     ctx.translate(W / 2, top + room / 2);
     ctx.rotate((this.angle * Math.PI) / 180);
+    // Past horizontal, the sand falls the other way: the glass is symmetric,
+    // so mirrored it rests on what is now below
+    if (Math.cos((this.angle * Math.PI) / 180) < 0) ctx.scale(1, -1);
 
     const overlap = p ? (p[PARAM.density] * p[PARAM.grainMsSet]) / 1000 : 0;
     const open = overlap > 0 ? Math.log(1 + overlap) / Math.log(1 + MAX_OVERLAP) : 0;

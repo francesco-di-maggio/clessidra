@@ -56,22 +56,21 @@ enum Param : size_t
     kGrainMs,
     kPitch,
     kReverb,
-    kRandDensity,
+    kRandomStarts,
     kRandPitch,
     kWindowShape,
     kStart,
     kLength,
     kMix,
-    kFilter,
     kRandPos,
     kRandSize,
-    kRandShape,
     kEnd,
     kGrainMsSet,
     kMinGrainMs,
     kMaxGrainMs,
     kSpread,
     kSandLeft,
+    kHeading,
     kNumParams
 };
 float params[kNumParams];
@@ -98,7 +97,7 @@ EXPORT int cl_init(float sample_rate)
     // The mapping counts in kSampleRateHz, as on the board
     if(sample_rate != float(kSampleRateHz))
         return 0;
-    float* const buffers[] = {sound[0], sound[1], sound[2]};
+    float* const buffers[] = {sound[0], sound[1]};
     core.Init(sample_rate, ring, kRingSamples, buffers, kBufferSamples);
     return 1;
 }
@@ -227,21 +226,20 @@ EXPORT const float* cl_params()
     params[kGrainMs]      = core.GrainMs();
     params[kPitch]        = 12.0f * std::log2(p.pitch);
     params[kReverb]       = p.reverb;
-    params[kRandDensity]  = p.rand_density;
+    params[kRandomStarts] = p.random_starts ? 1.0f : 0.0f;
     params[kRandPitch]    = p.rand_pitch;
     params[kWindowShape]  = p.window_shape;
     params[kStart]        = p.start;
     params[kLength]       = p.length;
     params[kMix]          = p.mix;
-    params[kFilter]       = p.filter;
     params[kRandPos]      = p.rand_pos;
     params[kRandSize]     = p.rand_size;
-    params[kRandShape]    = p.rand_shape;
     params[kEnd]          = float(p.end);
     params[kGrainMsSet]   = p.grain_ms;
     params[kMinGrainMs]   = p.min_grain_ms;
     params[kMaxGrainMs]   = p.max_grain_ms;
     params[kSpread]       = p.spread;
     params[kSandLeft]     = core.SandLeft();
+    params[kHeading]      = float(core.Heading());
     return params;
 }

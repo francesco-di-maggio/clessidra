@@ -1,14 +1,14 @@
 // The grain tile: one grain's window at its size in use, on a log axis from
-// the shortest grain to the longest. Faint: the sizes and shapes randomness
-// reaches. Below: the size and the pitch, a range when random.
+// the shortest grain to the longest. Faint: the sizes randomness reaches.
+// Below: the size and the pitch, a range when random.
 
 import { PARAM } from "./engine";
 import { windowAt } from "./waveform";
 
 const RAND_PITCH = 12; // Core::kRandPitchSemitones
 
-// How far randomness can move a value, as Core::Blend at its widest
-const reach = (amount: number) => (amount >= 0 ? Math.min(amount, 1) : Math.min(-3 * amount, 1));
+// How far randomness can move a value, 0..1
+const reach = (amount: number) => Math.min(Math.max(amount, 0), 1);
 // The ends a 0..1 value reaches, as Core::Randomise
 const ends = (x: number, amount: number) => [x - reach(amount) * x, x + reach(amount) * (1 - x)];
 
@@ -59,7 +59,6 @@ export class GrainView {
     const [k0, k1] = p[PARAM.randSize] ? ends(knob, p[PARAM.randSize]) : [knob, knob];
     const scale = (k: number) => used * 2 ** ((k - knob) * octaves);
     const shape = p[PARAM.shape];
-    const [s0, s1] = p[PARAM.randShape] ? ends(shape, p[PARAM.randShape]) : [shape, shape];
 
     const envelope = (ms: number, s: number) => {
       const right = x(ms);
@@ -71,7 +70,7 @@ export class GrainView {
     };
     ctx.lineWidth = 1;
     ctx.strokeStyle = colour("--line");
-    if (k0 !== k1 || s0 !== s1) for (const ms of new Set([scale(k0), scale(k1)])) for (const s of new Set([s0, s1])) envelope(ms, s);
+    if (k0 !== k1) for (const ms of [scale(k0), scale(k1)]) envelope(ms, shape);
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = colour("--ink");
     envelope(used, shape);

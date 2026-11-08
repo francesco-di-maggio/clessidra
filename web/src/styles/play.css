@@ -110,10 +110,6 @@ body.app main { min-height: 0; }
                  background: var(--surface); color: var(--ink); border-color: var(--line); }
 .pad.key.black .sub { display: none; }
 .pad.on .sub { color: inherit; opacity: 0.8; }
-.pad.free, .switch.free { pointer-events: none; }
-.switch.free { opacity: 0.3; }
-.pad.key.free { background: color-mix(in srgb, var(--ink) 25%, var(--bg)); border-color: transparent; }
-.pad.key.black.free { background: var(--surface); color: var(--dim); border-color: var(--line); }
 .pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 .pad.rec.on .num::before { background: #fff; }
 .pad.on, .pad.key.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }

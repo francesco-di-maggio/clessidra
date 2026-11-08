@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <functional>
 #include <vector>
-#include "core/svf.h"
 #include "ui/core.ui.h"
 
 using namespace clessidra;
@@ -172,7 +171,7 @@ struct Panel
         c.knobs[Controls::S35] = 1.0f;
         c.knobs[Controls::S32] = 0.0f;  // plain
         c.knobs[Controls::S37] = 0.75f; // random, about one grain at once
-        c.switches             = {Controls::Up, Controls::Down}; // loop
+        c.switches = {Controls::Centre, Controls::Down}; // short reverb, loop
     }
 
     // P10 held for seconds of the input, then until it lands
@@ -192,28 +191,6 @@ struct Panel
             c.now_ms = ms++;
             ui.Process(c, rig.core);
         });
-    }
-
-    // Seconds until the output stays under -60 dB with no input
-    double Fade()
-    {
-        double       last = 0.0, now = 0.0;
-        float        l[kBlock] = {}, o1[kBlock], o2[kBlock];
-        const float* in[2]     = {l, l};
-        float*       out[2]    = {o1, o2};
-        for(size_t b = 0; b < size_t(14.0 * kRate / kBlock); b++)
-        {
-            c.now_ms = ms++;
-            ui.Process(c, rig.core);
-            rig.core.Process(in, out, kBlock);
-            now += double(kBlock) / kRate;
-            for(size_t i = 0; i < kBlock; i++)
-            {
-                if(std::fabs(o1[i]) > 0.001f || std::fabs(o2[i]) > 0.001f)
-                    last = now;
-            }
-        }
-        return last;
     }
 };
 
@@ -251,8 +228,8 @@ double Seconds(const Core& core)
     return double(core.SoundSamples()) / kRate;
 }
 
-// P11: tap keeps the last seconds, hold the touch, both into the buffer not
-// playing
+// P10: a tap keeps the last seconds, a hold the touch, both into the buffer
+// not playing
 void Record()
 {
     Panel empty;
@@ -386,12 +363,13 @@ void Fuzz()
             = value < 0.2f ? 0.0f
                            : value < 0.4f ? 1.0f : value < 0.5f ? 0.5f : next();
         if(next() < 0.1f)
-            panel.c.switches[Controls::S07]
+            panel.c.switches[size_t(next() * 2.0f) % 2]
                 = Controls::Position(int(next() * 3.0f) % 3);
-        for(size_t pad :
-            {CoreUI::kMutePad, CoreUI::kSeedPad, CoreUI::kRestartPad})
+        for(size_t pad = 0; pad < Controls::kNumPads; pad++)
         {
-            panel.c.touched[pad]  = next() < 0.1f;
+            if(pad == CoreUI::kRecordPad)
+                continue;
+            panel.c.touched[pad]  = next() < 0.05f;
             panel.c.pressure[pad] = next();
         }
         if(next() < 0.05f)
@@ -418,9 +396,9 @@ void Fuzz()
     panel.c.knobs[Controls::S33] = 0.5f;
     panel.c.knobs[Controls::S34] = 0.5f;
     panel.c.knobs[Controls::S35] = 1.0f;
-    panel.c.knobs[Controls::S36] = 0.5f + 1.15f / 6.0f; // 1×
+    panel.c.knobs[Controls::S36] = 0.5f + 3.15f / 10.0f; // 1×
     panel.c.knobs[Controls::S37] = 0.75f;
-    panel.c.switches             = {Controls::Up, Controls::Down};
+    panel.c.switches             = {Controls::Centre, Controls::Down};
     panel.c.touched.fill(false);
     panel.c.pressure.fill(0.0f);
     panel.Run(0.5, Silence);
@@ -477,38 +455,6 @@ void Windows()
     Check(Near(reverse[999 - 500], percussive[500], 0.002),
           "window 0: percussive reversed",
           reverse[499]);
-}
-
-// The filter's gain at hz, dB, on a sine after a second to settle
-double Gain(float hz, float cutoff, float q, bool low)
-{
-    Svf f;
-    f.Set(cutoff, q, float(kRate));
-    double in = 0.0, out = 0.0;
-    for(size_t n = 0; n < 2 * kRate; n++)
-    {
-        const float x = float(std::sin(2.0 * M_PI * hz * double(n) / kRate));
-        f.Process(x);
-        const float y = low ? f.Low() : f.High();
-        if(n < kRate)
-            continue;
-        in += double(x) * x;
-        out += double(y) * y;
-    }
-    return 10.0 * std::log10(out / in);
-}
-
-void Filter()
-{
-    Check(Near(Gain(4000, 200, 1.5f, true), -52.0, 1.0),
-          "filter: lowpass 200 Hz at 4 kHz (dB)",
-          Gain(4000, 200, 1.5f, true));
-    Check(Near(Gain(200, 2000, 1.5f, false), -40.0, 1.0),
-          "filter: highpass 2 kHz at 200 Hz (dB)",
-          Gain(200, 2000, 1.5f, false));
-    Check(std::fabs(Gain(10000, 20000, 0.707f, true)) < 0.05,
-          "filter: off (lowpass 20 kHz) at 10 kHz (dB)",
-          Gain(10000, 20000, 0.707f, true));
 }
 
 // The output's RMS over seconds of silent input
@@ -583,7 +529,8 @@ size_t Starts(Rig& r, double seconds)
 }
 
 // End: the sand runs out and stops, turns the glass over, or starts again.
-// Flicked the other way, a glass run out runs back. A drop: one grain.
+// Speed the other way or turned by hand, a glass run out runs back. A jump: a
+// grain at once, whatever the density.
 void Ends()
 {
     Rig r(1.0);
@@ -593,7 +540,7 @@ void Ends()
     p.density = 50.0f;
     p.end     = End::Once;
     r.core.SetParams(p);
-    r.core.Restart();
+    r.core.Jump(0.0f);
     r.Run(0.5, Silence);
     const size_t after = Starts(r, 0.5);
     Check(r.core.SandLeft() == 0.0f && after == 0,
@@ -603,13 +550,22 @@ void Ends()
     r.core.SetParams(p);
     r.Run(0.1, Silence);
     Check(r.core.PlayheadPhase() < 0.7 && r.core.SandLeft() > 0.0f,
+          "once, run out, speed reversed: runs back",
+          r.core.PlayheadPhase());
+    p.speed = 4.0f;
+    r.core.SetParams(p);
+    r.Run(0.5, Silence);
+    r.core.Turn();
+    r.Run(0.1, Silence);
+    Check(r.core.PlayheadPhase() < 0.7 && r.core.Heading() == -1,
           "once, run out, turned by hand: runs back",
           r.core.PlayheadPhase());
+    r.core.Turn();
 
     p.speed = 4.0f;
     p.end   = End::Turn;
     r.core.SetParams(p);
-    r.core.Restart();
+    r.core.Jump(0.0f);
     r.Run(0.2, Silence);
     const double before = r.core.PlayheadPhase();
     r.Run(0.125, Silence);
@@ -625,10 +581,56 @@ void Ends()
     p.density = 0.0f;
     r.core.SetParams(p);
     r.Run(1.0, Silence);
-    r.core.Seed();
+    r.core.Jump(0.5f);
     const size_t dropped = Starts(r, 0.2);
-    Check(
-        dropped == 1, "a drop: one grain, run out and closed", double(dropped));
+    Check(dropped == 1,
+          "a jump at no density, run out: one grain",
+          double(dropped));
+
+    // A jump: the starts counted from it, at the point jumped to
+    p.speed    = 0.0f;
+    p.freeze   = true;
+    p.end      = End::Loop;
+    p.density  = 10.0f;
+    p.grain_ms = 10.0f;
+    r.core.SetParams(p);
+    r.Run(0.33, Silence);
+    r.core.Jump(0.25f);
+    const size_t first = Starts(r, 0.05);
+    const size_t gap   = Starts(r, 0.04);
+    const size_t next  = Starts(r, 0.02);
+    Check(first == 1 && gap == 0 && next == 1
+              && Near(r.core.PlayheadPhase(), 0.25, 1e-3),
+          "a jump: a grain at once, the next an interval later",
+          r.core.PlayheadPhase());
+}
+
+// Turned over by hand, the playhead runs the other way from where it is, and
+// the grains read backwards
+void Turned()
+{
+    Rig r(1.0);
+    r.Fill(Sine);
+    Core::Params p;
+    p.speed   = 1.0f;
+    p.density = 50.0f;
+    r.core.SetParams(p);
+    r.core.Jump(0.5f);
+    r.Run(0.1, Silence);
+    const double before = r.core.PlayheadPhase();
+    r.core.Turn();
+    r.Run(0.1, Silence);
+    bool backwards = true;
+    for(const auto& g : r.core.Grains())
+        backwards = backwards && (!g.IsActive() || g.Settings().rate < 0.0f);
+    Check(r.core.PlayheadPhase() < before && backwards,
+          "turned: runs back from where it is, grains reversed",
+          r.core.PlayheadPhase());
+    r.core.Turn();
+    r.Run(0.1, Silence);
+    Check(r.core.Heading() == 1 && r.core.PlayheadPhase() > before - 0.1,
+          "turned again: upright",
+          r.core.PlayheadPhase());
 }
 
 // The selection round the end of the recording, and its length drawn per pass
@@ -662,7 +664,7 @@ void Selection()
     p.start  = 0.0f;
     p.length = 1.0f;
     p.speed  = 1.0f;
-    r.core.Restart();
+    r.core.Jump(0.0f);
     r.core.SetParams(p);
     r.Run(0.3 * r.core.SoundSamples() / kRate, Silence);
     p.speed = 0.0f;
@@ -750,8 +752,7 @@ void Pour()
           before[4]);
 }
 
-// As Beads, frozen at the start: up, each grain moved by the amount, evenly.
-// Down, by a random part of three times it: mostly near, a long tail.
+// Frozen at the start: each grain moved by the amount, evenly
 void Randomness()
 {
     // Furthest position read, of the selection, and the mean
@@ -817,10 +818,6 @@ void Randomness()
     Check(near > 0.1 && near <= 0.15 + 0.01,
           "position random 0.3: within 0.15 either way, round the selection",
           near);
-    far = spread(-0.3f, &mean);
-    Check(far > 0.6 && mean < 0.3,
-          "position random -0.3: mostly near, a long tail (furthest)",
-          far);
     far = spread(0.0f, &mean);
     Check(far < 0.01, "position random off: all at the playhead", far);
 }
@@ -830,13 +827,13 @@ void Randomness()
 void Starts()
 {
     const auto intervals
-        = [](float amount, double* shortest, double* longest, double* mean) {
+        = [](bool random, double* shortest, double* longest, double* mean) {
               Rig r(2.0);
               r.Fill(Sine);
               Core::Params p;
-              p.density      = 20.0f;
-              p.grain_ms     = 10.0f;
-              p.rand_density = amount;
+              p.density       = 20.0f;
+              p.grain_ms      = 10.0f;
+              p.random_starts = random;
               r.core.SetParams(p);
               // A voice newly active, or further back than it was: a start
               std::vector<double>                  starts;
@@ -866,18 +863,13 @@ void Starts()
                       / double(starts.size() - 2);
           };
     double shortest, longest, mean;
-    intervals(0.0f, &shortest, &longest, &mean);
+    intervals(false, &shortest, &longest, &mean);
     Check(shortest > 0.95 && longest < 1.05,
-          "start randomness off: periodic (shortest interval, of the mean)",
+          "regular starts: periodic (shortest interval, of the mean)",
           shortest);
-    intervals(1.0f, &shortest, &longest, &mean);
-    Check(Near(mean, 1.0, 0.1) && shortest < 0.2 && longest > 1.8
-              && longest < 2.05,
-          "start randomness up: an even spread, 0 to 2 (longest)",
-          longest);
-    intervals(-1.0f, &shortest, &longest, &mean);
-    Check(Near(mean, 1.0, 0.1) && longest > 2.05,
-          "start randomness down: a long tail past 2 (longest)",
+    intervals(true, &shortest, &longest, &mean);
+    Check(Near(mean, 1.0, 0.1) && shortest < 0.3 && longest > 2.05,
+          "random starts: the same mean, a long tail past 2 (longest)",
           longest);
 }
 
@@ -926,9 +918,9 @@ void Voices()
     Rig r(1.0);
     r.Fill(Sine);
     Core::Params p;
-    p.density      = Core::kMaxDensity;
-    p.grain_ms     = 4000.0f;
-    p.rand_density = -1.0f;
+    p.density       = Core::kMaxDensity;
+    p.grain_ms      = 4000.0f;
+    p.random_starts = true;
     r.core.SetParams(p);
     size_t most = 0;
     double sum  = 0.0;
@@ -955,14 +947,14 @@ void Voices()
 // 16 grains at once, regular or random: as many sounding, on average
 void Cloud()
 {
-    for(float rand_density : {0.0f, -1.0f})
+    for(bool random : {false, true})
     {
         Rig r(2.0);
         r.Fill(Sine);
         Core::Params p;
-        p.grain_ms     = 100.0f;
-        p.density      = 16.0f * 1000.0f / p.grain_ms;
-        p.rand_density = rand_density;
+        p.grain_ms      = 100.0f;
+        p.density       = 16.0f * 1000.0f / p.grain_ms;
+        p.random_starts = random;
         r.core.SetParams(p);
         r.Run(0.5, Silence);
         double sum = 0.0, n = 0.0;
@@ -972,8 +964,8 @@ void Cloud()
             n++;
         });
         Check(Near(sum / n, 16.0, 1.5) && r.finite,
-              rand_density == 0.0f ? "16 at once, regular: 16 sounding (mean)"
-                                   : "16 at once, random: 16 sounding (mean)",
+              random ? "16 at once, random: 16 sounding (mean)"
+                     : "16 at once, regular: 16 sounding (mean)",
               sum / n);
     }
 }
@@ -988,23 +980,22 @@ void Mapping()
     c.knobs[Controls::S30] = 0.0f;
     c.knobs[Controls::S32] = 0.0f;
     c.knobs[Controls::S35] = 1.0f;
-    c.knobs[Controls::S36] = 0.5f + 1.15f / 6.0f; // on 1×
-    c.switches             = {Controls::Up, Controls::Down};
+    c.knobs[Controls::S36] = 0.5f + 3.15f / 10.0f; // on 1×
+    c.switches             = {Controls::Centre, Controls::Down};
     ui.Process(c, r.core);
     const Core::Params& p = r.core.CurrentParams();
     Check(Near(p.speed, 1.0, 1e-6) && !p.freeze && p.end == End::Loop,
-          "S36 on its first stop up, S07 down: speed 1 forward, loop",
+          "S36 on its third stop up, S07 down: speed 1 forward, loop",
           p.speed);
-    Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.filter == 0.0f
-              && p.mix == 1.0f,
-          "S33, S34 centre: unison, Hann, no filter, all wet",
+    Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.mix == 1.0f,
+          "S33, S34 centre: unison, Hann, all wet",
           p.pitch);
     Check(p.start == 0.0f && p.length == 1.0f,
           "S30 bottom, S35 top: the whole recording",
           p.length);
 
-    // S37, Density, as Clouds: none at the centre, regular below, random
-    // above, 1/16 to 16 grains at once at the size
+    // S37, Density: none at the centre, regular below, random above, 1/16 to
+    // 16 grains at once at the size
     const auto at = [&](float x) {
         c.knobs[Controls::S37] = x;
         ui.Process(c, r.core);
@@ -1018,18 +1009,18 @@ void Mapping()
         return q.density * q.grain_ms / 1000.0f;
     };
     Check(closed.density == 0.0f, "S37 centre: none", closed.density);
-    Check(Near(overlap(rare), 1.0 / 16.0, 1e-3) && rare.rand_density == -1.0f,
+    Check(Near(overlap(rare), 1.0 / 16.0, 1e-3) && rare.random_starts,
           "S37 just above the centre: random, 1/16 grain at once",
           overlap(rare));
-    Check(Near(overlap(regular), 16.0, 1e-2) && regular.rand_density == 0.0f,
+    Check(Near(overlap(regular), 16.0, 1e-2) && !regular.random_starts,
           "S37 bottom: regular, 16 grains at once",
           overlap(regular));
-    Check(Near(overlap(cloud), 16.0, 1e-2) && cloud.rand_density == -1.0f,
+    Check(Near(overlap(cloud), 16.0, 1e-2) && cloud.random_starts,
           "S37 top: random, 16 grains at once",
           overlap(cloud));
-    Check(rare.reverb > cloud.reverb && rare.grain_ms == cloud.grain_ms
+    Check(rare.reverb == cloud.reverb && rare.grain_ms == cloud.grain_ms
               && cloud.spread == 0.0f,
-          "S37: sparse grains in a big reverb, the size and spray their own",
+          "S37: the reverb, size and spray their own",
           rare.reverb);
     c.knobs[Controls::S31] = 0.1f;
     ui.Process(c, r.core);
@@ -1051,21 +1042,18 @@ void Mapping()
           "S31: 5 ms up to half the recording (ms)",
           p.grain_ms);
     c.knobs[Controls::S31] = 0.5f;
-    c.knobs[Controls::S37] = 0.5f;
 
     // S32, Spray: plain to scattered, evenly, the starts Density's
     c.knobs[Controls::S37] = 0.75f;
     ui.Process(c, r.core);
-    Check(p.rand_pos == 0.0f && p.rand_size == 0.0f && p.rand_shape == 0.0f
-              && p.rand_pitch == 0.0f && p.rand_gain == 0.0f
-              && p.spread == 0.0f,
+    Check(p.rand_pos == 0.0f && p.rand_size == 0.0f && p.rand_pitch == 0.0f
+              && p.rand_gain == 0.0f && p.spread == 0.0f,
           "S32 bottom: plain",
           p.spread);
     c.knobs[Controls::S32] = 0.5f;
     ui.Process(c, r.core);
-    Check(p.rand_pos > 0.0f && p.rand_pitch > 0.0f && p.rand_density == -1.0f
-              && p.rand_shape == 0.0f,
-          "S32 half: places and a little pitch, evenly, the starts as set",
+    Check(p.rand_pos > 0.0f && p.rand_pitch > 0.0f && p.random_starts,
+          "S32 half: places and a little pitch, the starts as set",
           p.rand_pos);
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
@@ -1075,7 +1063,7 @@ void Mapping()
           p.rand_pitch);
     c.knobs[Controls::S32] = 0.0f;
 
-    // S33, Pitch: Beads' stops, the fifth and two octaves
+    // S33, Pitch: stops at the fifth and two octaves
     c.knobs[Controls::S33] = 0.5f + 4.15f / 12.0f; // on the fifth
     ui.Process(c, r.core);
     Check(Near(p.pitch, std::exp2(7.0 / 12.0), 1e-3),
@@ -1092,12 +1080,18 @@ void Mapping()
     Check(p.window_shape == 0.0f, "S34 down: reverse percussive", 0.0);
     c.knobs[Controls::S34] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.window_shape == 1.0f && p.filter == 0.0f,
-          "S34 up: percussive",
-          p.window_shape);
+    Check(p.window_shape == 1.0f, "S34 up: percussive", p.window_shape);
     c.knobs[Controls::S34] = 0.5f;
 
-    // S36, Speed: stopped at the centre, either way to 4 times. S07
+    // S36, Speed: held at the centre, either way a quarter, a half, 1, 2, 4
+    const auto speed = [&](float stop) {
+        c.knobs[Controls::S36] = 0.5f + (stop + 0.15f) / 10.0f;
+        ui.Process(c, r.core);
+        return p.speed;
+    };
+    Check(Near(speed(1.0f), 0.25, 1e-6) && Near(speed(2.0f), 0.5, 1e-6),
+          "S36 first and second stops: a quarter and half speed",
+          p.speed);
     c.knobs[Controls::S36] = 1.0f;
     ui.Process(c, r.core);
     Check(Near(p.speed, 4.0, 1e-6), "S36 top: 4 times", p.speed);
@@ -1107,12 +1101,14 @@ void Mapping()
     c.knobs[Controls::S36] = 0.5f;
     ui.Process(c, r.core);
     Check(p.freeze && p.speed == 0.0f, "S36 centre: held", p.speed);
-    c.knobs[Controls::S36] = 0.5f - 1.15f / 6.0f;
+    c.knobs[Controls::S36] = 0.5f - 3.15f / 10.0f;
     ui.Process(c, r.core);
     Check(Near(p.speed, -1.0, 1e-6) && !p.freeze,
-          "S36 first stop down: 1 reverse",
+          "S36 third stop down: 1 reverse",
           p.speed);
-    c.knobs[Controls::S36]    = 0.5f + 1.15f / 6.0f;
+    c.knobs[Controls::S36] = 0.5f + 3.15f / 10.0f;
+
+    // S07, End
     c.switches[Controls::S07] = Controls::Up;
     ui.Process(c, r.core);
     Check(p.end == End::Once, "S07 up: once", 0);
@@ -1122,43 +1118,93 @@ void Mapping()
     c.switches[Controls::S07] = Controls::Down;
     ui.Process(c, r.core);
 
+    // S09, Reverb: off, short, long
+    c.switches[Controls::S09] = Controls::Down;
+    ui.Process(c, r.core);
+    const float off           = p.reverb;
+    c.switches[Controls::S09] = Controls::Up;
+    ui.Process(c, r.core);
+    Check(off == 0.0f && p.reverb == CoreUI::kReverbLong,
+          "S09: down no reverb, up long",
+          p.reverb);
+    c.switches[Controls::S09] = Controls::Centre;
+    ui.Process(c, r.core);
+    Check(p.reverb == CoreUI::kReverbShort, "S09 centre: short", p.reverb);
+
     // The LED glows with the grains, dimmer as the sand runs out
     auto press = [&](size_t pad, bool on) {
         c.touched[pad] = on;
         ui.Process(c, r.core);
     };
     c.knobs[Controls::S37] = 1.0f;
-    ui.Process(c, r.core);
-    press(CoreUI::kRestartPad, true);
-    press(CoreUI::kRestartPad, false);
+    press(CoreUI::kPlacePads[0], true);
+    press(CoreUI::kPlacePads[0], false);
     r.Run(0.1, Silence);
     const float full = ui.Led(100000, r.core);
     r.Run(0.8, Silence);
     const float less = ui.Led(100000, r.core);
     Check(full > 0.0f && less < full, "LED: dims as the sand runs out", less);
 
-    // P01 held: mute. P00: a seed. P02: from the start.
+    // P01 held: mute. P00 held: Spray at its top. P02 held: the playhead stops.
     press(CoreUI::kMutePad, true);
     Check(p.mute, "P01 held: mute", 1);
     press(CoreUI::kMutePad, false);
     Check(!p.mute, "P01 released: sound", 0);
+    press(CoreUI::kShakePad, true);
+    Check(p.rand_pos == 1.0f && p.spread == 1.0f, "P00 held: shaken", 1);
+    press(CoreUI::kShakePad, false);
+    Check(p.rand_pos == 0.0f, "P00 released: Spray as set", 0);
+    press(CoreUI::kHoldPad, true);
+    r.Run(0.01, Silence);
+    const double point = r.core.PlayheadPhase();
+    r.Run(0.2, Silence);
+    Check(p.freeze && r.core.PlayheadPhase() == point,
+          "P02 held: the playhead stops",
+          r.core.PlayheadPhase());
+    press(CoreUI::kHoldPad, false);
+    r.Run(0.2, Silence);
+    Check(!p.freeze && r.core.PlayheadPhase() > point,
+          "P02 released: runs on from there",
+          r.core.PlayheadPhase());
+
+    // P03-P09, the places: the selection in sevenths, left to right. A touch:
+    // there with a grain at once. Held: stays there. Released: runs on.
     c.knobs[Controls::S37] = 0.5f;
     ui.Process(c, r.core);
     r.Run(0.5, Silence);
-    press(CoreUI::kSeedPad, true);
+    press(CoreUI::kPlacePads[3], true);
     const size_t one = Starts(r, 0.1);
-    press(CoreUI::kSeedPad, false);
-    const size_t none = Starts(r, 0.1);
-    Check(one == 1 && none == 0, "P00: one grain a touch", double(one));
-    c.knobs[Controls::S37] = 0.75f;
-    ui.Process(c, r.core);
-    r.Run(0.3, Silence);
-    press(CoreUI::kRestartPad, true);
-    r.Run(0.001, Silence);
-    Check(r.core.PlayheadPhase() < 0.01,
-          "P02: the playhead from the start",
+    Check(one == 1 && Near(r.core.PlayheadPhase(), 3.0 / 7.0, 1e-3),
+          "place 4 at no density: one grain, at the fourth seventh",
           r.core.PlayheadPhase());
-    press(CoreUI::kRestartPad, false);
+    press(CoreUI::kPlacePads[3], false);
+    const size_t none = Starts(r, 0.1);
+    Check(none == 0, "place 4 released, no density: no more grains", none);
+    c.knobs[Controls::S37] = 0.75f;
+    press(CoreUI::kPlacePads[6], true);
+    r.Run(0.3, Silence);
+    Check(Near(r.core.PlayheadPhase(), 6.0 / 7.0, 1e-3),
+          "place 7 held: the playhead stays at the last seventh",
+          r.core.PlayheadPhase());
+    press(CoreUI::kPlacePads[6], false);
+    r.Run(0.1, Silence);
+    Check(r.core.PlayheadPhase() > 6.0 / 7.0,
+          "place 7 released: runs on from there",
+          r.core.PlayheadPhase());
+
+    // P11: the glass turned over by hand, once a touch
+    press(CoreUI::kTurnPad, true);
+    r.Run(0.1, Silence);
+    const double turned = r.core.PlayheadPhase();
+    r.Run(0.1, Silence);
+    Check(r.core.Heading() == -1 && r.core.PlayheadPhase() < turned,
+          "P11: turned over, the sand runs back",
+          r.core.PlayheadPhase());
+    press(CoreUI::kTurnPad, false);
+    press(CoreUI::kTurnPad, true);
+    press(CoreUI::kTurnPad, false);
+    r.Run(0.01, Silence);
+    Check(r.core.Heading() == 1, "P11 again: upright", 1);
 
     // Detent pulse: on reaching the centre, renewed while turned within it
     c.knobs[Controls::S33] = 0.4f;
@@ -1185,9 +1231,9 @@ int main()
     Fuzz();
     Level();
     Windows();
-    Filter();
     Mute();
     Ends();
+    Turned();
     Selection();
     Pour();
     Randomness();

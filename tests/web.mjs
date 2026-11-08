@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 const RATE = 48000;
 const BLOCK = 128;
 const KNOB = { S30: 0, S31: 1, S32: 2, S33: 3, S34: 4, S35: 5, S36: 6, S37: 7 };
-const SPEED_1 = 0.5 + 1.15 / 6; // S36 on its first stop up
+const SPEED_1 = 0.5 + 3.15 / 10; // S36 on its third stop up
 const RECORD = 10; // CoreUI::kRecordPad
 const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped: 4 };
 
@@ -90,9 +90,11 @@ run(0.5);
 v = view();
 check(w.cl_recordings() === 2 && Math.abs(v[V.sound] / RATE - 8) < 0.02, "tap: the last 8 s", (v[V.sound] / RATE).toFixed(2));
 
-// S35 half, S30 at the middle: the second half. Grains inside, with no randomness
+// S35 half, S30 at the middle: the second half. Grains inside, with no
+// randomness, many at once
 w.cl_knob(KNOB.S30, 0.5);
 w.cl_knob(KNOB.S35, 0.5);
+w.cl_knob(KNOB.S37, 1);
 run(1, silence);
 v = view();
 check(Math.abs(v[V.selStart] / v[V.sound] - 0.5) < 1e-3 && Math.abs(v[V.selLength] / v[V.sound] - 0.5) < 1e-3, "S35 half, S30 middle: the second half");
@@ -103,6 +105,7 @@ const inside = held.every((x) => {
   return at >= v[V.selStart] - 1 && at <= v[V.selStart] + v[V.selLength] + grainSamples;
 });
 check(held.length > 0 && inside, "grains inside the selection", held.length);
+w.cl_knob(KNOB.S37, 0.75);
 
 // S30 three quarters, S35 half: round the end, the playhead inside the recording
 w.cl_knob(KNOB.S30, 0.75);
@@ -119,7 +122,21 @@ w.cl_knob(KNOB.S36, SPEED_1);
 run(0.1, silence);
 
 const params = f32(w.cl_params(), 13);
-check(Math.abs(params[0] - 1) < 1e-6, "Speed on its first stop: 1", params[0]);
+check(Math.abs(params[0] - 1) < 1e-6, "Speed on its third stop: 1", params[0]);
+
+// P11: the glass turned over, a touch at a time
+const TURN = 11;
+const heading = () => f32(w.cl_params(), 21)[20];
+w.cl_pad(TURN, 1, 0.5);
+run(0.05, silence);
+const turned = heading();
+w.cl_pad(TURN, 0, 0);
+run(0.01, silence);
+w.cl_pad(TURN, 1, 0.5);
+run(0.05, silence);
+w.cl_pad(TURN, 0, 0);
+run(0.05, silence);
+check(turned === -1 && heading() === 1, "P11: turned over, and back", turned);
 
 // S37 at the centre: no grains. At the top: a cloud, 16 at once
 w.cl_knob(KNOB.S37, 0.5);
