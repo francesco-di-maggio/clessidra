@@ -96,8 +96,8 @@ try {
   const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
   const density = await value("Density");
   check(/^Random /.test(density), "Density up: random grains at once", density);
-  await pad("Slice 4", true);
-  await pad("Slice 4", false);
+  await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "4" }))`);
+  await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "4" }))`);
   await pad("Shift", true);
   await sleep(300);
   const shifted = await run(`document.querySelector(".instrument").classList.contains("shifted")`);

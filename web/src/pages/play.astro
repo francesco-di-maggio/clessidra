@@ -31,7 +31,7 @@ import "../styles/play.css";
         <span class="label">Recording</span>
         <span class="figures"><span id="grain-figure" class="figure" title="Grain size, grains sounding of the voices">100 ms · 0/32</span><span id="held" class="figure">Empty</span></span>
       </div>
-      <canvas id="buffer" role="img" aria-label="The recording: the loop, its slices, the playhead, the reach of Random position, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
+      <canvas id="buffer" role="img" aria-label="The recording: the loop, its slices, a click on one plays it, the playhead, the reach of Random position, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
     </section>
 
     <section id="speed" class="tile fader" aria-label="Speed"></section>
@@ -49,8 +49,8 @@ import "../styles/play.css";
 
     <section id="density" class="tile fader" aria-label="Density"></section>
 
-    <section class="tile pads" aria-label="The 12 pads as an octave: the slices white, the functions black">
-      <div id="keys" class="keys"></div>
+    <section class="tile pads" aria-label="The pads: Rec, Shift, Stop, Reset and Cue. The slices are in the recording.">
+      <div id="functions" class="functions"></div>
     </section>
   </div>
 </Base>

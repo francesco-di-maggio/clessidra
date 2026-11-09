@@ -1159,17 +1159,17 @@ void Mapping()
           "S30 bottom, S35 top: the whole recording",
           p.length);
 
-    // S35 Length, S30 Position through the room it leaves
-    c.knobs[Controls::S35] = 0.5f;
+    // S30 anywhere, S35 a share of what is left after it: both always alive
     c.knobs[Controls::S30] = 0.5f;
+    c.knobs[Controls::S35] = 0.5f;
     ui.Process(c, r.core);
-    const float middle     = p.start;
-    c.knobs[Controls::S30] = 1.0f;
+    const float half_rest  = p.length;
+    c.knobs[Controls::S35] = 1.0f;
     ui.Process(c, r.core);
-    Check(Near(middle, 0.25, 1e-6) && Near(p.start, 0.5, 1e-6)
+    Check(p.start == 0.5f && Near(half_rest, 0.25, 1e-6)
               && Near(p.length, 0.5, 1e-6),
-          "S35 half: S30 middle the middle half, S30 top the second half",
-          middle);
+          "S30 middle: S35 half is half the rest, S35 top to the end",
+          half_rest);
     c.knobs[Controls::S35] = 1.0f;
     c.knobs[Controls::S30] = 0.0f;
     ui.Process(c, r.core);

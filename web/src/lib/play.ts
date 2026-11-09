@@ -75,18 +75,17 @@ for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), 
 
 add(toggle(byId("S09"), $("s09"), [[POSITION.up, "FWD"], [POSITION.centre, "FRZ"], [POSITION.down, "REV"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.up, "OCT"], [POSITION.centre, "SEMI"], [POSITION.down, "OFF"]], on));
-// The pads as an octave: the slices the white keys, the functions the black,
-// Rec and Shift in the group of two, Stop, Reset and Cue in the three
-SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)));
+// The slices in the recording: a press on one is a touch of its pad, shown
+// there
+SLICE_PADS.forEach((index, i) => add({ c: padOf(index), root: document.createElement("span"), draw: (p) => waveform.hold(i, p) }));
+waveform.onSlice = (i, down, e) => press(padOf(SLICE_PADS[i]), down, e);
+// The board's upper pads in a row
 const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "Stop"], ["P01", "Reset"], ["P02", "Cue"]];
-const BLACK_AT = [1, 2, 4, 5, 6]; // the white keys' edges they sit on
-FUNCTIONS.forEach(([id, label], i) => {
-  const w = add(pad(byId(id), $("keys"), label, on));
-  w.root.classList.add("black");
-  w.root.style.setProperty("--at", String(BLACK_AT[i]));
+for (const [id, label] of FUNCTIONS) {
+  const w = add(pad(byId(id), $("functions"), label, on));
   if (w.c.free) w.root.classList.add("free");
   if (id === "P10") w.root.classList.add("rec");
-});
+}
 
 // Every control at its starting value, sent to the firmware
 for (const w of parts.values()) {
