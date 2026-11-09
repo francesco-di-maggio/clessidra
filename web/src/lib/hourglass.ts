@@ -84,9 +84,6 @@ export class Hourglass {
     ctx.save();
     ctx.translate(W / 2, top + room / 2);
     ctx.rotate((this.angle * Math.PI) / 180);
-    // Past horizontal, the sand falls the other way: the glass is symmetric,
-    // so mirrored it rests on what is now below
-    if (Math.cos((this.angle * Math.PI) / 180) < 0) ctx.scale(1, -1);
 
     const overlap = p ? (p[PARAM.density] * p[PARAM.grainMsSet]) / 1000 : 0;
     const open = overlap > 0 ? Math.log(1 + overlap) / Math.log(1 + MAX_OVERLAP) : 0;
