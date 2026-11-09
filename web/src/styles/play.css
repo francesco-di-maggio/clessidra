@@ -27,15 +27,18 @@ body.app main { flex: 1; min-height: 0; }
 /* Source: start, the input, the browser's levels, on one line */
 .transport { grid-area: transport; display: flex; align-items: center; gap: 12px; padding: 0 var(--in); }
 .transport .control.primary { width: 88px; height: 32px; flex: none; justify-content: center; color: var(--bg); }
-.transport .control.primary.on { background: none; color: var(--ink); border-color: var(--line); }
+.transport .control.primary.on { background: var(--bg); color: var(--ink); border-color: var(--line); }
 .transport .segmented { width: 184px; height: 32px; flex: none; }
 .levels { flex: 1; display: flex; gap: 16px; min-width: 0; }
 .slider { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; outline: none; touch-action: none; cursor: ew-resize; }
 .slider .label { flex: none; }
-.slider .track { position: relative; flex: 1; height: 4px; border-radius: 2px; background: var(--well); }
-.slider .signal { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 2px; background: var(--dim); }
+/* As the faders, on their side: the slot, the value's line, the cap. The
+   level in the slot, dim. */
+.slider .track { position: relative; flex: 1; height: 8px; border-radius: 4px; background: var(--well); }
+.slider .signal { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 4px; background: var(--line); }
 .slider .signal.clip { background: var(--accent); }
-.slider .handle { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--surface); border: 1.5px solid var(--ink); }
+.slider .fill { position: absolute; left: 0; top: 50%; width: 0; height: 2px; border-radius: 1px; transform: translateY(-50%); background: var(--ink); }
+.slider .handle { position: absolute; top: 50%; width: 7px; height: 20px; border-radius: 2px; transform: translate(-50%, -50%); background: var(--surface); border: 1.5px solid var(--ink); }
 
 /* One tile: the input, the last 8 s, over a hairline, then the recording */
 .input { display: flex; align-items: center; gap: 12px; height: 64px; flex: none; padding: 0 var(--in); border-bottom: 1px solid var(--line); }

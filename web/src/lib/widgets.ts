@@ -213,6 +213,7 @@ export function slider(c: Control, parent: Element, h: Handlers) {
   html("span", { class: "label" }, root).textContent = c.name;
   const track = html("span", { class: "track" }, root);
   const fill = html("span", { class: "signal" }, track);
+  const line = html("span", { class: "fill" }, track);
   const knobAt = html("span", { class: "handle" }, track);
   let v = c.initial ?? 0;
   const set = (e: PointerEvent) => {
@@ -245,6 +246,7 @@ export function slider(c: Control, parent: Element, h: Handlers) {
     draw: (x: number) => {
       v = x;
       knobAt.style.left = `${x * 100}%`;
+      line.style.width = `${x * 100}%`;
       root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
     },
     // Peak 0..1: the fill, -48 to 0 dBFS, falling back slowly
