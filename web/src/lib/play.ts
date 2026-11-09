@@ -8,7 +8,7 @@ import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { GrainShape } from "./shape";
 import { Waveform } from "./waveform";
-import { knob, pad, slider, toggle, type Handlers, type Widget } from "./widgets";
+import { gain, knob, pad, toggle, type Handlers, type Widget } from "./widgets";
 
 const LIGHT = 0.35; // a touch, as the board's pads read it (0.3–0.5)
 const FIRM_S = 1.2; // held this long, a pad reaches full pressure
@@ -68,7 +68,7 @@ function mute(c: Control) {
   return muted.has(c.id);
 }
 function level(l: Level) {
-  const s = slider(l, $("levels"), on, mute);
+  const s = gain(l, $("levels"), on, mute);
   add(s);
   return s.level;
 }
