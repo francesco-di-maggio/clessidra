@@ -27,6 +27,8 @@ void Playhead::Jump(double phase)
 
 void Playhead::Advance(double step, End end)
 {
+    if(end != End::Turn)
+        heading_ = 1;
     const double move = step * heading_;
     if(move != 0.0)
     {

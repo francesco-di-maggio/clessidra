@@ -6,43 +6,45 @@ Granular instrument for the Synthux Simple Touch, inspired by the hourglass.
 
 <img src="touch.jpeg" width="300"/>
 
-One layer: every control does one thing, where it is. Record a sound: it is the sand, the selection how much of it is in the glass.
+A granular sampler. Record a sound, then play it as grains: Speed moves through it, Density sets how they fall. Two layers: each knob alone, and its twin with P11 held. After a layer change a knob moves its value from where it is, so nothing jumps.
 
-| Control | Name | Does |
+| Control | Alone | P11 held |
 |---|---|---|
-| S36 | Speed | How fast the sand runs: the time stretched, the pitch kept. Held at the centre. Up forward, down reverse, with stops at ¼, ½, 1, 2 and 4× |
-| S37 | Density | Grains at once, 1/16 to 16: per second they follow Size. None at the centre. Down: regular, drops to a stream. Up: random, scattered to a cloud. 32 voices: with all sounding, a new grain is dropped |
-| S30 | Position | Where the sand starts, anywhere in the recording. Held: moves the point |
-| S35 | Length | How much sand: the selection, past the end round to the start. The playhead stays where it is |
-| S31 | Size | 5 ms to 2 s, 100 ms at the centre, at most half the recording |
-| S32 | Spray | How far grains stray from the playhead, evenly: position up to the whole selection, size, pitch up to ±12 semitones, pan, level (to −18 dB), reverb send |
-| S33 | Pitch | ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24 |
-| S34 | Shape | The grain's window: reverse percussive down, Hann at the centre, percussive up |
-| S09 | Reverb | On the grains: down off, centre short (1.7 s), up long (8 s) |
-| S07 | End | When the sand runs out: up stops, centre turns the glass over, down starts again |
+| S36 | Speed: 0 to 4×, stops at ¼, ½, 1, 2 and 4×, the pitch kept. Frozen: scrubs through the loop, a full stroke the whole loop, the speed taken up again after | Dry/wet |
+| S37 | Density: grains at once, 1/16 to 16, per second they follow Size. None at the centre. Down: regular, drops to a stream. Up: random, scattered to a cloud. 32 voices: with all sounding, a new grain is dropped | Reverb: none to most, decay 0.5 to 16 s |
+| S30 | Position: where the loop starts, anywhere in the recording | |
+| S35 | Length: the loop, past the end round to the start | |
+| S31 | Size: 5 ms to 2 s, 100 ms at the centre, at most half the recording | Random size |
+| S32 | Random position: grains stray from the playhead, evenly, up to the whole loop, across the stereo field with it | |
+| S33 | Pitch: ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24 | Random pitch, up to ±12 semitones |
+| S34 | Shape: the grain's window, reverse percussive, Hann at the centre, percussive | Filter: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz |
+| S09 | Mode: up forward, centre frozen, down reverse | |
+| S07 | Quantize, the random pitch: down free, centre semitones, up octaves | |
 
-| Pad | Name | Does |
+| Pad | Alone | P11 held |
 |---|---|---|
-| P10 | Record | Tap: the last 8 s. Hold: up to 30 s, the input heard. The new sand pours in over 2 s |
-| P11 | Turn | A touch turns the glass over: from where it is, the sand runs the other way, the grains backwards |
-| P00 | Shake | Held: Spray at its top |
-| P01 | Mute | Held: the grains silent, the reverb rings on |
-| P02 | Hold | Held: the sand stops, the grains stay on that moment |
-| P03–P09 | Places | The selection in sevenths, left to right on the board: P03, P04, P08, P05, P09, P06, P07. A touch: the playhead there, a grain at once, the beat from it. Held: it stays there |
+| P10 | Record. Tap: the last 8 s. Hold: up to 30 s, the input heard. The new recording pours in over 2 s | Listen: the input heard, nothing recorded |
+| P11 | Shift, held | |
+| P01 | | Reset: the twins back to their defaults |
+| P03–P09 | Slices: the loop in sevenths, left to right on the board (P03, P04, P08, P05, P09, P06, P07). A touch: the playhead there, a grain at once, the beat from it. Held: it stays there | |
+
+Not assigned yet: P00, P02.
 
 | LED | |
 |---|---|
 | Glow | Grains falling, dimmer as the sand runs out |
 | Flash | Recording |
-| Pulse | At a stop: unison, speed 1× either way, 100 ms, Hann |
+| Pulse | At a stop: unison, speed 1×, 100 ms, Hann, filter off |
+| Steady | P11 held: the twin last turned |
 
 | To play | Set |
 |---|---|
-| Rhythm | Density below the centre, Shape up, Size short. Tap the places: each restarts the beat |
-| Drums by hand | Density at the centre: each place plays one grain |
-| Cloud | Density at the top, Spray up, Size long, Reverb long |
-| Stretch | Speed at ¼ or ½, Density up. Turn to hear it backwards |
-| A moment held | Hold, or a place held, Density up, a little Spray, Shake for a burst |
+| Rhythm | Density below the centre, Shape up, Size short. Tap the slices: each restarts the beat |
+| Drums by hand | Density at the centre: each slice plays one grain |
+| Cloud | Density at the top, Random position up, Size long, Reverb (P11 + S37) up |
+| Stretch | Speed at ¼ or ½, Density up. S09 down to hear it backwards |
+| A moment held | S09 at the centre, Density up, a little Random position. Speed scrubs the point |
+| Shimmer | Random pitch (P11 + S33) up, S07 up: octaves |
 
 ## Play in the Browser
 

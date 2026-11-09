@@ -104,3 +104,6 @@ ol.rows { gap: 6px; padding: 14px; }
 nav a[aria-current="page"]::before, .live::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 .touch .ctl.active .ring, .touch .ctl.active circle.pad, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke: var(--accent); }
 .prose p { text-wrap: pretty; }
+.touch .free .ring, .touch .free circle.pad, .touch .free .slot { stroke: var(--line); }
+.touch .free .name { fill: var(--dim); font-weight: 400; }
+.touch .free { cursor: default; }

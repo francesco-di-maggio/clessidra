@@ -54,8 +54,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
         // With a grain at once
         schedule_.phase = schedule_.next;
     }
-    if(turn_.exchange(false, std::memory_order_relaxed))
-        playhead_.Turn();
     // A grain at once, the starts counted from it
     const float jump = jump_.exchange(-1.0f, std::memory_order_relaxed);
     if(jump >= 0.0f)
@@ -63,7 +61,13 @@ void Core::Process(const float* const* in, float** out, size_t size)
         playhead_.Jump(jump);
         schedule_.phase = 0.0;
     }
-    const bool now = jump >= 0.0f && len > 0.0;
+    const bool  now   = jump >= 0.0f && len > 0.0;
+    const float scrub = scrub_.exchange(0.0f, std::memory_order_relaxed);
+    if(p.freeze && scrub != 0.0f)
+    {
+        const double to = playhead_.Phase() + double(scrub);
+        playhead_.Jump(to - std::floor(to));
+    }
 
     const double play_inc = p.freeze ? 0.0 : p.speed / sel_len; // per sample
 
@@ -132,6 +136,21 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float reverb_wet_step
         = (reverb_gain * std::sin(reverb_angle) - reverb_wet_) / n;
 
+    const float filter_coeff
+        = 1.0f - std::exp(-n / (kFilterSeconds * sample_rate_));
+    daisysp::fonepole(filter_, std::clamp(p.filter, -1.0f, 1.0f), filter_coeff);
+    const float amount  = std::fabs(filter_);
+    const bool  lowpass = filter_ < 0.0f;
+    const float filter_hz
+        = lowpass
+              ? kLowpassOffHz * std::pow(kLowpassMinHz / kLowpassOffHz, amount)
+              : kHighpassOffHz
+                    * std::pow(kHighpassMaxHz / kHighpassOffHz, amount);
+    const float filter_q   = kFilterQMin + amount * (kFilterQMax - kFilterQMin);
+    const float filter_mix = std::min(1.0f, amount / kFilterFade);
+    for(auto& filter : filters_)
+        filter.Set(filter_hz, filter_q, sample_rate_);
+
     const float mute_target = p.mute ? 0.0f : 1.0f;
     const float mute_step   = 1.0f / (kMuteSeconds * sample_rate_);
     const float norm_step   = (norm_ - norm_gain_) / n;
@@ -150,8 +169,14 @@ void Core::Process(const float* const* in, float** out, size_t size)
         reverb_dry_ += reverb_dry_step;
         reverb_wet_ += reverb_wet_step;
         norm_gain_ += norm_step;
-        float l    = out[0][i] * norm_gain_;
-        float r    = out[1][i] * norm_gain_;
+        float l = out[0][i] * norm_gain_;
+        float r = out[1][i] * norm_gain_;
+        filters_[0].Process(l);
+        filters_[1].Process(r);
+        l += filter_mix
+             * ((lowpass ? filters_[0].Low() : filters_[0].High()) - l);
+        r += filter_mix
+             * ((lowpass ? filters_[1].Low() : filters_[1].High()) - r);
         mute_gain_ = mute_gain_ < mute_target
                          ? std::min(mute_target, mute_gain_ + mute_step)
                          : std::max(mute_target, mute_gain_ - mute_step);
@@ -327,8 +352,12 @@ void Core::StartGrain(const Params& p,
         latch.size = std::exp2((Randomise(size, p.rand_size) - size) * octaves);
     }
     latch.shape = p.window_shape;
-    const float semitones
+    float semitones
         = Random() * std::clamp(p.rand_pitch, 0.0f, 1.0f) * kRandPitchSemitones;
+    if(p.quantize == Quantize::Semitones)
+        semitones = std::round(semitones);
+    else if(p.quantize == Quantize::Octaves)
+        semitones = 12.0f * std::round(semitones / 12.0f);
     latch.rate = p.pitch * std::exp2(semitones / 12.0f);
     if(source.backwards)
         latch.rate = -latch.rate;

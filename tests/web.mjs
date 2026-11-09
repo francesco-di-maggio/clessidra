@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 const RATE = 48000;
 const BLOCK = 128;
 const KNOB = { S30: 0, S31: 1, S32: 2, S33: 3, S34: 4, S35: 5, S36: 6, S37: 7 };
-const SPEED_1 = 0.5 + 3.15 / 10; // S36 on its third stop up
+const SPEED_1 = 0.63; // S36 on its fourth stop from the bottom: 1×
 const RECORD = 10; // CoreUI::kRecordPad
 const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped: 4 };
 
@@ -50,7 +50,7 @@ function run(seconds, input = pluck) {
 }
 
 const view = () => f32(w.cl_view(), 5);
-const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_grain_fields() + g * 16, 4)[0]);
+const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_grain_fields() + g * 24, 6)[0]);
 const silence = () => 0;
 
 // Panel: speed 1, 100 ms, pitch unison, Hann, whole selection, plain grains,
@@ -122,21 +122,23 @@ w.cl_knob(KNOB.S36, SPEED_1);
 run(0.1, silence);
 
 const params = f32(w.cl_params(), 13);
-check(Math.abs(params[0] - 1) < 1e-6, "Speed on its third stop: 1", params[0]);
+check(Math.abs(params[0] - 1) < 1e-6, "Speed on its fourth stop: 1", params[0]);
 
-// P11: the glass turned over, a touch at a time
-const TURN = 11;
-const heading = () => f32(w.cl_params(), 21)[20];
-w.cl_pad(TURN, 1, 0.5);
-run(0.05, silence);
-const turned = heading();
-w.cl_pad(TURN, 0, 0);
-run(0.01, silence);
-w.cl_pad(TURN, 1, 0.5);
-run(0.05, silence);
-w.cl_pad(TURN, 0, 0);
-run(0.05, silence);
-check(turned === -1 && heading() === 1, "P11: turned over, and back", turned);
+// P11 held: S37 sets the reverb, Density stays as it was
+const SHIFT = 11;
+const reverb = () => f32(w.cl_params(), 22)[5];
+const density = () => f32(w.cl_params(), 22)[2];
+const before = density();
+w.cl_pad(SHIFT, 1, 0.5);
+run(0.02, silence);
+w.cl_knob(KNOB.S37, 1);
+run(0.02, silence);
+const shifted = reverb();
+w.cl_pad(SHIFT, 0, 0);
+run(0.02, silence);
+check(shifted > 0.9 && density() === before, "P11 + S37: the reverb, Density kept", shifted.toFixed(2));
+w.cl_knob(KNOB.S37, 0.75);
+run(0.02, silence);
 
 // S37 at the centre: no grains. At the top: a cloud, 16 at once
 w.cl_knob(KNOB.S37, 0.5);

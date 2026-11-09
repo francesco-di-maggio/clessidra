@@ -5,12 +5,10 @@ export const RATE = 48000; // config.h kSampleRateHz
 export const BLOCK = 128; // Web Audio's render quantum
 export const MAX_RECORD_S = 30; // config.h kBufferSeconds
 // CoreUI's pads
-export const SHAKE_PAD = 0;
-export const MUTE_PAD = 1;
-export const HOLD_PAD = 2;
-export const PLACE_PADS = [3, 4, 8, 5, 9, 6, 7]; // P03–P09, left to right
+export const RESET_PAD = 1; // with Shift
+export const SLICE_PADS = [3, 4, 8, 5, 9, 6, 7]; // P03–P09, left to right
 export const RECORD_PAD = 10;
-export const TURN_PAD = 11;
+export const SHIFT_PAD = 11;
 export const VOICES = 32; // Core::kNumVoices
 // What a tap keeps, seconds: the board's (Core::kTapCaptureSeconds), and the
 // others the browser tries
@@ -25,12 +23,13 @@ export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped:
 export const VIEW_SIZE = 5;
 // cl_params, in the core's units. grainMs: the size in use, grainMsSet: as
 // set. randomStarts: 1 random, 0 regular. end: End, 0 once, 1 turn, 2 loop.
-// spread: Spray as it acts, 0..1. sandLeft: ahead of the playhead, 0..1.
-// heading: 1 upright, -1 turned over.
-export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randomStarts: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, randPos: 12, randSize: 13, end: 14, grainMsSet: 15, minGrainMs: 16, maxGrainMs: 17, spread: 18, sandLeft: 19, heading: 20 } as const;
-export const PARAM_SIZE = 21;
-// cl_grain_fields, per grain: position 0..1 of the recording, progress, window shape, pan
-export const GRAIN_FIELDS = 4;
+// spread: pan width, 0..1. sandLeft: ahead of the playhead, 0..1. filter:
+// -1 low-pass, 0 off, 1 high-pass. quantize: 0 off, 1 semitones, 2 octaves.
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randomStarts: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, randPos: 12, randSize: 13, end: 14, grainMsSet: 15, minGrainMs: 16, maxGrainMs: 17, spread: 18, sandLeft: 19, filter: 20, quantize: 21 } as const;
+export const PARAM_SIZE = 22;
+// cl_grain_fields, per grain: position 0..1 of the recording, progress, window
+// shape, pan, pitch in semitones, size in ms
+export const GRAIN_FIELDS = 6;
 
 export interface Exports {
   memory: WebAssembly.Memory;

@@ -14,6 +14,7 @@ export interface Widget {
   root: HTMLElement;
   draw: (value: number) => void;
   value?: (text: string) => void;
+  twin?: (text: string) => void;
 }
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -63,6 +64,9 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
   }
   const value = html("span", { class: "value" }, root);
   value.textContent = "–";
+  // The function with P11 held, beneath
+  const twin = c.twin ? html("span", { class: "twin" }, root) : null;
+  if (twin) twin.textContent = c.twin!.name;
   let v = c.initial ?? 0;
   const draw = c.type === "fader" ? faderDrawing(c, dial) : dialDrawing(c, dial);
 
@@ -98,7 +102,7 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
     root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
   };
   show(v);
-  return { c, root, draw: show, value: (text) => (value.textContent = text) };
+  return { c, root, draw: show, value: (text) => (value.textContent = text), twin: twin ? (text) => (twin.textContent = `${c.twin!.name} ${text}`) : undefined };
 }
 
 // A fader: its slot, filled from the bottom or, bipolar, the centre, and a

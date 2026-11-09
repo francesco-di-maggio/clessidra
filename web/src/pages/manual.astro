@@ -9,7 +9,7 @@ import { CONTROLS, LED, PLAY } from "../lib/controls";
 
 const KNOBS = ["S36", "S37", "S30", "S35", "S31", "S32", "S33", "S34"];
 const byId = (id: string) => CONTROLS.find((c) => c.id === id)!;
-const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02"];
+const OTHERS = ["S09", "S07", "P10", "P11", "P01"];
 ---
 <!doctype html>
 <html lang="en" data-theme="light">
@@ -55,9 +55,9 @@ const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02"];
   </div>
   <div class="board"><TouchPanel /></div>
   <div class="box">
-    <p>One layer: every control does one thing, where it is.</p>
-    <p>Record a sound: it is the sand. Speed sets how fast it runs, Density how it falls.</p>
-    <p>Density at its centre: no grains but the places'. Speed at its centre: the sand held.</p>
+    <p>Record a sound, then play it as grains: Speed through it, Density how they fall.</p>
+    <p>Two layers: each knob alone, and its twin with P11 held. Nothing jumps when they change.</p>
+    <p>Density at its centre: no grains but the slices'. S09 at its centre: frozen.</p>
   </div>
 </div></section>
 
@@ -65,7 +65,7 @@ const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02"];
   <h2>Faders and Knobs</h2>
   <table>
     <tbody>
-      {KNOBS.map(byId).map((c) => <tr><td>{c.id}</td><td><b>{c.name}</b>. {c.does}</td></tr>)}
+      {KNOBS.map(byId).map((c) => <tr><td>{c.id}</td><td><b>{c.name}</b>. {c.does}{c.twin && <><br /><i>P11</i>: <b>{c.twin.name}</b>. {c.twin.does}</>}</td></tr>)}
     </tbody>
   </table>
 
@@ -73,7 +73,8 @@ const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02"];
   <table>
     <tbody>
       {OTHERS.map(byId).map((c) => <tr><td>{c.id}</td><td><b>{c.name}</b>. {c.does}</td></tr>)}
-      <tr><td>P03–P09</td><td><b>Places</b>. The selection in sevenths, left to right on the board: P03, P04, P08, P05, P09, P06, P07. A touch: the playhead there, a grain at once, the beat from it. Held: it stays there.</td></tr>
+      <tr><td>P03–P09</td><td><b>Slices</b>. The loop in sevenths, left to right on the board: P03, P04, P08, P05, P09, P06, P07. A touch: the playhead there, a grain at once, the beat from it. Held: it stays there.</td></tr>
+      <tr><td>P00, P02</td><td>Not assigned yet.</td></tr>
     </tbody>
   </table>
 

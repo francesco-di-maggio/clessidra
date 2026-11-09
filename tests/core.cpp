@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <functional>
 #include <vector>
+#include "core/svf.h"
 #include "ui/core.ui.h"
 
 using namespace clessidra;
@@ -171,7 +172,7 @@ struct Panel
         c.knobs[Controls::S35] = 1.0f;
         c.knobs[Controls::S32] = 0.0f;  // plain
         c.knobs[Controls::S37] = 0.75f; // random, about one grain at once
-        c.switches = {Controls::Centre, Controls::Down}; // short reverb, loop
+        c.switches = {Controls::Up, Controls::Down}; // forward, no quantize
     }
 
     // P10 held for seconds of the input, then until it lands
@@ -389,16 +390,30 @@ void Fuzz()
           "every control at random: no more grains than voices",
           double(most));
 
-    // After all that, it still records and plays
+    // After all that, with the twins reset and each knob swept to its ends,
+    // it still records and plays
+    panel.c.touched.fill(false);
+    panel.c.touched[CoreUI::kShiftPad] = true;
+    panel.Run(0.01, Silence);
+    panel.c.touched[CoreUI::kResetPad] = true;
+    panel.Run(0.01, Silence);
+    panel.c.touched.fill(false);
+    panel.c.switches = {Controls::Up, Controls::Down};
+    panel.Run(0.01, Silence);
+    for(float end : {0.0f, 1.0f})
+    {
+        panel.c.knobs.fill(end);
+        panel.Run(0.01, Silence);
+    }
     panel.c.knobs[Controls::S30] = 0.0f;
     panel.c.knobs[Controls::S31] = 0.5f;
     panel.c.knobs[Controls::S32] = 0.0f;
     panel.c.knobs[Controls::S33] = 0.5f;
     panel.c.knobs[Controls::S34] = 0.5f;
     panel.c.knobs[Controls::S35] = 1.0f;
-    panel.c.knobs[Controls::S36] = 0.5f + 3.15f / 10.0f; // 1×
+    panel.c.knobs[Controls::S36] = 0.63f; // 1×
     panel.c.knobs[Controls::S37] = 0.75f;
-    panel.c.switches             = {Controls::Centre, Controls::Down};
+    panel.c.switches             = {Controls::Up, Controls::Down};
     panel.c.touched.fill(false);
     panel.c.pressure.fill(0.0f);
     panel.Run(0.5, Silence);
@@ -455,6 +470,38 @@ void Windows()
     Check(Near(reverse[999 - 500], percussive[500], 0.002),
           "window 0: percussive reversed",
           reverse[499]);
+}
+
+// The filter's gain at hz, dB, on a sine after a second to settle
+double Gain(float hz, float cutoff, float q, bool low)
+{
+    Svf f;
+    f.Set(cutoff, q, float(kRate));
+    double in = 0.0, out = 0.0;
+    for(size_t n = 0; n < 2 * kRate; n++)
+    {
+        const float x = float(std::sin(2.0 * M_PI * hz * double(n) / kRate));
+        f.Process(x);
+        const float y = low ? f.Low() : f.High();
+        if(n < kRate)
+            continue;
+        in += double(x) * x;
+        out += double(y) * y;
+    }
+    return 10.0 * std::log10(out / in);
+}
+
+void Filter()
+{
+    Check(Near(Gain(4000, 200, 1.5f, true), -52.0, 1.0),
+          "filter: lowpass 200 Hz at 4 kHz (dB)",
+          Gain(4000, 200, 1.5f, true));
+    Check(Near(Gain(200, 2000, 1.5f, false), -40.0, 1.0),
+          "filter: highpass 2 kHz at 200 Hz (dB)",
+          Gain(200, 2000, 1.5f, false));
+    Check(std::fabs(Gain(10000, 20000, 0.707f, true)) < 0.05,
+          "filter: off (lowpass 20 kHz) at 10 kHz (dB)",
+          Gain(10000, 20000, 0.707f, true));
 }
 
 // The output's RMS over seconds of silent input
@@ -529,7 +576,7 @@ size_t Starts(Rig& r, double seconds)
 }
 
 // End: the sand runs out and stops, turns the glass over, or starts again.
-// Speed the other way or turned by hand, a glass run out runs back. A jump: a
+// Speed the other way, a glass run out runs back. A jump: a
 // grain at once, whatever the density.
 void Ends()
 {
@@ -552,15 +599,6 @@ void Ends()
     Check(r.core.PlayheadPhase() < 0.7 && r.core.SandLeft() > 0.0f,
           "once, run out, speed reversed: runs back",
           r.core.PlayheadPhase());
-    p.speed = 4.0f;
-    r.core.SetParams(p);
-    r.Run(0.5, Silence);
-    r.core.Turn();
-    r.Run(0.1, Silence);
-    Check(r.core.PlayheadPhase() < 0.7 && r.core.Heading() == -1,
-          "once, run out, turned by hand: runs back",
-          r.core.PlayheadPhase());
-    r.core.Turn();
 
     p.speed = 4.0f;
     p.end   = End::Turn;
@@ -605,32 +643,75 @@ void Ends()
           r.core.PlayheadPhase());
 }
 
-// Turned over by hand, the playhead runs the other way from where it is, and
-// the grains read backwards
-void Turned()
+// Frozen, scrubbing moves the playhead by the amount, round the selection
+void Scrubbed()
 {
     Rig r(1.0);
     r.Fill(Sine);
     Core::Params p;
-    p.speed   = 1.0f;
-    p.density = 50.0f;
+    p.freeze  = true;
+    p.density = 20.0f;
     r.core.SetParams(p);
     r.core.Jump(0.5f);
-    r.Run(0.1, Silence);
-    const double before = r.core.PlayheadPhase();
-    r.core.Turn();
-    r.Run(0.1, Silence);
-    bool backwards = true;
-    for(const auto& g : r.core.Grains())
-        backwards = backwards && (!g.IsActive() || g.Settings().rate < 0.0f);
-    Check(r.core.PlayheadPhase() < before && backwards,
-          "turned: runs back from where it is, grains reversed",
+    r.Run(0.01, Silence);
+    r.core.Scrub(0.1f);
+    r.core.Scrub(0.05f);
+    r.Run(0.01, Silence);
+    Check(Near(r.core.PlayheadPhase(), 0.65, 1e-3),
+          "frozen, scrubbed twice: the moves add up (phase)",
           r.core.PlayheadPhase());
-    r.core.Turn();
-    r.Run(0.1, Silence);
-    Check(r.core.Heading() == 1 && r.core.PlayheadPhase() > before - 0.1,
-          "turned again: upright",
+    r.core.Scrub(0.5f);
+    r.Run(0.01, Silence);
+    Check(Near(r.core.PlayheadPhase(), 0.15, 1e-3),
+          "frozen, scrubbed past the end: round to the start (phase)",
           r.core.PlayheadPhase());
+    p.freeze = false;
+    p.speed  = 0.0f;
+    r.core.SetParams(p);
+    r.core.Scrub(0.2f);
+    r.Run(0.01, Silence);
+    Check(Near(r.core.PlayheadPhase(), 0.15, 1e-3),
+          "not frozen: scrubbing does nothing (phase)",
+          r.core.PlayheadPhase());
+}
+
+// Random pitch quantized: every grain on a semitone, or an octave
+void Quantized()
+{
+    const auto offsets = [](Quantize q) {
+        Rig r(1.0);
+        r.Fill(Sine);
+        Core::Params p;
+        p.density    = 200.0f;
+        p.grain_ms   = 20.0f;
+        p.rand_pitch = 1.0f;
+        p.quantize   = q;
+        r.core.SetParams(p);
+        std::vector<double> semitones;
+        r.Run(1.0, Silence, [&](size_t) {
+            for(const auto& g : r.core.Grains())
+                if(g.IsActive())
+                    semitones.push_back(
+                        12.0 * std::log2(std::fabs(g.Settings().rate)));
+        });
+        return semitones;
+    };
+    bool   semis = true, octaves = true, off_on_step = true;
+    double widest = 0.0;
+    for(double x : offsets(Quantize::Semitones))
+        semis = semis && Near(x, std::round(x), 1e-3);
+    for(double x : offsets(Quantize::Octaves))
+    {
+        octaves = octaves && Near(x / 12.0, std::round(x / 12.0), 1e-3);
+        widest  = std::max(widest, std::fabs(x));
+    }
+    for(double x : offsets(Quantize::Off))
+        off_on_step = off_on_step && Near(x, std::round(x), 1e-3);
+    Check(semis, "quantize semitones: every grain on a semitone", 1.0);
+    Check(octaves && Near(widest, 12.0, 1e-3),
+          "quantize octaves: an octave either way or none",
+          widest);
+    Check(!off_on_step, "quantize off: grains between the steps", 0.0);
 }
 
 // The selection round the end of the recording, and its length drawn per pass
@@ -970,6 +1051,45 @@ void Cloud()
     }
 }
 
+// After a layer change, a knob moves its value from where it is, both
+// reaching the end stops together
+void Takeovers()
+{
+    Takeover t(0.8f);
+    t.Engage(0.2f);
+    t.Process(0.21f);
+    Check(t.Value() == 0.8f,
+          "takeover: within the deadband, nothing moves",
+          t.Value());
+    t.Process(0.6f);
+    const float half = t.Value();
+    t.Process(1.0f);
+    Check(half > 0.8f && half < 1.0f && Near(t.Value(), 1.0, 1e-3),
+          "takeover: up, the value reaches its top with the knob",
+          t.Value());
+    t.Process(0.0f);
+    Check(Near(t.Value(), 0.0, 1e-3),
+          "takeover: down, both reach the bottom",
+          t.Value());
+    t.Process(0.5f);
+    Check(Near(t.Value(), 0.5, 1e-3),
+          "takeover: then they move as one",
+          t.Value());
+
+    // Centred: on the same side of the centre, they meet at the centre
+    Takeover c(0.9f, true);
+    c.Engage(0.6f);
+    c.Process(0.55f);
+    c.Process(0.45f);
+    Check(Near(c.Value(), 0.45, 1e-6),
+          "takeover, centred: across the centre together, then as one",
+          c.Value());
+    c.Process(0.3f);
+    Check(Near(c.Value(), 0.3, 1e-6),
+          "takeover, centred: still as one",
+          c.Value());
+}
+
 void Mapping()
 {
     Rig      r(2.0);
@@ -980,15 +1100,17 @@ void Mapping()
     c.knobs[Controls::S30] = 0.0f;
     c.knobs[Controls::S32] = 0.0f;
     c.knobs[Controls::S35] = 1.0f;
-    c.knobs[Controls::S36] = 0.5f + 3.15f / 10.0f; // on 1×
-    c.switches             = {Controls::Centre, Controls::Down};
+    c.knobs[Controls::S36] = 0.63f; // on 1×
+    c.switches             = {Controls::Up, Controls::Down};
     ui.Process(c, r.core);
     const Core::Params& p = r.core.CurrentParams();
     Check(Near(p.speed, 1.0, 1e-6) && !p.freeze && p.end == End::Loop,
-          "S36 on its third stop up, S07 down: speed 1 forward, loop",
+          "S36 on its fourth stop, S09 up: speed 1 forward, looped",
           p.speed);
-    Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.mix == 1.0f,
-          "S33, S34 centre: unison, Hann, all wet",
+    Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.mix == 1.0f
+              && p.filter == 0.0f && p.reverb == CoreUI::kReverb
+              && p.rand_pitch == 0.0f && p.quantize == Quantize::Off,
+          "power-up: unison, Hann, all wet, filter off, short reverb",
           p.pitch);
     Check(p.start == 0.0f && p.length == 1.0f,
           "S30 bottom, S35 top: the whole recording",
@@ -1018,9 +1140,8 @@ void Mapping()
     Check(Near(overlap(cloud), 16.0, 1e-2) && cloud.random_starts,
           "S37 top: random, 16 grains at once",
           overlap(cloud));
-    Check(rare.reverb == cloud.reverb && rare.grain_ms == cloud.grain_ms
-              && cloud.spread == 0.0f,
-          "S37: the reverb, size and spray their own",
+    Check(rare.reverb == cloud.reverb && rare.grain_ms == cloud.grain_ms,
+          "S37: the reverb and size their own",
           rare.reverb);
     c.knobs[Controls::S31] = 0.1f;
     ui.Process(c, r.core);
@@ -1043,24 +1164,18 @@ void Mapping()
           p.grain_ms);
     c.knobs[Controls::S31] = 0.5f;
 
-    // S32, Spray: plain to scattered, evenly, the starts Density's
+    // S32, Random position: off to the whole loop, the pan with it
     c.knobs[Controls::S37] = 0.75f;
     ui.Process(c, r.core);
-    Check(p.rand_pos == 0.0f && p.rand_size == 0.0f && p.rand_pitch == 0.0f
-              && p.rand_gain == 0.0f && p.spread == 0.0f,
-          "S32 bottom: plain",
+    Check(p.rand_pos == 0.0f && p.spread == 0.0f && p.rand_gain == 0.0f,
+          "S32 bottom: grains at the playhead, centred",
           p.spread);
-    c.knobs[Controls::S32] = 0.5f;
-    ui.Process(c, r.core);
-    Check(p.rand_pos > 0.0f && p.rand_pitch > 0.0f && p.random_starts,
-          "S32 half: places and a little pitch, the starts as set",
-          p.rand_pos);
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.rand_pos == 1.0f && p.rand_pitch == 1.0f && p.spread == 1.0f
-              && p.rand_gain == 1.0f && p.rand_send == 1.0f,
-          "S32 top: the whole selection, an octave either way, pan widest",
-          p.rand_pitch);
+    Check(p.rand_pos == 1.0f && p.spread == 1.0f && p.rand_pitch == 0.0f
+              && p.rand_gain == 0.0f,
+          "S32 top: the whole loop, pan widest, nothing else random",
+          p.rand_pos);
     c.knobs[Controls::S32] = 0.0f;
 
     // S33, Pitch: stops at the fifth and two octaves
@@ -1082,129 +1197,181 @@ void Mapping()
     ui.Process(c, r.core);
     Check(p.window_shape == 1.0f, "S34 up: percussive", p.window_shape);
     c.knobs[Controls::S34] = 0.5f;
+    ui.Process(c, r.core);
 
-    // S36, Speed: held at the centre, either way a quarter, a half, 1, 2, 4
+    // S36, Speed: none at the bottom, a quarter, a half, 1, 2, 4. S09 down:
+    // the same speed reversed.
     const auto speed = [&](float stop) {
-        c.knobs[Controls::S36] = 0.5f + (stop + 0.15f) / 10.0f;
+        c.knobs[Controls::S36] = (stop + 0.15f) / 5.0f;
         ui.Process(c, r.core);
         return p.speed;
     };
     Check(Near(speed(1.0f), 0.25, 1e-6) && Near(speed(2.0f), 0.5, 1e-6),
-          "S36 first and second stops: a quarter and half speed",
+          "S36 second and third stops: a quarter and half speed",
           p.speed);
     c.knobs[Controls::S36] = 1.0f;
     ui.Process(c, r.core);
     Check(Near(p.speed, 4.0, 1e-6), "S36 top: 4 times", p.speed);
     c.knobs[Controls::S36] = 0.0f;
     ui.Process(c, r.core);
-    Check(Near(p.speed, -4.0, 1e-6), "S36 bottom: 4 times reverse", p.speed);
-    c.knobs[Controls::S36] = 0.5f;
-    ui.Process(c, r.core);
-    Check(p.freeze && p.speed == 0.0f, "S36 centre: held", p.speed);
-    c.knobs[Controls::S36] = 0.5f - 3.15f / 10.0f;
+    Check(p.freeze && p.speed == 0.0f, "S36 bottom: stopped", p.speed);
+    c.knobs[Controls::S36]    = 0.63f;
+    c.switches[Controls::S09] = Controls::Down;
     ui.Process(c, r.core);
     Check(Near(p.speed, -1.0, 1e-6) && !p.freeze,
-          "S36 third stop down: 1 reverse",
+          "S09 down: reverse at the same speed",
           p.speed);
-    c.knobs[Controls::S36] = 0.5f + 3.15f / 10.0f;
 
-    // S07, End
-    c.switches[Controls::S07] = Controls::Up;
+    // S09 centre: frozen, S36 scrubs, the speed taken up again after
+    c.switches[Controls::S09] = Controls::Up;
+    c.knobs[Controls::S37]    = 0.75f;
     ui.Process(c, r.core);
-    Check(p.end == End::Once, "S07 up: once", 0);
+    r.Run(0.2, Silence);
+    c.switches[Controls::S09] = Controls::Centre;
+    ui.Process(c, r.core);
+    r.Run(0.01, Silence);
+    const double point = r.core.PlayheadPhase();
+    r.Run(0.2, Silence);
+    Check(p.freeze && r.core.PlayheadPhase() == point,
+          "S09 centre: frozen where it was",
+          r.core.PlayheadPhase());
+    c.knobs[Controls::S36] = 0.83f;
+    ui.Process(c, r.core);
+    r.Run(0.01, Silence);
+    const double scrubbed = r.core.PlayheadPhase() - point;
+    Check(Near(scrubbed - std::floor(scrubbed), 0.2, 1e-3)
+              && Near(p.speed, 1.0, 1e-6),
+          "frozen, S36 up a fifth of its travel: a fifth of the loop on",
+          scrubbed);
+    c.switches[Controls::S09] = Controls::Up;
+    ui.Process(c, r.core);
+    Check(Near(p.speed, 1.0, 1e-6) && !p.freeze,
+          "unfrozen: the speed as it was, not the fader's",
+          p.speed);
+    c.knobs[Controls::S36] = 1.0f;
+    ui.Process(c, r.core);
+    Check(Near(p.speed, 4.0, 1e-2),
+          "unfrozen, S36 to the top: the speed reaches 4 with it",
+          p.speed);
+    c.knobs[Controls::S36] = 0.63f;
+    ui.Process(c, r.core);
+
+    // S07, Quantize
     c.switches[Controls::S07] = Controls::Centre;
     ui.Process(c, r.core);
-    Check(p.end == End::Turn, "S07 centre: turn", 1);
+    Check(p.quantize == Quantize::Semitones, "S07 centre: semitones", 1);
+    c.switches[Controls::S07] = Controls::Up;
+    ui.Process(c, r.core);
+    Check(p.quantize == Quantize::Octaves, "S07 up: octaves", 2);
     c.switches[Controls::S07] = Controls::Down;
     ui.Process(c, r.core);
 
-    // S09, Reverb: off, short, long
-    c.switches[Controls::S09] = Controls::Down;
+    // A knob turned in the pass that P11 is touched: its own value moves,
+    // then its twin takes over
+    c.knobs[Controls::S32]       = 0.3f;
+    c.touched[CoreUI::kShiftPad] = true;
     ui.Process(c, r.core);
-    const float off           = p.reverb;
-    c.switches[Controls::S09] = Controls::Up;
+    c.touched[CoreUI::kShiftPad] = false;
     ui.Process(c, r.core);
-    Check(off == 0.0f && p.reverb == CoreUI::kReverbLong,
-          "S09: down no reverb, up long",
-          p.reverb);
-    c.switches[Controls::S09] = Controls::Centre;
+    Check(Near(p.rand_pos, 0.09, 1e-3),
+          "a knob turned as P11 is touched: the move kept",
+          p.rand_pos);
+    c.knobs[Controls::S32] = 0.0f;
     ui.Process(c, r.core);
-    Check(p.reverb == CoreUI::kReverbShort, "S09 centre: short", p.reverb);
 
-    // The LED glows with the grains, dimmer as the sand runs out
+    // P11 held: the twins. Each from where it is, nothing jumps; the knob's
+    // own value kept.
     auto press = [&](size_t pad, bool on) {
         c.touched[pad] = on;
         ui.Process(c, r.core);
     };
+    press(CoreUI::kShiftPad, true);
+    Check(p.pitch == 1.0f && p.rand_pitch == 0.0f
+              && p.reverb == CoreUI::kReverb,
+          "P11 held: nothing jumps",
+          p.rand_pitch);
+    c.knobs[Controls::S33] = 1.0f;
     c.knobs[Controls::S37] = 1.0f;
-    press(CoreUI::kPlacePads[0], true);
-    press(CoreUI::kPlacePads[0], false);
+    c.knobs[Controls::S34] = 0.0f;
+    c.knobs[Controls::S31] = 1.0f;
+    c.knobs[Controls::S36] = 0.0f;
+    ui.Process(c, r.core);
+    Check(p.pitch == 1.0f && Near(p.rand_pitch, 1.0, 1e-2)
+              && Near(p.reverb, 1.0, 1e-2) && Near(p.filter, -1.0, 1e-2)
+              && Near(p.rand_size, 0.25, 1e-2) && Near(p.mix, 0.0, 1e-2)
+              && Near(p.speed, 1.0, 1e-6),
+          "P11 + S33, S37, S34, S31, S36: random pitch, reverb, filter, "
+          "random size, dry",
+          p.rand_pitch);
+    press(CoreUI::kShiftPad, false);
+    Check(p.pitch == 1.0f && Near(p.speed, 1.0, 1e-6)
+              && Near(p.rand_pitch, 1.0, 1e-2),
+          "P11 released: own values kept, twins kept",
+          p.pitch);
+    c.knobs[Controls::S33] = 0.0f;
+    ui.Process(c, r.core);
+    Check(Near(p.pitch, 0.25, 1e-3), "then S33 takes its own over", p.pitch);
+
+    // P11 + P01: the twins reset. P11 + P10: listen, nothing recorded.
+    press(CoreUI::kShiftPad, true);
+    press(CoreUI::kResetPad, true);
+    press(CoreUI::kResetPad, false);
+    Check(p.rand_pitch == 0.0f && p.reverb == CoreUI::kReverb
+              && p.filter == 0.0f && p.rand_size == 0.0f && p.mix == 1.0f,
+          "P11 + P01: the twins back to their defaults",
+          p.rand_pitch);
+    const uint32_t recordings = r.core.Recordings();
+    press(CoreUI::kRecordPad, true);
+    r.Run(0.5, Sine);
+    Check(Near(p.mix, CoreUI::kMonitorMix, 1e-6),
+          "P11 + P10: the input heard",
+          p.mix);
+    press(CoreUI::kRecordPad, false);
+    press(CoreUI::kShiftPad, false);
+    r.Run(0.5, Sine);
+    Check(r.core.Recordings() == recordings && p.mix == 1.0f,
+          "P11 + P10 released: nothing recorded, all wet again",
+          double(r.core.Recordings()));
+    c.knobs[Controls::S33] = 0.5f;
+    c.knobs[Controls::S34] = 0.5f;
+    c.knobs[Controls::S31] = 0.5f;
+    c.knobs[Controls::S36] = 0.63f;
+    ui.Process(c, r.core);
+
+    // The LED glows with the grains, dimmer as the sand runs out
+    c.knobs[Controls::S37] = 1.0f;
+    press(CoreUI::kSlicePads[0], true);
+    press(CoreUI::kSlicePads[0], false);
     r.Run(0.1, Silence);
     const float full = ui.Led(100000, r.core);
     r.Run(0.8, Silence);
     const float less = ui.Led(100000, r.core);
     Check(full > 0.0f && less < full, "LED: dims as the sand runs out", less);
 
-    // P01 held: mute. P00 held: Spray at its top. P02 held: the playhead stops.
-    press(CoreUI::kMutePad, true);
-    Check(p.mute, "P01 held: mute", 1);
-    press(CoreUI::kMutePad, false);
-    Check(!p.mute, "P01 released: sound", 0);
-    press(CoreUI::kShakePad, true);
-    Check(p.rand_pos == 1.0f && p.spread == 1.0f, "P00 held: shaken", 1);
-    press(CoreUI::kShakePad, false);
-    Check(p.rand_pos == 0.0f, "P00 released: Spray as set", 0);
-    press(CoreUI::kHoldPad, true);
-    r.Run(0.01, Silence);
-    const double point = r.core.PlayheadPhase();
-    r.Run(0.2, Silence);
-    Check(p.freeze && r.core.PlayheadPhase() == point,
-          "P02 held: the playhead stops",
-          r.core.PlayheadPhase());
-    press(CoreUI::kHoldPad, false);
-    r.Run(0.2, Silence);
-    Check(!p.freeze && r.core.PlayheadPhase() > point,
-          "P02 released: runs on from there",
-          r.core.PlayheadPhase());
-
-    // P03-P09, the places: the selection in sevenths, left to right. A touch:
+    // P03-P09, the slices: the loop in sevenths, left to right. A touch:
     // there with a grain at once. Held: stays there. Released: runs on.
     c.knobs[Controls::S37] = 0.5f;
     ui.Process(c, r.core);
     r.Run(0.5, Silence);
-    press(CoreUI::kPlacePads[3], true);
+    press(CoreUI::kSlicePads[3], true);
     const size_t one = Starts(r, 0.1);
     Check(one == 1 && Near(r.core.PlayheadPhase(), 3.0 / 7.0, 1e-3),
-          "place 4 at no density: one grain, at the fourth seventh",
+          "slice 4 at no density: one grain, at the fourth seventh",
           r.core.PlayheadPhase());
-    press(CoreUI::kPlacePads[3], false);
+    press(CoreUI::kSlicePads[3], false);
     const size_t none = Starts(r, 0.1);
-    Check(none == 0, "place 4 released, no density: no more grains", none);
+    Check(none == 0, "slice 4 released, no density: no more grains", none);
     c.knobs[Controls::S37] = 0.75f;
-    press(CoreUI::kPlacePads[6], true);
+    press(CoreUI::kSlicePads[6], true);
     r.Run(0.3, Silence);
     Check(Near(r.core.PlayheadPhase(), 6.0 / 7.0, 1e-3),
-          "place 7 held: the playhead stays at the last seventh",
+          "slice 7 held: the playhead stays at the last seventh",
           r.core.PlayheadPhase());
-    press(CoreUI::kPlacePads[6], false);
+    press(CoreUI::kSlicePads[6], false);
     r.Run(0.1, Silence);
     Check(r.core.PlayheadPhase() > 6.0 / 7.0,
-          "place 7 released: runs on from there",
+          "slice 7 released: runs on from there",
           r.core.PlayheadPhase());
-
-    // P11: the glass turned over by hand, once a touch
-    press(CoreUI::kTurnPad, true);
-    r.Run(0.1, Silence);
-    const double turned = r.core.PlayheadPhase();
-    r.Run(0.1, Silence);
-    Check(r.core.Heading() == -1 && r.core.PlayheadPhase() < turned,
-          "P11: turned over, the sand runs back",
-          r.core.PlayheadPhase());
-    press(CoreUI::kTurnPad, false);
-    press(CoreUI::kTurnPad, true);
-    press(CoreUI::kTurnPad, false);
-    r.Run(0.01, Silence);
-    Check(r.core.Heading() == 1, "P11 again: upright", 1);
 
     // Detent pulse: on reaching the centre, renewed while turned within it
     c.knobs[Controls::S33] = 0.4f;
@@ -1231,9 +1398,11 @@ int main()
     Fuzz();
     Level();
     Windows();
+    Filter();
     Mute();
     Ends();
-    Turned();
+    Scrubbed();
+    Quantized();
     Selection();
     Pour();
     Randomness();
@@ -1241,6 +1410,7 @@ int main()
     Pan();
     Voices();
     Cloud();
+    Takeovers();
     Mapping();
     std::printf("%s\n",
                 failures ? "Some checks failed." : "All checks passed.");

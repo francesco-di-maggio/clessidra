@@ -4,11 +4,11 @@ import TouchPanel from "../components/TouchPanel.astro";
 import { CONTROLS } from "../lib/controls";
 
 // What the help shows for each control, by id
-const help = Object.fromEntries(CONTROLS.map((c) => [c.id, { name: c.name, does: c.does ?? "" }]));
+const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { name: c.name, does: (c.does ?? "") + (c.twin ? ` P11: ${c.twin.name}. ${c.twin.does}` : "") }]));
 ---
 <Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch.">
 <h1>Mapping</h1>
-<p class="lead">Point at a control. One layer: every control does one thing, where it is.</p>
+<p class="lead">Point at a control. Two layers: each knob alone, and its twin with P11 held.</p>
 <div class="mapping">
   <div class="panel touch-panel"><TouchPanel /></div>
   <div class="stack">
@@ -18,9 +18,9 @@ const help = Object.fromEntries(CONTROLS.map((c) => [c.id, { name: c.name, does:
       <p id="help-does">Its name and what it does show here.</p>
     </div>
     <ul class="panel notes">
-      <li><span class="label">Glass</span>The recording is the sand, Speed how fast it runs through</li>
+      <li><span class="label">Sampler</span>Record a sound, then Speed, Position and Length move through it</li>
       <li><span class="label">Density</span>Regular below the centre, random above: drops, a stream, a cloud</li>
-      <li><span class="label">Hands</span>Places to play it, Turn to reverse it, Hold and Shake to grab it</li>
+      <li><span class="label">Shift</span>P11 held: each knob's twin, its randomness or the space around it</li>
     </ul>
   </div>
 </div>

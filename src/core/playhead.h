@@ -12,7 +12,7 @@ enum class End
 };
 
 // A point through a span, 0..1, moved by a signed step per sample. Turned
-// over, its steps run the other way until turned back.
+// over at an end (End::Turn), its steps run the other way.
 class Playhead
 {
   public:
@@ -21,8 +21,6 @@ class Playhead
     void Restart(bool backwards);
     // To a point of the span, sand in the glass again
     void Jump(double phase);
-    // The glass turned over by hand: from here, the other way
-    void Turn() { heading_ = -heading_; }
     // One sample. Once it has run out, it waits at the edge until a step the
     // other way.
     void Advance(double step, End end);

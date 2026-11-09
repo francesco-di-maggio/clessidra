@@ -2,8 +2,8 @@
 // is what is left of the selection, the pile below what has run. The neck
 // opens with Density. Each falling dot is a grain sounding: its height its
 // progress, its drift its pan, its brightness its window, its size the grain
-// size. Held: the glass on its side. Running backwards, by Speed or turned
-// over: upside down. All voices busy, the neck clogs: grains wait above it.
+// size. Frozen: the glass on its side. Reverse: upside down. All voices
+// busy, the neck clogs: grains wait above it.
 
 import { GRAIN_FIELDS, PARAM, VIEW, type Frame } from "./engine";
 import { windowAt } from "./waveform";
@@ -51,8 +51,7 @@ export class Hourglass {
     this.raf = 0;
     const p = this.frame?.params;
     if (!p) return;
-    const backwards = p[PARAM.speed] < 0 !== p[PARAM.heading] < 0;
-    const target = (backwards ? 180 : 0) + (p[PARAM.freeze] ? 90 : 0);
+    const target = (p[PARAM.speed] < 0 ? 180 : 0) + (p[PARAM.freeze] ? 90 : 0);
     this.angle += (target - this.angle) * 0.18;
     if (Math.abs(target - this.angle) < 0.2) this.angle = target;
     this.draw();

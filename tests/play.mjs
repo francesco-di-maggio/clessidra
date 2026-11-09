@@ -90,20 +90,20 @@ try {
   const values = await run(`[...document.querySelectorAll(".knob .value")].map((v) => v.textContent)`);
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
 
-  // Density: random above the centre. A place, then Turn: the glass turned
-  // over. One layer: no Shift anywhere.
+  // Density: random above the centre. A slice, then P11 held: the twins
+  // brought forward, Density's reverb beneath it.
   const pad = (name, down) => run(`document.querySelector('#keys .pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
   const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
   const density = await value("Density");
   check(/^Random /.test(density), "Density up: random grains at once", density);
-  await pad("Place 4", true);
-  await pad("Place 4", false);
-  await pad("Turn", true);
-  await pad("Turn", false);
+  await pad("Slice 4", true);
+  await pad("Slice 4", false);
+  await pad("Shift", true);
   await sleep(300);
-  const turned = await run(`document.getElementById("readout-value").textContent`);
-  check(turned === "Turned", "Turn: the glass turned over", turned);
-  check(!(await run(`document.body.textContent.includes("Shift")`)), "one layer: no Shift on the page");
+  const shifted = await run(`document.querySelector(".instrument").classList.contains("shifted")`);
+  const twin = await run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Density").querySelector(".twin").textContent`);
+  await pad("Shift", false);
+  check(shifted && /^Reverb \d+\s%$/.test(twin), "P11 held: the twins forward", twin);
 
   // A tap keeps the seconds set over the input
   await run(`[...document.querySelectorAll("#tap button")].find((b) => b.textContent === "4 s").click()`);

@@ -12,9 +12,18 @@
 #include "limiter.h"
 #include "playhead.h"
 #include "ring.h"
+#include "svf.h"
 
 namespace clessidra
 {
+// Steps a grain's random pitch snaps to
+enum class Quantize
+{
+    Off,
+    Semitones,
+    Octaves
+};
+
 // The instrument's signal path. No hardware code here.
 class Core
 {
@@ -51,6 +60,17 @@ class Core
     static constexpr float kReverbLowpassHz = 10000.0f;
     // Mute: the fade of the grains, in and out
     static constexpr float kMuteSeconds = 0.005f;
+    // Filter on the grains, before the reverb. From off, exponential to the
+    // ends, resonance rising with it from flat (Butterworth). Fades in over
+    // the first kFilterFade of each side.
+    static constexpr float kLowpassOffHz  = 20000.0f;
+    static constexpr float kLowpassMinHz  = 200.0f;
+    static constexpr float kHighpassOffHz = 20.0f;
+    static constexpr float kHighpassMaxHz = 2000.0f;
+    static constexpr float kFilterQMin    = 0.707f;
+    static constexpr float kFilterQMax    = 1.5f;
+    static constexpr float kFilterFade    = 0.1f;
+    static constexpr float kFilterSeconds = 0.01f; // smoothing of Params.filter
     // Recording. The input goes to the ring all the time. On release, a touch
     // shorter than kTapSeconds keeps the kTapCaptureSeconds before it, a longer
     // one the touch from kPreRollSeconds before it, up to the buffers'
@@ -90,16 +110,18 @@ class Core
         // Randomness of each grain, 0..1: 0 none, 1 anywhere in the range,
         // evenly. Position within the amount around the playhead, round the
         // selection. Size between min_grain_ms and max_grain_ms, exponential.
-        // Pitch up to kRandPitchSemitones either way.
-        float rand_pos   = 0.0f;
-        float rand_size  = 0.0f;
-        float rand_pitch = 0.0f;
+        // Pitch up to kRandPitchSemitones either way, snapped by quantize.
+        float    rand_pos   = 0.0f;
+        float    rand_size  = 0.0f;
+        float    rand_pitch = 0.0f;
+        Quantize quantize   = Quantize::Off;
         // Starts at random intervals, mostly short, a long tail, the same mean.
         // Otherwise periodic.
         bool random_starts = false;
         // 0..1, how much the grains differ: with the grains sounding, the pan
         // width
         float spread = 0.0f;
+        float filter = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
         // The grains silent, faded over kMuteSeconds; the reverb rings on
         bool  mute = false;
@@ -139,9 +161,15 @@ class Core
     {
         jump_.store(std::clamp(phase, 0.0f, 1.0f), std::memory_order_relaxed);
     }
-    // Main loop, at the next block: the glass turned over, the sand running
-    // the other way from where it is
-    void Turn() { turn_.store(true, std::memory_order_relaxed); }
+    // Main loop, at the next block: while frozen, the playhead moved by delta
+    // of the selection, round it. Moves add up until then.
+    void Scrub(float delta)
+    {
+        float now = scrub_.load(std::memory_order_relaxed);
+        while(!scrub_.compare_exchange_weak(
+            now, now + delta, std::memory_order_relaxed))
+        {}
+    }
     // Main loop: true while the record pad is held
     void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
     // What a tap keeps, seconds, up to the ring's capacity. kTapCaptureSeconds
@@ -263,8 +291,8 @@ class Core
     Schedule                      schedule_;
 
     bool               restart_ = false; // a new recording: from the top
-    std::atomic<float> jump_{-1.0f};     // none below 0
-    std::atomic<bool>  turn_{false};
+    std::atomic<float> scrub_{0.0f};
+    std::atomic<float> jump_{-1.0f}; // none below 0
     uint32_t           seed_ = 1;
     // The selection's length in samples at the last block: a new length keeps
     // the playhead where it is in the recording
@@ -281,9 +309,11 @@ class Core
     float coherence_gain_ = 1.0f;
     float norm_           = 0.0f; // grain gain
 
-    // Reverb, output
-    daisysp::ReverbSc reverb_;
-    Limiter           limiter_;
+    // Filter, reverb, output
+    std::array<Svf, 2> filters_;
+    float              filter_ = 0.0f; // Params.filter, smoothed
+    daisysp::ReverbSc  reverb_;
+    Limiter            limiter_;
     // Gains at the end of the last block
     float norm_gain_   = 0.0f;
     float mute_gain_   = 1.0f;

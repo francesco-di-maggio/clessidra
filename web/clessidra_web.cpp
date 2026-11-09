@@ -43,8 +43,9 @@ enum View : size_t
 };
 float view[kNumView];
 
-// Per grain: position 0..1 of the recording, progress 0..1, window shape, pan
-constexpr size_t kGrainFields = 4;
+// Per grain: position 0..1 of the recording, progress 0..1, window shape, pan,
+// pitch in semitones, size in ms
+constexpr size_t kGrainFields = 6;
 float            grains[Core::kNumVoices * kGrainFields];
 
 // The parameters in use, in the core's units, for the readout
@@ -70,7 +71,8 @@ enum Param : size_t
     kMaxGrainMs,
     kSpread,
     kSandLeft,
-    kHeading,
+    kFilter,
+    kQuantize,
     kNumParams
 };
 float params[kNumParams];
@@ -208,6 +210,8 @@ EXPORT int cl_grains()
         fields[1]     = float(g.Progress());
         fields[2]     = g.Settings().shape;
         fields[3]     = g.Settings().pan;
+        fields[4]     = 12.0f * std::log2(std::fabs(g.Settings().rate));
+        fields[5]     = core.GrainMs() * g.Settings().size;
         count++;
     }
     return count;
@@ -240,6 +244,7 @@ EXPORT const float* cl_params()
     params[kMaxGrainMs]   = p.max_grain_ms;
     params[kSpread]       = p.spread;
     params[kSandLeft]     = core.SandLeft();
-    params[kHeading]      = float(core.Heading());
+    params[kFilter]       = p.filter;
+    params[kQuantize]     = float(p.quantize);
     return params;
 }

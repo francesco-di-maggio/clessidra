@@ -1,8 +1,12 @@
 // The buffer: the recording playing, the selection the playhead moves through,
-// and every grain at the point it reads, high for left and low for
-// right. Laid out to the canvas's size.
+// and every grain at the point it reads, as high as its pitch and as big as its
+// size. Laid out to the canvas's size.
 
 import { GRAIN_FIELDS, RATE, VIEW, type Frame } from "./engine";
+
+const PITCH_RANGE = 36; // semitones: Pitch's ±24 and Random pitch's ±12
+const SIZE_MIN = 5; // ms, CoreUI::kMinGrainMs
+const SIZE_MAX = 2000; // CoreUI::kMaxGrainMs
 
 // Grain::Render's window at progress x for shape: Hann at 0.5, percussive
 // towards 1, reversed towards 0
@@ -131,13 +135,17 @@ export class Waveform {
     ctx.lineTo(px, top);
     ctx.fill();
 
-    // Grains over the waveform, by pan, each cut clear of the dots
+    // Grains over the waveform where they read, as high as their pitch (the
+    // centre unison, the edges PITCH_RANGE either way), as big as their size,
+    // swelling with their window, each cut clear of the dots
     const g = f.grains;
+    const reach = (bottom - top) / 2 - 8;
     for (let i = 0; i < g.length; i += GRAIN_FIELDS) {
       const level = windowAt(g[i + 1], g[i + 2]);
       const gx = pad + g[i] * width;
-      const gy = top + 8 + g[i + 3] * (bottom - top - 16);
-      const r = 2 + 4 * level;
+      const gy = (top + bottom) / 2 - (Math.max(-1, Math.min(1, g[i + 4] / PITCH_RANGE)) * reach);
+      const size = Math.max(0, Math.min(1, Math.log(g[i + 5] / SIZE_MIN) / Math.log(SIZE_MAX / SIZE_MIN)));
+      const r = (2 + 5 * size) * (0.4 + 0.6 * level);
       ctx.fillStyle = c.surface;
       ctx.beginPath();
       ctx.arc(gx, gy, r + 2.5, 0, 2 * Math.PI);

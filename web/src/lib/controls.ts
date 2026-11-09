@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { HOLD_PAD, MUTE_PAD, PARAM, PLACE_PADS, RATE, RECORD_PAD, SHAKE_PAD, TURN_PAD } from "./engine";
+import { PARAM, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -11,6 +11,13 @@ export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Sw
 export interface Live {
   sound: number; // samples recorded
   recording: number; // seconds P10 has been held, 0 when not
+}
+
+// A knob's function with P11 held
+export interface Twin {
+  name: string;
+  does: string;
+  value: (p: Float32Array) => string;
 }
 
 export interface Control {
@@ -24,26 +31,25 @@ export interface Control {
   bipolar?: boolean; // drawn from its centre
   detent?: boolean; // stops at its centre
   scale?: { at: number; label: string }[]; // a fader's marks, 0..1 of its travel
+  free?: boolean; // not assigned yet
   does?: string;
   value?: (p: Float32Array, v: Live) => string;
+  twin?: Twin;
 }
 
 const seconds = (samples: number) => `${(samples / RATE).toFixed(samples < RATE ? 2 : 1)} s`;
 const percent = (x: number) => `${Math.round(x * 100)} %`;
 const ms = (x: number) => (x < 1000 ? `${Math.round(x)} ms` : `${(x / 1000).toFixed(2)} s`);
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
-const END = ["Once", "Turn", "Loop"]; // Core's End
-const REVERB = { short: 0.35, long: 0.8 }; // CoreUI::kReverbShort, kReverbLong
+const RAND_PITCH = 12; // Core::kRandPitchSemitones
+const QUANTIZE = ["Off", "Semitones", "Octaves"]; // Core's Quantize
 
-// Speed's stops, as CoreUI's Stops(): each flat over the first third of its
-// segment, marked at the middle of it
-const SPEED_STOPS = ["¼", "½", "1×", "2×", "4×"];
-const SEGMENTS = SPEED_STOPS.length;
-const speedAt = (stop: number, sign: number) => 0.5 + (sign * (stop === SEGMENTS ? SEGMENTS : stop + 1 / 6)) / (2 * SEGMENTS);
-const SPEED_SCALE = SPEED_STOPS.map((label, i) => ({ at: speedAt(i + 1, 1), label }))
-  .reverse()
-  .concat([{ at: 0.5, label: "0" }])
-  .concat(SPEED_STOPS.map((label, i) => ({ at: speedAt(i + 1, -1), label })));
+// Speed's stops from the bottom, as CoreUI's Stops(): each flat over the first
+// third of its segment, marked at the middle of it
+const SPEED_STOPS = ["0", "¼", "½", "1×", "2×", "4×"];
+const SEGMENTS = SPEED_STOPS.length - 1;
+const speedAt = (stop: number) => (stop === SEGMENTS ? SEGMENTS : stop === 0 ? 0 : stop + 1 / 6) / SEGMENTS;
+const SPEED_SCALE = SPEED_STOPS.map((label, i) => ({ at: speedAt(i), label })).reverse();
 // Density's grains at once where the fader puts them, either side of the
 // centre (CoreUI: kDensityDetent, kMinOverlap, kMaxOverlap)
 const DETENT = 0.04;
@@ -61,9 +67,10 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 
 export const CONTROLS: Control[] = [
   {
-    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3, 1), bipolar: true, detent: true, scale: SPEED_SCALE,
-    does: "How fast the sand runs: the time stretched, the pitch kept. Held at the centre. Up forward, down reverse. Stops at ¼, ½, 1, 2 and 4×.",
-    value: (p) => (p[PARAM.freeze] ? "Held" : `${signed(p[PARAM.speed], 2)}×`),
+    id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3), scale: SPEED_SCALE,
+    does: "How fast the playhead runs: the time stretched, the pitch kept. Stops at ¼, ½, 1, 2 and 4×. Frozen: scrubs through the loop, the speed taken up again after.",
+    value: (p) => (p[PARAM.freeze] ? "Frozen" : `${signed(p[PARAM.speed], 2)}×`),
+    twin: { name: "Dry/wet", does: "The input against the grains, equal power.", value: (p) => percent(p[PARAM.mix]) },
   },
   {
     id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.8, bipolar: true, detent: true, scale: DENSITY_SCALE,
@@ -73,31 +80,34 @@ export const CONTROLS: Control[] = [
       if (d === 0) return "None";
       return `${p[PARAM.randomStarts] ? "Random" : "Regular"} ${fraction((d * p[PARAM.grainMsSet]) / 1000)}`;
     },
+    twin: { name: "Reverb", does: "On the grains: none to most, the decay 0.5 to 16 s.", value: (p) => percent(p[PARAM.reverb]) },
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
-    does: "Where the sand starts, anywhere in the recording. Held: moves the point.",
+    does: "Where the loop starts, anywhere in the recording. Frozen: moves the point with it.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
-    does: "How much sand: the selection, past the end round to the start.",
+    does: "How long the loop is, past the end round to the start.",
     value: (p, v) => seconds(p[PARAM.length] * v.sound),
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
     does: "Grain length, 5 ms to 2 s, 100 ms at the centre, at most half the recording.",
     value: (p) => ms(p[PARAM.grainMs]),
+    twin: { name: "Random size", does: "Each grain's size, longer or shorter, up to about two octaves either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
   },
   {
-    id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
-    does: "How far grains stray from the playhead, evenly: position, then size, pitch, pan, level, reverb send.",
-    value: (p) => (p[PARAM.spread] === 0 ? "Plain" : percent(p[PARAM.spread])),
+    id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Random position", initial: 0,
+    does: "How far grains stray from the playhead, evenly, up to the whole loop, across the stereo field with it.",
+    value: (p) => (p[PARAM.spread] === 0 ? "Off" : percent(p[PARAM.spread])),
   },
   {
     id: "S33", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,
     does: "±24 semitones. Stops at 0, 1, 3, 4, 7, 12, 24.",
     value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
+    twin: { name: "Random pitch", does: "Each grain's pitch, up to an octave either way, snapped as S07 sets.", value: (p) => (p[PARAM.randPitch] === 0 ? "Off" : `±${(p[PARAM.randPitch] * RAND_PITCH).toFixed(1)} st`) },
   },
   {
     id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 0.5, bipolar: true, detent: true,
@@ -106,42 +116,44 @@ export const CONTROLS: Control[] = [
       const s = p[PARAM.shape];
       return s === 0.5 ? "Hann" : s < 0.5 ? `Rev ${percent(1 - 2 * s)}` : `Perc ${percent(2 * s - 1)}`;
     },
+    twin: {
+      name: "Filter", does: "On the grains: low-pass down to 200 Hz, off at the centre, high-pass up to 2 kHz.",
+      value: (p) => {
+        const f = p[PARAM.filter];
+        return f === 0 ? "Off" : f < 0 ? `LP ${percent(-f)}` : `HP ${percent(f)}`;
+      },
+    },
   },
   {
-    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Reverb", initial: POSITION.centre,
-    does: "On the grains: down off, centre short (1.7 s), up long (8 s).",
-    value: (p) => (p[PARAM.reverb] === 0 ? "Off" : p[PARAM.reverb] < REVERB.long ? "Short" : "Long"),
+    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Mode", initial: POSITION.up,
+    does: "Up forward, centre frozen, down reverse.",
+    value: (p) => (p[PARAM.freeze] ? "Frozen" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   {
-    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "End", initial: POSITION.down,
-    does: "When the sand runs out: up stops, centre turns the glass over, down starts again.",
-    value: (p) => END[p[PARAM.end]] ?? "",
+    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Quantize", initial: POSITION.down,
+    does: "The random pitch: down free, centre in semitones, up in octaves.",
+    value: (p) => QUANTIZE[p[PARAM.quantize]] ?? "",
   },
   {
     id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
-    does: "Tap: the last 8 s. Hold: up to 30 s, the input heard. The new sand pours in over 2 s.",
+    does: "Tap: the last 8 s. Hold: up to 30 s, the input heard. The new recording pours in over 2 s. With P11: listen, the input heard, nothing recorded.",
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
-    id: "P11", type: "pad", index: TURN_PAD, ...padAt(TURN_PAD), name: "Turn",
-    does: "A touch turns the glass over: from where it is, the sand runs the other way, the grains backwards.",
-    value: (p) => (p[PARAM.heading] < 0 ? "Turned" : "Upright"),
+    id: "P11", type: "pad", index: SHIFT_PAD, ...padAt(SHIFT_PAD), name: "Shift",
+    does: "Held: the knobs' twins. With P01: the twins back to their defaults. With P10: listen.",
   },
   {
-    id: "P00", type: "pad", index: SHAKE_PAD, ...padAt(SHAKE_PAD), name: "Shake",
-    does: "Held: the sand shaken, Spray at its top.",
+    id: "P01", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
+    does: "With P11: the twins back to their defaults, nothing jumps. Alone: nothing yet.",
   },
-  {
-    id: "P01", type: "pad", index: MUTE_PAD, ...padAt(MUTE_PAD), name: "Mute",
-    does: "Held: the grains silent, the reverb rings on.",
-  },
-  {
-    id: "P02", type: "pad", index: HOLD_PAD, ...padAt(HOLD_PAD), name: "Hold",
-    does: "Held: the sand stops, the grains stay on that moment. Released: it runs on.",
-  },
-  ...PLACE_PADS.map((index, i): Control => ({
-    id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Place ${i + 1}`,
-    does: `The selection in sevenths, left to right, this one at ${i}/7. A touch: the playhead there, a grain at once, the beat from it. Held: it stays there.`,
+  ...[0, 2].map((index): Control => ({
+    id: `P0${index}`, type: "pad", index, ...padAt(index), name: `P0${index}`, free: true,
+    does: "Not assigned yet.",
+  })),
+  ...SLICE_PADS.map((index, i): Control => ({
+    id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
+    does: `The loop in sevenths, left to right, this one at ${i}/7. A touch: the playhead there, a grain at once, the beat from it. Held: it stays there.`,
   })),
 ];
 
@@ -150,17 +162,19 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 
 // Starting points: a sound and how to set the panel for it
 export const PLAY: [string, string][] = [
-  ["Rhythm", "Density below the centre, Shape up, Size short. Tap the places: each restarts the beat"],
-  ["Drums by hand", "Density at the centre: each place plays one grain"],
-  ["Cloud", "Density at the top, Spray up, Size long, Reverb long"],
-  ["Stretch", "Speed at ¼ or ½, Density up. Turn to hear it backwards"],
-  ["A moment held", "Hold, or a place held, Density up, a little Spray, Shake for a burst"],
+  ["Rhythm", "Density below the centre, Shape up, Size short. Tap the slices: each restarts the beat"],
+  ["Drums by hand", "Density at the centre: each slice plays one grain"],
+  ["Cloud", "Density at the top, Random position up, Size long, Reverb (P11 + S37) up"],
+  ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards"],
+  ["A moment held", "S09 at the centre, Density up, a little Random position. Speed scrubs the point"],
+  ["Shimmer", "Random pitch (P11 + S33) up, S07 up: octaves"],
 ];
 
 export const LED: [string, string][] = [
   ["Glow", "Grains falling, dimmer as the sand runs out"],
   ["Flashing", "Recording"],
-  ["Pulse", "At a stop: unison, speed 1× either way, 100 ms, Hann"],
+  ["Pulse", "At a stop: unison, speed 1×, 100 ms, Hann, filter off"],
+  ["Steady", "P11 held: the twin last turned"],
 ];
 
 // Browser only: the level into the firmware and out of it. The board has its

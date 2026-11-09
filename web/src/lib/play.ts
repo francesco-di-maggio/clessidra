@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, HOLD_PAD, MUTE_PAD, PLACE_PADS, RATE, RECORD_PAD, SHAKE_PAD, TURN_PAD, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { GrainView } from "./grain";
 import { Hourglass } from "./hourglass";
 import { Incoming } from "./incoming";
@@ -60,7 +60,7 @@ const glass = { sand: $("glass-sand"), voices: $("glass-voices"), clog: $("glass
 const clog = { dropped: 0, at: 0, rate: 0 };
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
-const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · 1–7 places · T turn · S shake · M mute · H hold" };
+const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · 1–7 slices · Shift held: P11, the twins · 0 reset" };
 let focused: Control | null = null;
 
 const parts = new Map<string, Widget>();
@@ -85,13 +85,13 @@ add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
-add(segmented(byId("S09"), $("s09"), [[POSITION.up, "Long"], [POSITION.centre, "Short"], [POSITION.down, "Off"]], on));
-add(segmented(byId("S07"), $("end"), [[POSITION.up, "Once"], [POSITION.centre, "Turn"], [POSITION.down, "Loop"]], on));
-PLACE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)).root.classList.add("key"));
-const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Turn", 1], ["P00", "Shake", 3], ["P01", "Mute", 4], ["P02", "Hold", 5]];
+add(segmented(byId("S09"), $("s09"), [[POSITION.up, "Fwd"], [POSITION.centre, "Freeze"], [POSITION.down, "Rev"]], on));
+add(segmented(byId("S07"), $("s07"), [[POSITION.up, "Oct"], [POSITION.centre, "Semi"], [POSITION.down, "Off"]], on));
+SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)).root.classList.add("key"));
+const BLACK: [string, string, number][] = [["P10", "Rec", 0], ["P11", "Shift", 1], ["P00", "P00", 3], ["P01", "Reset", 4], ["P02", "P02", 5]];
 for (const [id, label, after] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
-  w.root.classList.add("key", "black");
+  w.root.classList.add("key", "black", ...(w.c.free ? ["free"] : []));
   if (id === "P10") w.root.classList.add("rec");
   w.root.style.left = `calc((100% - 24px) / 7 * ${after + 0.5} + ${after * 4 + 2}px)`;
 }
@@ -137,6 +137,7 @@ function set(c: Control, value: number, show = true) {
     return;
   }
   parts.get(c.id)?.draw(value);
+  if (c.free) return;
   if (c.type === "switch") send({ type: "switch", index: c.index, position: value });
   else send({ type: "knob", index: c.index, value });
   if (show) focus(c);
@@ -152,6 +153,7 @@ interface Touch {
 const touches = new Map<number, Touch>(); // by pad index
 
 function press(c: Control, down: boolean, e: { pointerId?: number | string; pointerType?: string; pressure?: number }) {
+  if (c.free) return;
   const who = e.pointerId ?? "key";
   let t = touches.get(c.index);
   if (down) {
@@ -188,8 +190,8 @@ addEventListener("pointermove", (e) => {
 });
 
 // Keys: 1–7 the places, R record, T turn, S shake, M mute, H hold
-const KEYS: Record<string, number> = { r: RECORD_PAD, t: TURN_PAD, s: SHAKE_PAD, m: MUTE_PAD, h: HOLD_PAD };
-PLACE_PADS.forEach((index, i) => (KEYS[`${i + 1}`] = index));
+const KEYS: Record<string, number> = { r: RECORD_PAD, shift: SHIFT_PAD, "0": RESET_PAD };
+SLICE_PADS.forEach((index, i) => (KEYS[`${i + 1}`] = index));
 function keyPad(e: KeyboardEvent) {
   const key = e.key.toLowerCase();
   return key in KEYS ? KEYS[key] : null;
@@ -206,6 +208,12 @@ addEventListener("keyup", (e) => {
 addEventListener("blur", () => {
   for (const t of [...touches.values()]) for (const who of [...t.pointers]) press(t.c, false, { pointerId: who });
 });
+
+// P11 held: the knobs' twins
+let wasShifted = false;
+function shifted() {
+  return touches.has(SHIFT_PAD);
+}
 
 // Seconds P10 has been held to record, 0 when it isn't
 function recording() {
@@ -225,16 +233,28 @@ function hint() {
 function focus(c: Control) {
   focused = c;
   for (const w of parts.values()) w.root.classList.toggle("focus", w.c === c);
-  readout.name.textContent = `${c.id} ${c.name}`;
-  readout.does.textContent = c.does ?? "";
+  const twin = shifted() ? c.twin : undefined;
+  readout.name.textContent = twin ? `P11 + ${c.id} ${twin.name}` : `${c.id} ${c.name}`;
+  readout.does.textContent = (twin ?? c).does ?? "";
   show();
 }
 
 function show() {
   if (!last) return;
   const v: Live = { sound: last.view[VIEW.sound], recording: recording() };
-  for (const w of parts.values()) if (w.c.index >= 0) w.value?.(w.c.value?.(last.params, v) ?? "");
-  if (focused) readout.value.textContent = focused.value?.(last.params, v) ?? "";
+  for (const w of parts.values()) {
+    if (w.c.index < 0) continue;
+    w.value?.(w.c.value?.(last.params, v) ?? "");
+    if (w.c.twin) w.twin?.(w.c.twin.value(last.params));
+  }
+  // P11 pressed or released: the readout names the other layer
+  if (shifted() !== wasShifted) {
+    wasShifted = shifted();
+    if (focused) return focus(focused);
+  }
+  const twin = shifted() ? focused?.twin : undefined;
+  if (focused) readout.value.textContent = twin ? twin.value(last.params) : (focused.value?.(last.params, v) ?? "");
+  document.querySelector(".instrument")?.classList.toggle("shifted", shifted());
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   held.classList.toggle("on", v.recording > 0);
   glass.sand.textContent = v.sound ? `${Math.round(last.params[PARAM.sandLeft] * 100)} %` : "–";

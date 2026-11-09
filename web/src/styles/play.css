@@ -158,3 +158,12 @@ body.app main { min-height: 0; }
   .pad.rec .num::before { margin: 0; }
   .readout { flex-wrap: wrap; padding: 10px 14px; }
 }
+
+/* The knobs' twins, P11 held: beneath each, brought forward while held */
+.knob .twin { font-size: 9px; line-height: 12px; letter-spacing: 0.04em; color: var(--dim); white-space: nowrap; }
+.instrument.shifted .knob .twin { color: var(--accent); }
+.instrument.shifted .knob:has(.twin) .value { color: var(--dim); }
+
+/* Pads not assigned yet */
+.pad.free { pointer-events: none; }
+.pad.key.black.free { background: var(--surface); color: var(--dim); border-color: var(--line); }
