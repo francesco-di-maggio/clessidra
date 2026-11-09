@@ -38,7 +38,7 @@ export class Incoming {
     const css = getComputedStyle(document.documentElement);
     // The tile holds the inset, its scale below: a tick a second
     const pad = 0;
-    const axis = H - 18;
+    const axis = H - 20;
     const width = W - 2 * pad;
     const cols = Math.floor(width / DOT);
     const top = 6;
@@ -83,8 +83,8 @@ export class Incoming {
     ctx.textBaseline = "middle";
     ctx.fillStyle = css.getPropertyValue("--dim");
     ctx.textAlign = "left";
-    ctx.fillText(`−${this.seconds} s`, pad, axis + 3);
+    ctx.fillText(`−${this.seconds} s`, pad, axis + 5);
     ctx.textAlign = "right";
-    ctx.fillText("now", W - pad, axis + 3);
+    ctx.fillText("now", W - pad, axis + 5);
   }
 }
