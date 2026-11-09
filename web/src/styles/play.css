@@ -104,6 +104,8 @@ body.app main { flex: 1; min-height: 0; }
 .pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.72); height: 56%; padding-bottom: 8px;
              left: calc((var(--key) + var(--gap)) * var(--edge) - var(--gap) / 2); transform: translateX(-50%);
              background: var(--bg); color: var(--dim); letter-spacing: 0.08em; }
+/* Running: Rec filled as Start was, the one filled control */
+.running .pad.rec:not(.on) { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 .pad.rec.on .num::before { background: #fff; }
