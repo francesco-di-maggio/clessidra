@@ -20,17 +20,18 @@ import "../styles/play.css";
       <div id="levels" class="levels" aria-label="Input and output level, browser only"></div>
     </section>
 
-    <section class="tile sound" aria-label="The input and the recording">
-      <div class="bar">
-        <span class="label">Input</span>
-        <span class="figures"><span id="monitor" class="figure on"></span></span>
-      </div>
+    <section class="tile input" aria-label="The input">
+      <span class="label name">Input</span>
       <canvas id="incoming" role="img" aria-label="The input over the last 8 s, the part being recorded in orange"></canvas>
-      <div class="bar lane">
+      <span id="monitor" class="figure on"></span>
+    </section>
+
+    <section class="tile sound" aria-label="The recording">
+      <div class="bar">
         <span class="label">Recording</span>
         <span class="figures"><span id="grain-figure" class="figure" title="Grain size, grains sounding of the voices">100 ms · 0/32</span><span id="held" class="figure">Empty</span></span>
       </div>
-      <canvas id="buffer" role="img" aria-label="The recording: the loop, its slices, the playhead with a grain's shadow, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
+      <canvas id="buffer" role="img" aria-label="The recording: the loop, its slices, the playhead, the reach of Random position, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
     </section>
 
     <section id="speed" class="tile fader" aria-label="Speed"></section>
@@ -48,9 +49,8 @@ import "../styles/play.css";
 
     <section id="density" class="tile fader" aria-label="Density"></section>
 
-    <section class="tile pads" aria-label="The 12 pads as a keyboard: the slices white, the functions black">
-      <div id="white" class="keys white"></div>
-      <div id="black" class="keys black"></div>
+    <section class="tile pads" aria-label="The 12 pads as an octave: the slices white, the functions black">
+      <div id="keys" class="keys"></div>
     </section>
   </div>
 </Base>

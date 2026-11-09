@@ -36,12 +36,12 @@ export class Incoming {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     const css = getComputedStyle(document.documentElement);
-    // Inset as the buffer view, its scale below as there: a tick a second
-    const pad = 14;
+    // The tile holds the inset, its scale below: a tick a second
+    const pad = 0;
     const axis = H - 12;
     const width = W - 2 * pad;
     const cols = Math.floor(width / DOT);
-    const top = 8;
+    const top = 6;
     const bottom = axis - 12;
     const rows = Math.floor((bottom - top) / 2 / DOT);
     const mid = (top + bottom) / 2;

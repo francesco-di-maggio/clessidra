@@ -68,20 +68,21 @@ const inMeter = level(LEVELS[0]);
 const outMeter = level(LEVELS[1]);
 
 // As on the board: a fader at each edge, the knobs in their cells, the
-// switches between Position and Length. The pads under all of it.
+// switches between Position and Length, the pads under them.
 add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
 add(toggle(byId("S09"), $("s09"), [[POSITION.up, "FWD"], [POSITION.centre, "FRZ"], [POSITION.down, "REV"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.up, "OCT"], [POSITION.centre, "SEMI"], [POSITION.down, "OFF"]], on));
-// The pads as a keyboard: the slices the white keys, the functions the black,
+// The pads as an octave: the slices the white keys, the functions the black,
 // Rec and Shift in the group of two, Stop, Reset and Cue in the three
-SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("white"), `${i + 1}`, on)));
+SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("keys"), `${i + 1}`, on)));
 const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "Stop"], ["P01", "Reset"], ["P02", "Cue"]];
 const BLACK_AT = [1, 2, 4, 5, 6]; // the white keys' edges they sit on
 FUNCTIONS.forEach(([id, label], i) => {
-  const w = add(pad(byId(id), $("black"), label, on));
+  const w = add(pad(byId(id), $("keys"), label, on));
+  w.root.classList.add("black");
   w.root.style.setProperty("--at", String(BLACK_AT[i]));
   if (w.c.free) w.root.classList.add("free");
   if (id === "P10") w.root.classList.add("rec");
