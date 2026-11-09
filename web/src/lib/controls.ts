@@ -195,11 +195,6 @@ const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.l
 
 export const LEVELS: Level[] = [
   {
-    id: "IN", type: "knob", index: -1, x: 0, y: 0, name: "In", initial: 0.5, bipolar: true,
-    does: "Input level, ±12 dB. In the browser only.",
-    gain: (x) => 10 ** (((x - 0.5) * 24) / 20),
-  },
-  {
     id: "OUT", type: "knob", index: -1, x: 0, y: 0, name: "Out", initial: 1,
     does: "Output level, off to 0 dB. In the browser only.",
     gain: (x) => (x <= 0 ? 0 : 10 ** ((60 * (x - 1)) / 20)),

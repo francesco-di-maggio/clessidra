@@ -4,7 +4,7 @@ import "../styles/play.css";
 ---
 <Base title="Play" app description="Clessidra in the browser: the firmware as WebAssembly.">
   <div class="instrument">
-    <section class="tile transport" aria-label="Source and levels">
+    <section class="tile transport" aria-label="Source and output level">
       <button id="start" class="control primary" type="button">Start</button>
       <span class="divider"></span>
       <div id="input" class="segmented" role="group" aria-label="Input">
@@ -13,7 +13,7 @@ import "../styles/play.css";
         <button type="button" data-input="file" aria-pressed="false">File</button>
       </div>
       <input id="file" type="file" accept="audio/*" hidden>
-      <div id="levels" class="levels" aria-label="Input and output level, browser only"></div>
+      <div id="levels" class="levels" aria-label="Output level, browser only"></div>
     </section>
 
     <section class="tile sound" aria-label="The input and the recording">

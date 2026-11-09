@@ -72,8 +72,7 @@ function level(l: Level) {
   add(s);
   return s.level;
 }
-const inMeter = level(LEVELS[0]);
-const outMeter = level(LEVELS[1]);
+const outMeter = level(LEVELS[0]);
 
 // As on the board: a fader at each edge, the knobs in their cells, the
 // switches between Position and Length, the pads under them.
@@ -118,7 +117,7 @@ function set(c: Control, value: number, show = true) {
     const level = c as Level;
     parts.get(c.id)!.draw(value);
     LEVELS_VALUE.set(c.id, value);
-    audio.setGain(c.id === "IN" ? "input" : "output", muted.has(c.id) ? 0 : level.gain(value));
+    audio.setGain("output", muted.has(c.id) ? 0 : level.gain(value));
     parts.get(c.id)!.value?.(level.value!(new Float32Array(0), { sound: 0, recording: 0 }));
     if (show) focus(c);
     return;
@@ -272,7 +271,6 @@ function onMessage(m: FromWorklet) {
   if (m.type === "view") {
     last = m;
     voices.textContent = `${Math.round(m.grains.length / GRAIN_FIELDS)} / ${VOICES}`;
-    inMeter(m.input);
     outMeter(m.output);
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming);

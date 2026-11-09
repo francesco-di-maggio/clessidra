@@ -207,7 +207,7 @@ export function toggle(c: Control, parent: Element, options: [number, string][],
 
 // A browser level: its name a button as Start is, a click muting it or not
 // (mute: true once muted); beside it a fader on its side, as Speed's slot, the
-// signal in the slot, the value under it. Drag or click along, arrows, double
+// signal in the slot, then the value. Drag or click along, arrows, double
 // click for its starting value.
 export function gain(c: Control, parent: Element, h: Handlers, mute: (c: Control) => boolean) {
   const root = html("div", { class: "gain", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
@@ -215,12 +215,11 @@ export function gain(c: Control, parent: Element, h: Handlers, mute: (c: Control
   name.textContent = c.name;
   name.addEventListener("pointerdown", (e) => e.stopPropagation());
   name.addEventListener("click", () => name.setAttribute("aria-pressed", String(mute(c))));
-  const stack = html("div", { class: "stack" }, root);
-  const track = html("span", { class: "track" }, stack);
+  const track = html("span", { class: "track" }, root);
   const fill = html("span", { class: "signal" }, track);
   const line = html("span", { class: "fill" }, track);
   const knobAt = html("span", { class: "handle" }, track);
-  const readout = html("span", { class: "value" }, stack);
+  const readout = html("span", { class: "value" }, root);
   let v = c.initial ?? 0;
   const set = (e: PointerEvent) => {
     const r = track.getBoundingClientRect();
