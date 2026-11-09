@@ -89,6 +89,7 @@ body.app main { flex: 1; min-height: 0; }
 /* A three-way switch: its positions stacked in the band and the value line */
 .toggle .segmented.vertical { width: 84px; height: calc(var(--band) + 6px + var(--name)); grid-auto-rows: 1fr; }
 .toggle .segmented.vertical button { height: auto; justify-content: center; padding: 0; font-size: 10px; letter-spacing: 0.06em; }
+.toggle .arrow { width: 9px; height: 9px; fill: currentColor; }
 
 /* The pads as an octave: the slices white keys, the others black keys on
    their edges, two then three as on a piano. Names at the foot of each key.

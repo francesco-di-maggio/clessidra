@@ -185,13 +185,19 @@ export function pad(c: Control, parent: Element, label: string, h: Handlers): Wi
 
 // A three-way switch: its name, then its three positions stacked as the lever
 // moves, the one chosen lit. Takes a knob's room: dial and value.
-export function toggle(c: Control, parent: Element, options: [number, string][], h: Handlers): Widget {
+// A position named in text, or by an arrow the way it plays, the text its name
+export type Arrow = "forward" | "reverse";
+export function toggle(c: Control, parent: Element, options: [number, string, Arrow?][], h: Handlers): Widget {
   const root = html("div", { class: "knob toggle" }, parent);
   html("span", { class: "label" }, root).textContent = c.short ?? c.name;
   const group = html("div", { class: "segmented vertical", role: "radiogroup", "aria-label": c.name }, root);
-  const buttons = options.map(([position, text]): [number, HTMLButtonElement] => {
+  const buttons = options.map(([position, text, arrow]): [number, HTMLButtonElement] => {
     const b = html("button", { type: "button", role: "radio" }, group);
-    b.textContent = text;
+    if (arrow) {
+      b.setAttribute("aria-label", text);
+      const icon = svg("svg", { class: "arrow", viewBox: "0 0 8 8", "aria-hidden": "true" }, b);
+      svg("path", { d: arrow === "forward" ? "M1 0L7 4L1 8Z" : "M7 0L1 4L7 8Z" }, icon);
+    } else b.textContent = text;
     b.addEventListener("click", () => h.onInput(c, position));
     b.addEventListener("focus", () => h.onFocus(c));
     return [position, b];

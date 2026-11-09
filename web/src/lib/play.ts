@@ -71,7 +71,7 @@ add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
-add(toggle(byId("S09"), $("s09"), [[POSITION.up, "FWD"], [POSITION.centre, "FRZ"], [POSITION.down, "REV"]], on));
+add(toggle(byId("S09"), $("s09"), [[POSITION.up, "Forward", "forward"], [POSITION.centre, "FREEZE"], [POSITION.down, "Reverse", "reverse"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.up, "OCT"], [POSITION.centre, "SEMI"], [POSITION.down, "OFF"]], on));
 // The pads as an octave: the slices the white keys, the others the black,
 // Rec and Shift on C# and D#, Stop, Reset and Cue on F#, G# and A#. A slice
