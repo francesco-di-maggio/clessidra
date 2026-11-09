@@ -38,7 +38,7 @@ export class Incoming {
     const css = getComputedStyle(document.documentElement);
     // The tile holds the inset, its scale below: a tick a second
     const pad = 0;
-    const axis = H - 12;
+    const axis = H - 18;
     const width = W - 2 * pad;
     const cols = Math.floor(width / DOT);
     const top = 6;
