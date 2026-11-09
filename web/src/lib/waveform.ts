@@ -2,8 +2,7 @@
 // and every grain at the point it reads, as high as its pitch and as big as its
 // size. Laid out to the canvas's size.
 
-import { GRAIN_FIELDS, RATE, VIEW, type Frame } from "./engine";
-
+import { GRAIN_FIELDS, PARAM, RATE, VIEW, type Frame } from "./engine";
 
 const PITCH_RANGE = 36; // semitones: Pitch's ±24 and Random pitch's ±12
 const SIZE_MIN = 5; // ms, CoreUI::kMinGrainMs
@@ -126,6 +125,28 @@ export class Waveform {
     });
     ctx.textAlign = "center";
 
+    // Random position: the reach of the grains about the playhead, round the
+    // loop, faint
+    const reach = 0.5 * Math.min(f.params[PARAM.randPos] ?? 0, 1) * v[VIEW.selLength];
+    if (reach > 0) {
+      ctx.fillStyle = withAlpha(c.accent, 0.12);
+      const from = v[VIEW.playhead] - reach;
+      const span = 2 * reach;
+      const start = v[VIEW.selStart];
+      const length = v[VIEW.selLength];
+      // In loop terms, then drawn in up to two parts
+      let u = (from - start) / length;
+      u -= Math.floor(u);
+      const w = span / length;
+      const part = (u0: number, u1: number) => ctx.fillRect(x(start + u0 * length), top, x(start + u1 * length) - x(start + u0 * length), bottom - top);
+      if (w >= 1) part(0, 1);
+      else if (u + w <= 1) part(u, u + w);
+      else {
+        part(u, 1);
+        part(0, u + w - 1);
+      }
+    }
+
     // The playhead: now
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = c.accent;
@@ -142,11 +163,11 @@ export class Waveform {
     // centre unison, the edges PITCH_RANGE either way), as big as their size,
     // swelling with their window, each cut clear of the dots
     const g = f.grains;
-    const reach = (bottom - top) / 2 - 8;
+    const lift = (bottom - top) / 2 - 8;
     for (let i = 0; i < g.length; i += GRAIN_FIELDS) {
       const level = windowAt(g[i + 1], g[i + 2]);
       const gx = pad + g[i] * width;
-      const gy = (top + bottom) / 2 - (Math.max(-1, Math.min(1, g[i + 4] / PITCH_RANGE)) * reach);
+      const gy = (top + bottom) / 2 - (Math.max(-1, Math.min(1, g[i + 4] / PITCH_RANGE)) * lift);
       const size = Math.max(0, Math.min(1, Math.log(g[i + 5] / SIZE_MIN) / Math.log(SIZE_MAX / SIZE_MIN)));
       const r = (2 + 5 * size) * (0.4 + 0.6 * level);
       ctx.fillStyle = c.surface;

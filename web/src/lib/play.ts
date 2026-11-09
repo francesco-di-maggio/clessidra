@@ -4,10 +4,8 @@
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type State } from "./controls";
 import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
-import { Hourglass } from "./hourglass";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
-import { GrainShape } from "./shape";
 import { Waveform } from "./waveform";
 import { knob, pad, slider, toggle, type Handlers, type Widget } from "./widgets";
 
@@ -46,15 +44,12 @@ function refresh() {
   if (!preview) return;
   const { params, view } = preview.read();
   last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, view };
-  grainShape.update(params);
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const grainFigure = $("grain-figure");
 const monitor = $("monitor");
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
-const grainShape = new GrainShape($<HTMLCanvasElement>("grain-shape"));
-const hourglass = new Hourglass($<HTMLCanvasElement>("hourglass"));
 let last: Frame | null = null;
 
 const parts = new Map<string, Widget>();
@@ -73,23 +68,24 @@ const inMeter = level(LEVELS[0]);
 const outMeter = level(LEVELS[1]);
 
 // As on the board: a fader at each edge, the knobs in their cells, the
-// switches between Start and End. The pads in two rows: the board's
-// upper pads, then the slices in order.
+// switches between Position and Length. The pads under all of it.
 add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
 add(toggle(byId("S09"), $("s09"), [[POSITION.up, "FWD"], [POSITION.centre, "FRZ"], [POSITION.down, "REV"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.up, "OCT"], [POSITION.centre, "SEMI"], [POSITION.down, "OFF"]], on));
-SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
-// The pads in the board's order: Rec and Shift, then Stop, Reset and Cue, over
-// the slices
+// The pads as a keyboard: the slices the white keys, the functions the black,
+// Rec and Shift in the group of two, Stop, Reset and Cue in the three
+SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("white"), `${i + 1}`, on)));
 const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "Stop"], ["P01", "Reset"], ["P02", "Cue"]];
-for (const [id, label] of FUNCTIONS) {
-  const w = add(pad(byId(id), $("functions"), label, on));
+const BLACK_AT = [1, 2, 4, 5, 6]; // the white keys' edges they sit on
+FUNCTIONS.forEach(([id, label], i) => {
+  const w = add(pad(byId(id), $("black"), label, on));
+  w.root.style.setProperty("--at", String(BLACK_AT[i]));
   if (w.c.free) w.root.classList.add("free");
   if (id === "P10") w.root.classList.add("rec");
-}
+});
 
 // Every control at its starting value, sent to the firmware
 for (const w of parts.values()) {
@@ -260,8 +256,6 @@ function onMessage(m: FromWorklet) {
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming);
     waveform.update(m);
-    grainShape.update(m.params, m.grains);
-    hourglass.update(m);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);

@@ -759,36 +759,12 @@ void Selection()
           "position 0.75, length 0.5: the last quarter, ending with the sound",
           outside);
 
-    // A new length keeps the playhead where it is in the recording; past the
-    // new end, it starts a new pass
+    // A new loop: the playhead keeps its share of it, so Position carries
+    // it through the recording
     p.start  = 0.0f;
     p.length = 1.0f;
     p.speed  = 1.0f;
     r.core.Jump(0.0f);
-    r.core.SetParams(p);
-    r.Run(0.3 * r.core.SoundSamples() / kRate, Silence);
-    p.speed = 0.0f;
-    r.core.SetParams(p);
-    r.Run(0.01, Silence);
-    const double was = r.core.PlayheadPhase();
-    p.length         = 0.5f;
-    r.core.SetParams(p);
-    r.Run(0.01, Silence);
-    Check(Near(r.core.PlayheadPhase(), 2.0 * was, 1e-6),
-          "length halved: the playhead stays in the recording (phase)",
-          r.core.PlayheadPhase());
-    p.length = 0.2f;
-    r.core.SetParams(p);
-    r.Run(0.01, Silence);
-    const double inside = 5.0 * was <= 1.0 ? 5.0 * was : 0.0;
-    Check(Near(r.core.PlayheadPhase(), inside, 1e-3),
-          "length short of the playhead: from the loop's start (phase)",
-          r.core.PlayheadPhase());
-
-    // Frozen: the point holds in the recording while the loop changes round
-    // it
-    p.length = 1.0f;
-    p.speed  = 1.0f;
     r.core.SetParams(p);
     r.Run(0.3 * r.core.SoundSamples() / kRate, Silence);
     p.freeze = true;
@@ -797,18 +773,14 @@ void Selection()
     const double point = r.core.PlayheadPhase();
     r.Run(0.2, Silence);
     Check(r.core.PlayheadPhase() == point, "frozen: the point holds", point);
-    p.start = 0.25f;
-    r.core.SetParams(p);
-    r.Run(0.01, Silence);
-    Check(Near(r.core.PlayheadPhase(), (point - 0.25) / 0.75, 1e-6),
-          "frozen, start moved: the point stays in the recording (phase)",
-          r.core.PlayheadPhase());
     p.length = 0.5f;
+    p.start  = 0.5f;
     r.core.SetParams(p);
     r.Run(0.01, Silence);
-    Check(Near(r.core.PlayheadPhase(), (point - 0.25) / 0.5, 1e-6),
-          "frozen, length halved: the point stays in the recording (phase)",
+    Check(r.core.PlayheadPhase() == point,
+          "frozen, the loop moved: the point keeps its share of it (phase)",
           r.core.PlayheadPhase());
+    p.freeze = false;
 }
 
 // A new recording pours in over the one before: each new grain reads it with
@@ -1187,18 +1159,17 @@ void Mapping()
           "S30 bottom, S35 top: the whole recording",
           p.length);
 
-    // S30 Start, S35 End. End at or below Start: the shortest loop.
-    c.knobs[Controls::S30] = 0.25f;
-    c.knobs[Controls::S35] = 0.75f;
+    // S35 Length, S30 Position through the room it leaves
+    c.knobs[Controls::S35] = 0.5f;
+    c.knobs[Controls::S30] = 0.5f;
     ui.Process(c, r.core);
-    const float between    = p.length;
-    c.knobs[Controls::S35] = 0.1f;
+    const float middle     = p.start;
+    c.knobs[Controls::S30] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.start == 0.25f && Near(between, 0.5, 1e-6)
-              && p.length == Core::kMinLength,
-          "S30 a quarter, S35 three quarters: the half between, End below: "
-          "the shortest",
-          between);
+    Check(Near(middle, 0.25, 1e-6) && Near(p.start, 0.5, 1e-6)
+              && Near(p.length, 0.5, 1e-6),
+          "S35 half: S30 middle the middle half, S30 top the second half",
+          middle);
     c.knobs[Controls::S35] = 1.0f;
     c.knobs[Controls::S30] = 0.0f;
     ui.Process(c, r.core);

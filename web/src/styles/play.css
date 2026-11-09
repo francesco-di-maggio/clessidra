@@ -1,7 +1,6 @@
 /* Play: the instrument in the family's column, on one screen. One 12-column
    grid, 8 px apart. Down the page as a player goes: the source, the sound, the
-   controls as on the board, the pads under the knobs, what the control
-   pointed at does. Every tile 14 px in, names on one line, values on one
+   controls as on the board, the pads under them as a keyboard. Every tile 14 px in, names on one line, values on one
    line. Orange only for what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
 body.app main { flex: 1; min-height: 0; }
@@ -16,7 +15,7 @@ body.app main { flex: 1; min-height: 0; }
                 "transport transport transport transport transport transport transport transport transport transport transport transport"
                 "sound sound sound sound sound sound sound sound sound sound sound sound"
                 "speed speed knobs knobs knobs knobs knobs knobs knobs knobs density density"
-                "grain grain pads pads pads pads pads pads pads pads output output"; }
+                "pads pads pads pads pads pads pads pads pads pads pads pads"; }
 .tile { position: relative; min-width: 0; min-height: 0; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .tile canvas { display: block; width: 100%; }
 .tile .label { line-height: var(--name); }
@@ -86,29 +85,27 @@ body.app main { flex: 1; min-height: 0; }
 .toggle .segmented.vertical { width: 84px; height: calc(var(--band) + 6px + var(--name)); grid-auto-rows: 1fr; }
 .toggle .segmented.vertical button { height: auto; justify-content: center; padding: 0; font-size: 10px; letter-spacing: 0.06em; }
 
-/* Beside the pads, a grain's envelope and the output, each under its name */
-.view { display: flex; flex-direction: column; gap: 8px; padding: var(--in); }
-.view .label { align-self: center; }
-.view canvas { flex: 1; min-height: 0; }
-.grain { grid-area: grain; }
-.glass { grid-area: output; }
-
-/* The pads under the knobs: the board's upper pads, then the slices, square */
-.pads { grid-area: pads; display: grid; gap: var(--unit); padding: 12px; }
-.pad-row { display: grid; gap: var(--unit); }
-.functions { grid-template-columns: repeat(5, minmax(0, 1fr)); height: 28px; }
-.slices { grid-template-columns: repeat(7, minmax(0, 1fr)); }
-.pad { display: grid; place-content: center; width: 100%; height: 100%; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
+/* The pads as a keyboard: the slices white keys, the functions black keys on
+   their edges, two then three as on a piano. Names at the foot of each key. */
+.pads { grid-area: pads; position: relative; height: 128px; padding: 12px; --white: var(--bg); --black: color-mix(in srgb, var(--ink) 80%, var(--surface)); --black-ink: var(--surface); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pads { --white: color-mix(in srgb, var(--ink) 14%, var(--surface)); --black: var(--bg); --black-ink: var(--ink); } }
+:root[data-theme="dark"] .pads { --white: color-mix(in srgb, var(--ink) 14%, var(--surface)); --black: var(--bg); --black-ink: var(--ink); }
+.keys.white { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--unit); height: 100%; }
+.keys.black { position: absolute; inset: 12px 12px auto; height: 60%; pointer-events: none; }
+.pad { display: grid; place-content: end center; width: 100%; height: 100%; padding: 0 0 10px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }
 .pad:hover { border-color: var(--dim); }
-.slices .pad { aspect-ratio: 1; height: auto; font-size: 12px; }
+.white .pad { font-size: 12px; background: var(--white); }
+.black .pad { position: absolute; top: 0; width: calc((100% - 6 * var(--unit)) / 7 * 0.6); left: calc((100% + var(--unit)) / 7 * var(--at) - var(--unit) / 2); transform: translateX(-50%);
+              pointer-events: auto; padding-bottom: 8px; border-color: transparent; background: var(--black); color: var(--black-ink); }
+.black .pad:hover { border-color: var(--ink); }
 .pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 .pad.rec.on .num::before { background: #fff; }
+.black .pad.on { color: #fff; }
 .pad.latched { border-color: var(--accent); color: var(--accent); }
 .pad.free { pointer-events: none; color: var(--dim); background: none; border-style: dashed; }
-
 
 /* Little height: the page scrolls rather than squeezing */
 @media (max-height: 700px) {
@@ -120,7 +117,7 @@ body.app main { flex: 1; min-height: 0; }
 @media (max-width: 600px) {
   body.app { height: auto; min-height: 100dvh; overflow: visible; }
   .transport { flex-wrap: wrap; padding: 12px var(--in); }
-  .instrument { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 260px auto auto auto 120px;
-                grid-template-areas: "transport transport" "sound sound" "knobs knobs" "speed density" "pads pads" "grain output"; }
+  .instrument { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 260px auto auto auto;
+                grid-template-areas: "transport transport" "sound sound" "knobs knobs" "speed density" "pads pads"; }
   .knob.fader { min-height: 240px; }
 }

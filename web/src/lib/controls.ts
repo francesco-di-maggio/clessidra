@@ -85,14 +85,14 @@ export const CONTROLS: Control[] = [
     twin: { name: "Reverb", does: "Reverb on the grains, from none to long tails.", value: (p) => percent(p[PARAM.reverb]) },
   },
   {
-    id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Start", initial: 0,
-    does: "Where the loop starts. The playhead keeps its place.",
+    id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
+    does: "Moves the loop through the recording, the playhead with it.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
-    id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "End", initial: 1,
-    does: "Where the loop ends. Below Start: the shortest loop.",
-    value: (p, v) => seconds((p[PARAM.start] + p[PARAM.length]) * v.sound),
+    id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
+    does: "How long the loop is, 1 % to the whole recording.",
+    value: (p, v) => seconds(p[PARAM.length] * v.sound),
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
