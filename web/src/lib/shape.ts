@@ -46,7 +46,7 @@ export class GrainShape {
     const shape = p[PARAM.shape];
     const mid = H / 2;
     const room = W - 2 * INSET;
-    const amplitude = mid - 1; // as tall as a dial and its value
+    const amplitude = mid - 6; // a little in from the dial and its value
     const width = (ms: number) => (0.08 + 0.92 * Math.min(1, Math.max(0, Math.log(ms / SIZE_MIN) / Math.log(SIZE_MAX / SIZE_MIN)))) * room;
     const grain = (w: number, semitones: number, colour: string, lineWidth: number) => {
       const cycles = CYCLES * 2 ** (semitones / 12);
