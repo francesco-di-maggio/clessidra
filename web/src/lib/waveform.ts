@@ -193,6 +193,12 @@ export class Waveform {
     ctx.lineTo(px + 4, top - 6);
     ctx.lineTo(px, top);
     ctx.fill();
+    // Size: the span a grain reads from the playhead, its pitch included, a
+    // line along the foot of the playhead the way it reads
+    const reads = (f.params[PARAM.grainMs] / 1000) * RATE * 2 ** (f.params[PARAM.pitch] / 12);
+    const ex = px + (f.params[PARAM.speed] < 0 ? -1 : 1) * Math.min(reads / sound, 1) * width;
+    line(ctx, px, bottom, ex, bottom);
+    line(ctx, ex, bottom - 4, ex, bottom + 4);
 
     // Grains over the waveform where they read, as high as their pitch (the
     // centre unison, the edges PITCH_RANGE either way), as big as their size,
