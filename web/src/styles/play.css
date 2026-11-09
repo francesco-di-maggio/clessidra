@@ -129,7 +129,7 @@ body.app main { flex: 1; min-height: 0; }
              background: var(--bg); color: var(--ink); letter-spacing: 0.08em; }
 /* Rec tinted at rest, as a record key: the one orange not "on". Recording,
    solid orange. */
-.pad.rec { background: color-mix(in srgb, var(--accent) 18%, var(--bg)); color: var(--accent); }
+.pad.rec { background: color-mix(in srgb, var(--accent) 18%, var(--bg)); }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 .pad.latched { border-color: var(--accent); color: var(--accent); }
 .pad.free { pointer-events: none; color: var(--dim); background: none; border-style: dashed; }
