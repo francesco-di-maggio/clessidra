@@ -3,13 +3,10 @@ import Base from "../layouts/Base.astro";
 import "../styles/play.css";
 ---
 <Base title="Play" app description="Clessidra in the browser: the firmware as WebAssembly.">
-  <Fragment slot="end">
-    <span class="label led" title="The board's LED">LED <span id="led" class="dot"></span></span>
-  </Fragment>
-
   <div class="instrument">
     <section class="tile transport" aria-label="Source and levels">
       <button id="start" class="control primary" type="button">Start</button>
+      <span class="divider"></span>
       <div id="input" class="segmented" role="group" aria-label="Input">
         <button type="button" data-input="demo" aria-pressed="true">Demo</button>
         <button type="button" data-input="mic" aria-pressed="false">Mic</button>

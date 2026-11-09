@@ -18,7 +18,6 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 const start = $<HTMLButtonElement>("start");
 const inputs = [...document.querySelectorAll<HTMLButtonElement>("#input button")];
 const file = $<HTMLInputElement>("file");
-const led = $("led");
 
 const audio = new Audio(onMessage);
 // Until Start, the values come from a silent copy of the firmware on the page
@@ -255,7 +254,9 @@ function show() {
 function onMessage(m: FromWorklet) {
   if (m.type === "view") {
     last = m;
-    led.style.setProperty("--led", String(m.led));
+    // The board's LED, as the grain's light: glowing with the grains,
+    // flashing while recording, a pulse at a centre
+    $("grain-shape").style.opacity = String(0.3 + 0.7 * m.led);
     inMeter(m.input);
     outMeter(m.output);
     waveform.recording = incoming.recording = recording();

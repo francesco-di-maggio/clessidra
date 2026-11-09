@@ -246,7 +246,10 @@ export function slider(c: Control, parent: Element, h: Handlers) {
     draw: (x: number) => {
       v = x;
       knobAt.style.left = `${x * 100}%`;
-      line.style.width = `${x * 100}%`;
+      // Bipolar: from the centre, where the level is unchanged
+      const from = c.bipolar ? Math.min(x, 0.5) : 0;
+      line.style.left = `${from * 100}%`;
+      line.style.width = `${(c.bipolar ? Math.abs(x - 0.5) : x) * 100}%`;
       root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
     },
     value: (text: string) => (readout.textContent = text),
