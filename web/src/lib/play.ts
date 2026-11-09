@@ -8,7 +8,7 @@ import { GrainView } from "./grain";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { Waveform } from "./waveform";
-import { knob, meter, pad, segmented, type Handlers, type Widget } from "./widgets";
+import { knob, lever, meter, pad, type Handlers, type Widget } from "./widgets";
 
 const LIGHT = 0.35; // a touch, as the board's pads read it (0.3–0.5)
 const FIRM_S = 1.2; // held this long, a pad reaches full pressure
@@ -45,7 +45,7 @@ function send(m: Message) {
 function refresh() {
   if (!preview) return;
   const { params, view } = preview.read();
-  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), params, view };
+  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, view };
   grainView.update(params);
   show();
 }
@@ -80,8 +80,8 @@ add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
-add(segmented(byId("S09"), $("s09"), [[POSITION.up, "Fwd"], [POSITION.centre, "Freeze"], [POSITION.down, "Rev"]], on));
-add(segmented(byId("S07"), $("s07"), [[POSITION.up, "Oct"], [POSITION.centre, "Semi"], [POSITION.down, "Off"]], on));
+add(lever(byId("S09"), $("s09"), [[POSITION.up, "Fwd"], [POSITION.centre, "Frz"], [POSITION.down, "Rev"]], on));
+add(lever(byId("S07"), $("s07"), [[POSITION.up, "Oct"], [POSITION.centre, "Semi"], [POSITION.down, "Off"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
 const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "P00"], ["P01", "Reset"], ["P02", "P02"]];
 for (const [id, label] of FUNCTIONS) {

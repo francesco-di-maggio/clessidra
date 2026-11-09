@@ -1,4 +1,4 @@
-// Play's controls: knobs, pads and segmented switches, each for one entry of
+// Play's controls: knobs, levers and pads, each for one entry of
 // CONTROLS. They report through the callbacks and draw what they are given.
 
 import type { Control } from "./controls";
@@ -177,28 +177,6 @@ export function pad(c: Control, parent: Element, label: string, h: Handlers): Wi
   };
 }
 
-// A three-way switch: its name over a column of buttons
-export function segmented(c: Control, parent: Element, options: [number, string][], h: Handlers): Widget {
-  const root = html("div", { class: "switch" }, parent);
-  html("span", { class: "label" }, root).textContent = c.name;
-  const group = html("div", { class: "segmented", role: "radiogroup", "aria-label": c.name }, root);
-  const buttons = options.map(([position, text]): [number, HTMLButtonElement] => {
-    const b = html("button", { type: "button", role: "radio" }, group);
-    b.textContent = text;
-    b.addEventListener("click", () => h.onInput(c, position));
-    b.addEventListener("pointerenter", () => h.onFocus(c));
-    b.addEventListener("focus", () => h.onFocus(c));
-    return [position, b];
-  });
-  return {
-    c,
-    root,
-    draw: (position) => {
-      for (const [p, b] of buttons) b.setAttribute("aria-checked", String(p === position));
-    },
-  };
-}
-
 // A level as a column of dots, -48 to 0 dBFS, 6 dB each, lit from the bottom. The top
 // dot turns orange at full scale. Falls back slowly, as a meter does.
 export function meter(parent: Element, label: string) {
@@ -216,4 +194,50 @@ export function meter(parent: Element, label: string) {
     });
     root.setAttribute("aria-valuenow", String(Math.round(db)));
   };
+}
+
+// A three-way switch as on the board: a short slot, its lever at one of three
+// positions, each named beside it. Laid out as a knob: label, lever, value.
+// Click a position, or arrows up and down.
+export function lever(c: Control, parent: Element, options: [number, string][], h: Handlers): Widget {
+  const root = html("div", { class: "knob lever", tabindex: 0, role: "radiogroup", "aria-label": c.name }, parent);
+  html("span", { class: "label" }, root).textContent = c.short ?? c.name;
+  const holder = html("div", { class: "throw" }, root);
+  const slot = svg("svg", { viewBox: "0 0 16 40", "aria-hidden": "true" }, holder);
+  svg("rect", { class: "slot", x: 4, y: 2, width: 8, height: 36, rx: 4 }, slot);
+  const cap = svg("rect", { class: "cap", x: 1, y: 0, width: 14, height: 12, rx: 3 }, slot);
+  // Top to bottom, as options lists them
+  const y = (i: number) => 6 + i * 14;
+  const marks = options.map(([position, text], i) => {
+    const m = html("button", { type: "button", class: "mark-at", role: "radio", tabindex: -1 }, holder);
+    m.textContent = text;
+    m.style.top = `${(y(i) / 40) * 100}%`;
+    m.addEventListener("click", () => h.onInput(c, position));
+    return [position, m] as const;
+  });
+  const value = html("span", { class: "value" }, root);
+  value.textContent = "–";
+  let current = c.initial ?? 0;
+  slot.addEventListener("click", (e) => {
+    const r = slot.getBoundingClientRect();
+    const i = Math.min(options.length - 1, Math.max(0, Math.floor(((e.clientY - r.top) / r.height) * options.length)));
+    h.onInput(c, options[i][0]);
+  });
+  root.addEventListener("keydown", (e) => {
+    const i = options.findIndex(([p]) => p === current);
+    const next = e.key === "ArrowUp" ? i - 1 : e.key === "ArrowDown" ? i + 1 : -1;
+    if (next < 0 || next >= options.length || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
+    e.preventDefault();
+    h.onInput(c, options[next][0]);
+  });
+  root.addEventListener("pointerenter", () => h.onFocus(c));
+  root.addEventListener("focus", () => h.onFocus(c));
+  const draw = (position: number) => {
+    current = position;
+    const i = Math.max(0, options.findIndex(([p]) => p === position));
+    cap.setAttribute("y", String(y(i) - 6));
+    for (const [p, m] of marks) m.setAttribute("aria-checked", String(p === position));
+  };
+  draw(current);
+  return { c, root, draw, value: (text) => (value.textContent = text) };
 }

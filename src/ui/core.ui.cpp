@@ -93,7 +93,7 @@ void CoreUI::Process(const Controls& c, Core& core)
     // scrubs through the loop instead, and takes the speed up again after. A
     // slice held freezes too.
     const float speed = Stops(0.5f + 0.5f * own(Controls::S36), kSpeeds);
-    const bool  slice = Slices(c, core);
+    const bool  slice = Slices(c, core, p.start, p.length);
     p.speed           = mode == Controls::Down ? -speed : speed;
     p.freeze          = frozen || slice || speed == 0.0f;
     p.end             = End::Loop;
@@ -239,16 +239,24 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
     p.mix = holding || (touched && listening_) ? kMonitorMix : 1.0f;
 }
 
-// P03-P09: the loop in sevenths, left to right. A touch jumps the playhead
-// to its slice with a grain at once, the starts counted from it.
-bool CoreUI::Slices(const Controls& c, Core& core)
+// P03-P09: the loop in slices, left to right, each from an onset of the
+// recording. A touch jumps the playhead to its slice with a grain at once, the
+// starts counted from it.
+bool CoreUI::Slices(const Controls& c, Core& core, float start, float length)
 {
-    bool held = false;
+    if(core.Recordings() != analysed_)
+    {
+        analysed_ = core.Recordings();
+        onsets_.Find(
+            core.Sound().Samples(), core.SoundSamples(), float(kSampleRateHz));
+    }
+    slice_starts_ = onsets_.Slices(start, length);
+    bool held     = false;
     for(size_t i = 0; i < kNumSlices; i++)
     {
         const bool touched = c.touched[kSlicePads[i]];
         if(touched && !slices_touched_[i])
-            core.Jump(float(i) / float(kNumSlices));
+            core.Jump(slice_starts_[i]);
         slices_touched_[i] = touched;
         held               = held || touched;
     }

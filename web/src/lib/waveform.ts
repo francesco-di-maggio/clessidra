@@ -123,6 +123,22 @@ export class Waveform {
     bracket(ctx, a, top, bottom, 1);
     bracket(ctx, b > pad + width + 0.5 ? b - width : b, top, bottom, -1);
 
+    // The slices: a hairline where each starts, its number beside it at the
+    // top, the first at the bracket
+    ctx.strokeStyle = c.line;
+    ctx.fillStyle = c.dim;
+    ctx.lineWidth = 1;
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+    f.slices.forEach((s, i) => {
+      let at = v[VIEW.selStart] + s * v[VIEW.selLength];
+      at -= Math.floor(at / sound) * sound;
+      const px = x(at);
+      if (i > 0) line(ctx, px, top + 2, px, bottom - 2);
+      ctx.fillText(`${i + 1}`, px + 4, top + 2);
+    });
+    ctx.textAlign = "center";
+
     // The playhead: now
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = c.accent;

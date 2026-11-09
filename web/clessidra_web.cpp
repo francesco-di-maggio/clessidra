@@ -221,6 +221,12 @@ EXPORT const float* cl_grain_fields()
     return grains;
 }
 
+// Where each slice starts in the loop, 0..1
+EXPORT const float* cl_slices()
+{
+    return ui.SliceStarts().data();
+}
+
 EXPORT const float* cl_params()
 {
     const Core::Params& p = core.CurrentParams();

@@ -155,7 +155,7 @@ export const CONTROLS: Control[] = [
   })),
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
-    does: `The loop in sevenths, left to right, this one at ${i}/7. A touch: the playhead there, a grain at once, the beat from it. Held: it stays there.`,
+    does: `The loop in seven slices at the recording's attacks, left to right, this the ${["first", "second", "third", "fourth", "fifth", "sixth", "seventh"][i]}. A touch: the playhead there, a grain at once, the beat from it. Held: it stays there.`,
   })),
 ];
 

@@ -1051,6 +1051,58 @@ void Cloud()
     }
 }
 
+// Slices at a recording's onsets: in order, each just before its onset. Too
+// few in the loop, the longest halved.
+void Slicing()
+{
+    const float        kTimes[] = {0.1f, 0.3f, 0.55f, 0.8f};
+    std::vector<float> sound(kRate, 0.0f);
+    for(float t : kTimes)
+        for(size_t i = 0; i < kRate / 20; i++)
+            sound[size_t(t * kRate) + i]
+                = 0.5f * std::exp(-float(i) / 2000.0f)
+                  * float(std::sin(2.0 * M_PI * 440.0 * double(i) / kRate));
+    Onsets onsets;
+    onsets.Find(sound.data(), sound.size(), float(kRate));
+    const auto slices = onsets.Slices(0.0f, 1.0f);
+    bool       found  = slices[0] == 0.0f;
+    for(float t : kTimes)
+    {
+        bool at = false;
+        for(float x : slices)
+            at = at || (x <= t && x > t - 0.01f);
+        found = found && at;
+    }
+    bool ordered = true;
+    for(size_t i = 1; i < slices.size(); i++)
+        ordered = ordered && slices[i] > slices[i - 1];
+    Check(found && ordered,
+          "slices: the loop's start, then at each onset, in order",
+          slices[1]);
+
+    // A loop over the second half: its own onsets, as phases of it
+    const auto half = onsets.Slices(0.5f, 0.5f);
+    bool       in   = half[0] == 0.0f;
+    for(float t : {0.55f, 0.8f})
+    {
+        bool at = false;
+        for(float x : half)
+            at = at || Near(0.5f + 0.5f * x, t - 0.005f, 0.006f);
+        in = in && at;
+    }
+    Check(in, "slices of a loop: its own onsets", half[1]);
+
+    // No onsets: halves
+    std::vector<float> hum(kRate);
+    for(size_t i = 0; i < hum.size(); i++)
+        hum[i] = 0.3f * float(std::sin(2.0 * M_PI * 220.0 * double(i) / kRate));
+    onsets.Find(hum.data(), hum.size(), float(kRate));
+    const auto even = onsets.Slices(0.0f, 1.0f);
+    Check(even[1] > 0.0f && even[6] < 1.0f && Near(even[4], 0.5, 1e-6),
+          "slices, no onsets: the longest halved",
+          even[4]);
+}
+
 // After a layer change, a knob moves its value from where it is, both
 // reaching the end stops together
 void Takeovers()
@@ -1355,8 +1407,8 @@ void Mapping()
     r.Run(0.5, Silence);
     press(CoreUI::kSlicePads[3], true);
     const size_t one = Starts(r, 0.1);
-    Check(one == 1 && Near(r.core.PlayheadPhase(), 3.0 / 7.0, 1e-3),
-          "slice 4 at no density: one grain, at the fourth seventh",
+    Check(one == 1 && Near(r.core.PlayheadPhase(), ui.SliceStarts()[3], 1e-3),
+          "slice 4 at no density: one grain, at its start",
           r.core.PlayheadPhase());
     press(CoreUI::kSlicePads[3], false);
     const size_t none = Starts(r, 0.1);
@@ -1364,12 +1416,13 @@ void Mapping()
     c.knobs[Controls::S37] = 0.75f;
     press(CoreUI::kSlicePads[6], true);
     r.Run(0.3, Silence);
-    Check(Near(r.core.PlayheadPhase(), 6.0 / 7.0, 1e-3),
-          "slice 7 held: the playhead stays at the last seventh",
+    const double seventh = ui.SliceStarts()[6];
+    Check(Near(r.core.PlayheadPhase(), seventh, 1e-3),
+          "slice 7 held: the playhead stays at its start",
           r.core.PlayheadPhase());
     press(CoreUI::kSlicePads[6], false);
     r.Run(0.1, Silence);
-    Check(r.core.PlayheadPhase() > 6.0 / 7.0,
+    Check(r.core.PlayheadPhase() > seventh,
           "slice 7 released: runs on from there",
           r.core.PlayheadPhase());
 
@@ -1411,6 +1464,7 @@ int main()
     Voices();
     Cloud();
     Takeovers();
+    Slicing();
     Mapping();
     std::printf("%s\n",
                 failures ? "Some checks failed." : "All checks passed.");

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include "core/config.h"
 #include "core/core.h"
+#include "core/onsets.h"
 #include "hw/controls.h"
 #include "takeover.h"
 
@@ -22,7 +23,7 @@ class CoreUI
     static constexpr size_t kResetPad  = 1;  // with Shift: the twins reset
     static constexpr size_t kRecordPad = 10; // tap or hold. With Shift: listen
     static constexpr size_t kShiftPad  = 11; // held: the second layer
-    static constexpr size_t kNumSlices = 7;  // the loop in sevenths
+    static constexpr size_t kNumSlices = Onsets::kNumSlices;
     // P03-P09, the slices, left to right on the board
     static constexpr std::array<size_t, kNumSlices> kSlicePads
         = {3, 4, 8, 5, 9, 6, 7};
@@ -75,6 +76,11 @@ class CoreUI
     void Process(const Controls& c, Core& core);
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
     float Led(uint32_t now_ms, const Core& core) const;
+    // Where each slice starts in the loop, 0..1, at the last pass
+    const std::array<float, kNumSlices>& SliceStarts() const
+    {
+        return slice_starts_;
+    }
 
   private:
     // Pitch unison, speed 1, size centre, Hann, filter off
@@ -90,8 +96,9 @@ class CoreUI
     // The knobs' values on both layers. Frozen, S36 scrubs instead.
     void Knobs(const Controls& c, bool frozen);
     void Record(const Controls& c, Core& core, Core::Params& p);
-    // True while a slice is held
-    bool Slices(const Controls& c, Core& core);
+    // The slices of the loop, at the recording's onsets. True while one is
+    // held.
+    bool Slices(const Controls& c, Core& core, float start, float length);
     void Scrub(float fader, bool frozen, Core& core);
     void Reset(const Controls& c);
     void Pulse(const Controls& c, const std::array<bool, kNumDetents>& at);
@@ -104,12 +111,15 @@ class CoreUI
     // S36 when it last scrubbed
     float scrub_from_ = 0.0f;
     // P10: touched, recording, or listening with Shift
-    bool                         record_touched_ = false;
-    bool                         listening_      = false;
-    bool                         record_         = false;
-    uint32_t                     rec_since_      = 0; // ms
-    bool                         reset_touched_  = false;
-    std::array<bool, kNumSlices> slices_touched_{};
+    bool                          record_touched_ = false;
+    bool                          listening_      = false;
+    bool                          record_         = false;
+    uint32_t                      rec_since_      = 0; // ms
+    bool                          reset_touched_  = false;
+    std::array<bool, kNumSlices>  slices_touched_{};
+    Onsets                        onsets_;
+    uint32_t                      analysed_ = 0; // Core::Recordings() then
+    std::array<float, kNumSlices> slice_starts_{};
     // LED. Times in ms, shown until they pass.
     uint32_t pulse_until_ = 0;
     float    shown_       = 0.0f; // the twin last turned, Shift held
