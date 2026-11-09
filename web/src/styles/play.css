@@ -92,7 +92,7 @@ body.app main { flex: 1; min-height: 0; }
 .toggle .segmented.vertical button { height: auto; justify-content: center; padding: 0; font-size: 10px; letter-spacing: 0.06em; }
 
 /* The pads as an octave: the slices white keys, the others black keys on
-   their edges, two then three as on a piano. Numbers at the foot of the white keys, names centred on the black.
+   their edges, two then three as on a piano. Names at the foot of each key.
    In the switches' colours: white keys as the chosen position, black keys as
    the others. */
 .pads { grid-area: pads; padding: 12px; }
@@ -101,7 +101,7 @@ body.app main { flex: 1; min-height: 0; }
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }
 .pad:hover { border-color: var(--dim); }
-.pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.72); height: 56%; place-content: center; padding: 0;
+.pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.72); height: 56%; padding-bottom: 8px;
              left: calc((var(--key) + var(--gap)) * var(--edge) - var(--gap) / 2); transform: translateX(-50%);
              background: var(--bg); color: var(--dim); letter-spacing: 0.08em; }
 .pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
