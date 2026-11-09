@@ -206,7 +206,6 @@ function shifted() {
 }
 function layer() {
   document.querySelector(".instrument")?.classList.toggle("shifted", shifted());
-  tooltips();
   show();
 }
 
@@ -219,24 +218,6 @@ function recording() {
 function hint() {
   for (const w of parts.values()) w.root.classList.remove("focus");
 }
-
-// What each control does, on hover: its own, or its twin's while P11 is held
-// Off unless ? is on: help on hover, nothing on the screen otherwise
-let helping = false;
-function tooltips() {
-  for (const w of parts.values()) {
-    const twin = shifted() ? w.c.twin : undefined;
-    const name = twin ? `P11 + ${w.c.id} ${twin.name}` : `${w.c.id} ${w.c.name}`;
-    w.root.title = helping ? `${name}. ${(twin ?? w.c).does ?? ""}` : "";
-  }
-  for (const e of document.querySelectorAll<HTMLElement>("[data-help]")) e.title = helping ? e.dataset.help! : "";
-}
-const help = $("help");
-help.addEventListener("click", () => {
-  helping = !helping;
-  help.setAttribute("aria-pressed", String(helping));
-  tooltips();
-});
 
 // The control pointed at
 function focus(c: Control) {
@@ -324,5 +305,3 @@ async function choose(kind: Input) {
 for (const b of inputs) b.addEventListener("click", () => (b.dataset.input === "file" ? file.click() : choose(b.dataset.input as Input)));
 file.addEventListener("change", () => file.files?.[0] && choose(file.files[0]));
 
-// Each control's tooltip, once the touches it reads exist
-tooltips();

@@ -115,10 +115,8 @@ body.app main { flex: 1; min-height: 0; }
 .switches > div:last-child { grid-column: 5 / 8; }
 /* The chosen position with the orange dot, as the chosen source */
 .switches [aria-checked="true"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-/* Over the middle key, help on hover: off, nothing over the controls */
-.help-toggle { grid-column: 4; place-content: center; align-self: center; justify-self: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--bg); color: var(--dim); font: 500 11px var(--mono); }
-.help-toggle:hover { color: var(--ink); }
-.help-toggle[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+/* Over the middle key, a hairline as wide as it */
+.switches::after { content: ""; position: absolute; top: 50%; left: calc(12px + 3 * ((100% - 60px) / 7 + 6px)); width: calc((100% - 60px) / 7); height: 1px; background: var(--line); }
 .switches .segmented { height: 28px; }
 .switches .segmented button { font-size: 10px; letter-spacing: 0.06em; }
 .keys { --gap: 6px; margin: 12px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 88px; }
