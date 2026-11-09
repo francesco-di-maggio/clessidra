@@ -87,7 +87,7 @@ body.app main { flex: 1; min-height: 0; }
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
-/* Between Position and Length, the grains sounding now */
+/* Between Position and Length, one grain as the knobs set it */
 .knobs .grains { grid-column: span 2; width: calc(100% - 24px); height: calc(var(--band) + 12px + 2 * var(--name)); align-self: center; justify-self: center; }
 
 /* The pads as an octave: the slices white keys, the others black keys on
@@ -95,8 +95,9 @@ body.app main { flex: 1; min-height: 0; }
    In the switches' colours: white keys as the chosen position, black keys as
    the others. */
 .pads { grid-area: pads; display: grid; gap: 12px; padding: 12px; }
-/* Mode and Quantize side by side over the keys, as the sources are */
-.switches { display: grid; grid-template-columns: 3fr 2fr; gap: var(--unit); }
+/* Mode and Quantize side by side over the keys, as the sources are: the
+   board's down to up, left to right */
+.switches { display: grid; grid-template-columns: 1fr 1fr; gap: var(--unit); }
 .switches .segmented { height: 32px; }
 .switches .segmented button { font-size: 10px; letter-spacing: 0.06em; }
 .keys { --gap: 6px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 100px; }

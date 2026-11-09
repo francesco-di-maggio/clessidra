@@ -74,8 +74,8 @@ add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
-add(toggle(byId("S09"), $("s09"), [[POSITION.up, "FORWARD"], [POSITION.centre, "FREEZE"], [POSITION.down, "REVERSE"]], on));
-add(toggle(byId("S07"), $("s07"), [[POSITION.up, "OCT"], [POSITION.centre, "SEMI"], [POSITION.down, "OFF"]], on));
+add(toggle(byId("S09"), $("s09"), [[POSITION.down, "REVERSE"], [POSITION.centre, "FREEZE"], [POSITION.up, "FORWARD"]], on));
+add(toggle(byId("S07"), $("s07"), [[POSITION.down, "OFF"], [POSITION.centre, "SEMI"], [POSITION.up, "OCT"]], on));
 // The pads as an octave: the slices the white keys, the others the black,
 // Rec and Shift on C# and D#, Stop, Reset and Cue on F#, G# and A#. A slice
 // held is tinted in the recording, and a press there is a touch of its pad.
@@ -261,7 +261,7 @@ function onMessage(m: FromWorklet) {
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming);
     waveform.update(m);
-    grainShape.update(m.params, m.grains);
+    grainShape.update(m.params);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);
