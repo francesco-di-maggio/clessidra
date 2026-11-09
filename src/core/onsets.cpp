@@ -5,52 +5,63 @@
 
 namespace clessidra
 {
-void Onsets::Find(const float* data, size_t length, float sample_rate)
+void Onsets::Begin(const float* data, size_t length, float sample_rate)
 {
     onsets_.fill(Onset{});
-    if(length == 0)
-        return;
-    const size_t frame
-        = std::max(size_t(kFrameSeconds * sample_rate), size_t(1));
-    const size_t frames = length / frame;
-    const size_t gap    = size_t(kMinGapSeconds / kFrameSeconds);
-    const float  pre    = kPreRollSeconds * sample_rate / float(length);
+    data_   = data;
+    length_ = length;
+    frame_  = std::max(size_t(kFrameSeconds * sample_rate), size_t(1));
+    frames_ = length / frame_;
+    gap_    = size_t(kMinGapSeconds / kFrameSeconds);
+    pre_    = length > 0 ? kPreRollSeconds * sample_rate / float(length) : 0.0f;
+    next_   = 0;
+    history_     = {};
+    history_sum_ = 0.0f;
+    frame_at_    = 0;
+    current_     = Onset{};
+}
 
-    std::array<float, kHistoryFrames> history{};
-    float                             history_sum = 0.0f;
-    size_t                            frame_at    = 0; // of current
-    Onset                             current;
-    for(size_t f = 0; f < frames; f++)
+bool Onsets::Step(size_t frames)
+{
+    if(next_ >= frames_)
+        return true;
+    const size_t last = std::min(frames_, next_ + frames);
+    for(size_t f = next_; f < last; f++)
     {
         float power = 0.0f;
-        for(size_t i = f * frame; i < (f + 1) * frame; i++)
-            power += data[i] * data[i];
-        power /= float(frame);
+        for(size_t i = f * frame_; i < (f + 1) * frame_; i++)
+            power += data_[i] * data_[i];
+        power /= float(frame_);
 
         // A rise over the frames before it. Within the gap, one onset: the
         // strongest.
-        const float before = history_sum / float(kHistoryFrames);
+        const float before = history_sum_ / float(kHistoryFrames);
         if(f >= kHistoryFrames && power > kMinPower && power > kRise * before)
         {
             const float rise = power / std::max(before, kMinPower);
-            if(current.rise > 0.0f && f >= frame_at + gap)
+            if(current_.rise > 0.0f && f >= frame_at_ + gap_)
             {
-                Keep(current);
-                current = Onset{};
+                Keep(current_);
+                current_ = Onset{};
             }
-            if(rise > current.rise)
+            if(rise > current_.rise)
             {
-                current
-                    = {std::max(float(f * frame) / float(length) - pre, 0.0f),
-                       rise};
-                frame_at = f;
+                current_ = {
+                    std::max(float(f * frame_) / float(length_) - pre_, 0.0f),
+                    rise};
+                frame_at_ = f;
             }
         }
         const size_t slot = f % kHistoryFrames;
-        history_sum += power - history[slot];
-        history[slot] = power;
+        history_sum_ += power - history_[slot];
+        history_[slot] = power;
     }
-    Keep(current);
+    next_ = last;
+    if(next_ < frames_)
+        return false;
+    Keep(current_);
+    current_ = Onset{};
+    return true;
 }
 
 void Onsets::Keep(const Onset& onset)

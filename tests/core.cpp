@@ -998,6 +998,15 @@ void Slicing()
     Onsets onsets;
     onsets.Find(sound.data(), sound.size(), float(kRate));
     const auto slices = onsets.Slices(0.0f, 1.0f);
+    // In steps, as the control passes read it: the same slices
+    Onsets stepped;
+    stepped.Begin(sound.data(), sound.size(), float(kRate));
+    size_t passes = 1;
+    while(!stepped.Step(7))
+        passes++;
+    Check(stepped.Slices(0.0f, 1.0f) == slices && passes > 1,
+          "slices read in steps: as read at once",
+          double(passes));
     bool       found  = slices[0] == 0.0f;
     for(float t : kTimes)
     {

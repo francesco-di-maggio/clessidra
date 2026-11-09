@@ -28,6 +28,9 @@ class CoreUI
     static constexpr size_t kRecordPad = 10; // tap or hold. With Shift: listen
     static constexpr size_t kShiftPad  = 11; // held: the second layer
     static constexpr size_t kNumSlices = Onsets::kNumSlices;
+    // Of a new recording, read per pass for its onsets: 1 s, well within a
+    // web block
+    static constexpr size_t kOnsetFrames = size_t(1.0f / Onsets::kFrameSeconds);
     // P03-P09, the slices, left to right on the board
     static constexpr std::array<size_t, kNumSlices> kSlicePads
         = {3, 4, 8, 5, 9, 6, 7};
