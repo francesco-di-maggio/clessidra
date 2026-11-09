@@ -105,10 +105,10 @@ body.app main { flex: 1; min-height: 0; }
    board's down to up, left to right */
 .switches { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 0 12px; border-bottom: 1px solid var(--line); }
 .switches > div { padding: 8px 0; }
-/* Each three keys wide, over the outer keys; a hairline down the middle */
+/* Each three keys wide, over the outer keys; a hairline across the middle */
 .switches > div:first-child { grid-column: 1 / 4; }
 .switches > div + div { grid-column: 5 / 8; }
-.switches::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--line); }
+.switches::after { content: ""; position: absolute; top: 50%; left: calc(50% - (100% - 24px - 36px) / 14 + 6px); width: calc((100% - 24px - 36px) / 7 - 12px); height: 1px; background: var(--line); }
 .switches .segmented { height: 28px; }
 .switches .segmented button { font-size: 10px; letter-spacing: 0.06em; }
 .keys { --gap: 6px; margin: 12px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 88px; }

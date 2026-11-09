@@ -1007,7 +1007,7 @@ void Slicing()
     Check(stepped.Slices(0.0f, 1.0f) == slices && passes > 1,
           "slices read in steps: as read at once",
           double(passes));
-    bool       found  = slices[0] == 0.0f;
+    bool found = slices[0] == 0.0f;
     for(float t : kTimes)
     {
         bool at = false;
@@ -1437,12 +1437,12 @@ void Mapping()
           "P00: stopped as a tape machine, then started again (rms)",
           stopped / playing);
     r.Run(0.3, Silence);
-    press(CoreUI::kCuePad, true);
+    press(CoreUI::kTurnPad, true);
     r.Run(0.001, Silence);
     Check(r.core.PlayheadPhase() < 0.01,
-          "P02 Cue: the playhead from the loop's start",
+          "P02 Turn: the playhead from the loop's start",
           r.core.PlayheadPhase());
-    press(CoreUI::kCuePad, false);
+    press(CoreUI::kTurnPad, false);
     press(CoreUI::kShiftPad, true);
     press(CoreUI::kResetPad, true);
     press(CoreUI::kResetPad, false);

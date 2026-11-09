@@ -7,7 +7,7 @@ export const MAX_RECORD_S = 30; // config.h kBufferSeconds
 // CoreUI's pads
 export const STOP_PAD = 0;
 export const RESET_PAD = 1; // with Shift
-export const CUE_PAD = 2;
+export const TURN_PAD = 2;
 export const SLICE_PADS = [3, 4, 8, 5, 9, 6, 7]; // P03–P09, left to right
 export const RECORD_PAD = 10;
 export const SHIFT_PAD = 11;

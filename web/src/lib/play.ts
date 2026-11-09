@@ -76,7 +76,7 @@ for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), 
 add(toggle(byId("S09"), $("s09"), [[POSITION.down, "REVERSE"], [POSITION.centre, "FREEZE"], [POSITION.up, "FORWARD"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.down, "OFF"], [POSITION.centre, "SEMITONE"], [POSITION.up, "OCTAVE"]], on));
 // The pads as an octave: the slices the white keys, the others the black,
-// Rec and Shift on C# and D#, Stop, Reset and Cue on F#, G# and A#. A slice
+// Rec and Shift on C# and D#, Stop, Reset and Turn on F#, G# and A#. A slice
 // held is tinted in the recording, and a press there is a touch of its pad.
 SLICE_PADS.forEach((index, i) => {
   const w = add(pad(padOf(index), $("keys"), `${i + 1}`, on));
@@ -84,7 +84,7 @@ SLICE_PADS.forEach((index, i) => {
   w.draw = (p) => (draw(p), waveform.hold(i, p));
 });
 waveform.onSlice = (i, down, e) => press(padOf(SLICE_PADS[i]), down, e);
-const BLACK: [string, string, number][] = [["P10", "Rec", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Cue", 6]];
+const BLACK: [string, string, number][] = [["P10", "Rec", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Turn", 6]];
 for (const [id, label, edge] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
   w.root.classList.add("black");

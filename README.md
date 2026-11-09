@@ -27,12 +27,12 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | P11 | Shift, held | |
 | P00 | Stop, as a tape machine: everything slows to a halt over 0.6 s, the pitch falling. Touch again to start | |
 | P01 | Reset: the twins back to their defaults | |
-| P02 | Cue: back to the start of the loop, with a grain at once | |
+| P02 | Turn, as an hourglass turned over: from the top of the loop again (its end in reverse), with a grain at once | |
 | P03–P09 | Slices: the loop in seven, its start then the recording's strongest attacks inside it (even parts without attacks), left to right on the board (P03, P04, P08, P05, P09, P06, P07). Held: plays its slice from the start, round it, at Speed and Density, forward, frozen at its start or reverse as S09 sets, a grain at once. Several at once. The loop waits while any is held, a new recording ends them. At Density's centre: two grains at once, regular, the slice as it is. On the page, also a press on the waveform | |
 
 | LED | |
 |---|---|
-| Glow | Grains falling, dimmer as the sand runs out |
+| Glow | Grains falling |
 | Flash | Recording |
 | Pulse | At a stop: unison, speed 1×, 100 ms, Hann, filter off |
 | Steady | P11 held: the twin last turned |
