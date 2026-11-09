@@ -6,6 +6,7 @@ import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, 
 import { MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
+import { GrainShape } from "./shape";
 import { Waveform } from "./waveform";
 import { knob, pad, slider, toggle, type Handlers, type Widget } from "./widgets";
 
@@ -43,11 +44,13 @@ function refresh() {
   if (!preview) return;
   const { params, view } = preview.read();
   last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, view };
+  grainShape.update(params);
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const monitor = $("monitor");
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
+const grainShape = new GrainShape($<HTMLCanvasElement>("grain-shape"));
 let last: Frame | null = null;
 
 const parts = new Map<string, Widget>();
@@ -258,6 +261,7 @@ function onMessage(m: FromWorklet) {
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming);
     waveform.update(m);
+    grainShape.update(m.params, m.grains);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);

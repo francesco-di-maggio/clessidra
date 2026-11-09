@@ -155,6 +155,7 @@ export function pad(c: Control, parent: Element, label: string, h: Handlers): Wi
   const root = html("button", { class: "pad", type: "button", "aria-label": c.name }, parent);
   html("span", { class: "num" }, root).textContent = label;
   const sub = html("span", { class: "sub" }, root);
+  html("span", { class: "id" }, root).textContent = c.id;
   root.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     root.setPointerCapture(e.pointerId);
@@ -186,9 +187,8 @@ export function pad(c: Control, parent: Element, label: string, h: Handlers): Wi
 // A three-way switch: its name, then its three positions stacked as the lever
 // moves, the one chosen lit. Takes a knob's room: dial and value.
 export function toggle(c: Control, parent: Element, options: [number, string][], h: Handlers): Widget {
-  const root = html("div", { class: "knob toggle" }, parent);
-  html("span", { class: "label" }, root).textContent = c.short ?? c.name;
-  const group = html("div", { class: "segmented vertical", role: "radiogroup", "aria-label": c.name }, root);
+  const root = html("div", { class: "toggle" }, parent);
+  const group = html("div", { class: "segmented", role: "radiogroup", "aria-label": c.name }, root);
   const buttons = options.map(([position, text]): [number, HTMLButtonElement] => {
     const b = html("button", { type: "button", role: "radio" }, group);
     b.textContent = text;

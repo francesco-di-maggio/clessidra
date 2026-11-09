@@ -29,7 +29,7 @@ body.app main { flex: 1; min-height: 0; }
 .transport .control.primary { width: 88px; height: 32px; flex: none; justify-content: center; color: var(--bg); }
 .transport .control.primary.on { background: var(--bg); color: var(--ink); border-color: var(--line); }
 .transport .segmented { width: 184px; height: 32px; flex: none; }
-.levels { flex: 1; display: flex; gap: 16px; min-width: 0; }
+.levels { flex: 1; display: flex; gap: 16px; min-width: 0; align-self: stretch; align-items: center; padding-left: 12px; border-left: 1px solid var(--line); }
 .slider { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; outline: none; touch-action: none; cursor: ew-resize; }
 .slider .label { flex: none; }
 /* As the faders, on their side: the slot, the value's line, the cap. The
@@ -87,18 +87,26 @@ body.app main { flex: 1; min-height: 0; }
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
-.toggle .segmented.vertical { width: 84px; height: calc(var(--band) + 6px + var(--name)); grid-auto-rows: 1fr; }
-.toggle .segmented.vertical button { height: auto; justify-content: center; padding: 0; font-size: 10px; letter-spacing: 0.06em; }
+/* Between Position and Length, the grains sounding now */
+.knobs .grains { grid-column: span 2; width: calc(100% - 24px); height: calc(var(--band) + 12px + 2 * var(--name)); align-self: center; justify-self: center; }
 
 /* The pads as an octave: the slices white keys, the others black keys on
    their edges, two then three as on a piano. Names at the foot of each key.
    In the switches' colours: white keys as the chosen position, black keys as
    the others. */
-.pads { grid-area: pads; padding: 12px; }
+.pads { grid-area: pads; display: grid; gap: 12px; padding: 12px; }
+/* Mode and Quantize side by side over the keys, as the sources are */
+.switches { display: grid; grid-template-columns: 3fr 2fr; gap: var(--unit); }
+.switches .segmented { height: 32px; }
+.switches .segmented button { font-size: 10px; letter-spacing: 0.06em; }
 .keys { --gap: 6px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 100px; }
 .pad { display: grid; place-content: end center; width: 100%; height: 100%; padding: 0 0 8px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); color: var(--ink);
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }
+/* The board's pad, faint over the name */
+.keys .pad { gap: 3px; justify-items: center; }
+.pad .id { order: -1; font-size: 9px; letter-spacing: 0.04em; color: var(--dim); }
+.pad.on .id { color: inherit; opacity: 0.8; }
 .pad:hover { border-color: var(--dim); }
 .pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.72); height: 56%; padding-bottom: 8px;
              left: calc((var(--key) + var(--gap)) * var(--edge) - var(--gap) / 2); transform: translateX(-50%);

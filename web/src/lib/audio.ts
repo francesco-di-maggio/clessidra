@@ -95,13 +95,12 @@ function loop(ctx: AudioContext, buffer: AudioBuffer) {
 }
 
 // A plucked phrase, made here (Karplus-Strong): the demo needs no sound file.
-// Notes of different lengths and levels, 8 s: a tap on Rec keeps it whole.
+// Notes of different lengths and levels.
 function demo(ctx: AudioContext) {
   const rate = ctx.sampleRate;
   const notes: [number, number, number][] = [
     [57, 0.5, 0.6], [64, 0.25, 0.4], [69, 0.25, 0.5], [72, 1, 0.7],
     [71, 0.5, 0.5], [64, 0.5, 0.4], [67, 0.75, 0.6], [62, 1.25, 0.7],
-    [69, 0.5, 0.5], [72, 0.5, 0.6], [76, 0.75, 0.5], [74, 0.25, 0.4], [71, 1, 0.6],
   ]; // MIDI note, seconds, level
   const length = Math.ceil(notes.reduce((t, [, s]) => t + s, 0) * rate);
   const out = new Float32Array(length);
