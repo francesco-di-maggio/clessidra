@@ -72,7 +72,7 @@ export const CONTROLS: Control[] = [
   {
     id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3), scale: SPEED_SCALE,
     does: "Playback speed, 0 to 4×, the pitch kept. Frozen, it scrubs through the loop.",
-    value: (p) => (p[PARAM.freeze] ? "Frozen" : `${signed(p[PARAM.speed], 2)}×`),
+    value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
     twin: { name: "Dry/wet", short: "Mix", does: "The input against the grains, dry to wet.", value: (p) => percent(p[PARAM.mix]) },
   },
   {
@@ -81,7 +81,8 @@ export const CONTROLS: Control[] = [
     value: (p) => {
       const d = p[PARAM.density];
       if (d === 0) return "None";
-      return `${p[PARAM.randomStarts] ? "Random" : "Regular"} ${fraction((d * p[PARAM.grainMsSet]) / 1000)}`;
+      // The words padded to one length: the figure stays put
+      return `${(p[PARAM.randomStarts] ? "Random" : "Regular").padEnd(7, "\u00a0")} ${fraction((d * p[PARAM.grainMsSet]) / 1000)}`;
     },
     twin: { name: "Reverb", does: "Reverb on the grains, from none to long tails.", value: (p) => percent(p[PARAM.reverb]) },
   },

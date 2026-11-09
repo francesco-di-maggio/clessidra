@@ -145,12 +145,22 @@ body.app main { flex: 1; min-height: 0; }
 /* Narrow: the board's order, two columns */
 @media (max-width: 600px) {
   body.app { height: auto; min-height: 100dvh; overflow: visible; }
-  .transport { flex-wrap: wrap; padding: 12px var(--in); }
+  /* Start and the sources, then Out under them */
+  .transport { flex-wrap: wrap; row-gap: 12px; padding: 12px var(--in); }
+  .transport .control.primary { width: 88px; }
+  .transport .segmented { flex: 1; width: auto; }
+  .transport .divider { display: none; }
+  .levels { flex-basis: 100%; padding-left: 0; border-left: 0; }
   .instrument { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 316px auto auto;
                 grid-template-areas: "transport transport" "sound sound" "controls controls" "pads pads"; }
   .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "knobs knobs" "speed density"; }
   .knobs { border: 0; border-bottom: 1px solid var(--line); }
   #speed { border-right: 1px solid var(--line); }
-  .pad.black { font-size: 0; }
+  /* The switches one over the other, the keys' names smaller */
+  .switches { grid-template-columns: 1fr; padding: 0 12px; }
+  .switches > div:first-child, .switches > div:last-child { grid-column: auto; }
+  .switches > div + div { padding-top: 0; }
+  .switches::after { display: none; }
+  .pad.black { font-size: 9px; letter-spacing: 0; }
   .knob.fader { min-height: 240px; }
 }
