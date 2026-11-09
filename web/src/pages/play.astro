@@ -23,9 +23,14 @@ import "../styles/play.css";
     <section class="tile sound" aria-label="The recording and the input">
       <div class="bar">
         <span class="label">Recording</span>
-        <span class="figures"><span id="grain-figure" class="figure" title="Grain size, grains sounding of the voices">100 ms · 0/32</span><span id="held" class="figure">Empty</span><span id="tap" class="segmented" role="radiogroup" aria-label="What a tap keeps, and the live window" title="What a tap keeps, and the live window"></span></span>
+        <span class="figures"><span id="grain-figure" class="figure" title="Grain size, grains sounding of the voices">100 ms · 0/32</span><span id="held" class="figure">Empty</span></span>
       </div>
       <canvas id="buffer" role="img" aria-label="The recording: the loop, its slices, the playhead with a grain's window to scale, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
+      <div class="bar lane">
+        <span class="label">Input</span>
+        <span class="figures"><span id="monitor" class="figure on"></span><span class="figure dim">a tap keeps 8 s</span></span>
+      </div>
+      <canvas id="incoming" role="img" aria-label="The input over the last 8 s, what a tap keeps, the part being recorded in orange"></canvas>
     </section>
 
     <section id="speed" class="tile fader" aria-label="Speed"></section>

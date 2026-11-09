@@ -2,9 +2,10 @@
 // does.
 
 import { Audio, type Input } from "./audio";
-import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type State } from "./controls";
+import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Hourglass } from "./hourglass";
+import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { GrainShape } from "./shape";
 import { Waveform } from "./waveform";
@@ -51,8 +52,8 @@ function refresh() {
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const grainFigure = $("grain-figure");
-const sound = document.querySelector<HTMLElement>(".sound")!;
-const soundName = sound.querySelector<HTMLElement>(".bar .label")!;
+const monitor = $("monitor");
+const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainShape = new GrainShape($<HTMLCanvasElement>("grain-shape"));
 const hourglass = new Hourglass($<HTMLCanvasElement>("hourglass"));
 let last: Frame | null = null;
@@ -85,35 +86,18 @@ for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), 
 add(toggle(byId("S09"), $("s09"), [[POSITION.up, "Forward"], [POSITION.centre, "Freeze"], [POSITION.down, "Reverse"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.up, "Oct"], [POSITION.centre, "Semi"], [POSITION.down, "Off"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
-const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "Live"], ["P01", "Reset"], ["P02", "P02"]];
+const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "P00"], ["P01", "Reset"], ["P02", "P02"]];
 for (const [id, label] of FUNCTIONS) {
   const w = add(pad(byId(id), $("functions"), label, on));
   if (w.c.free) w.root.classList.add("free");
   if (id === "P10") w.root.classList.add("rec");
 }
 
-// What a tap keeps: the board's 8 s, or the others to try
-const taps = TAP_SECONDS.map((seconds) => {
-  const b = document.createElement("button");
-  b.type = "button";
-  b.setAttribute("role", "radio");
-  b.textContent = `${seconds} s`;
-  b.addEventListener("click", () => tap(seconds));
-  $("tap").append(b);
-  return [seconds, b] as const;
-});
-function tap(seconds: number) {
-  waveform.window = seconds;
-  waveform.draw();
-  for (const [s, b] of taps) b.setAttribute("aria-checked", String(s === seconds));
-  send({ type: "tap", index: -1, seconds });
-}
-
+// Every control at its starting value, sent to the firmware
 for (const w of parts.values()) {
   if (w.c.type === "pad") w.draw(0);
   else set(w.c, w.c.initial ?? 0, false);
 }
-tap(TAP_DEFAULT);
 hint();
 // Leaving the controls, nothing focused in them: the hint again
 for (const panel of document.querySelectorAll(".levels, .instrument")) {
@@ -246,7 +230,7 @@ function focus(c: Control) {
 
 function show() {
   if (!last) return;
-  const v: Live = { sound: last.view[VIEW.sound], recording: recording() };
+  const v: State = { sound: last.view[VIEW.sound], recording: recording() };
   // P11 held: each knob with a twin shows the twin, its name and value.
   // Frozen by S09: Speed scrubs, and shows where the playhead is.
   const scrubbing = positions.get("S09") === POSITION.centre;
@@ -262,12 +246,8 @@ function show() {
   }
   const twin = shifted() ? focused?.twin : undefined;
   if (focused) readout.value.textContent = twin ? twin.value(last.params) : (focused.value?.(last.params, v) ?? "");
-  // Live: the window behind the input, the Live pad lit while on
-  const live = last.view[VIEW.live] === 1;
-  sound.classList.toggle("live", live);
-  soundName.textContent = live ? "Live" : v.recording > 0 || !v.sound ? "Input" : "Recording";
-  parts.get("P00")?.root.classList.toggle("latched", live);
-  held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : live ? `${(v.sound / RATE).toFixed(0)} s back` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
+  held.textContent = v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
+  monitor.textContent = v.recording ? `● ${v.recording.toFixed(1)} s · heard` : "";
   held.classList.toggle("on", v.recording > 0);
   const size = last.params[PARAM.grainMs];
   grainFigure.textContent = `${size < 1000 ? `${Math.round(size)} ms` : `${(size / 1000).toFixed(2)} s`} · ${Math.round(last.grains.length / GRAIN_FIELDS)}/${VOICES}`;
@@ -279,7 +259,8 @@ function onMessage(m: FromWorklet) {
     led.style.setProperty("--led", String(m.led));
     inMeter(m.input);
     outMeter(m.output);
-    waveform.recording = recording();
+    waveform.recording = incoming.recording = recording();
+    incoming.update(m.incoming);
     waveform.update(m);
     grainShape.update(m.params);
     hourglass.update(m);

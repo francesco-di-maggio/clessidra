@@ -45,8 +45,9 @@ body.app main { flex: 1; min-height: 0; }
 .sound .figures { display: flex; gap: 16px; }
 .sound #buffer { flex: 1; min-height: 0; }
 .sound .figures { align-items: center; }
-.sound .segmented { height: 22px; width: auto; }
-.sound .segmented button { padding: 0 8px; font-size: 10px; letter-spacing: 0.04em; }
+.sound .lane { height: 32px; border-top: 1px solid var(--line); }
+.sound #incoming { height: 64px; flex: none; }
+.figure.dim { color: var(--dim); }
 
 /* The controls row: a fader at each edge, the knobs and switches between.
    One rhythm in every tile: a name, a band for the control, a value. */

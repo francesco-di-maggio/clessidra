@@ -87,9 +87,6 @@ class Core
     static constexpr float kCopyMarginSeconds = 0.5f;
     // the longest block the reverb sends hold
     static constexpr size_t kMaxBlock = 256;
-    // Live: the least a grain stays behind the input, beyond what its pitch
-    // needs, samples
-    static constexpr double kLiveMargin = 256.0;
 
     struct Params
     {
@@ -129,11 +126,6 @@ class Core
         // The grains silent, faded over kMuteSeconds; the reverb rings on
         bool  mute = false;
         float mix  = 1.0f; // 0 dry .. 1 wet, equal power
-        // Live: grains read the input as it comes, the window behind it that a
-        // tap keeps. The selection: start back from now, length long, both of
-        // the window. Sealed: the input not written, the moment held.
-        bool live = false;
-        bool seal = false;
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
         float output = 1.0f; // gain after the limiter, 0..1
@@ -180,12 +172,6 @@ class Core
     }
     // Main loop: true while the record pad is held
     void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
-    // What a tap keeps, seconds, up to the ring's capacity. kTapCaptureSeconds
-    // unless set: the browser tries others.
-    void SetTapSeconds(float seconds)
-    {
-        tap_seconds_.store(seconds, std::memory_order_relaxed);
-    }
     // New recordings so far: a change means Sound() is a new recording, and the
     // playhead has restarted
     uint32_t Recordings() const
@@ -204,11 +190,6 @@ class Core
     {
         return buffers_[playing_.load(std::memory_order_acquire)];
     }
-    // What live grains read: the ring, round its end, and where it is written
-    // next. The window behind it, samples.
-    const Buffer& LiveSound() const { return live_; }
-    size_t        WriteIndex() const { return ring_.WriteIndex(); }
-    size_t        LiveWindow() const;
     // For tests, between blocks: the grains and the parameters in use
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
@@ -260,8 +241,6 @@ class Core
     // recording to the buffer not playing once its grains have ended, then
     // plays it
     void UpdateCapture(size_t size);
-    // Live: a grain's start moved back if it would read ahead of the input
-    double Behind(double position, float rate, size_t offset) const;
     // Advances grain starts by one sample; true when a grain starts
     bool Due(Schedule& s, double sched_inc, bool random);
     // Updates norm_ from the mean powers of the last block
@@ -283,14 +262,12 @@ class Core
     // rate
     daisysp::DcBlock                dc_block_;
     Ring                            ring_;
-    Buffer                          live_; // the ring, read by live grains
     std::array<Buffer, kNumBuffers> buffers_;
     std::atomic<size_t>             playing_{0};
     std::atomic<uint32_t>           dropped_{0};
 
     std::atomic<uint32_t> recordings_{0};
     std::atomic<bool>     record_{false};
-    std::atomic<float>    tap_seconds_{kTapCaptureSeconds};
     bool                  was_record_ = false;
     // While a new recording pours in: the one before, and how far, 0..1
     const Buffer* poured_from_ = nullptr;
@@ -303,12 +280,10 @@ class Core
     // Grains. Running positions in double: float steps reach 1/32 sample at 8
     // s.
     std::array<Grain, kNumVoices> grains_;
-    double                        grain_samples_ = 1.0; // at the last block
     Playhead                      playhead_;
     Schedule                      schedule_;
 
-    bool               restart_  = false; // a new recording: from the top
-    bool               was_live_ = false;
+    bool               restart_ = false; // a new recording: from the top
     std::atomic<float> scrub_{0.0f};
     std::atomic<float> jump_{-1.0f}; // none below 0
     uint32_t           seed_ = 1;

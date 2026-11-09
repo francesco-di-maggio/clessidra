@@ -140,27 +140,6 @@ check(shifted > 0.9 && density() === before, "P11 + S37: the reverb, Density kep
 w.cl_knob(KNOB.S37, 0.75);
 run(0.02, silence);
 
-// P00: live, the view the window behind the input, grains of the input. P00
-// again: the recording.
-const LIVE = 0;
-const liveFlag = () => f32(w.cl_view(), 6)[5];
-w.cl_pad(LIVE, 1, 0.5);
-run(0.02);
-w.cl_pad(LIVE, 0, 0);
-w.cl_knob(KNOB.S37, 1);
-let liveGrains = 0;
-for (let i = 0; i < 20; i++) {
-  run(0.05);
-  liveGrains = Math.max(liveGrains, w.cl_grains());
-}
-w.cl_knob(KNOB.S37, 0.75);
-const wasLive = liveFlag();
-w.cl_pad(LIVE, 1, 0.5);
-run(0.02);
-w.cl_pad(LIVE, 0, 0);
-run(0.1, silence);
-check(wasLive === 1 && liveGrains > 0 && liveFlag() === 0, "P00: live, grains of the input, then back", liveGrains);
-
 // S37 at the centre: no grains. At the top: a cloud, 16 at once
 w.cl_knob(KNOB.S37, 0.5);
 run(1, silence);

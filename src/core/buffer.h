@@ -17,14 +17,7 @@ class Buffer
     void Init(float* mem, size_t capacity, float sample_rate);
 
     // After writing length samples to Data(): sets the length, fades the ends
-    void Finish(size_t length);
-    // Reads memory written elsewhere, length long, as it is: a ring's, read
-    // round its end
-    void View(float* mem, size_t length)
-    {
-        mem_      = mem;
-        capacity_ = length_ = length;
-    }
+    void         Finish(size_t length);
     float*       Data() { return mem_; }
     const float* Data() const { return mem_; }
     const float* Samples() const { return mem_; } // what plays

@@ -105,14 +105,14 @@ try {
   await pad("Shift", false);
   check(shifted && /^true Reverb \d+\s%$/.test(twin), "P11 held: Density shows Reverb in its place", twin);
 
-  // A tap keeps the seconds set over the input
-  await run(`[...document.querySelectorAll("#tap button")].find((b) => b.textContent === "4 s").click()`);
+  // A tap keeps the last 8 s of the input
   await pad("Record", true);
   await sleep(100);
   await pad("Record", false);
   await sleep(1500);
   const tapped = await run(`document.getElementById("held").textContent`);
-  check(tapped === "4.0 s", "4 s set, Rec tapped: the last 4 s", tapped);
+  // Up to 8 s: only as much input has passed, its silence trimmed
+  check(/^\d\.\d s$/.test(tapped) && parseFloat(tapped) <= 8 && tapped !== held, "Rec tapped: up to the last 8 s, a new recording", tapped);
   check(errors.length === 0, "no errors", errors.join(" | "));
   ws.close();
 } catch (err) {

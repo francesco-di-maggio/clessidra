@@ -255,13 +255,6 @@ void Record()
           "tap: the last 8 s (s)",
           Seconds(tap.rig.core));
 
-    Panel shorter;
-    shorter.rig.core.SetTapSeconds(4.0f);
-    shorter.Run(10.0, Sine);
-    shorter.Record(0.1, Sine);
-    Check(Near(Seconds(shorter.rig.core), 4.0, 0.02),
-          "tap, set to 4 s: the last 4 s (s)",
-          Seconds(shorter.rig.core));
 
     Panel lng(4.0);
     lng.Record(6.0, Sine);
@@ -1052,78 +1045,6 @@ void Cloud()
     }
 }
 
-// Live: grains read the input as it comes, never ahead of it; sealed, the
-// input is held
-void Live()
-{
-    Rig          r(8.0);
-    Core::Params p;
-    p.live     = true;
-    p.density  = 80.0f;
-    p.grain_ms = 50.0f;
-    r.core.SetTapSeconds(4.0f);
-    r.core.SetParams(p);
-    r.Run(1.0, Sine);
-    Check(r.peak > 0.01,
-          "live: grains of the input at once, nothing recorded",
-          r.peak);
-
-    // The distance behind the input of every grain sounding, at its start and
-    // as it plays
-    const auto distances = [&](double seconds, double* least, double* most) {
-        const double ring = double(r.core.LiveSound().Length());
-        *least            = 1e12;
-        *most             = 0.0;
-        r.Run(seconds, Sine, [&](size_t) {
-            for(const auto& g : r.core.Grains())
-            {
-                if(!g.IsActive() || g.Source() != &r.core.LiveSound())
-                    continue;
-                double d = double(r.core.WriteIndex()) - g.Position();
-                d -= ring * std::floor(d / ring);
-                *least = std::min(*least, d);
-                *most  = std::max(*most, d);
-            }
-        });
-    };
-    double least, most;
-    distances(1.0, &least, &most);
-    Check(least > 0.0 && most < 0.1 * kRate,
-          "live, speed 1: every grain just behind the input (samples)",
-          most);
-    p.pitch      = 4.0f;
-    p.rand_pitch = 1.0f;
-    r.core.SetParams(p);
-    distances(1.0, &least, &most);
-    Check(least > 0.0,
-          "live, two octaves up and random pitch: never ahead of the input",
-          least);
-
-    // At speed 1 with no randomness, the playhead keeps its distance
-    p.pitch      = 1.0f;
-    p.rand_pitch = 0.0f;
-    p.start      = 0.25f;
-    p.length     = 0.5f;
-    r.core.SetParams(p);
-    r.Run(0.2, Sine);
-    const double phase = r.core.PlayheadPhase();
-    r.Run(0.5, Sine);
-    Check(Near(r.core.PlayheadPhase(), phase, 1e-6),
-          "live, speed 1: the playhead keeps its distance behind the input",
-          r.core.PlayheadPhase());
-
-    // Sealed: nothing written, the moment held, the grains go on
-    p.seal = true;
-    r.core.SetParams(p);
-    r.Run(0.01, Sine);
-    const size_t write = r.core.WriteIndex();
-    r.peak             = 0.0f;
-    r.Run(0.5, Sine);
-    Check(r.core.WriteIndex() == write && r.peak > 0.01,
-          "live, sealed: the input held, the grains go on",
-          r.peak);
-}
-
 // Slices at a recording's onsets: in order, each just before its onset. Too
 // few in the loop, the longest halved.
 void Slicing()
@@ -1538,7 +1459,6 @@ int main()
     Cloud();
     Takeovers();
     Slicing();
-    Live();
     Mapping();
     std::printf("%s\n",
                 failures ? "Some checks failed." : "All checks passed.");

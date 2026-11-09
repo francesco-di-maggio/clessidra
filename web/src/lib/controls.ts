@@ -3,12 +3,12 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { LIVE_PAD, PARAM, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
+import { PARAM, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
 // What a readout knows besides the parameters
-export interface Live {
+export interface State {
   sound: number; // samples recorded
   recording: number; // seconds P10 has been held, 0 when not
 }
@@ -35,7 +35,7 @@ export interface Control {
   scale?: { at: number; label: string }[]; // a fader's marks, 0..1 of its travel
   free?: boolean; // not assigned yet
   does?: string;
-  value?: (p: Float32Array, v: Live) => string;
+  value?: (p: Float32Array, v: State) => string;
   twin?: Twin;
 }
 
@@ -86,12 +86,12 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
-    does: "Where the loop starts in the recording. Live, how far back from now.",
+    does: "Where the loop starts in the recording.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
-    does: "How long the loop is. It ends no later than the recording, live at now.",
+    does: "How long the loop is. It ends no later than the recording.",
     value: (p, v) => seconds(p[PARAM.length] * v.sound),
   },
   {
@@ -128,7 +128,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Mode", initial: POSITION.up,
-    does: "Forward, freeze or reverse. Frozen, Speed scrubs. Live, the input is held.",
+    does: "Forward, freeze or reverse. Frozen, Speed scrubs through the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   {
@@ -149,11 +149,7 @@ export const CONTROLS: Control[] = [
     id: "P01", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
     does: "With Shift: second functions back to their defaults.",
   },
-  {
-    id: "P00", type: "pad", index: LIVE_PAD, ...padAt(LIVE_PAD), name: "Live",
-    does: "Grains from the input as it comes. Touch again for the recording.",
-  },
-  ...[2].map((index): Control => ({
+  ...[0, 2].map((index): Control => ({
     id: `P0${index}`, type: "pad", index, ...padAt(index), name: `P0${index}`, free: true,
     does: "Not assigned yet.",
   })),
@@ -174,7 +170,6 @@ export const PLAY: [string, string][] = [
   ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards"],
   ["A moment held", "S09 at the centre, Density up, a little Random position. Speed scrubs the point"],
   ["Shimmer", "Random pitch (P11 + S33) up, S07 up: octaves"],
-  ["Live cloud", "P00 on, Density up, Random position up, Mix (P11 + S36) to taste"],
 ];
 
 export const LED: [string, string][] = [

@@ -34,9 +34,6 @@ class Ring
     }
 
     size_t Capacity() const { return capacity_; }
-    // For grains reading it live: its memory, and where the next sample goes
-    float* Data() { return mem_; }
-    size_t WriteIndex() const { return write_; }
 
     // The region: length samples ending end_back samples before the next
     // write, within what was written. Writing on must not reach it before the

@@ -2,13 +2,8 @@
 // and every grain at the point it reads, as high as its pitch and as big as its
 // size. Laid out to the canvas's size.
 
-import { GRAIN_FIELDS, INCOMING_SECONDS, PARAM, RATE, VIEW, type Frame } from "./engine";
+import { GRAIN_FIELDS, PARAM, RATE, VIEW, type Frame } from "./engine";
 
-// Live: the input's columns over the window, oldest first
-function liveWindow(incoming: Float32Array, seconds: number) {
-  const n = Math.max(1, Math.round((Math.min(seconds, INCOMING_SECONDS) / INCOMING_SECONDS) * incoming.length));
-  return incoming.subarray(incoming.length - n);
-}
 
 const PITCH_RANGE = 36; // semitones: Pitch's ±24 and Random pitch's ±12
 const SIZE_MIN = 5; // ms, CoreUI::kMinGrainMs
@@ -47,7 +42,6 @@ export class Waveform {
   private dotsKey = "";
   recording = 0; // seconds held, 0 when not recording
   started = false;
-  window = 8; // seconds of input shown: what a tap keeps, live the window
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
@@ -95,37 +89,21 @@ export class Waveform {
     ctx.font = `500 11px ${c.mono}`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    if (!f || !this.started) {
-      ctx.fillStyle = c.dim;
-      ctx.fillText("PRESS START", W / 2, mid);
+    if (!f || !sound) {
+      ctx.fillStyle = this.recording ? c.accent : c.dim;
+      ctx.fillText(this.recording ? "RECORDING" : this.started ? "TAP OR HOLD REC" : "PRESS START", W / 2, mid);
       return;
     }
     const v = f.view;
-    const live = v[VIEW.live] === 1;
-    // Nothing recorded yet, or recording: the input, what a tap would keep,
-    // the part being recorded lit
-    if (!live && (this.recording > 0 || !sound)) {
-      const span = this.window;
-      const lit = W - pad - (Math.min(this.recording, span) / span) * width;
-      this.axis(span, true, W, pad, width, axis);
-      this.drawDots(liveWindow(f.incoming, span), W, H, pad, width, mid, half, this.recording > 0 ? lit : W, W - pad, dpr);
-      ctx.drawImage(this.dots, 0, 0, W, H);
-      if (!this.recording) {
-        ctx.fillStyle = c.dim;
-        ctx.fillText("TAP OR HOLD REC", W / 2, top + 4);
-      }
-      return;
-    }
-
-    // Seconds of the recording, or live, back from now
+    // Seconds of the recording
     const seconds = sound / RATE;
-    this.axis(seconds, live, W, pad, width, axis);
+    this.axis(seconds, W, pad, width, axis);
 
     // The waveform as dots, ink inside the selection; brackets at its ends.
     // Past the end, it goes on from the start: b beyond the right edge.
     const a = x(v[VIEW.selStart]);
     const b = a + (v[VIEW.selLength] / sound) * width;
-    this.drawDots(live ? liveWindow(f.incoming, seconds) : f.peaks, W, H, pad, width, mid, half, a, b, dpr);
+    this.drawDots(f.peaks, W, H, pad, width, mid, half, a, b, dpr);
     ctx.drawImage(this.dots, 0, 0, W, H);
     ctx.strokeStyle = c.ink;
     ctx.lineWidth = 1.5;
@@ -152,8 +130,7 @@ export class Waveform {
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = c.accent;
     ctx.fillStyle = c.accent;
-    // Past the end, round to the start; live, now is the end
-    const px = x(live ? Math.min(v[VIEW.playhead], sound) : v[VIEW.playhead] % sound);
+    const px = x(v[VIEW.playhead] % sound);
     line(ctx, px, top, px, bottom);
     ctx.beginPath();
     ctx.moveTo(px - 4, top - 6);
@@ -194,8 +171,8 @@ export class Waveform {
   }
 
   // Columns of dots on a DOT grid, each up to its peak, mirrored about mid
-  // The seconds below: of the recording from 0, or back from now
-  private axis(seconds: number, back: boolean, W: number, pad: number, width: number, axis: number) {
+  // The seconds of the recording below
+  private axis(seconds: number, W: number, pad: number, width: number, axis: number) {
     const { ctx, c } = this;
     ctx.font = `500 10px ${c.mono}`;
     ctx.fillStyle = c.dim;
@@ -206,17 +183,12 @@ export class Waveform {
     const step = seconds > 16 ? 5 : seconds > 6 ? 2 : seconds > 2 ? 1 : 0.5;
     line(ctx, pad, axis - 8, W - pad, axis - 8);
     for (let s = 0; s <= seconds + 1e-6; s += step) {
-      const px = back ? W - pad - (s / seconds) * width : pad + (s / seconds) * width;
+      const px = pad + (s / seconds) * width;
       line(ctx, px, axis - 8, px, axis - 3);
-      const room = back ? px > pad + 36 && s > 0 : px < W - pad - 36;
-      if (room) ctx.fillText(back ? `−${s}` : `${s}`, px, axis + 3);
+      if (px < W - pad - 36) ctx.fillText(`${s}`, px, axis + 3);
     }
-    ctx.textAlign = back ? "left" : "right";
-    ctx.fillText(back ? `−${seconds.toFixed(0)} s` : `${seconds.toFixed(1)} s`, back ? pad : W - pad, axis + 3);
-    if (back) {
-      ctx.textAlign = "right";
-      ctx.fillText("now", W - pad, axis + 3);
-    }
+    ctx.textAlign = "right";
+    ctx.fillText(`${seconds.toFixed(1)} s`, W - pad, axis + 3);
     ctx.textAlign = "center";
   }
 

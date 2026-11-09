@@ -5,24 +5,19 @@ export const RATE = 48000; // config.h kSampleRateHz
 export const BLOCK = 128; // Web Audio's render quantum
 export const MAX_RECORD_S = 30; // config.h kBufferSeconds
 // CoreUI's pads
-export const LIVE_PAD = 0;
 export const RESET_PAD = 1; // with Shift
 export const SLICE_PADS = [3, 4, 8, 5, 9, 6, 7]; // P03–P09, left to right
 export const RECORD_PAD = 10;
 export const SHIFT_PAD = 11;
 export const VOICES = 32; // Core::kNumVoices
-// What a tap keeps, seconds: the board's (Core::kTapCaptureSeconds), and the
-// others the browser tries
-export const TAP_SECONDS = [4, 8, 16];
-export const TAP_DEFAULT = 8;
+export const TAP_SECONDS = 8; // what a tap keeps, Core::kTapCaptureSeconds
 // The incoming strip: the input over the longest of them
 export const INCOMING_SECONDS = 16;
 export const INCOMING_COLUMNS = 1280;
 
 // cl_view, in samples of the recording
-// live: 1 when the rest is of the window behind the input, now its end
-export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped: 4, live: 5 } as const;
-export const VIEW_SIZE = 6;
+export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped: 4 } as const;
+export const VIEW_SIZE = 5;
 // cl_params, in the core's units. grainMs: the size in use, grainMsSet: as
 // set. randomStarts: 1 random, 0 regular. end: End, 0 once, 1 turn, 2 loop.
 // spread: pan width, 0..1. sandLeft: ahead of the playhead, 0..1. filter:
@@ -44,7 +39,6 @@ export interface Exports {
   cl_knob(knob: number, value: number): void;
   cl_switch(which: number, position: number): void;
   cl_pad(pad: number, touched: number, pressure: number): void;
-  cl_tap_seconds(seconds: number): void;
   cl_led(nowMs: number): number;
   cl_peaks(): number;
   cl_columns(): number;
@@ -73,7 +67,6 @@ export interface Frame {
 // What the page sends: Controls' knobs, switches and pads
 export type Control =
   | { type: "knob"; index: number; value: number }
-  | { type: "tap"; index: -1; seconds: number }
   | { type: "switch"; index: number; position: number }
   | { type: "pad"; index: number; touched: boolean; pressure: number };
 
