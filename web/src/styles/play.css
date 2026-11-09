@@ -15,7 +15,7 @@ body.app main { flex: 1; min-height: 0; }
               grid-template-rows: 56px 56px minmax(180px, 1fr) auto auto;
               grid-template-areas:
                 "transport transport transport transport transport transport transport transport transport transport transport transport"
-                "rec rec input input input input input input input input shift shift"
+                "input input input input input input input input input input input input"
                 "sound sound sound sound sound sound sound sound sound sound sound sound"
                 "speed speed knobs knobs knobs knobs knobs knobs knobs knobs density density"
                 "pads pads pads pads pads pads pads pads pads pads pads pads"; }
@@ -38,10 +38,7 @@ body.app main { flex: 1; min-height: 0; }
 .slider .signal.clip { background: var(--accent); }
 .slider .handle { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--surface); border: 1.5px solid var(--ink); }
 
-/* Rec, the last 8 s of the input, Shift: as at the top of the board */
-#rec { grid-area: rec; }
-#shift { grid-area: shift; }
-.side { padding: 12px; }
+/* The input, the last 8 s */
 .input { grid-area: input; display: flex; align-items: center; gap: 12px; padding: 0 var(--in); }
 .input canvas { flex: 1; min-width: 0; height: 100%; }
 .input #monitor:empty { display: none; }
@@ -94,16 +91,21 @@ body.app main { flex: 1; min-height: 0; }
 .toggle .segmented.vertical { width: 84px; height: calc(var(--band) + 6px + var(--name)); grid-auto-rows: 1fr; }
 .toggle .segmented.vertical button { height: auto; justify-content: center; padding: 0; font-size: 10px; letter-spacing: 0.06em; }
 
-/* Under the knobs as on the board: Stop, Reset and Cue, then the slices */
-.pads { grid-area: pads; display: grid; gap: var(--unit); padding: 12px; }
-.pad-row { display: grid; gap: var(--unit); }
-.functions { grid-template-columns: repeat(3, minmax(0, 1fr)); height: 32px; }
-.slices { grid-template-columns: repeat(7, minmax(0, 1fr)); height: 48px; }
-.pad { display: grid; place-content: center; width: 100%; height: 100%; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
+/* The pads as an octave: the slices white keys, the others black keys on
+   their edges, two then three as on a piano. Names at the foot of each key. */
+.pads { grid-area: pads; padding: 12px; }
+.keys { --gap: 6px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 84px; }
+.pad { display: grid; place-content: end center; width: 100%; height: 100%; padding: 0 0 8px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--dim);
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }
 .pad:hover { border-color: var(--dim); }
-.slices .pad { font-size: 12px; }
+.pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.62); height: 52%; padding-bottom: 6px;
+             left: calc((var(--key) + var(--gap)) * var(--edge) - var(--gap) / 2); transform: translateX(-50%);
+             border-color: transparent; background: var(--key-black); color: var(--key-black-ink); font-size: 9px; letter-spacing: 0.04em; }
+.pad.black:hover { border-color: var(--dim); }
+.pads { --key-black: #3a3a3e; --key-black-ink: #ecece9; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pads { --key-black: color-mix(in srgb, var(--ink) 20%, var(--surface)); --key-black-ink: var(--ink); } }
+:root[data-theme="dark"] .pads { --key-black: color-mix(in srgb, var(--ink) 20%, var(--surface)); --key-black-ink: var(--ink); }
 .pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 .pad.rec.on .num::before { background: #fff; }
@@ -120,7 +122,8 @@ body.app main { flex: 1; min-height: 0; }
 @media (max-width: 600px) {
   body.app { height: auto; min-height: 100dvh; overflow: visible; }
   .transport { flex-wrap: wrap; padding: 12px var(--in); }
-  .instrument { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 56px 56px 260px auto auto auto;
-                grid-template-areas: "transport transport" "rec shift" "input input" "sound sound" "knobs knobs" "speed density" "pads pads"; }
+  .instrument { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 56px 260px auto auto auto;
+                grid-template-areas: "transport transport" "input input" "sound sound" "knobs knobs" "speed density" "pads pads"; }
+  .pad.black { font-size: 0; }
   .knob.fader { min-height: 240px; }
 }

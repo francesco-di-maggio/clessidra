@@ -19,14 +19,10 @@ import "../styles/play.css";
       <div id="levels" class="levels" aria-label="Input and output level, browser only"></div>
     </section>
 
-    <section id="rec" class="tile side" aria-label="Record"></section>
-
     <section class="tile input" aria-label="The input">
       <canvas id="incoming" role="img" aria-label="The input over the last 8 s, the part being recorded in orange"></canvas>
       <span id="monitor" class="figure on"></span>
     </section>
-
-    <section id="shift" class="tile side" aria-label="Shift"></section>
 
     <section class="tile sound" aria-label="The recording">
       <div class="bar">
@@ -50,9 +46,8 @@ import "../styles/play.css";
 
     <section id="density" class="tile fader" aria-label="Density"></section>
 
-    <section class="tile pads" aria-label="The pads: Stop, Reset and Cue, then the slices">
-      <div id="functions" class="pad-row functions"></div>
-      <div id="slices" class="pad-row slices"></div>
+    <section class="tile pads" aria-label="The pads as an octave: the slices white, Rec, Shift, Stop, Reset and Cue black">
+      <div id="keys" class="keys"></div>
     </section>
   </div>
 </Base>
