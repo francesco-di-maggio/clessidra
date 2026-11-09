@@ -106,7 +106,7 @@ export class Waveform {
     const pad = 14;
     const width = W - 2 * pad;
     const top = 12; // the playhead's mark above
-    const axis = H - 20; // seconds
+    const axis = H - 24; // seconds
     const bottom = axis - 28; // the slices' numbers below
     const mid = (top + bottom) / 2;
     const half = (bottom - top) / 2 - 6;
@@ -238,12 +238,12 @@ export class Waveform {
     for (let s = 0; s <= seconds + 1e-6; s += step) {
       const px = pad + (s / seconds) * width;
       line(ctx, px, axis - 8, px, axis - 3);
-      if (s > 0 && px < W - pad - 36) ctx.fillText(`${s}`, px, axis + 5);
+      if (s > 0 && px < W - pad - 36) ctx.fillText(`${s}`, px, axis + 9);
     }
     ctx.textAlign = "left";
-    ctx.fillText("0", pad, axis + 5);
+    ctx.fillText("0", pad, axis + 9);
     ctx.textAlign = "right";
-    ctx.fillText(`${seconds.toFixed(1)} s`, W - pad, axis + 5);
+    ctx.fillText(`${seconds.toFixed(1)} s`, W - pad, axis + 9);
     ctx.textAlign = "center";
   }
 

@@ -41,7 +41,7 @@ body.app main { flex: 1; min-height: 0; }
 .slider .handle { position: absolute; top: 50%; width: 7px; height: 20px; border-radius: 2px; transform: translate(-50%, -50%); background: var(--surface); border: 1.5px solid var(--ink); }
 
 /* One tile: the input, the last 8 s, over a hairline, then the recording */
-.input { display: flex; align-items: center; gap: 12px; height: 64px; flex: none; padding: 0 var(--in); border-bottom: 1px solid var(--line); }
+.input { display: flex; align-items: center; gap: 12px; height: 68px; flex: none; padding: 0 var(--in); border-bottom: 1px solid var(--line); }
 .input canvas { flex: 1; min-width: 0; height: 100%; }
 .input #monitor:empty { display: none; }
 
