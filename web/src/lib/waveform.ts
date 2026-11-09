@@ -47,6 +47,7 @@ export class Waveform {
   private dotsKey = "";
   recording = 0; // seconds held, 0 when not recording
   started = false;
+  window = 8; // seconds of input shown: what a tap keeps, live the window
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
@@ -94,35 +95,31 @@ export class Waveform {
     ctx.font = `500 11px ${c.mono}`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    if (!f || !sound) {
-      ctx.fillStyle = this.recording ? c.accent : c.dim;
-      ctx.fillText(this.recording ? "RECORDING" : this.started ? "LISTENING · TAP OR HOLD REC" : "PRESS START", W / 2, mid);
+    if (!f || !this.started) {
+      ctx.fillStyle = c.dim;
+      ctx.fillText("PRESS START", W / 2, mid);
       return;
     }
     const v = f.view;
     const live = v[VIEW.live] === 1;
+    // Nothing recorded yet, or recording: the input, what a tap would keep,
+    // the part being recorded lit
+    if (!live && (this.recording > 0 || !sound)) {
+      const span = this.window;
+      const lit = W - pad - (Math.min(this.recording, span) / span) * width;
+      this.axis(span, true, W, pad, width, axis);
+      this.drawDots(liveWindow(f.incoming, span), W, H, pad, width, mid, half, this.recording > 0 ? lit : W, W - pad, dpr);
+      ctx.drawImage(this.dots, 0, 0, W, H);
+      if (!this.recording) {
+        ctx.fillStyle = c.dim;
+        ctx.fillText("TAP OR HOLD REC", W / 2, top + 4);
+      }
+      return;
+    }
 
     // Seconds of the recording, or live, back from now
-    ctx.font = `500 10px ${c.mono}`;
-    ctx.fillStyle = c.dim;
-    ctx.strokeStyle = c.line;
-    ctx.lineWidth = 1;
     const seconds = sound / RATE;
-    const step = seconds > 16 ? 5 : seconds > 6 ? 2 : seconds > 2 ? 1 : 0.5;
-    line(ctx, pad, axis - 8, W - pad, axis - 8);
-    for (let s = 0; s <= seconds + 1e-6; s += step) {
-      const px = live ? W - pad - (s / seconds) * width : pad + (s / seconds) * width;
-      line(ctx, px, axis - 8, px, axis - 3);
-      const room = live ? px > pad + 36 && s > 0 : px < W - pad - 36;
-      if (room) ctx.fillText(live ? `−${s}` : `${s}`, px, axis + 3);
-    }
-    ctx.textAlign = live ? "left" : "right";
-    ctx.fillText(live ? `−${seconds.toFixed(0)} s` : `${seconds.toFixed(1)} s`, live ? pad : W - pad, axis + 3);
-    if (live) {
-      ctx.textAlign = "right";
-      ctx.fillText("now", W - pad, axis + 3);
-    }
-    ctx.textAlign = "center";
+    this.axis(seconds, live, W, pad, width, axis);
 
     // The waveform as dots, ink inside the selection; brackets at its ends.
     // Past the end, it goes on from the start: b beyond the right edge.
@@ -164,22 +161,15 @@ export class Waveform {
     ctx.lineTo(px, top);
     ctx.fill();
 
-    // A grain to scale: its window from the playhead the way it reads, a
-    // faint orange
-    // A grain reads its size at its pitch
+    // A grain to scale: a shadow from the playhead, as far as one reads,
+    // the way it reads, fading
     const span = (((f.params[PARAM.grainMs] / 1000) * RATE * 2 ** (f.params[PARAM.pitch] / 12)) / sound) * width;
     const dir = f.params[PARAM.speed] < 0 ? -1 : 1;
-    const shape = f.params[PARAM.shape];
-    ctx.beginPath();
-    ctx.moveTo(px, bottom);
-    for (let t = 0; t <= 1.0001; t += 1 / 48) ctx.lineTo(px + dir * t * span, bottom - windowAt(t, shape) * (bottom - top));
-    ctx.lineTo(px + dir * span, bottom);
-    ctx.closePath();
-    ctx.fillStyle = withAlpha(c.accent, 0.14);
-    ctx.fill();
-    ctx.strokeStyle = withAlpha(c.accent, 0.55);
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    const shade = ctx.createLinearGradient(px, 0, px + dir * span, 0);
+    shade.addColorStop(0, withAlpha(c.accent, 0.22));
+    shade.addColorStop(1, withAlpha(c.accent, 0));
+    ctx.fillStyle = shade;
+    ctx.fillRect(Math.min(px, px + dir * span), top, span, bottom - top);
 
     // Grains over the waveform where they read, as high as their pitch (the
     // centre unison, the edges PITCH_RANGE either way), as big as their size,
@@ -204,6 +194,32 @@ export class Waveform {
   }
 
   // Columns of dots on a DOT grid, each up to its peak, mirrored about mid
+  // The seconds below: of the recording from 0, or back from now
+  private axis(seconds: number, back: boolean, W: number, pad: number, width: number, axis: number) {
+    const { ctx, c } = this;
+    ctx.font = `500 10px ${c.mono}`;
+    ctx.fillStyle = c.dim;
+    ctx.strokeStyle = c.line;
+    ctx.lineWidth = 1;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    const step = seconds > 16 ? 5 : seconds > 6 ? 2 : seconds > 2 ? 1 : 0.5;
+    line(ctx, pad, axis - 8, W - pad, axis - 8);
+    for (let s = 0; s <= seconds + 1e-6; s += step) {
+      const px = back ? W - pad - (s / seconds) * width : pad + (s / seconds) * width;
+      line(ctx, px, axis - 8, px, axis - 3);
+      const room = back ? px > pad + 36 && s > 0 : px < W - pad - 36;
+      if (room) ctx.fillText(back ? `−${s}` : `${s}`, px, axis + 3);
+    }
+    ctx.textAlign = back ? "left" : "right";
+    ctx.fillText(back ? `−${seconds.toFixed(0)} s` : `${seconds.toFixed(1)} s`, back ? pad : W - pad, axis + 3);
+    if (back) {
+      ctx.textAlign = "right";
+      ctx.fillText("now", W - pad, axis + 3);
+    }
+    ctx.textAlign = "center";
+  }
+
   private drawDots(peaks: Float32Array, W: number, H: number, pad: number, width: number, mid: number, half: number, a: number, b: number, dpr: number) {
     let sum = 0;
     for (let i = 0; i < peaks.length; i += 7) sum += peaks[i];

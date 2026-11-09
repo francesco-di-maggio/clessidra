@@ -23,14 +23,9 @@ import "../styles/play.css";
     <section class="tile sound" aria-label="The recording and the input">
       <div class="bar">
         <span class="label">Recording</span>
-        <span class="figures"><span id="grain-figure" class="figure" title="Grain size, grains sounding of the voices">100 ms · 0/32</span><span id="held" class="figure">Empty</span></span>
+        <span class="figures"><span id="grain-figure" class="figure" title="Grain size, grains sounding of the voices">100 ms · 0/32</span><span id="held" class="figure">Empty</span><span id="tap" class="segmented" role="radiogroup" aria-label="What a tap keeps, and the live window" title="What a tap keeps, and the live window"></span></span>
       </div>
       <canvas id="buffer" role="img" aria-label="The recording: the loop, its slices, the playhead with a grain's window to scale, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
-      <div class="bar lane">
-        <span class="label">Input</span>
-        <div id="tap" class="segmented" role="radiogroup" aria-label="A tap keeps"></div>
-      </div>
-      <canvas id="incoming" role="img" aria-label="The input over the seconds a tap keeps"></canvas>
     </section>
 
     <section id="speed" class="tile fader" aria-label="Speed"></section>
@@ -58,9 +53,9 @@ import "../styles/play.css";
       <div id="slices" class="pad-row slices"></div>
     </section>
 
-    <section class="tile view output" aria-label="The output">
-      <span class="label">Output</span>
-      <canvas id="scope" role="img" aria-label="The sound leaving the firmware, as a trace"></canvas>
+    <section class="tile view glass" aria-label="The hourglass">
+      <span class="label">Hourglass</span>
+      <canvas id="hourglass" role="img" aria-label="The loop as an hourglass: the sand left above, the grains falling, on its side when frozen, upside down in reverse"></canvas>
     </section>
 
     <p class="tile readout" aria-live="polite"><span class="line"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span></span><span id="readout-does" class="does"></span></p>

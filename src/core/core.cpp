@@ -33,9 +33,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
     Buffer& sound
         = p.live ? live_ : buffers_[playing_.load(std::memory_order_relaxed)];
     const double len = p.live ? double(LiveWindow()) : double(sound.Length());
-    const double length
-        = p.live ? std::min(double(p.length), 1.0 - double(p.start))
-                 : double(p.length);
+    // The loop ends no later than the sound's end, live at now
+    const double length  = std::min(double(p.length), 1.0 - double(p.start));
     const double sel_len = std::max(length * len, 1.0);
     const double sel_start
         = p.live ? double(ring_.WriteIndex()) - double(p.start) * len - sel_len

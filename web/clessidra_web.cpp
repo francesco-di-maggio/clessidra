@@ -206,8 +206,9 @@ EXPORT const float* cl_view()
     view[kLive]                    = 0.0f;
     const Core::Params& p          = core.CurrentParams();
     const double        sound      = double(core.SoundSamples());
-    const double        sel_length = std::max(double(p.length) * sound, 1.0);
-    const double        sel_start  = double(p.start) * sound;
+    const double        sel_length = std::max(
+        std::min(double(p.length), 1.0 - double(p.start)) * sound, 1.0);
+    const double sel_start = double(p.start) * sound;
 
     view[kSound]           = float(sound);
     view[kSelectionStart]  = float(sel_start);

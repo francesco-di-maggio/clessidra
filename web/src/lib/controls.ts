@@ -91,7 +91,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
-    does: "How long the loop is. Past the end it wraps to the start.",
+    does: "How long the loop is. It ends no later than the recording, live at now.",
     value: (p, v) => seconds(p[PARAM.length] * v.sound),
   },
   {

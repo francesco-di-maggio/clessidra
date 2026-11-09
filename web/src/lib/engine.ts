@@ -30,9 +30,6 @@ export const VIEW_SIZE = 6;
 export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randomStarts: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, randPos: 12, randSize: 13, end: 14, grainMsSet: 15, minGrainMs: 16, maxGrainMs: 17, spread: 18, sandLeft: 19, filter: 20, quantize: 21 } as const;
 export const PARAM_SIZE = 22;
 export const SLICES = 7; // Onsets::kNumSlices
-// The output trace: SCOPE samples, found among the last SCOPE_HELD
-export const SCOPE = 256;
-export const SCOPE_HELD = 512;
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window
 // shape, pan, pitch in semitones, size in ms
 export const GRAIN_FIELDS = 6;
@@ -71,7 +68,6 @@ export interface Frame {
   params: Float32Array;
   peaks: Float32Array;
   slices: Float32Array; // where each slice starts in the loop, 0..1
-  scope: Float32Array; // the output, SCOPE samples
 }
 
 // What the page sends: Controls' knobs, switches and pads

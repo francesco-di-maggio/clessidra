@@ -107,16 +107,16 @@ const inside = held.every((x) => {
 check(held.length > 0 && inside, "grains inside the selection", held.length);
 w.cl_knob(KNOB.S37, 0.75);
 
-// S30 three quarters, S35 half: round the end, the playhead inside the recording
+// S30 three quarters, S35 half: the loop ends with the recording
 w.cl_knob(KNOB.S30, 0.75);
 w.cl_knob(KNOB.S36, 1);
 let wrapped = true;
 for (let i = 0; i < 40; i++) {
   run(0.05, silence);
   const at = view()[V.playhead] / v[V.sound];
-  wrapped &&= at >= 0 && at < 1 && (at >= 0.75 - 1e-3 || at <= 0.25 + 1e-3);
+  wrapped &&= at >= 0.75 - 1e-3 && at < 1;
 }
-check(wrapped, "S30 three quarters, S35 half: round the end to the start");
+check(wrapped, "S30 three quarters, S35 half: the last quarter, ending with the recording");
 w.cl_knob(KNOB.S30, 0.5);
 w.cl_knob(KNOB.S36, SPEED_1);
 run(0.1, silence);

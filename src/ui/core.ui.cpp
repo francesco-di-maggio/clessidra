@@ -93,10 +93,10 @@ void CoreUI::Process(const Controls& c, Core& core)
     const auto own  = [this](Controls::Knob k) { return own_[k].Value(); };
     const auto twin = [this](Controls::Knob k) { return twin_[k].Value(); };
 
-    // S30, Position: where the loop starts, anywhere in the recording, round
-    // the end. S35, Length: how long it is.
-    p.start  = std::min(own(Controls::S30), 0.999f);
-    p.length = std::max(own(Controls::S35), Core::kMinLength);
+    // S30, Position: where the loop starts in the recording. S35, Length: how
+    // long it is, ending no later than the recording.
+    p.start  = std::min(own(Controls::S30), 1.0f - Core::kMinLength);
+    p.length = std::clamp(own(Controls::S35), Core::kMinLength, 1.0f - p.start);
 
     // S36, Speed: the time stretched, the grains' pitch their own. Frozen, it
     // scrubs through the loop instead, and takes the speed up again after. A

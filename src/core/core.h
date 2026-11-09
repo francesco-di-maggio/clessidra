@@ -93,8 +93,8 @@ class Core
 
     struct Params
     {
-        // Selection, 0..1 of the sound: from start, length long, round the end
-        // to the beginning past it
+        // Selection, 0..1 of the sound: from start, length long, ending no
+        // later than the sound's end
         float start  = 0.0f;
         float length = 1.0f;
         float speed  = 1.0f;  // 1 = real time, negative = reverse

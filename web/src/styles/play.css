@@ -44,11 +44,9 @@ body.app main { flex: 1; min-height: 0; }
 .sound .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 40px; flex: none; padding: 0 var(--in); }
 .sound .figures { display: flex; gap: 16px; }
 .sound #buffer { flex: 1; min-height: 0; }
-.sound .lane { height: 32px; border-top: 1px solid var(--line); }
-.sound.live .lane, .sound.live #incoming { display: none; }
-.sound #incoming { height: 44px; flex: none; }
-.sound .lane .segmented { height: 22px; width: auto; }
-.lane .segmented button { padding: 0 8px; font-size: 10px; letter-spacing: 0.04em; }
+.sound .figures { align-items: center; }
+.sound .segmented { height: 22px; width: auto; }
+.sound .segmented button { padding: 0 8px; font-size: 10px; letter-spacing: 0.04em; }
 
 /* The controls row: a fader at each edge, the knobs and switches between.
    One rhythm in every tile: a name, a band for the control, a value. */
@@ -93,7 +91,7 @@ body.app main { flex: 1; min-height: 0; }
 .view .label { align-self: center; }
 .view canvas { flex: 1; min-height: 0; }
 .grain { grid-area: grain; }
-.output { grid-area: output; }
+.glass { grid-area: output; }
 
 /* The pads under the knobs: the board's upper pads, then the slices, square */
 .pads { grid-area: pads; display: grid; gap: var(--unit); padding: 12px; }

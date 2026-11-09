@@ -4,9 +4,8 @@
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
 import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
-import { Incoming } from "./incoming";
+import { Hourglass } from "./hourglass";
 import { Preview } from "./preview";
-import { Scope } from "./scope";
 import { GrainShape } from "./shape";
 import { Waveform } from "./waveform";
 import { knob, pad, slider, toggle, type Handlers, type Widget } from "./widgets";
@@ -46,17 +45,16 @@ function send(m: Message) {
 function refresh() {
   if (!preview) return;
   const { params, view } = preview.read();
-  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), scope: new Float32Array(0), params, view };
+  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, view };
   grainShape.update(params);
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
-const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainFigure = $("grain-figure");
 const sound = document.querySelector<HTMLElement>(".sound")!;
 const soundName = sound.querySelector<HTMLElement>(".bar .label")!;
 const grainShape = new GrainShape($<HTMLCanvasElement>("grain-shape"));
-const scope = new Scope($<HTMLCanvasElement>("scope"));
+const hourglass = new Hourglass($<HTMLCanvasElement>("hourglass"));
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
 const HINT = { name: "How to play", does: "Drag a control, ⌥ for fine. Double-click resets. Keys: R record, 1–7 slices, Shift." };
@@ -105,8 +103,8 @@ const taps = TAP_SECONDS.map((seconds) => {
   return [seconds, b] as const;
 });
 function tap(seconds: number) {
-  incoming.seconds = seconds;
-  incoming.draw();
+  waveform.window = seconds;
+  waveform.draw();
   for (const [s, b] of taps) b.setAttribute("aria-checked", String(s === seconds));
   send({ type: "tap", index: -1, seconds });
 }
@@ -267,7 +265,7 @@ function show() {
   // Live: the window behind the input, the Live pad lit while on
   const live = last.view[VIEW.live] === 1;
   sound.classList.toggle("live", live);
-  soundName.textContent = live ? "Live" : "Recording";
+  soundName.textContent = live ? "Live" : v.recording > 0 || !v.sound ? "Input" : "Recording";
   parts.get("P00")?.root.classList.toggle("latched", live);
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : live ? `${(v.sound / RATE).toFixed(0)} s back` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   held.classList.toggle("on", v.recording > 0);
@@ -281,11 +279,10 @@ function onMessage(m: FromWorklet) {
     led.style.setProperty("--led", String(m.led));
     inMeter(m.input);
     outMeter(m.output);
-    waveform.recording = incoming.recording = recording();
+    waveform.recording = recording();
     waveform.update(m);
-    incoming.update(m.incoming);
     grainShape.update(m.params);
-    scope.update(m.scope);
+    hourglass.update(m);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);

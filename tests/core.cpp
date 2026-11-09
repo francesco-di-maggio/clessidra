@@ -714,7 +714,7 @@ void Quantized()
     Check(!off_on_step, "quantize off: grains between the steps", 0.0);
 }
 
-// The selection round the end of the recording, and its length drawn per pass
+// The selection ending with the recording, and its length drawn per pass
 void Selection()
 {
     Rig r(1.0);
@@ -725,6 +725,7 @@ void Selection()
     p.density  = 80.0f;
     p.grain_ms = 10.0f;
     r.core.SetParams(p);
+    r.Run(0.1, Silence);
     double tail = 0.0, head = 0.0, outside = 0.0;
     r.Run(2.0, Silence, [&](size_t) {
         for(const auto& g : r.core.Grains())
@@ -736,8 +737,8 @@ void Selection()
             (x >= 0.75 ? tail : x < 0.25 ? head : outside) += 1.0;
         }
     });
-    Check(tail > 0.0 && head > 0.0 && outside == 0.0,
-          "position 0.75, length 0.5: the last quarter, then the first",
+    Check(tail > 0.0 && head == 0.0 && outside == 0.0,
+          "position 0.75, length 0.5: the last quarter, ending with the sound",
           outside);
 
     // A new length keeps the playhead where it is in the recording; past the
@@ -781,8 +782,8 @@ void Selection()
     p.start = 0.25f;
     r.core.SetParams(p);
     r.Run(0.01, Silence);
-    Check(r.core.PlayheadPhase() == point,
-          "frozen, S30 moved: the point moves with the selection (phase)",
+    Check(Near(r.core.PlayheadPhase(), point / 0.75, 1e-6),
+          "frozen, S30 moved: the point keeps its place from the start (phase)",
           r.core.PlayheadPhase());
     p.length = 0.5f;
     r.core.SetParams(p);
