@@ -87,8 +87,10 @@ body.app main { flex: 1; min-height: 0; }
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
-/* Between Position and Length, one grain as the knobs set it */
-.knobs .grains { grid-column: span 2; width: calc(100% - 24px); height: calc(var(--band) + 12px + 2 * var(--name)); align-self: center; justify-self: center; }
+/* Between Position and Length, one grain as the knobs set it, in a window as
+   tall as a knob's name, dial and value */
+.knobs .grains { grid-column: span 2; width: calc(100% - 16px); height: calc(var(--band) + 12px + 2 * var(--name)); align-self: center; justify-self: center;
+                 box-sizing: border-box; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); }
 
 /* The pads as an octave: the slices white keys, the others black keys on
    their edges, two then three as on a piano. Names at the foot of each key.
@@ -104,10 +106,6 @@ body.app main { flex: 1; min-height: 0; }
 .pad { display: grid; place-content: end center; width: 100%; height: 100%; padding: 0 0 8px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); color: var(--ink);
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }
-/* The board's pad, faint over the name */
-.keys .pad { gap: 3px; justify-items: center; }
-.pad .id { order: -1; font-size: 9px; letter-spacing: 0.04em; color: var(--dim); }
-.pad.on .id { color: inherit; opacity: 0.8; }
 .pad:hover { border-color: var(--dim); }
 .pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.72); height: 56%; padding-bottom: 8px;
              left: calc((var(--key) + var(--gap)) * var(--edge) - var(--gap) / 2); transform: translateX(-50%);

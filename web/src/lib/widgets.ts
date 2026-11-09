@@ -155,7 +155,6 @@ export function pad(c: Control, parent: Element, label: string, h: Handlers): Wi
   const root = html("button", { class: "pad", type: "button", "aria-label": c.name }, parent);
   html("span", { class: "num" }, root).textContent = label;
   const sub = html("span", { class: "sub" }, root);
-  html("span", { class: "id" }, root).textContent = c.id;
   root.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     root.setPointerCapture(e.pointerId);

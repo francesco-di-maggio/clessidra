@@ -1,7 +1,7 @@
-// One grain between Position and Length, as the knobs set it: as wide as its
-// Size (5 ms to 2 s across), its envelope Shape's, the sound inside it as
-// fast as its Pitch. Random size: the widths it may take, faint. Random pitch:
-// the sound inside drawn faint beside the highest and lowest.
+// One grain between Position and Length, as the knobs set it: its sound only,
+// as wide as its Size (5 ms to 2 s across), swelling and fading as Shape sets,
+// as fast as its Pitch. Random size: the narrowest and widest, faint. Random
+// pitch: the lowest and highest, faint.
 
 import { PARAM } from "./engine";
 import { windowAt } from "./waveform";
@@ -10,6 +10,7 @@ const SIZE_MIN = 5; // ms, CoreUI::kMinGrainMs
 const SIZE_MAX = 2000; // ms, CoreUI::kMaxGrainMs
 const CYCLES = 6; // inside the grain at unison
 const RAND_PITCH = 12; // semitones, Core::kRandPitchSemitones
+const INSET = 10; // px, inside the window
 
 export class GrainShape {
   private ctx: CanvasRenderingContext2D;
@@ -24,9 +25,9 @@ export class GrainShape {
 
   update(params: Float32Array) {
     // Drawn again only when what it shows changes
-    const p = params;
-    const same = this.params.length === p.length && [PARAM.grainMs, PARAM.shape, PARAM.pitch, PARAM.randSize, PARAM.randPitch].every((i) => this.params[i] === p[i]);
-    this.params = p.slice();
+    const shown = [PARAM.grainMs, PARAM.shape, PARAM.pitch, PARAM.randSize, PARAM.randPitch];
+    const same = this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
+    this.params = params.slice();
     if (!same) this.draw();
   }
 
@@ -41,50 +42,34 @@ export class GrainShape {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     const css = getComputedStyle(document.documentElement);
-    const ink = css.getPropertyValue("--ink");
-    const dim = css.getPropertyValue("--dim");
-    const line = css.getPropertyValue("--line");
 
     const shape = p[PARAM.shape];
-    const floor = H - 1;
     const mid = H / 2;
-    const width = (ms: number) => (0.1 + 0.9 * Math.min(1, Math.max(0, Math.log(ms / SIZE_MIN) / Math.log(SIZE_MAX / SIZE_MIN)))) * W;
-    const envelope = (w: number) => {
-      ctx.beginPath();
-      for (let k = 0; k <= 64; k++) ctx.lineTo((W - w) / 2 + (k / 64) * w, floor - windowAt(k / 64, shape) * (H - 2));
-    };
-
-    // Random size: the narrowest and widest it may take
-    const octaves = Math.log2(Math.max(p[PARAM.maxGrainMs], p[PARAM.minGrainMs] * 1.01) / p[PARAM.minGrainMs]);
-    const reach = Math.min(Math.max(Math.sqrt(4 * p[PARAM.randSize]), 0), 1) * 0.25 * octaves;
-    const ms = p[PARAM.grainMs];
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = line;
-    if (reach > 0) for (const w of [width(ms * 2 ** -reach), width(ms * 2 ** reach)]) (envelope(w), ctx.stroke());
-
-    // The sound inside, as fast as the pitch; with random pitch, its ends
-    const w = width(ms);
-    const x0 = (W - w) / 2;
-    const inside = (semitones: number, colour: string) => {
+    const room = W - 2 * INSET;
+    const amplitude = mid - INSET;
+    const width = (ms: number) => (0.08 + 0.92 * Math.min(1, Math.max(0, Math.log(ms / SIZE_MIN) / Math.log(SIZE_MAX / SIZE_MIN)))) * room;
+    const grain = (w: number, semitones: number, colour: string, lineWidth: number) => {
       const cycles = CYCLES * 2 ** (semitones / 12);
+      const x0 = (W - w) / 2;
+      const steps = Math.max(96, Math.ceil(2 * w));
       ctx.beginPath();
-      const steps = Math.max(64, Math.ceil(w));
       for (let k = 0; k <= steps; k++) {
         const x = k / steps;
-        ctx.lineTo(x0 + x * w, mid - Math.sin(2 * Math.PI * cycles * x) * windowAt(x, shape) * (mid - 2));
+        ctx.lineTo(x0 + x * w, mid - Math.sin(2 * Math.PI * cycles * x) * windowAt(x, shape) * amplitude);
       }
       ctx.strokeStyle = colour;
+      ctx.lineWidth = lineWidth;
       ctx.stroke();
     };
-    const pitch = p[PARAM.pitch];
-    const spread = p[PARAM.randPitch] * RAND_PITCH;
-    if (spread > 0) for (const s of [pitch - spread, pitch + spread]) inside(s, line);
-    inside(pitch, dim);
 
-    // The envelope
-    envelope(w);
-    ctx.strokeStyle = ink;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    const ms = p[PARAM.grainMs];
+    const pitch = p[PARAM.pitch];
+    const faint = css.getPropertyValue("--line");
+    const octaves = Math.log2(Math.max(p[PARAM.maxGrainMs], p[PARAM.minGrainMs] * 1.01) / p[PARAM.minGrainMs]);
+    const reach = Math.min(Math.max(Math.sqrt(4 * p[PARAM.randSize]), 0), 1) * 0.25 * octaves;
+    if (reach > 0) for (const r of [-reach, reach]) grain(width(ms * 2 ** r), pitch, faint, 1);
+    const spread = p[PARAM.randPitch] * RAND_PITCH;
+    if (spread > 0) for (const s of [-spread, spread]) grain(width(ms), pitch + s, faint, 1);
+    grain(width(ms), pitch, css.getPropertyValue("--ink"), 1.5);
   }
 }
