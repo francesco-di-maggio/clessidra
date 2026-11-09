@@ -16,6 +16,7 @@ export interface Live {
 // A knob's function with P11 held
 export interface Twin {
   name: string;
+  short?: string; // where room is short
   does: string;
   value: (p: Float32Array) => string;
 }
@@ -25,6 +26,7 @@ export interface Control {
   type: "knob" | "fader" | "switch" | "pad";
   index: number; // Controls' knob, switch or pad
   name: string;
+  short?: string; // where room is short
   x: number;
   y: number;
   initial?: number;
@@ -96,10 +98,10 @@ export const CONTROLS: Control[] = [
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
     does: "Grain length, 5 ms to 2 s, 100 ms at the centre, at most half the recording.",
     value: (p) => ms(p[PARAM.grainMs]),
-    twin: { name: "Random size", does: "Each grain's size, longer or shorter, up to about two octaves either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
+    twin: { name: "Random size", short: "Rnd size", does: "Each grain's size, longer or shorter, up to about two octaves either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
   },
   {
-    id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Random position", initial: 0,
+    id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Random position", short: "Rnd pos", initial: 0,
     does: "How far grains stray from the playhead, evenly, up to the whole loop, across the stereo field with it.",
     value: (p) => (p[PARAM.spread] === 0 ? "Off" : percent(p[PARAM.spread])),
   },
@@ -107,7 +109,7 @@ export const CONTROLS: Control[] = [
     id: "S33", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,
     does: "±24 semitones. Stops at 0, 1, 3, 4, 7, 12, 24.",
     value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
-    twin: { name: "Random pitch", does: "Each grain's pitch, up to an octave either way, snapped as S07 sets.", value: (p) => (p[PARAM.randPitch] === 0 ? "Off" : `±${(p[PARAM.randPitch] * RAND_PITCH).toFixed(1)} st`) },
+    twin: { name: "Random pitch", short: "Rnd pitch", does: "Each grain's pitch, up to an octave either way, snapped as S07 sets.", value: (p) => (p[PARAM.randPitch] === 0 ? "Off" : `±${(p[PARAM.randPitch] * RAND_PITCH).toFixed(1)} st`) },
   },
   {
     id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 0.5, bipolar: true, detent: true,

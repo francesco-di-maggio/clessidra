@@ -53,7 +53,7 @@ function arc(from: number, to: number) {
 export function knob(c: Control, parent: Element, h: Handlers): Widget {
   const root = html("div", { class: c.type === "fader" ? "knob fader" : "knob", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
   const label = html("span", { class: "label" }, root);
-  label.textContent = c.name;
+  label.textContent = c.short ?? c.name;
   // A fader's slot stretches to its tile, its scale written beside it
   const holder = c.type === "fader" ? html("div", { class: "rail" }, root) : root;
   const dial = svg("svg", c.type === "fader" ? { viewBox: `0 0 24 ${FADER.height}`, preserveAspectRatio: "none", "aria-hidden": "true" } : { viewBox: "0 0 56 56", "aria-hidden": "true" }, holder);
@@ -66,7 +66,7 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
   value.textContent = "–";
   // The function with P11 held, beneath
   const twin = c.twin ? html("span", { class: "twin" }, root) : null;
-  if (twin) twin.textContent = c.twin!.name;
+  if (twin) twin.textContent = c.twin!.short ?? c.twin!.name;
   let v = c.initial ?? 0;
   const draw = c.type === "fader" ? faderDrawing(c, dial) : dialDrawing(c, dial);
 
@@ -102,7 +102,7 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
     root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
   };
   show(v);
-  return { c, root, draw: show, value: (text) => (value.textContent = text), twin: twin ? (text) => (twin.textContent = `${c.twin!.name} ${text}`) : undefined };
+  return { c, root, draw: show, value: (text) => (value.textContent = text), twin: twin ? (text) => (twin.textContent = `${c.twin!.short ?? c.twin!.name} ${text}`) : undefined };
 }
 
 // A fader: its slot, filled from the bottom or, bipolar, the centre, and a

@@ -8,12 +8,6 @@ import "../styles/play.css";
   </Fragment>
 
   <div class="instrument">
-    <section class="tile buffer" aria-label="Recording">
-      <span class="label tag">Recording</span>
-      <span id="held" class="figure held">Empty</span>
-      <canvas id="buffer" role="img" aria-label="The recording: the loop, the playhead, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
-    </section>
-
     <section class="tile source" aria-label="Source and levels">
       <span class="label tag">Source</span>
       <button id="start" class="control primary" type="button">Start</button>
@@ -34,8 +28,14 @@ import "../styles/play.css";
 
     <section class="tile grain" aria-label="Grain">
       <span class="label tag">Grain</span>
-      <span id="voices" class="figure voices" title="Grains sounding, of the voices">0/32</span>
+      <span id="voices" class="figure corner" title="Grains sounding, of the voices">0/32</span>
       <canvas id="grain-view" role="img" aria-label="A grain's window at its size, and the range randomness reaches"></canvas>
+    </section>
+
+    <section class="tile buffer" aria-label="Recording">
+      <span class="label tag">Recording</span>
+      <span id="held" class="figure corner">Empty</span>
+      <canvas id="buffer" role="img" aria-label="The recording: the loop, the playhead, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
     </section>
 
     <section id="speed" class="tile fader" aria-label="Speed"></section>
@@ -46,16 +46,19 @@ import "../styles/play.css";
       <div id="k-S33" class="cell"></div>
       <div id="k-S34" class="cell"></div>
       <div id="k-S30" class="cell"></div>
-      <div id="s09" class="cell wide"></div>
-      <div id="s07" class="cell wide"></div>
+      <div id="s09" class="cell"></div>
+      <div id="s07" class="cell"></div>
       <div id="k-S35" class="cell"></div>
     </section>
 
     <section id="density" class="tile fader" aria-label="Density"></section>
 
-    <section class="tile keys-tile" aria-label="The 12 pads"><div id="keys" class="keys"></div></section>
+    <section class="tile pads" aria-label="The 12 pads">
+      <div id="functions" class="row functions"></div>
+      <div id="slices" class="row slices"></div>
+    </section>
 
-    <p class="tile readout" aria-live="polite"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span><span id="readout-does" class="does"></span></p>
+    <p class="tile readout" aria-live="polite"><span class="line"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span></span><span id="readout-does" class="does"></span></p>
   </div>
 </Base>
 

@@ -12,7 +12,7 @@ export const SHIFT_PAD = 11;
 export const VOICES = 32; // Core::kNumVoices
 // What a tap keeps, seconds: the board's (Core::kTapCaptureSeconds), and the
 // others the browser tries
-export const TAP_SECONDS = [2, 4, 8, 16];
+export const TAP_SECONDS = [4, 8, 16];
 export const TAP_DEFAULT = 8;
 // The incoming strip: the input over the longest of them
 export const INCOMING_SECONDS = 16;
