@@ -2,7 +2,13 @@
 // and every grain at the point it reads, as high as its pitch and as big as its
 // size. Laid out to the canvas's size.
 
-import { GRAIN_FIELDS, PARAM, RATE, VIEW, type Frame } from "./engine";
+import { GRAIN_FIELDS, INCOMING_SECONDS, PARAM, RATE, VIEW, type Frame } from "./engine";
+
+// Live: the input's columns over the window, oldest first
+function liveWindow(incoming: Float32Array, seconds: number) {
+  const n = Math.max(1, Math.round((Math.min(seconds, INCOMING_SECONDS) / INCOMING_SECONDS) * incoming.length));
+  return incoming.subarray(incoming.length - n);
+}
 
 const PITCH_RANGE = 36; // semitones: Pitch's ±24 and Random pitch's ±12
 const SIZE_MIN = 5; // ms, CoreUI::kMinGrainMs
@@ -94,8 +100,9 @@ export class Waveform {
       return;
     }
     const v = f.view;
+    const live = v[VIEW.live] === 1;
 
-    // Seconds of the recording
+    // Seconds of the recording, or live, back from now
     ctx.font = `500 10px ${c.mono}`;
     ctx.fillStyle = c.dim;
     ctx.strokeStyle = c.line;
@@ -104,19 +111,24 @@ export class Waveform {
     const step = seconds > 16 ? 5 : seconds > 6 ? 2 : seconds > 2 ? 1 : 0.5;
     line(ctx, pad, axis - 8, W - pad, axis - 8);
     for (let s = 0; s <= seconds + 1e-6; s += step) {
-      const px = pad + (s / seconds) * width;
+      const px = live ? W - pad - (s / seconds) * width : pad + (s / seconds) * width;
       line(ctx, px, axis - 8, px, axis - 3);
-      if (px < W - pad - 36) ctx.fillText(`${s}`, px, axis + 3);
+      const room = live ? px > pad + 36 && s > 0 : px < W - pad - 36;
+      if (room) ctx.fillText(live ? `−${s}` : `${s}`, px, axis + 3);
     }
-    ctx.textAlign = "right";
-    ctx.fillText(`${seconds.toFixed(1)} s`, W - pad, axis + 3);
+    ctx.textAlign = live ? "left" : "right";
+    ctx.fillText(live ? `−${seconds.toFixed(0)} s` : `${seconds.toFixed(1)} s`, live ? pad : W - pad, axis + 3);
+    if (live) {
+      ctx.textAlign = "right";
+      ctx.fillText("now", W - pad, axis + 3);
+    }
     ctx.textAlign = "center";
 
     // The waveform as dots, ink inside the selection; brackets at its ends.
     // Past the end, it goes on from the start: b beyond the right edge.
     const a = x(v[VIEW.selStart]);
     const b = a + (v[VIEW.selLength] / sound) * width;
-    this.drawDots(f.peaks, W, H, pad, width, mid, half, a, b, dpr);
+    this.drawDots(live ? liveWindow(f.incoming, seconds) : f.peaks, W, H, pad, width, mid, half, a, b, dpr);
     ctx.drawImage(this.dots, 0, 0, W, H);
     ctx.strokeStyle = c.ink;
     ctx.lineWidth = 1.5;
@@ -143,7 +155,8 @@ export class Waveform {
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = c.accent;
     ctx.fillStyle = c.accent;
-    const px = x(v[VIEW.playhead] % sound);
+    // Past the end, round to the start; live, now is the end
+    const px = x(live ? Math.min(v[VIEW.playhead], sound) : v[VIEW.playhead] % sound);
     line(ctx, px, top, px, bottom);
     ctx.beginPath();
     ctx.moveTo(px - 4, top - 6);

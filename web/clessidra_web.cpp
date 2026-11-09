@@ -39,6 +39,7 @@ enum View : size_t
     kSelectionLength,
     kPlayhead,
     kDropped, // grains dropped so far, all voices sounding
+    kLive,    // 1 live: the rest is of the window behind the input, now its end
     kNumView
 };
 float view[kNumView];
@@ -175,9 +176,34 @@ EXPORT int cl_recordings()
     return int(recordings);
 }
 
+namespace
+{
+// Live: the window behind the input, the loop start back from now
+void LiveView()
+{
+    const Core::Params& p      = core.CurrentParams();
+    const double        window = double(core.LiveWindow());
+    const double        length = std::max(
+        std::min(double(p.length), 1.0 - double(p.start)) * window, 1.0);
+    const double start     = window - double(p.start) * window - length;
+    view[kSound]           = float(window);
+    view[kSelectionStart]  = float(start);
+    view[kSelectionLength] = float(length);
+    view[kPlayhead]        = float(start + core.PlayheadPhase() * length);
+    view[kDropped]         = float(core.Dropped());
+    view[kLive]            = 1.0f;
+}
+} // namespace
+
 // The selection as Core::Process places it
 EXPORT const float* cl_view()
 {
+    if(ui.Live())
+    {
+        LiveView();
+        return view;
+    }
+    view[kLive]                    = 0.0f;
     const Core::Params& p          = core.CurrentParams();
     const double        sound      = double(core.SoundSamples());
     const double        sel_length = std::max(double(p.length) * sound, 1.0);
@@ -197,14 +223,30 @@ EXPORT const float* cl_view()
 // returns how many
 EXPORT int cl_grains()
 {
-    const Buffer& b     = core.Sound();
-    int           count = 0;
+    const bool    live   = ui.Live();
+    const Buffer& b      = live ? core.LiveSound() : core.Sound();
+    const double  window = double(core.LiveWindow());
+    int           count  = 0;
     for(const Grain& g : core.Grains())
     {
         if(!g.IsActive() || g.Source() != &b || b.Length() == 0)
             continue;
-        double position = g.Position() / double(b.Length());
-        position -= std::floor(position);
+        double position;
+        if(live)
+        {
+            // Of the window, by its distance behind the input
+            const double ring   = double(b.Length());
+            double       behind = double(core.WriteIndex()) - g.Position();
+            behind -= ring * std::floor(behind / ring);
+            if(behind > window)
+                continue;
+            position = 1.0 - behind / window;
+        }
+        else
+        {
+            position = g.Position() / double(b.Length());
+            position -= std::floor(position);
+        }
         float* fields = grains + size_t(count) * kGrainFields;
         fields[0]     = float(position);
         fields[1]     = float(g.Progress());

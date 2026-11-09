@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { PARAM, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
+import { LIVE_PAD, PARAM, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -86,7 +86,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
-    does: "Where the loop starts in the recording.",
+    does: "Where the loop starts in the recording. Live, how far back from now.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
@@ -128,7 +128,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Mode", initial: POSITION.up,
-    does: "Forward, freeze or reverse. Frozen, Speed scrubs through the loop.",
+    does: "Forward, freeze or reverse. Frozen, Speed scrubs. Live, the input is held.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   {
@@ -149,7 +149,11 @@ export const CONTROLS: Control[] = [
     id: "P01", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
     does: "With Shift: second functions back to their defaults.",
   },
-  ...[0, 2].map((index): Control => ({
+  {
+    id: "P00", type: "pad", index: LIVE_PAD, ...padAt(LIVE_PAD), name: "Live",
+    does: "Grains from the input as it comes. Touch again for the recording.",
+  },
+  ...[2].map((index): Control => ({
     id: `P0${index}`, type: "pad", index, ...padAt(index), name: `P0${index}`, free: true,
     does: "Not assigned yet.",
   })),
@@ -170,6 +174,7 @@ export const PLAY: [string, string][] = [
   ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards"],
   ["A moment held", "S09 at the centre, Density up, a little Random position. Speed scrubs the point"],
   ["Shimmer", "Random pitch (P11 + S33) up, S07 up: octaves"],
+  ["Live cloud", "P00 on, Density up, Random position up, Mix (P11 + S36) to taste"],
 ];
 
 export const LED: [string, string][] = [

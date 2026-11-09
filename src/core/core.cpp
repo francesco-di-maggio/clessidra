@@ -14,6 +14,7 @@ void Core::Init(float        sample_rate,
 {
     sample_rate_ = sample_rate;
     ring_.Init(ring, ring_size, sample_rate);
+    live_.View(ring, ring_size);
     for(size_t i = 0; i < kNumBuffers; i++)
         buffers_[i].Init(buffers[i], buffer_size, sample_rate);
     dc_block_.Init(sample_rate);
@@ -26,17 +27,27 @@ void Core::Init(float        sample_rate,
 
 void Core::Process(const float* const* in, float** out, size_t size)
 {
-    const Params p         = slots_[slot_.load(std::memory_order_acquire)];
-    Buffer&      sound     = buffers_[playing_.load(std::memory_order_relaxed)];
-    const double len       = double(sound.Length());
-    const double sel_len   = std::max(double(p.length) * len, 1.0);
-    const double sel_start = double(p.start) * len;
-    const float  density   = std::clamp(p.density, 0.0f, kMaxDensity);
+    const Params p = slots_[slot_.load(std::memory_order_acquire)];
+    // Live: the window behind the input, the loop start back from now, the
+    // window sliding while the input is written. Otherwise the recording.
+    Buffer& sound
+        = p.live ? live_ : buffers_[playing_.load(std::memory_order_relaxed)];
+    const double len = p.live ? double(LiveWindow()) : double(sound.Length());
+    const double length
+        = p.live ? std::min(double(p.length), 1.0 - double(p.start))
+                 : double(p.length);
+    const double sel_len = std::max(length * len, 1.0);
+    const double sel_start
+        = p.live ? double(ring_.WriteIndex()) - double(p.start) * len - sel_len
+                 : double(p.start) * len;
+    const bool  sliding = p.live && !p.seal;
+    const float density = std::clamp(p.density, 0.0f, kMaxDensity);
     // A grain lasts grain_samples whatever its pitch, as the starts per second
     // do, no longer than the recording
     const double grain_samples = std::clamp(
         p.grain_ms * 0.001 * sample_rate_, 1.0, std::max(len, 1.0));
     const double grain_inc = 1.0 / grain_samples;
+    grain_samples_         = grain_samples;
     // Nothing recorded: no grains, the size as set
     grain_ms_
         = len > 0.0 ? float(1000.0 * grain_samples / sample_rate_) : p.grain_ms;
@@ -47,6 +58,12 @@ void Core::Process(const float* const* in, float** out, size_t size)
         playhead_.Scale(sel_len_ / sel_len);
     sel_len_ = sel_len;
 
+    // Into live: from now, the end of the loop. Out of it: from the top.
+    if(p.live != was_live_)
+    {
+        was_live_ = p.live;
+        playhead_.Jump(p.live ? 1.0 : 0.0);
+    }
     if(restart_)
     {
         restart_ = false;
@@ -69,7 +86,10 @@ void Core::Process(const float* const* in, float** out, size_t size)
         playhead_.Jump(to - std::floor(to));
     }
 
-    const double play_inc = p.freeze ? 0.0 : p.speed / sel_len; // per sample
+    // Per sample, through a sliding window against its slide: at speed 1 a
+    // grain keeps its distance behind the input
+    const double play_inc
+        = p.freeze ? 0.0 : (p.speed - (sliding ? 1.0 : 0.0)) / sel_len;
 
     const size_t block = std::min(size, kMaxBlock);
 
@@ -192,7 +212,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
         const float in_l = in[0][i] * input_gain_;
         const float in_r = in[1][i] * input_gain_;
         const float mono = dc_block_.Process(kInputSum * (in_l + in_r));
-        ring_.Write(mono);
+        if(!(p.live && p.seal))
+            ring_.Write(mono);
 
         out[0][i] = l * reverb_dry_ + reverb_l * reverb_wet_;
         out[1][i] = r * reverb_dry_ + reverb_r * reverb_wet_;
@@ -329,7 +350,7 @@ void Core::StartGrain(const Params& p,
     Grain::Latch latch;
     latch.buffer   = sound;
     double to_read = 1.0; // from the recording playing to the one read
-    if(poured_from_ && 0.5f + 0.5f * Random() >= pour_)
+    if(sound != &live_ && poured_from_ && 0.5f + 0.5f * Random() >= pour_)
     {
         latch.buffer = poured_from_;
         to_read      = double(poured_from_->Length()) / double(sound->Length());
@@ -337,11 +358,13 @@ void Core::StartGrain(const Params& p,
     // Each evenly over its range: position within the amount around the
     // playhead, round the selection, size between its ends, exponential,
     // pitch either way, level, reverb send
+    // Live, the loop's end is now: a grain strays no further than it
     double phase = source.phase;
     if(p.rand_pos > 0.0f)
     {
         phase += 0.5 * std::min(p.rand_pos, 1.0f) * Random();
-        phase -= std::floor(phase);
+        phase = sound == &live_ ? std::clamp(phase, 0.0, 1.0)
+                                : phase - std::floor(phase);
     }
     latch.position = (source.start + phase * source.length) * to_read;
     if(p.rand_size > 0.0f && p.max_grain_ms > p.min_grain_ms)
@@ -361,6 +384,10 @@ void Core::StartGrain(const Params& p,
     latch.rate = p.pitch * std::exp2(semitones / 12.0f);
     if(source.backwards)
         latch.rate = -latch.rate;
+    // Live, the input written on: the grain starts far enough behind it never
+    // to read what is not written yet, its pitch taken into account
+    if(sound == &live_ && !p.seal)
+        latch.position = Behind(latch.position, latch.rate, offset);
     if(p.rand_gain > 0.0f)
         latch.gain = std::pow(10.0f,
                               kRandGainDb / 20.0f * std::min(p.rand_gain, 1.0f)
@@ -372,6 +399,27 @@ void Core::StartGrain(const Params& p,
     const float scale = 0.5f - 0.5f * Random();
     latch.pan         = 0.5f + 0.5f * Random() * std::min(width * scale, 1.0f);
     grain->Start(latch, offset);
+}
+
+size_t Core::LiveWindow() const
+{
+    const size_t window
+        = size_t(tap_seconds_.load(std::memory_order_relaxed) * sample_rate_);
+    return std::min(window, ring_.Capacity() / 2);
+}
+
+double Core::Behind(double position, float rate, size_t offset) const
+{
+    const double ring  = double(ring_.Capacity());
+    const double write = double(ring_.WriteIndex());
+    double       delay = write - position;
+    delay -= ring * std::floor(delay / ring);
+    // What the grain reads ahead of where it starts: this block before the
+    // input is written, and over its length what it gains on the input
+    const double ahead = std::fabs(rate) * double(kMaxBlock + offset)
+                         + std::max(0.0, double(rate) - 1.0) * grain_samples_;
+    const double least = kLiveMargin + ahead;
+    return delay >= least ? position : write - least;
 }
 
 bool Core::Due(Schedule& s, double sched_inc, bool random)

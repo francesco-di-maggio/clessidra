@@ -37,7 +37,6 @@ body.app main { flex: 1; min-height: 0; }
 .slider .signal { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 2px; background: var(--dim); }
 .slider .signal.clip { background: var(--accent); }
 .slider .handle { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--surface); border: 1.5px solid var(--ink); }
-.slider:focus-visible .handle { border-color: var(--accent); }
 
 /* The sound: the recording, its loop, slices, playhead and grains; under it
    the input. A bar of names and figures above each. */
@@ -46,6 +45,7 @@ body.app main { flex: 1; min-height: 0; }
 .sound .figures { display: flex; gap: 16px; }
 .sound #buffer { flex: 1; min-height: 0; }
 .sound .lane { height: 32px; border-top: 1px solid var(--line); }
+.sound.live .lane, .sound.live #incoming { display: none; }
 .sound #incoming { height: 44px; flex: none; }
 .sound .lane .segmented { height: 22px; width: auto; }
 .lane .segmented button { padding: 0 8px; font-size: 10px; letter-spacing: 0.04em; }
@@ -70,7 +70,7 @@ body.app main { flex: 1; min-height: 0; }
 .knob .cap { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
 .knob.dragging { cursor: ns-resize; }
 .knob.focus .label, .knob:focus-visible .label { color: var(--ink); }
-.knob:focus-visible svg { outline: 1.5px solid var(--accent); outline-offset: -2px; border-radius: 50%; }
+.knob:focus-visible, .slider:focus-visible, .pad:focus-visible { outline: none; }
 /* P11 held: the twin's name and value in place, in orange */
 .knob.twin .label, .knob.twin .value { color: var(--accent); }
 .knob.twin .fill, .knob.twin .tick { stroke: var(--accent); }
@@ -80,7 +80,6 @@ body.app main { flex: 1; min-height: 0; }
 .knob.fader .rail { position: relative; flex: 1 1 0; min-height: 0; width: 100%; display: flex; justify-content: center; }
 .knob.fader svg { width: 24px; height: 100%; transform: translateX(-10px); }
 .knob.fader svg * { vector-effect: non-scaling-stroke; }
-.knob.fader:focus-visible svg { outline-offset: 2px; border-radius: 6px; }
 .knob .slot { stroke: var(--well); stroke-width: 8; stroke-linecap: round; }
 .knob .tick-at { stroke: var(--dim); stroke-width: 1; }
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
@@ -91,6 +90,7 @@ body.app main { flex: 1; min-height: 0; }
 
 /* Beside the pads, a grain's envelope and the output, each under its name */
 .view { display: flex; flex-direction: column; gap: 8px; padding: var(--in); }
+.view .label { align-self: center; }
 .view canvas { flex: 1; min-height: 0; }
 .grain { grid-area: grain; }
 .output { grid-area: output; }
@@ -108,6 +108,7 @@ body.app main { flex: 1; min-height: 0; }
 .pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 .pad.rec.on .num::before { background: #fff; }
+.pad.latched { border-color: var(--accent); color: var(--accent); }
 .pad.free { pointer-events: none; color: var(--dim); background: none; border-style: dashed; }
 
 /* What the control pointed at does: its name and value, then the line */

@@ -53,6 +53,8 @@ function refresh() {
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainFigure = $("grain-figure");
+const sound = document.querySelector<HTMLElement>(".sound")!;
+const soundName = sound.querySelector<HTMLElement>(".bar .label")!;
 const grainShape = new GrainShape($<HTMLCanvasElement>("grain-shape"));
 const scope = new Scope($<HTMLCanvasElement>("scope"));
 let last: Frame | null = null;
@@ -83,9 +85,9 @@ add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
 add(toggle(byId("S09"), $("s09"), [[POSITION.up, "Forward"], [POSITION.centre, "Freeze"], [POSITION.down, "Reverse"]], on));
-add(toggle(byId("S07"), $("s07"), [[POSITION.up, "Octave"], [POSITION.centre, "Semitone"], [POSITION.down, "Off"]], on));
+add(toggle(byId("S07"), $("s07"), [[POSITION.up, "Oct"], [POSITION.centre, "Semi"], [POSITION.down, "Off"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
-const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "P00"], ["P01", "Reset"], ["P02", "P02"]];
+const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "Live"], ["P01", "Reset"], ["P02", "P02"]];
 for (const [id, label] of FUNCTIONS) {
   const w = add(pad(byId(id), $("functions"), label, on));
   if (w.c.free) w.root.classList.add("free");
@@ -262,7 +264,12 @@ function show() {
   }
   const twin = shifted() ? focused?.twin : undefined;
   if (focused) readout.value.textContent = twin ? twin.value(last.params) : (focused.value?.(last.params, v) ?? "");
-  held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
+  // Live: the window behind the input, the Live pad lit while on
+  const live = last.view[VIEW.live] === 1;
+  sound.classList.toggle("live", live);
+  soundName.textContent = live ? "Live" : "Recording";
+  parts.get("P00")?.root.classList.toggle("latched", live);
+  held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : live ? `${(v.sound / RATE).toFixed(0)} s back` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   held.classList.toggle("on", v.recording > 0);
   const size = last.params[PARAM.grainMs];
   grainFigure.textContent = `${size < 1000 ? `${Math.round(size)} ms` : `${(size / 1000).toFixed(2)} s`} · ${Math.round(last.grains.length / GRAIN_FIELDS)}/${VOICES}`;

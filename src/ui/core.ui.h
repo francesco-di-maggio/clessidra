@@ -20,6 +20,7 @@ class CoreUI
 {
   public:
     // Pads
+    static constexpr size_t kLivePad   = 0;  // a touch: live, or back
     static constexpr size_t kResetPad  = 1;  // with Shift: the twins reset
     static constexpr size_t kRecordPad = 10; // tap or hold. With Shift: listen
     static constexpr size_t kShiftPad  = 11; // held: the second layer
@@ -76,6 +77,7 @@ class CoreUI
     void Process(const Controls& c, Core& core);
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
     float Led(uint32_t now_ms, const Core& core) const;
+    bool  Live() const { return live_; }
     // Where each slice starts in the loop, 0..1, at the last pass
     const std::array<float, kNumSlices>& SliceStarts() const
     {
@@ -116,6 +118,8 @@ class CoreUI
     bool                          record_         = false;
     uint32_t                      rec_since_      = 0; // ms
     bool                          reset_touched_  = false;
+    bool                          live_touched_   = false;
+    bool                          live_           = false;
     std::array<bool, kNumSlices>  slices_touched_{};
     Onsets                        onsets_;
     uint32_t                      analysed_ = 0; // Core::Recordings() then

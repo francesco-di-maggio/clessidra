@@ -81,6 +81,15 @@ void CoreUI::Process(const Controls& c, Core& core)
 
     Core::Params p;
     Record(c, core, p);
+
+    // P00: live, the grains reading the input as it comes, or back to the
+    // recording. Frozen live: the input held, unless recording.
+    const bool live_touched = c.touched[kLivePad];
+    if(live_touched && !live_touched_)
+        live_ = !live_;
+    live_touched_   = live_touched;
+    p.live          = live_;
+    p.seal          = live_ && frozen && !record_;
     const auto own  = [this](Controls::Knob k) { return own_[k].Value(); };
     const auto twin = [this](Controls::Knob k) { return twin_[k].Value(); };
 
@@ -100,8 +109,9 @@ void CoreUI::Process(const Controls& c, Core& core)
 
     // S31, Size: kMinGrainMs to kMaxGrainMs, exponential, 100 ms at the
     // centre, up to half the recording. Shift: its randomness.
-    const float seconds = float(core.SoundSamples()) / float(kSampleRateHz);
-    const float size    = Detent(own(Controls::S31), 0.05f);
+    const float seconds = float(live_ ? core.LiveWindow() : core.SoundSamples())
+                          / float(kSampleRateHz);
+    const float size = Detent(own(Controls::S31), 0.05f);
     const float top_ms
         = seconds > 0.0f
               ? std::clamp(500.0f * seconds, kMinGrainMs, kMaxGrainMs)
@@ -250,8 +260,10 @@ bool CoreUI::Slices(const Controls& c, Core& core, float start, float length)
         onsets_.Find(
             core.Sound().Samples(), core.SoundSamples(), float(kSampleRateHz));
     }
-    slice_starts_ = onsets_.Slices(start, length);
-    bool held     = false;
+    // Live, the window has no fixed attacks: even parts
+    slice_starts_
+        = live_ ? Onsets{}.Slices(0.0f, 1.0f) : onsets_.Slices(start, length);
+    bool held = false;
     for(size_t i = 0; i < kNumSlices; i++)
     {
         const bool touched = c.touched[kSlicePads[i]];
