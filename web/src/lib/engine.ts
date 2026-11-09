@@ -18,14 +18,14 @@ export const INCOMING_SECONDS = 16;
 export const INCOMING_COLUMNS = 1280;
 
 // cl_view, in samples of the recording
-export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped: 4 } as const;
-export const VIEW_SIZE = 5;
+export const VIEW = { sound: 0, selStart: 1, selLength: 2, playhead: 3 } as const;
+export const VIEW_SIZE = 4;
 // cl_params, in the core's units. grainMs: the size in use, grainMsSet: as
-// set. randomStarts: 1 random, 0 regular. end: End, 0 once, 1 turn, 2 loop.
-// spread: pan width, 0..1. sandLeft: ahead of the playhead, 0..1. filter:
-// -1 low-pass, 0 off, 1 high-pass. quantize: 0 off, 1 semitones, 2 octaves.
-export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randomStarts: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, randPos: 12, randSize: 13, end: 14, grainMsSet: 15, minGrainMs: 16, maxGrainMs: 17, spread: 18, sandLeft: 19, filter: 20, quantize: 21, stop: 22 } as const;
-export const PARAM_SIZE = 23;
+// set. randomStarts: 1 random, 0 regular. spread: pan width,
+// 0..1. filter: -1 low-pass, 0 off, 1 high-pass. quantize: 0 off, 1
+// semitones, 2 octaves.
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randomStarts: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, randPos: 12, randSize: 13, grainMsSet: 14, minGrainMs: 15, maxGrainMs: 16, spread: 17, filter: 18, quantize: 19, stop: 20 } as const;
+export const PARAM_SIZE = 21;
 export const SLICES = 7; // Onsets::kNumSlices
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window
 // shape, pan, pitch in semitones, size in ms

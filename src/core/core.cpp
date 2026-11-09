@@ -38,7 +38,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
     // do, no longer than the recording
     const double grain_samples = std::clamp(
         p.grain_ms * 0.001 * sample_rate_, 1.0, std::max(len, 1.0));
-    const double grain_inc = 1.0 / grain_samples;
     // Nothing recorded: no grains, the size as set
     grain_ms_
         = len > 0.0 ? float(1000.0 * grain_samples / sample_rate_) : p.grain_ms;
@@ -73,8 +72,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const double play_inc
         = p.freeze ? 0.0 : p.speed * double(tape_) / sel_len; // per sample
 
-    const size_t block = std::min(size, kMaxBlock);
-
     // Slices: each newly held one from its start, a grain at once. At no
     // density, two grains at once, regular: the slice as it is.
     const bool   slicing      = p.slices_held != 0;
@@ -96,22 +93,21 @@ void Core::Process(const float* const* in, float** out, size_t size)
     // in this block is free from the next.
     for(size_t i = 0; i < size && len > 0.0; i++)
     {
-        // Through the selection, as End sets at its edges. Run out: no grains
-        // but one at once. Waiting while slices play.
+        // Round the selection. Waiting while slices play.
         if(!slicing)
         {
-            playhead_.Advance(play_inc, p.end);
-            const double phase = playhead_.Phase();
-            const bool   due   = !playhead_.Ended()
-                             && Due(schedule_,
-                                    density * tape_ / sample_rate_,
-                                    p.random_starts);
+            playhead_.Advance(play_inc);
+            const bool due = Due(
+                schedule_, density * tape_ / sample_rate_, p.random_starts);
             if(due || (now && i == 0))
-            {
-                const bool reverse
-                    = (p.speed < 0.0f) != (playhead_.Heading() < 0);
-                StartGrain(p, {sel_start, sel_len, phase, reverse}, &sound, i);
-            }
+                StartGrain(p,
+                           {sel_start,
+                            sel_len,
+                            playhead_.Phase(),
+                            p.speed < 0.0f,
+                            grain_samples},
+                           &sound,
+                           i);
         }
         for(size_t s = 0; s < kNumSlices && slicing; s++)
         {
@@ -119,8 +115,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
                 continue;
             const double span = std::max(p.slice_length[s] * sel_len, 1.0);
             Playhead&    head = slice_heads_[s];
-            head.Advance(p.freeze ? 0.0 : p.speed * double(tape_) / span,
-                         End::Loop);
+            head.Advance(p.freeze ? 0.0 : p.speed * double(tape_) / span);
             if(Due(slice_schedules_[s],
                    slice_density * tape_ / sample_rate_,
                    slice_random))
@@ -128,7 +123,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
                            {sel_start + p.slice_start[s] * sel_len,
                             span,
                             head.Phase(),
-                            p.speed < 0.0f},
+                            p.speed < 0.0f,
+                            grain_samples},
                            &sound,
                            i);
         }
@@ -144,30 +140,20 @@ void Core::Process(const float* const* in, float** out, size_t size)
         }
     }
 
-    // Each grain through the block, into the mix and, by its send, the
-    // reverb: its state stays in registers
-    float send_l[kMaxBlock], send_r[kMaxBlock];
+    // Each grain through the block, into the mix: its state stays in
+    // registers
     std::fill(out[0], out[0] + size, 0.0f);
     std::fill(out[1], out[1] + size, 0.0f);
-    std::fill(send_l, send_l + block, 0.0f);
-    std::fill(send_r, send_r + block, 0.0f);
     Grain::Sums sums;
     for(auto& grain : grains_)
-        grain.Render(grain_inc,
-                     double(tape_),
-                     out[0],
-                     out[1],
-                     send_l,
-                     send_r,
-                     block,
-                     sums);
+        grain.Render(double(tape_), out[0], out[1], size, sums);
     float power_sum = 0.0f;
-    for(size_t i = 0; i < block; i++)
+    for(size_t i = 0; i < size; i++)
         power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
 
-    const float n = float(block);
+    const float n = float(size);
     grain_level_.store(sums.window / n, std::memory_order_relaxed);
-    Normalise(sums.power / n, power_sum / n, sums.window_power / n, block);
+    Normalise(sums.power / n, power_sum / n, sums.window_power / n, size);
 
     // ReverbSc, measured with a 10 kHz lowpass: T60 = 3 * kLoop /
     // -log10(feedback) within 20 %, output gain kGain / sqrt(1 - feedback^2)
@@ -201,14 +187,9 @@ void Core::Process(const float* const* in, float** out, size_t size)
     for(auto& filter : filters_)
         filter.Set(filter_hz, filter_q, sample_rate_);
 
-    const float mute_target = p.mute ? 0.0f : 1.0f;
     // Stopping: faded over its slowest part
-    const float stop_gain  = std::min(1.0f, tape_ / kStopFade);
-    const float mute_step  = 1.0f / (kMuteSeconds * sample_rate_);
-    const float norm_step  = (norm_ - norm_gain_) / n;
-    const float input_step = (std::max(p.input, 0.0f) - input_gain_) / n;
-    const float output_step
-        = (std::clamp(p.output, 0.0f, 1.0f) - output_gain_) / n;
+    const float stop_gain = std::min(1.0f, tape_ / kStopFade);
+    const float norm_step = (norm_ - norm_gain_) / n;
     // Dry and wet, equal power, exact at the ends
     const float mix       = std::clamp(p.mix, 0.0f, 1.0f);
     const float mix_angle = HALFPI_F * mix;
@@ -216,34 +197,28 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float wet       = mix <= 0.0f ? 0.0f : std::sin(mix_angle);
     const float dry_step  = (dry - dry_gain_) / n;
     const float wet_step  = (wet - wet_gain_) / n;
-    for(size_t i = 0; i < block; i++)
+    for(size_t i = 0; i < size; i++)
     {
         reverb_dry_ += reverb_dry_step;
         reverb_wet_ += reverb_wet_step;
         norm_gain_ += norm_step;
-        float l = out[0][i] * norm_gain_;
-        float r = out[1][i] * norm_gain_;
+        const float gain = norm_gain_ * stop_gain;
+        // Into the reverb before the filter
+        float reverb_l, reverb_r;
+        reverb_.Process(
+            out[0][i] * gain, out[1][i] * gain, &reverb_l, &reverb_r);
+        float l = out[0][i] * gain;
+        float r = out[1][i] * gain;
         filters_[0].Process(l);
         filters_[1].Process(r);
         l += filter_mix
              * ((lowpass ? filters_[0].Low() : filters_[0].High()) - l);
         r += filter_mix
              * ((lowpass ? filters_[1].Low() : filters_[1].High()) - r);
-        mute_gain_ = mute_gain_ < mute_target
-                         ? std::min(mute_target, mute_gain_ + mute_step)
-                         : std::max(mute_target, mute_gain_ - mute_step);
-        const float muted = mute_gain_ * stop_gain;
-        l *= muted;
-        r *= muted;
-        const float gain = norm_gain_ * muted;
-        float       reverb_l, reverb_r;
-        reverb_.Process(
-            send_l[i] * gain, send_r[i] * gain, &reverb_l, &reverb_r);
 
         // The input, always into the ring
-        input_gain_ += input_step;
-        const float in_l = in[0][i] * input_gain_;
-        const float in_r = in[1][i] * input_gain_;
+        const float in_l = in[0][i];
+        const float in_r = in[1][i];
         const float mono = dc_block_.Process(kInputSum * (in_l + in_r));
         ring_.Write(mono);
 
@@ -254,12 +229,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
         out[0][i] = out[0][i] * kOutputGain * wet_gain_ + in_l * dry_gain_;
         out[1][i] = out[1][i] * kOutputGain * wet_gain_ + in_r * dry_gain_;
         limiter_.Process(out[0][i], out[1][i]);
-        output_gain_ += output_step;
-        out[0][i] *= output_gain_;
-        out[1][i] *= output_gain_;
     }
-    for(size_t i = block; i < size; i++)
-        out[0][i] = out[1][i] = 0.0f;
     UpdateCapture(size);
 }
 
@@ -400,7 +370,7 @@ void Core::StartGrain(const Params& p,
     }
     // Each evenly over its range: position within the amount around the
     // playhead, round the selection, size between its ends, exponential,
-    // pitch either way, level, reverb send
+    // pitch either way
     double phase = source.phase;
     if(p.rand_pos > 0.0f)
     {
@@ -408,13 +378,15 @@ void Core::StartGrain(const Params& p,
         phase -= std::floor(phase);
     }
     latch.position = (source.start + phase * source.length) * to_read;
+    double length  = 1.0; // of the size
     if(p.rand_size > 0.0f && p.max_grain_ms > p.min_grain_ms)
     {
         const float octaves = std::log2(p.max_grain_ms / p.min_grain_ms);
         const float size    = std::clamp(
             std::log2(p.grain_ms / p.min_grain_ms) / octaves, 0.0f, 1.0f);
-        latch.size = std::exp2((Randomise(size, p.rand_size) - size) * octaves);
+        length = std::exp2((Randomise(size, p.rand_size) - size) * octaves);
     }
+    latch.inc   = 1.0 / std::max(source.grain_samples * length, 1.0);
     latch.shape = p.window_shape;
     float semitones
         = Random() * std::clamp(p.rand_pitch, 0.0f, 1.0f) * kRandPitchSemitones;
@@ -425,11 +397,6 @@ void Core::StartGrain(const Params& p,
     latch.rate = p.pitch * std::exp2(semitones / 12.0f);
     if(source.backwards)
         latch.rate = -latch.rate;
-    if(p.rand_gain > 0.0f)
-        latch.gain = std::pow(10.0f,
-                              kRandGainDb / 20.0f * std::min(p.rand_gain, 1.0f)
-                                  * (0.5f + 0.5f * Random()));
-    latch.send = Randomise(1.0f, p.rand_send);
     // Width with the grains sounding and how much they differ: a lone grain
     // near the centre, most of the others too
     const float width = 0.5f * float(active + 1) * p.spread;

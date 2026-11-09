@@ -99,7 +99,6 @@ void CoreUI::Process(const Controls& c, Core& core)
     Slices(c, core, p);
     p.speed  = mode == Controls::Down ? -speed : speed;
     p.freeze = frozen || speed == 0.0f;
-    p.end    = End::Loop;
 
     // S31, Size: kMinGrainMs to kMaxGrainMs, exponential, 100 ms at the
     // centre, up to half the recording. Shift: its randomness.
@@ -312,7 +311,7 @@ void CoreUI::Pulse(const Controls& c, const std::array<bool, kNumDetents>& at)
 }
 
 // Flashing while recording, the detent pulse, Shift's value, or a glow that
-// follows the grains, dimming as the sand runs out
+// follows the grains
 float CoreUI::Led(uint32_t now, const Core& core) const
 {
     if(record_)
@@ -323,10 +322,7 @@ float CoreUI::Led(uint32_t now, const Core& core) const
     else if(shift_)
         brightness = std::max(shown_, kShiftFloor);
     else
-    {
-        const float sand = kSandFloor + (1.0f - kSandFloor) * core.SandLeft();
-        brightness       = kGlow * sand * std::min(1.0f, core.GrainLevel());
-    }
+        brightness = kGlow * std::min(1.0f, core.GrainLevel());
     // Cubed: even steps to the eye
     return brightness * brightness * brightness;
 }

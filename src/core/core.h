@@ -45,8 +45,6 @@ class Core
     static constexpr size_t kNumSlices = Onsets::kNumSlices;
     // the furthest Params.rand_pitch takes a grain's pitch, either way
     static constexpr float kRandPitchSemitones = 12.0f;
-    // the quietest Params.rand_gain takes a grain
-    static constexpr float kRandGainDb = -18.0f;
     // One jack or two: -3 dB on one, +3 dB on two in phase, not -6 and 0
     static constexpr float kInputSum = 0.7071f;
     // +6 dB after the grains, into the limiter: at equal power they sound
@@ -61,8 +59,6 @@ class Core
     static constexpr float kReverbDecayMax  = 16.0f; // seconds
     // damping in the reverb's loop
     static constexpr float kReverbLowpassHz = 10000.0f;
-    // Mute: the fade of the grains, in and out
-    static constexpr float kMuteSeconds = 0.005f;
     // Stop, as a tape machine: everything slowed to a halt, or back up to
     // speed, over this; faded out over the slowest kStopFade of it
     static constexpr float kStopSeconds = 0.6f;
@@ -92,19 +88,15 @@ class Core
     static constexpr size_t kCopyPerSample = 21; // × real time: 30 s in 1.4 s
     // ring written on during the copy
     static constexpr float kCopyMarginSeconds = 0.5f;
-    // the longest block the reverb sends hold
-    static constexpr size_t kMaxBlock = 256;
 
     struct Params
     {
         // Selection, 0..1 of the sound: from start, length long, ending no
         // later than the sound's end
-        float start  = 0.0f;
-        float length = 1.0f;
-        float speed  = 1.0f;  // 1 = real time, negative = reverse
-        bool  freeze = false; // the playhead held where it was, speed ignored
-        // At the end of the selection: stop, turn over, or round again
-        End   end      = End::Loop;
+        float start    = 0.0f;
+        float length   = 1.0f;
+        float speed    = 1.0f;  // 1 = real time, negative = reverse
+        bool  freeze   = false; // the playhead held where it was, speed ignored
         float grain_ms = 100.0f; // grain size
         // the size's range, exponential: where rand_size takes it
         float min_grain_ms = 10.0f;
@@ -130,19 +122,10 @@ class Core
         float spread = 0.0f;
         float filter = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
-        // The grains silent, faded over kMuteSeconds; the reverb rings on
-        bool mute = false;
         // Slowed to a halt as a tape machine, over kStopSeconds; the reverb
         // rings on
         bool  stop = false;
         float mix  = 1.0f; // 0 dry .. 1 wet, equal power
-        // gain on the input, before the recording and the dry signal
-        float input  = 1.0f;
-        float output = 1.0f; // gain after the limiter, 0..1
-        // Randomness of each grain's level and reverb send, 0..1 as the
-        // others: level down to kRandGainDb, send from none to all
-        float rand_gain = 0.0f;
-        float rand_send = 0.0f;
         // Slices of the selection, 0..1 of it. Each held one plays its own
         // span from its start, round it, at speed and density, a grain at
         // once. At no density: two grains at once, regular, the slice as it
@@ -216,11 +199,6 @@ class Core
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
     double        PlayheadPhase() const { return playhead_.Phase(); }
-    // 1 upright, -1 turned over
-    int Heading() const { return playhead_.Heading(); }
-    // Through the selection, what is left ahead of the playhead, 0..1: 0 once
-    // it has run out
-    float SandLeft() const { return float(playhead_.Left()); }
     // A grain's size in use, ms: grain_ms within the recording
     float GrainMs() const { return grain_ms_; }
     // Grains dropped so far, all voices sounding: the neck clogged
@@ -244,6 +222,7 @@ class Core
         double length; // of the span, samples
         double phase;  // through the span
         bool   backwards;
+        double grain_samples; // its length, before Params.rand_size
     };
 
     enum class Capture
@@ -330,15 +309,12 @@ class Core
     daisysp::ReverbSc  reverb_;
     Limiter            limiter_;
     // Gains at the end of the last block
-    float norm_gain_   = 0.0f;
-    float mute_gain_   = 1.0f;
-    float tape_        = 1.0f; // speed of everything, Params.stop ramping it
-    float reverb_dry_  = 1.0f;
-    float reverb_wet_  = 0.0f;
-    float input_gain_  = 1.0f;
-    float output_gain_ = 1.0f;
-    float dry_gain_    = 0.0f;
-    float wet_gain_    = 1.0f;
+    float norm_gain_  = 0.0f;
+    float tape_       = 1.0f; // speed of everything, Params.stop ramping it
+    float reverb_dry_ = 1.0f;
+    float reverb_wet_ = 0.0f;
+    float dry_gain_   = 0.0f;
+    float wet_gain_   = 1.0f;
 };
 
 } // namespace clessidra

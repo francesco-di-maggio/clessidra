@@ -456,18 +456,11 @@ std::vector<float> Window(float shape)
     latch.rate     = 0.0f;
     latch.pan      = 0.0f; // all left, gain 1
     latch.shape    = shape;
+    latch.inc      = 1.0 / 1000.0;
     grain.Start(latch, 0);
-    std::vector<float> window(1000, 0.0f), right(1000, 0.0f), sl(1000),
-        sr(1000);
-    Grain::Sums sums;
-    grain.Render(1.0 / 1000.0,
-                 1.0,
-                 window.data(),
-                 right.data(),
-                 sl.data(),
-                 sr.data(),
-                 window.size(),
-                 sums);
+    std::vector<float> window(1000, 0.0f), right(1000, 0.0f);
+    Grain::Sums        sums;
+    grain.Render(1.0, window.data(), right.data(), window.size(), sums);
     return window;
 }
 
@@ -539,41 +532,6 @@ double Rms(Rig& r, double seconds)
     return std::sqrt(sum / double(blocks * kBlock));
 }
 
-// Mute: the grains silent within a few ms, the reverb ringing on
-void Mute()
-{
-    Rig r(2.0);
-    r.Fill(Sine);
-    Core::Params p;
-    p.density = 40.0f;
-    r.core.SetParams(p);
-    const double playing = Rms(r, 0.5);
-    p.mute               = true;
-    r.core.SetParams(p);
-    Rms(r, 0.01);
-    Check(Rms(r, 0.2) < 1e-4 && playing > 0.01,
-          "P01 held, no reverb: silent",
-          Rms(r, 0.2));
-    p.mute = false;
-    r.core.SetParams(p);
-    Rms(r, 0.01);
-    Check(Near(Rms(r, 0.5), playing, 0.5 * playing),
-          "P01 released: the grains as before",
-          Rms(r, 0.5));
-
-    p.reverb = 0.8f;
-    r.core.SetParams(p);
-    Rms(r, 1.0);
-    p.mute = true;
-    r.core.SetParams(p);
-    const double tail = Rms(r, 0.25);
-    Rms(r, 2.75);
-    const double later = Rms(r, 0.25);
-    Check(tail > 0.01 && later < 0.5 * tail,
-          "P01 held, reverb: the tail rings on, fading",
-          later / tail);
-}
-
 // Grains started in the next seconds
 size_t Starts(Rig& r, double seconds)
 {
@@ -614,60 +572,22 @@ std::vector<double> StartsAt(Rig& r, double seconds)
     return at;
 }
 
-// End: the sand runs out and stops, turns the glass over, or starts again.
-// Speed the other way, a glass run out runs back. A jump: a
-// grain at once, whatever the density.
-void Ends()
+// A jump: a grain at once, whatever the density, the starts counted from it
+void Jumps()
 {
     Rig r(1.0);
     r.Fill(Sine);
     Core::Params p;
-    p.speed   = 4.0f;
-    p.density = 50.0f;
-    p.end     = End::Once;
-    r.core.SetParams(p);
-    r.core.Jump(0.0f);
-    r.Run(0.5, Silence);
-    const size_t after = Starts(r, 0.5);
-    Check(r.core.SandLeft() == 0.0f && after == 0,
-          "once: run out, no more grains (starts)",
-          double(after));
-    p.speed = -4.0f;
-    r.core.SetParams(p);
-    r.Run(0.1, Silence);
-    Check(r.core.PlayheadPhase() < 0.7 && r.core.SandLeft() > 0.0f,
-          "once, run out, speed reversed: runs back",
-          r.core.PlayheadPhase());
-
-    p.speed = 4.0f;
-    p.end   = End::Turn;
-    r.core.SetParams(p);
-    r.core.Jump(0.0f);
-    r.Run(0.2, Silence);
-    const double before = r.core.PlayheadPhase();
-    r.Run(0.125, Silence);
-    Check(before > 0.5 && r.core.PlayheadPhase() < before,
-          "turn: at the end, it turns over and runs back",
-          r.core.PlayheadPhase());
-    r.Run(0.2, Silence);
-    const double back = r.core.PlayheadPhase();
-    r.Run(0.05, Silence);
-    Check(r.core.PlayheadPhase() > back, "turn: and over again", back);
-
-    p.end     = End::Once;
     p.density = 0.0f;
     r.core.SetParams(p);
-    r.Run(1.0, Silence);
+    r.Run(0.5, Silence);
     r.core.Jump(0.5f);
-    const size_t dropped = Starts(r, 0.2);
-    Check(dropped == 1,
-          "a jump at no density, run out: one grain",
-          double(dropped));
+    const size_t one = Starts(r, 0.2);
+    Check(one == 1, "a jump at no density: one grain", double(one));
 
     // A jump: the starts counted from it, at the point jumped to
     p.speed    = 0.0f;
     p.freeze   = true;
-    p.end      = End::Loop;
     p.density  = 10.0f;
     p.grain_ms = 10.0f;
     r.core.SetParams(p);
@@ -1030,9 +950,10 @@ void Voices()
     Check(sum / (3.0 * kRate / kBlock) > 10.0,
           "the most density, long grains: whole windows (mean of the windows)",
           sum / (3.0 * kRate / kBlock));
-    bool whole = true;
+    bool         whole = true;
+    const double inc   = r.core.Grains()[0].Settings().inc;
     for(const auto& grain : r.core.Grains())
-        whole = whole && grain.Settings().size == 1.0f;
+        whole = whole && grain.Settings().inc == inc;
     Check(whole, "the most density, long grains: sizes kept", 1.0);
     Check(r.finite, "the most density, long grains: output finite", 1.0);
 }
@@ -1168,7 +1089,7 @@ void Mapping()
     c.switches             = {Controls::Up, Controls::Down};
     ui.Process(c, r.core);
     const Core::Params& p = r.core.CurrentParams();
-    Check(Near(p.speed, 1.0, 1e-6) && !p.freeze && p.end == End::Loop,
+    Check(Near(p.speed, 1.0, 1e-6) && !p.freeze,
           "S36 on its fourth stop, S09 up: speed 1 forward, looped",
           p.speed);
     Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.mix == 1.0f
@@ -1246,13 +1167,12 @@ void Mapping()
     // S32, Random position: off to the whole loop, the pan with it
     c.knobs[Controls::S37] = 0.75f;
     ui.Process(c, r.core);
-    Check(p.rand_pos == 0.0f && p.spread == 0.0f && p.rand_gain == 0.0f,
+    Check(p.rand_pos == 0.0f && p.spread == 0.0f,
           "S32 bottom: grains at the playhead, centred",
           p.spread);
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.rand_pos == 1.0f && p.spread == 1.0f && p.rand_pitch == 0.0f
-              && p.rand_gain == 0.0f,
+    Check(p.rand_pos == 1.0f && p.spread == 1.0f && p.rand_pitch == 0.0f,
           "S32 top: the whole loop, pan widest, nothing else random",
           p.rand_pos);
     c.knobs[Controls::S32] = 0.0f;
@@ -1417,15 +1337,16 @@ void Mapping()
     c.knobs[Controls::S36] = 0.63f;
     ui.Process(c, r.core);
 
-    // The LED glows with the grains, dimmer as the sand runs out
+    // The LED glows with the grains
     c.knobs[Controls::S37] = 1.0f;
-    press(CoreUI::kCuePad, true);
-    press(CoreUI::kCuePad, false);
-    r.Run(0.1, Silence);
-    const float full = ui.Led(100000, r.core);
-    r.Run(0.8, Silence);
-    const float less = ui.Led(100000, r.core);
-    Check(full > 0.0f && less < full, "LED: dims as the sand runs out", less);
+    ui.Process(c, r.core);
+    float glow = 0.0f;
+    for(int i = 0; i < 30; i++)
+    {
+        r.Run(0.01, Silence);
+        glow = std::max(glow, ui.Led(100000, r.core));
+    }
+    Check(glow > 0.0f, "LED: glows with the grains", glow);
 
     // P03-P09, the slices, left to right. Each held one plays its own slice,
     // the loop's playhead waiting. No density: the slice as it is, two grains
@@ -1546,8 +1467,7 @@ int main()
     Level();
     Windows();
     Filter();
-    Mute();
-    Ends();
+    Jumps();
     Scrubbed();
     Quantized();
     Selection();

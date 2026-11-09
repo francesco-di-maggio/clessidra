@@ -61,8 +61,6 @@ class CoreUI
     // LED
     // brightness while grains play, below the pulse
     static constexpr float kGlow = 0.6f;
-    // of the glow with the sand run out: the glow follows the sand left
-    static constexpr float kSandFloor = 0.25f;
     // Shift held: at least this, else the value last turned
     static constexpr float kShiftFloor = 0.15f;
     // on when a control reaches its centre and while turned there

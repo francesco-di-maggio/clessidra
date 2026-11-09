@@ -6,8 +6,7 @@
 namespace clessidra
 {
 // One grain: a window over a buffer read. Buffer, position, read rate, pan,
-// window shape and size are latched at Start(). The window advances at the rate
-// passed to Render(), divided by the size.
+// window shape and length are latched at Start().
 class Grain
 {
   public:
@@ -18,10 +17,8 @@ class Grain
         float         rate     = 1.0f; // samples read per output sample
         float         pan      = 0.5f; // 0 left .. 1 right
         // window: 0 reverse percussive, 0.5 Hann, 1 percussive
-        float shape = 0.5f;
-        float gain  = 1.0f;
-        float send  = 1.0f; // into the reverb, of the grain
-        float size  = 1.0f; // of the grain size passed to Render()
+        float  shape = 0.5f;
+        double inc   = 0.0; // window phase per sample: 1 / length in samples
     };
 
     // Once, before any Grain is used.
@@ -30,10 +27,7 @@ class Grain
     bool          IsActive() const { return active_; }
     const Buffer* Source() const { return latch_.buffer; }
     // offset: first sample of the grain in the next Render()
-    void Start(const Latch& latch, size_t offset);
-    // Ends the grain within samples, without a click, to free its voice
-    void   FadeOut(size_t samples);
-    bool   IsFading() const { return fade_step_ > 0.0f; }
+    void   Start(const Latch& latch, size_t offset);
     double Progress() const { return phase_; } // through the window, 0..1
     // For displays, between blocks: as started, and where it reads now
     const Latch& Settings() const { return latch_; }
@@ -47,17 +41,10 @@ class Grain
         float window_power = 0.0f; // squared windows
     };
 
-    // Adds the grain to left and right, and by its send to send_l and send_r,
-    // while active. inc: window phase per sample. speed: of everything, 1 as
-    // started, slower as a tape machine stopping.
-    void Render(double inc,
-                double speed,
-                float* left,
-                float* right,
-                float* send_l,
-                float* send_r,
-                size_t size,
-                Sums&  sums);
+    // Adds the grain to left and right while active. speed: of everything, 1
+    // as started, slower as a tape machine stopping.
+    void
+    Render(double speed, float* left, float* right, size_t size, Sums& sums);
 
   private:
     static constexpr size_t kWindowSize = 512;
@@ -71,13 +58,11 @@ class Grain
     static float Lookup(const float* table, float x);
 
     Latch  latch_;
-    double phase_     = 0.0;
-    double read_      = 0.0; // samples read since Start()
-    size_t offset_    = 0;
-    float  gain_l_    = 0.0f;
-    float  gain_r_    = 0.0f;
-    float  fade_      = 1.0f;
-    float  fade_step_ = 0.0f;
+    double phase_  = 0.0;
+    double read_   = 0.0; // samples read since Start()
+    size_t offset_ = 0;
+    float  gain_l_ = 0.0f;
+    float  gain_r_ = 0.0f;
     // Window: rises to its peak, then decays as Hann blended to the percussive
     // decay
     float peak_       = 0.5f; // of the grain

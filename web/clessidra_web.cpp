@@ -38,7 +38,6 @@ enum View : size_t
     kSelectionStart,
     kSelectionLength,
     kPlayhead,
-    kDropped, // grains dropped so far, all voices sounding
     kNumView
 };
 float view[kNumView];
@@ -65,12 +64,10 @@ enum Param : size_t
     kMix,
     kRandPos,
     kRandSize,
-    kEnd,
     kGrainMsSet,
     kMinGrainMs,
     kMaxGrainMs,
     kSpread,
-    kSandLeft,
     kFilter,
     kQuantize,
     kStop,
@@ -205,7 +202,6 @@ EXPORT const float* cl_view()
     // Past the end, round to the start
     const double playhead = sel_start + core.PlayheadPhase() * sel_length;
     view[kPlayhead] = float(sound > 0.0 ? std::fmod(playhead, sound) : 0.0);
-    view[kDropped]  = float(core.Dropped());
     return view;
 }
 
@@ -227,7 +223,7 @@ EXPORT int cl_grains()
         fields[2]     = g.Settings().shape;
         fields[3]     = g.Settings().pan;
         fields[4]     = 12.0f * std::log2(std::fabs(g.Settings().rate));
-        fields[5]     = core.GrainMs() * g.Settings().size;
+        fields[5]     = float(1000.0 / (g.Settings().inc * kSampleRateHz));
         count++;
     }
     return count;
@@ -260,12 +256,10 @@ EXPORT const float* cl_params()
     params[kMix]          = p.mix;
     params[kRandPos]      = p.rand_pos;
     params[kRandSize]     = p.rand_size;
-    params[kEnd]          = float(p.end);
     params[kGrainMsSet]   = p.grain_ms;
     params[kMinGrainMs]   = p.min_grain_ms;
     params[kMaxGrainMs]   = p.max_grain_ms;
     params[kSpread]       = p.spread;
-    params[kSandLeft]     = core.SandLeft();
     params[kFilter]       = p.filter;
     params[kQuantize]     = float(p.quantize);
     params[kStop]         = p.stop ? 1.0f : 0.0f;

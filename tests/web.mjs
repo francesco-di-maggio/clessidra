@@ -7,7 +7,7 @@ const BLOCK = 128;
 const KNOB = { S30: 0, S31: 1, S32: 2, S33: 3, S34: 4, S35: 5, S36: 6, S37: 7 };
 const SPEED_1 = 0.63; // S36 on its fourth stop from the bottom: 1×
 const RECORD = 10; // CoreUI::kRecordPad
-const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3, dropped: 4 };
+const V = { sound: 0, selStart: 1, selLength: 2, playhead: 3 };
 
 let failed = 0;
 function check(ok, what, value) {
@@ -49,7 +49,7 @@ function run(seconds, input = pluck) {
   return { peak, finite };
 }
 
-const view = () => f32(w.cl_view(), 5);
+const view = () => f32(w.cl_view(), 4);
 const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_grain_fields() + g * 24, 6)[0]);
 const silence = () => 0;
 
@@ -126,8 +126,8 @@ check(Math.abs(params[0] - 1) < 1e-6, "Speed on its fourth stop: 1", params[0]);
 
 // P11 held: S37 sets the reverb, Density stays as it was
 const SHIFT = 11;
-const reverb = () => f32(w.cl_params(), 22)[5];
-const density = () => f32(w.cl_params(), 22)[2];
+const reverb = () => f32(w.cl_params(), 21)[5];
+const density = () => f32(w.cl_params(), 21)[2];
 const before = density();
 w.cl_pad(SHIFT, 1, 0.5);
 run(0.02, silence);
