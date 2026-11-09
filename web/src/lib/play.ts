@@ -256,7 +256,7 @@ function onMessage(m: FromWorklet) {
     last = m;
     // The board's LED, as the grain's light: glowing with the grains,
     // flashing while recording, a pulse at a centre
-    $("grain-shape").style.opacity = String(0.3 + 0.7 * m.led);
+    $("grain-shape").style.setProperty("--led", String(m.led));
     inMeter(m.input);
     outMeter(m.output);
     waveform.recording = incoming.recording = recording();
@@ -292,6 +292,8 @@ start.addEventListener("click", async () => {
   } else await audio.pause(audio.running);
   start.textContent = audio.running ? "Pause" : "Start";
   start.classList.toggle("on", audio.running);
+  // Paused, the light out
+  if (!audio.running) $("grain-shape").style.setProperty("--led", "0");
 });
 
 async function choose(kind: Input) {
