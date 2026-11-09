@@ -82,7 +82,7 @@ try {
   await sleep(1500);
   check((await run(`document.getElementById("start").textContent`)) === "Pause", "Start: running");
   const demo = await run(`document.getElementById("buffer").getAttribute("aria-label")`);
-  check(demo === "Recording, 5.0 s", "Start on Demo: the demo is the recording", demo);
+  check(demo === "Recording, empty", "Start on Demo: the demo plays in, nothing recorded yet", demo);
   await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "r" }))`);
   await sleep(2000);
   await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "r" }))`);

@@ -48,7 +48,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 
 ## Play in the Browser
 
-[francescodimaggio.nl/clessidra](https://francescodimaggio.nl/clessidra/): the same firmware, compiled to WebAssembly. The demo or a file you choose becomes the recording, up to 30 s, and plays on as the input.
+[francescodimaggio.nl/clessidra](https://francescodimaggio.nl/clessidra/): the same firmware, compiled to WebAssembly. A file you choose becomes the recording, up to 30 s, and plays on as the input. The demo, an 8 s phrase, plays in: a tap on Rec keeps it.
 
 ## Install
 

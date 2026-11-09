@@ -16,7 +16,7 @@ body.app main { flex: 1; min-height: 0; }
               grid-template-areas:
                 "transport transport transport transport transport transport transport transport transport transport transport transport"
                 "sound sound sound sound sound sound sound sound sound sound sound sound"
-                "speed speed knobs knobs knobs knobs knobs knobs knobs knobs density density"
+                "controls controls controls controls controls controls controls controls controls controls controls controls"
                 "pads pads pads pads pads pads pads pads pads pads pads pads"; }
 .tile { position: relative; min-width: 0; min-height: 0; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .tile canvas { display: block; width: 100%; }
@@ -50,10 +50,11 @@ body.app main { flex: 1; min-height: 0; }
 
 /* The controls row: a fader at each edge, the knobs and switches between.
    One rhythm in every tile: a name, a band for the control, a value. */
-.tile.fader, .knobs { padding: var(--in) 0; }
+.controls { grid-area: controls; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 4fr) minmax(0, 1fr); grid-template-areas: "speed knobs density"; }
+#speed, #density, .knobs { padding: var(--in) 0; }
 #speed { grid-area: speed; }
 #density { grid-area: density; }
-.knobs { grid-area: knobs; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 16px; padding-left: 8px; padding-right: 8px; }
+.knobs { grid-area: knobs; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 16px; padding-left: 8px; padding-right: 8px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 .cell { display: flex; justify-content: center; min-width: 0; }
 
 .knob { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
@@ -91,19 +92,17 @@ body.app main { flex: 1; min-height: 0; }
    In the switches' colours: white keys as the chosen position, black keys as
    the others. */
 .pads { grid-area: pads; padding: 12px; }
-.keys { --gap: 6px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 84px; }
+.keys { --gap: 6px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 100px; }
 .pad { display: grid; place-content: end center; width: 100%; height: 100%; padding: 0 0 8px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); color: var(--ink);
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }
 .pad:hover { border-color: var(--dim); }
 .pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.72); height: 56%; padding-bottom: 8px;
              left: calc((var(--key) + var(--gap)) * var(--edge) - var(--gap) / 2); transform: translateX(-50%);
-             background: var(--bg); color: var(--dim); letter-spacing: 0.08em; }
+             background: var(--bg); color: var(--ink); letter-spacing: 0.08em; }
 /* Running: Rec filled as Start was, the one filled control */
 .running .pad.rec:not(.on) { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
-.pad.rec.on .num::before { background: #fff; }
 .pad.latched { border-color: var(--accent); color: var(--accent); }
 .pad.free { pointer-events: none; color: var(--dim); background: none; border-style: dashed; }
 
@@ -117,8 +116,11 @@ body.app main { flex: 1; min-height: 0; }
 @media (max-width: 600px) {
   body.app { height: auto; min-height: 100dvh; overflow: visible; }
   .transport { flex-wrap: wrap; padding: 12px var(--in); }
-  .instrument { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 316px auto auto auto;
-                grid-template-areas: "transport transport" "sound sound" "knobs knobs" "speed density" "pads pads"; }
+  .instrument { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 316px auto auto;
+                grid-template-areas: "transport transport" "sound sound" "controls controls" "pads pads"; }
+  .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "knobs knobs" "speed density"; }
+  .knobs { border: 0; border-bottom: 1px solid var(--line); }
+  #speed { border-right: 1px solid var(--line); }
   .pad.black { font-size: 0; }
   .knob.fader { min-height: 240px; }
 }

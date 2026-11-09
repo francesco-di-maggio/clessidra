@@ -120,7 +120,7 @@ export class Waveform {
     if (!f || !sound) {
       this.spans = [];
       ctx.fillStyle = this.recording ? c.accent : c.dim;
-      ctx.fillText(this.recording ? "RECORDING" : this.started ? "CHOOSE A SOURCE, THEN HOLD REC" : "PRESS START", W / 2, mid);
+      ctx.fillText(this.recording ? "RECORDING" : this.started ? "TAP OR HOLD REC" : "PRESS START", W / 2, mid);
       return;
     }
     const v = f.view;
