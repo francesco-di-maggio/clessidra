@@ -12,7 +12,7 @@ body.app main { flex: 1; min-height: 0; }
 
 .instrument { --in: 14px; --name: 16px; --band: 48px; --radius-control: 8px;
               height: 100%; display: grid; gap: var(--unit); grid-template-columns: repeat(12, minmax(0, 1fr));
-              grid-template-rows: 56px minmax(236px, 1fr) auto auto;
+              grid-template-rows: 56px minmax(200px, 1fr) auto auto;
               grid-template-areas:
                 "transport transport transport transport transport transport transport transport transport transport transport transport"
                 "sound sound sound sound sound sound sound sound sound sound sound sound"
@@ -32,6 +32,7 @@ body.app main { flex: 1; min-height: 0; }
 .levels { flex: 1; display: flex; gap: 16px; min-width: 0; align-self: stretch; align-items: center; padding-left: 12px; border-left: 1px solid var(--line); }
 .slider { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; outline: none; touch-action: none; cursor: ew-resize; }
 .slider .label { flex: none; }
+.slider .value { flex: none; width: 44px; text-align: right; font: 500 12px/16px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
 /* As the faders, on their side: the slot, the value's line, the cap. The
    level in the slot, dim. */
 .slider .track { position: relative; flex: 1; height: 8px; border-radius: 4px; background: var(--well); }
@@ -87,22 +88,21 @@ body.app main { flex: 1; min-height: 0; }
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
-/* Between Position and Length, one grain as the knobs set it, in a window as
-   tall as a knob's name, dial and value */
-.knobs .grains { grid-column: span 2; width: calc(100% - 16px); height: calc(var(--band) + 12px + 2 * var(--name)); align-self: center; justify-self: center;
-                 box-sizing: border-box; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); }
+/* Between Position and Length, one grain as the knobs set it, as tall as a
+   knob's name, dial and value */
+.knobs .grains { grid-column: span 2; width: calc(100% - 16px); height: calc(var(--band) + 12px + 2 * var(--name)); align-self: center; justify-self: center; }
 
 /* The pads as an octave: the slices white keys, the others black keys on
    their edges, two then three as on a piano. Names at the foot of each key.
    In the switches' colours: white keys as the chosen position, black keys as
    the others. */
-.pads { grid-area: pads; display: grid; gap: 12px; padding: 12px; }
+.pads { grid-area: pads; display: grid; }
 /* Mode and Quantize side by side over the keys, as the sources are: the
    board's down to up, left to right */
-.switches { display: grid; grid-template-columns: 1fr 1fr; gap: var(--unit); }
-.switches .segmented { height: 32px; }
+.switches { display: grid; grid-template-columns: 1fr 1fr; gap: var(--unit); padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.switches .segmented { height: 28px; }
 .switches .segmented button { font-size: 10px; letter-spacing: 0.06em; }
-.keys { --gap: 6px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 100px; }
+.keys { --gap: 6px; margin: 12px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 88px; }
 .pad { display: grid; place-content: end center; width: 100%; height: 100%; padding: 0 0 8px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); color: var(--ink);
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }

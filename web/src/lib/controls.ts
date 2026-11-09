@@ -191,7 +191,7 @@ export interface Level extends Control {
   gain: (x: number) => number; // linear
 }
 
-const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.log10(gain), 1)} dB`);
+const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.log10(gain), 0)} dB`);
 
 export const LEVELS: Level[] = [
   {

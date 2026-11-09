@@ -214,6 +214,7 @@ export function slider(c: Control, parent: Element, h: Handlers) {
   const fill = html("span", { class: "signal" }, track);
   const line = html("span", { class: "fill" }, track);
   const knobAt = html("span", { class: "handle" }, track);
+  const readout = html("span", { class: "value" }, root);
   let v = c.initial ?? 0;
   const set = (e: PointerEvent) => {
     const r = track.getBoundingClientRect();
@@ -248,6 +249,7 @@ export function slider(c: Control, parent: Element, h: Handlers) {
       line.style.width = `${x * 100}%`;
       root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
     },
+    value: (text: string) => (readout.textContent = text),
     // Peak 0..1: the fill, -48 to 0 dBFS, falling back slowly
     level: (peak: number) => {
       shown = Math.max(peak, shown * 0.85);
