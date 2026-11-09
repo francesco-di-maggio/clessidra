@@ -1,7 +1,7 @@
-// One grain between Position and Length, as the knobs set it, lit as the
-// board's LED: its sound only, as wide as its Size (5 ms to 2 s across),
-// swelling and fading as Shape sets, as fast as its Pitch. Random size: the
-// narrowest and widest, faint. Random pitch: the lowest and highest, faint.
+// One grain between Position and Length, as the knobs set it: its sound only,
+// as wide as its Size (5 ms to 2 s across), swelling and fading as Shape sets,
+// as fast as its Pitch. Random size: the narrowest and widest, faint. Random
+// pitch: the lowest and highest, faint.
 
 import { PARAM } from "./engine";
 import { windowAt } from "./waveform";
@@ -70,7 +70,6 @@ export class GrainShape {
     if (reach > 0) for (const r of [-reach, reach]) grain(width(ms * 2 ** r), pitch, faint, 1);
     const spread = p[PARAM.randPitch] * RAND_PITCH;
     if (spread > 0) for (const s of [-spread, spread]) grain(width(ms), pitch + s, faint, 1);
-    // In the LED's colour: it is the board's LED
     grain(width(ms), pitch, css.getPropertyValue("--accent"), 1.5);
   }
 }

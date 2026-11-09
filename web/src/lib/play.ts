@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type State } from "./controls";
-import { MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { GrainShape } from "./shape";
@@ -50,6 +50,7 @@ const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const monitor = $("monitor");
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainShape = new GrainShape($<HTMLCanvasElement>("grain-shape"));
+const voices = $("voices");
 let last: Frame | null = null;
 
 const parts = new Map<string, Widget>();
@@ -254,9 +255,7 @@ function show() {
 function onMessage(m: FromWorklet) {
   if (m.type === "view") {
     last = m;
-    // The board's LED, as the grain's light: glowing with the grains,
-    // flashing while recording, a pulse at a centre
-    $("grain-shape").style.setProperty("--led", String(m.led));
+    voices.textContent = `${Math.round(m.grains.length / GRAIN_FIELDS)} / ${VOICES}`;
     inMeter(m.input);
     outMeter(m.output);
     waveform.recording = incoming.recording = recording();
@@ -292,8 +291,6 @@ start.addEventListener("click", async () => {
   } else await audio.pause(audio.running);
   start.textContent = audio.running ? "Pause" : "Start";
   start.classList.toggle("on", audio.running);
-  // Paused, the light out
-  if (!audio.running) $("grain-shape").style.setProperty("--led", "0");
 });
 
 async function choose(kind: Input) {

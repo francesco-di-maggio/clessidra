@@ -32,7 +32,11 @@ import "../styles/play.css";
         <div id="k-S33" class="cell"></div>
         <div id="k-S34" class="cell"></div>
         <div id="k-S30" class="cell"></div>
-        <canvas id="grain-shape" class="grains" role="img" aria-label="One grain as the knobs set it: its Size, Shape and Pitch"></canvas>
+        <div class="knob grains">
+          <span class="label">Grain</span>
+          <canvas id="grain-shape" role="img" aria-label="One grain as the knobs set it: its Size, Shape and Pitch"></canvas>
+          <span id="voices" class="value" title="Grains sounding, of the voices">0 / 32</span>
+        </div>
         <div id="k-S35" class="cell"></div>
       </div>
       <div id="density" aria-label="Density"></div>
