@@ -3,9 +3,8 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { GrainView } from "./grain";
-import { Hourglass } from "./hourglass";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { Waveform } from "./waveform";
@@ -48,16 +47,12 @@ function refresh() {
   const { params, view } = preview.read();
   last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), params, view };
   grainView.update(params);
-  hourglass.update(last);
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainView = new GrainView($<HTMLCanvasElement>("grain-view"));
-const hourglass = new Hourglass($<HTMLCanvasElement>("hourglass"));
-const glass = { sand: $("glass-sand"), voices: $("glass-voices"), clog: $("glass-clog") };
-// Grains dropped per second, from the count and the time between views
-const clog = { dropped: 0, at: 0, rate: 0 };
+const voices = $("voices");
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
 const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · 1–7 slices · Shift held: P11, the twins · 0 reset" };
@@ -257,18 +252,7 @@ function show() {
   document.querySelector(".instrument")?.classList.toggle("shifted", shifted());
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   held.classList.toggle("on", v.recording > 0);
-  glass.sand.textContent = v.sound ? `${Math.round(last.params[PARAM.sandLeft] * 100)} %` : "–";
-  const now = performance.now();
-  const dropped = last.view[VIEW.dropped];
-  if (now - clog.at > 500) {
-    clog.rate = clog.at ? Math.max(0, (dropped - clog.dropped) / ((now - clog.at) / 1000)) : 0;
-    clog.dropped = dropped;
-    clog.at = now;
-  }
-  glass.clog.textContent = `${Math.round(clog.rate)}/s`;
-  glass.clog.classList.toggle("on", clog.rate > 0);
-  glass.voices.textContent = `${Math.round(last.grains.length / GRAIN_FIELDS)}/${VOICES}`;
-  hourglass.clogged = clog.rate > 0;
+  voices.textContent = `${Math.round(last.grains.length / GRAIN_FIELDS)}/${VOICES}`;
 }
 
 function onMessage(m: FromWorklet) {
@@ -281,7 +265,6 @@ function onMessage(m: FromWorklet) {
     waveform.update(m);
     incoming.update(m.incoming);
     grainView.update(m.params);
-    hourglass.update(m);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);

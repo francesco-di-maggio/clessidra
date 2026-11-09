@@ -1,41 +1,25 @@
-/* Play: the instrument on one screen. A 12-column grid, 8 px apart, every
-   tile one job. Above: the recording and the hourglass, the input and a
-   grain. Below, as on the board: a fader at each edge, the knobs and switches
-   between, the pads under them. Red only for what is on. */
-body.app { max-width: none; height: 100dvh; min-height: 0; overflow: hidden; gap: var(--unit);
+/* Play: the instrument on one screen, a centred column as wide as the board
+   needs. Across the top the recording. Then the source, the input and a
+   grain, over the faders, the knobs and the pads, as on the board. Every tile
+   one job. Orange only for what is on. */
+body.app { max-width: 1120px; height: 100dvh; min-height: 0; overflow: hidden; gap: var(--unit);
            padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); }
 body.app header { height: 40px; }
-body.app header .end { gap: 12px; }
 body.app main { min-height: 0; }
 .mark .slash { margin: 0 2px; }
-
-/* Header: transport, levels, the LED */
-.transport { display: flex; gap: var(--unit); }
-.transport .control.primary { width: 96px; height: 36px; }
-.transport .segmented { height: 36px; width: 204px; }
-.levels { display: flex; align-items: center; gap: 16px; height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-control); }
-.level { display: flex; align-items: center; gap: 6px; }
-.level .knob { display: grid; grid-template-columns: 24px auto; grid-template-rows: auto auto; column-gap: 6px; width: auto; align-items: center; }
-.level .knob svg { grid-row: 1 / 3; width: 24px; height: 24px; }
-.level .knob .label, .level .knob .value { justify-self: start; line-height: 13px; }
-.level .knob .value { font-size: 11px; }
-.meter { height: 24px; display: flex; flex-direction: column; justify-content: space-between; }
-.meter i { width: 4px; height: 2px; border-radius: 1px; background: var(--line); }
-.meter i.on { background: var(--ink); }
-.meter i.clip { background: var(--accent); }
 .led { display: flex; align-items: center; gap: 6px; }
 .led .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--accent) calc(var(--led, 0) * 100%), transparent); }
 
-/* The grid */
+/* The grid: a side column over each fader, the board's middle between */
 .instrument { height: 100%; min-height: 0; display: grid; gap: var(--unit);
-              grid-template-columns: repeat(12, minmax(0, 1fr));
-              grid-template-rows: minmax(160px, 1fr) 128px 200px 132px 40px;
+              grid-template-columns: 196px minmax(0, 1fr) 196px;
+              grid-template-rows: minmax(150px, 1fr) 160px 216px 132px 40px;
               grid-template-areas:
-                "buf buf buf buf buf buf buf buf buf buf glass glass"
-                "inc inc inc inc inc inc grain grain grain grain glass glass"
-                "speed speed knobs knobs knobs knobs knobs knobs knobs knobs density density"
-                "speed speed keys keys keys keys keys keys keys keys density density"
-                "help help help help help help help help help help help help"; }
+                "buf buf buf"
+                "source inc grain"
+                "speed knobs density"
+                "speed keys density"
+                "help help help"; }
 .tile { position: relative; min-width: 0; min-height: 0; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .tile .tag { position: absolute; top: 10px; left: 14px; z-index: 1; pointer-events: none; }
 .tile canvas { display: block; width: 100%; height: 100%; }
@@ -45,11 +29,21 @@ body.app main { min-height: 0; }
 .held { position: absolute; top: 9px; right: 14px; z-index: 1; pointer-events: none; }
 .held.on { color: var(--accent); }
 
-.glass { grid-area: glass; display: grid; grid-template-rows: minmax(0, 1fr) auto; }
-.facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; padding: 10px 14px 12px; border-top: 1px solid var(--line); }
-.facts dt { font: 500 10px/18px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
-.facts dd { margin: 0; text-align: right; font: 500 12px/18px var(--mono); font-variant-numeric: tabular-nums; }
-.facts dd.on { color: var(--accent); }
+/* Source: start, the input, the browser's levels */
+.source { grid-area: source; display: flex; flex-direction: column; gap: var(--unit); padding: 36px 12px 12px; }
+.source .control.primary { width: 100%; height: 34px; flex: none; }
+.source .segmented { width: 100%; height: 30px; flex: none; }
+.source .segmented button { font-size: 10px; letter-spacing: 0.06em; }
+.levels { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+.level { display: flex; align-items: center; gap: 6px; }
+.level .knob { display: grid; grid-template-columns: 24px auto; grid-template-rows: auto auto; column-gap: 6px; width: auto; align-items: center; }
+.level .knob svg { grid-row: 1 / 3; width: 24px; height: 24px; }
+.level .knob .label, .level .knob .value { justify-self: start; line-height: 13px; }
+.level .knob .value { font-size: 11px; }
+.meter { height: 24px; display: flex; flex-direction: column; justify-content: space-between; }
+.meter i { width: 4px; height: 2px; border-radius: 1px; background: var(--line); }
+.meter i.on { background: var(--ink); }
+.meter i.clip { background: var(--accent); }
 
 .incoming { grid-area: inc; display: flex; flex-direction: column; }
 .incoming canvas { flex: 1; min-height: 0; }
@@ -57,6 +51,7 @@ body.app main { min-height: 0; }
 .segmented.tap button { min-width: 34px; padding: 0 6px; font-size: 10px; letter-spacing: 0.04em; }
 .grain { grid-area: grain; }
 .grain canvas { padding-top: 22px; }
+.voices { position: absolute; top: 9px; right: 14px; z-index: 1; pointer-events: none; color: var(--dim); }
 
 /* The faders: the full height of the knobs and the pads, as on the board */
 .fader { display: flex; justify-content: center; padding: 14px 0 12px; }
@@ -96,18 +91,18 @@ body.app main { min-height: 0; }
 .switch .segmented button { height: auto; font-size: 10px; letter-spacing: 0.06em; }
 .switch .segmented button + button { border-left: 0; border-top: 1px solid var(--line); }
 
-/* The pads as an octave: white keys P03–P09, black keys between them record,
-   P11, seed, mute and restart. Not assigned yet: dimmed. */
+/* The pads as an octave, the same in both themes: white keys the slices,
+   dark grey keys between them record, Shift, reset and the free pads. */
 .keys-tile { grid-area: keys; padding: 10px; }
 .keys { position: relative; height: 100%; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .pad { display: grid; place-content: center; gap: 2px; width: 100%; height: 48px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 12px var(--mono); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { font-size: 10px; color: var(--dim); font-variant-numeric: tabular-nums; }
-.pad.key { height: 100%; place-content: end center; padding-bottom: 8px; font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.pad.key .sub { color: var(--bg); opacity: 0.6; }
+.pad.key { height: 100%; place-content: end center; padding-bottom: 8px; font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; background: #ecece9; color: #3a3a3e; border-color: #d6d6d2; }
+.pad.key .sub { color: #3a3a3e; opacity: 0.6; }
 .pad.key .sub { font: 500 10px var(--mono); white-space: nowrap; }
 .pad.key.black { position: absolute; top: 0; z-index: 1; width: calc((100% - 24px) / 7); height: 54%; padding: 0 0 8px; font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
-                 background: var(--surface); color: var(--ink); border-color: var(--line); }
+                 background: #3a3a3e; color: #ecece9; border-color: #3a3a3e; }
 .pad.key.black .sub { display: none; }
 .pad.on .sub { color: inherit; opacity: 0.8; }
 .pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
@@ -120,40 +115,20 @@ body.app main { min-height: 0; }
 .readout .value { font: 500 13px/20px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .readout .does { min-width: 0; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Laptops with little height: the page scrolls rather than squeezing */
+/* Little height: the page scrolls rather than squeezing */
 @media (max-height: 760px) {
   body.app { height: auto; min-height: 100dvh; overflow: auto; }
-  .instrument { grid-template-rows: 240px 128px 200px 132px 40px; }
+  .instrument { grid-template-rows: 220px 160px 216px 132px 40px; }
 }
 
-/* Tablets: the recording across, the hourglass beside the input and the grain */
-@media (max-width: 1100px) {
+/* Narrow: two columns, the board's order */
+@media (max-width: 860px) {
   body.app { height: auto; min-height: 100dvh; overflow: auto; }
-  body.app header { height: auto; flex-wrap: wrap; row-gap: var(--unit); }
-  .instrument { grid-template-rows: 220px 180px 200px 132px 40px;
-                grid-template-areas:
-                  "buf buf buf buf buf buf buf buf buf buf buf buf"
-                  "inc inc inc inc inc grain grain grain grain glass glass glass"
-                  "speed speed knobs knobs knobs knobs knobs knobs knobs knobs density density"
-                  "speed speed keys keys keys keys keys keys keys keys density density"
-                  "help help help help help help help help help help help help"; }
-  .glass { grid-template-rows: minmax(0, 1fr); }
-  .glass .facts { display: none; }
-}
-
-/* Phones: two columns, the board's order */
-@media (max-width: 640px) {
-  body.app header { flex-direction: column; align-items: stretch; height: auto; }
-  body.app header .end { flex-wrap: wrap; gap: var(--unit); }
-  .transport, .levels { width: 100%; }
-  .transport .segmented { flex: 1; width: auto; }
-  .levels { justify-content: space-between; }
-  .instrument { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: 200px 220px 120px 220px 240px 150px auto;
-                grid-template-areas: "buf buf" "glass grain" "inc inc" "knobs knobs" "speed density" "keys keys" "help help"; }
+  .instrument { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: 200px 160px 150px 236px 240px 150px auto;
+                grid-template-areas: "buf buf" "source source" "inc grain" "knobs knobs" "speed density" "keys keys" "help help"; }
   .knobs { padding: 10px 4px; }
   .knob { width: 64px; }
   .knob svg { width: 40px; height: 40px; }
-  .pad.key .sub { display: none; }
   .pad.key.black { font-size: 0; }
   .pad.rec .num::before { margin: 0; }
   .readout { flex-wrap: wrap; padding: 10px 14px; }
@@ -166,4 +141,4 @@ body.app main { min-height: 0; }
 
 /* Pads not assigned yet */
 .pad.free { pointer-events: none; }
-.pad.key.black.free { background: var(--surface); color: var(--dim); border-color: var(--line); }
+.pad.key.black.free { background: #5a5a5e; color: #9a9a9e; border-color: #5a5a5e; }

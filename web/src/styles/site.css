@@ -1,4 +1,6 @@
-/* Clessidra: the site's parts, over tokens.css and base.css */
+/* Clessidra: the site's own parts. The family's shared base comes from
+   francescodimaggio.nl/style/v1/. */
+:root { --unit: 8px; --well: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
 /* Pages cross-fade; none with reduced motion */
 @view-transition { navigation: auto; }
 @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
