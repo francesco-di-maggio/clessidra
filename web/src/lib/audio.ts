@@ -1,7 +1,7 @@
 // The sound: the firmware in an AudioWorklet (worklet.ts), and what plays into
 // its input, as into the board's.
 
-import { RATE, type Control, type FromWorklet } from "./engine";
+import { MAX_RECORD_S, RATE, type Control, type FromWorklet } from "./engine";
 import { url } from "./url";
 import workletUrl from "./worklet.ts?worker&url";
 
@@ -69,7 +69,12 @@ export class Audio {
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
       this.input = ctx.createMediaStreamSource(this.stream);
-    } else this.input = loop(ctx, await ctx.decodeAudioData(await kind.arrayBuffer()));
+    } else {
+      // A file: into the recording, and on as the input
+      const buffer = await ctx.decodeAudioData(await kind.arrayBuffer());
+      this.send({ type: "load", index: -1, samples: mono(buffer, MAX_RECORD_S * RATE) });
+      this.input = loop(ctx, buffer);
+    }
     this.input.connect(this.inGain!);
   }
 
@@ -114,4 +119,15 @@ function demo(ctx: AudioContext) {
   const buffer = ctx.createBuffer(1, length, rate);
   buffer.copyToChannel(out, 0);
   return buffer;
+}
+
+// A decoded file as one channel, its channels averaged, at most samples long
+function mono(buffer: AudioBuffer, samples: number) {
+  const length = Math.min(buffer.length, samples);
+  const out = new Float32Array(length);
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const data = buffer.getChannelData(c);
+    for (let i = 0; i < length; i++) out[i] += data[i] / buffer.numberOfChannels;
+  }
+  return out;
 }

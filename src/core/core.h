@@ -172,6 +172,11 @@ class Core
     }
     // Main loop: true while the record pad is held
     void SetRecording(bool on) { record_.store(on, std::memory_order_relaxed); }
+    // Between blocks, on the audio thread (the browser's file loading): samples
+    // into the ring as if they had come in, then the last length of them kept
+    // as a recording, as a held P10 released
+    void Feed(const float* data, size_t length);
+    void Keep(size_t length);
     // New recordings so far: a change means Sound() is a new recording, and the
     // playhead has restarted
     uint32_t Recordings() const

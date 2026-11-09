@@ -150,6 +150,26 @@ EXPORT void cl_pad(int pad, int touched, float pressure)
     controls.pressure[p] = pressure;
 }
 
+// A file into the recording: chunks of it fed in turn, then captured whole
+constexpr size_t kChunk = 4096;
+float            chunk[kChunk];
+EXPORT float*    cl_chunk()
+{
+    return chunk;
+}
+EXPORT int cl_chunk_size()
+{
+    return int(kChunk);
+}
+EXPORT void cl_feed(int length)
+{
+    core.Feed(chunk, std::min(size_t(length), kChunk));
+}
+EXPORT void cl_capture(int length)
+{
+    core.Keep(std::min(size_t(length), kBufferSamples));
+}
+
 EXPORT float cl_led(uint32_t now_ms)
 {
     return ui.Led(now_ms, core);

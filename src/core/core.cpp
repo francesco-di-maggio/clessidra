@@ -278,6 +278,19 @@ void Core::UpdateCapture(size_t size)
     recordings_.fetch_add(1, std::memory_order_release);
 }
 
+void Core::Feed(const float* data, size_t length)
+{
+    for(size_t i = 0; i < length; i++)
+        ring_.Write(data[i]);
+}
+
+void Core::Keep(size_t length)
+{
+    capture_back_   = 0;
+    capture_length_ = length;
+    capture_        = Capture::Waiting;
+}
+
 void Core::Normalise(float  power_grains,
                      float  power_sum,
                      float  window_power,

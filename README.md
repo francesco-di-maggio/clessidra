@@ -48,7 +48,7 @@ Not assigned yet: P00, P02.
 
 ## Play in the Browser
 
-[francescodimaggio.nl/clessidra](https://francescodimaggio.nl/clessidra/): the same firmware, compiled to WebAssembly.
+[francescodimaggio.nl/clessidra](https://francescodimaggio.nl/clessidra/): the same firmware, compiled to WebAssembly. A file you choose becomes the recording, up to 30 s, and plays on as the input.
 
 ## Install
 

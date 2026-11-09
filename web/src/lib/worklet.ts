@@ -63,7 +63,21 @@ class Clessidra extends AudioWorkletProcessor {
     const w = this.w!;
     if (m.type === "knob") w.cl_knob(m.index, m.value);
     else if (m.type === "switch") w.cl_switch(m.index, m.position);
+    else if (m.type === "load") this.loadFile(m.samples);
     else w.cl_pad(m.index, m.touched ? 1 : 0, m.pressure);
+  }
+
+  // A file into the recording: fed in chunks, then kept whole
+  private loadFile(samples: Float32Array) {
+    const w = this.w!;
+    const size = w.cl_chunk_size();
+    const chunk = this.f32(w.cl_chunk(), size);
+    for (let i = 0; i < samples.length; i += size) {
+      const part = samples.subarray(i, i + size);
+      chunk.set(part);
+      w.cl_feed(part.length);
+    }
+    w.cl_capture(samples.length);
   }
 
   process(inputs: Float32Array[][], outputs: Float32Array[][]) {

@@ -256,6 +256,22 @@ void Record()
           Seconds(tap.rig.core));
 
 
+    // A file: fed into the ring between blocks, then kept whole
+    Panel file;
+    file.Record(1.0, Sine);
+    std::vector<float> loaded(3 * kRate);
+    for(size_t i = 0; i < loaded.size(); i++)
+        loaded[i]
+            = 0.4f * float(std::sin(2.0 * M_PI * 330.0 * double(i) / kRate));
+    const uint32_t before = file.rig.core.Recordings();
+    file.rig.core.Feed(loaded.data(), loaded.size());
+    file.rig.core.Keep(loaded.size());
+    file.Run(1.0, Silence);
+    Check(file.rig.core.Recordings() == before + 1
+              && Near(Seconds(file.rig.core), 3.0, 0.02),
+          "a file fed and kept: the new recording, 3 s (s)",
+          Seconds(file.rig.core));
+
     Panel lng(4.0);
     lng.Record(6.0, Sine);
     Check(Near(Seconds(lng.rig.core), 4.0, 0.01),

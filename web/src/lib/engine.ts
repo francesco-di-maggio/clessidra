@@ -48,6 +48,10 @@ export interface Exports {
   cl_grain_fields(): number;
   cl_params(): number;
   cl_slices(): number;
+  cl_chunk(): number;
+  cl_chunk_size(): number;
+  cl_feed(length: number): void;
+  cl_capture(length: number): void;
 }
 
 // What the worklet sends, once per screen frame
@@ -68,6 +72,7 @@ export interface Frame {
 export type Control =
   | { type: "knob"; index: number; value: number }
   | { type: "switch"; index: number; position: number }
+  | { type: "load"; index: -1; samples: Float32Array } // a file into the recording, mono, RATE
   | { type: "pad"; index: number; touched: boolean; pressure: number };
 
 export type FromWorklet = Frame | { type: "ready" } | { type: "error"; message: string };
