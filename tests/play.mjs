@@ -85,7 +85,7 @@ try {
   await sleep(2000);
   await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "r" }))`);
   await sleep(1500);
-  const held = await run(`document.getElementById("held").textContent`);
+  const held = await run(`document.getElementById("buffer").getAttribute("aria-label").replace("Recording, ", "")`);
   check(/^2\.\d s$/.test(held), "R held 2 s: recorded", held);
   const values = await run(`[...document.querySelectorAll(".knob .value")].map((v) => v.textContent)`);
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
@@ -110,7 +110,7 @@ try {
   await sleep(100);
   await pad("Record", false);
   await sleep(1500);
-  const tapped = await run(`document.getElementById("held").textContent`);
+  const tapped = await run(`document.getElementById("buffer").getAttribute("aria-label").replace("Recording, ", "")`);
   // Up to 8 s: only as much input has passed, its silence trimmed
   check(/^\d\.\d s$/.test(tapped) && parseFloat(tapped) <= 8 && tapped !== held, "Rec tapped: up to the last 8 s, a new recording", tapped);
   check(errors.length === 0, "no errors", errors.join(" | "));

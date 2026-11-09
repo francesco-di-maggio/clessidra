@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type State } from "./controls";
-import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { Waveform } from "./waveform";
@@ -18,7 +18,6 @@ const start = $<HTMLButtonElement>("start");
 const inputs = [...document.querySelectorAll<HTMLButtonElement>("#input button")];
 const file = $<HTMLInputElement>("file");
 const led = $("led");
-const held = $("held");
 
 const audio = new Audio(onMessage);
 // Until Start, the values come from a silent copy of the firmware on the page
@@ -47,7 +46,6 @@ function refresh() {
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
-const grainFigure = $("grain-figure");
 const monitor = $("monitor");
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 let last: Frame | null = null;
@@ -246,11 +244,9 @@ function show() {
     }
   }
   parts.get("P00")?.root.classList.toggle("latched", last.params[PARAM.stop] === 1);
-  held.textContent = v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   monitor.textContent = v.recording ? `● ${v.recording.toFixed(1)} s · heard` : "";
-  held.classList.toggle("on", v.recording > 0);
-  const size = last.params[PARAM.grainMs];
-  grainFigure.textContent = `${size < 1000 ? `${Math.round(size)} ms` : `${(size / 1000).toFixed(2)} s`} · ${Math.round(last.grains.length / GRAIN_FIELDS)}/${VOICES}`;
+  // Its length is on its scale. Named with it for screen readers and tests.
+  $("buffer").setAttribute("aria-label", v.sound ? `Recording, ${(v.sound / RATE).toFixed(1)} s` : "Recording, empty");
 }
 
 function onMessage(m: FromWorklet) {

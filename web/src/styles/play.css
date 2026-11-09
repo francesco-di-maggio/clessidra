@@ -43,14 +43,10 @@ body.app main { flex: 1; min-height: 0; }
 .input canvas { flex: 1; min-width: 0; height: 100%; }
 .input #monitor:empty { display: none; }
 
-/* The recording: its loop, slices, playhead and grains, names and figures
-   above */
+/* The recording: its loop, slices, playhead and grains, the whole tile */
 .sound { grid-area: sound; display: flex; flex-direction: column; }
-.sound .bar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; height: 40px; flex: none; padding: 0 var(--in); }
-.sound .figures { display: flex; gap: 16px; }
 .sound #buffer { flex: 1; min-height: 0; }
 .sound #buffer.over { cursor: pointer; }
-.sound .figures { align-items: center; }
 .figure.dim { color: var(--dim); }
 
 /* The controls row: a fader at each edge, the knobs and switches between.
