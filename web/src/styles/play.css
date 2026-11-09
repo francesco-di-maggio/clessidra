@@ -6,6 +6,9 @@
    line. Orange only for what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
 body.app main { flex: 1; min-height: 0; }
+/* An instrument: the arrow over every control, as on a desktop app; dragging,
+   the drag cursor */
+.instrument button, .instrument .pad { cursor: default; }
 .mark .slash { margin: 0 2px; }
 
 .instrument { --in: 14px; --name: 16px; --band: 48px; --radius-control: 8px;
@@ -33,22 +36,21 @@ body.app main { flex: 1; min-height: 0; }
 .divider { flex: none; align-self: stretch; width: 1px; background: var(--line); }
 .levels .gain { align-self: stretch; }
 .levels .gain + .gain { margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--line); }
-/* A level: its name a button as tall as Start, the signal along its foot, a
-   small dial, the value */
-.gain { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; outline: none; touch-action: none; }
-.gain.dragging { cursor: ns-resize; }
-.gain .mute { position: relative; flex: none; width: 48px; height: 32px; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--dim);
-              font: 500 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+/* A level: its name a button as Start is, a fader on its side beside it, the
+   value under the slot */
+.gain { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; outline: none; touch-action: none; }
+.gain.dragging { cursor: ew-resize; }
+.gain .mute { flex: none; width: 48px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--dim);
+              font: 500 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
 .gain .mute:hover { color: var(--ink); }
 .gain .mute[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
-.gain .signal { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--dim); }
+.gain .stack { flex: 1; min-width: 0; display: grid; gap: 4px; padding-top: 10px; }
+.gain .track { position: relative; height: 8px; border-radius: 4px; background: var(--well); }
+.gain .signal { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 4px; background: var(--line); }
 .gain .signal.clip { background: var(--accent); }
-.gain svg { flex: none; width: 32px; height: 32px; }
-.gain .track, .gain .fill { fill: none; stroke-width: 3; stroke-linecap: round; }
-.gain .track { stroke: var(--line); }
-.gain .fill { stroke: var(--ink); }
-.gain .tick { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
-.gain .value { flex: 1; text-align: right; font: 500 12px/16px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.gain .fill { position: absolute; left: 0; top: 50%; width: 0; height: 2px; border-radius: 1px; transform: translateY(-50%); background: var(--ink); }
+.gain .handle { position: absolute; top: 50%; width: 7px; height: 16px; border-radius: 2px; transform: translate(-50%, -50%); background: var(--surface); border: 1.5px solid var(--ink); }
+.gain .value { font: 500 10px/12px var(--mono); font-variant-numeric: tabular-nums; color: var(--dim); text-align: center; white-space: nowrap; }
 
 /* One tile: the input, the last 8 s, over a hairline, then the recording */
 .input { display: flex; align-items: center; gap: 12px; height: 68px; flex: none; padding: 0 var(--in); border-bottom: 1px solid var(--line); }
@@ -111,10 +113,15 @@ body.app main { flex: 1; min-height: 0; }
    board's down to up, left to right */
 .switches { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 0 12px; border-bottom: 1px solid var(--line); }
 .switches > div { padding: 8px 0; }
-/* Each three keys wide, over the outer keys; a hairline across the middle */
+/* Each three keys wide, over the outer keys */
 .switches > div:first-child { grid-column: 1 / 4; }
-.switches > div + div { grid-column: 5 / 8; }
-.switches::after { content: ""; position: absolute; top: 50%; left: calc(12px + 3 * ((100% - 60px) / 7 + 6px)); width: calc((100% - 60px) / 7); height: 1px; background: var(--line); }
+.switches > div:last-child { grid-column: 5 / 8; }
+/* The chosen position with the orange dot, as the chosen source */
+.switches [aria-checked="true"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+/* Over the middle key, help on hover: off, nothing over the controls */
+.help-toggle { grid-column: 4; place-content: center; align-self: center; justify-self: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--bg); color: var(--dim); font: 500 11px var(--mono); }
+.help-toggle:hover { color: var(--ink); }
+.help-toggle[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 .switches .segmented { height: 28px; }
 .switches .segmented button { font-size: 10px; letter-spacing: 0.06em; }
 .keys { --gap: 6px; margin: 12px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 88px; }

@@ -222,13 +222,22 @@ function hint() {
 }
 
 // What each control does, on hover: its own, or its twin's while P11 is held
+// Off unless ? is on: help on hover, nothing on the screen otherwise
+let helping = false;
 function tooltips() {
   for (const w of parts.values()) {
     const twin = shifted() ? w.c.twin : undefined;
     const name = twin ? `P11 + ${w.c.id} ${twin.name}` : `${w.c.id} ${w.c.name}`;
-    w.root.title = `${name}. ${(twin ?? w.c).does ?? ""}`;
+    w.root.title = helping ? `${name}. ${(twin ?? w.c).does ?? ""}` : "";
   }
+  for (const e of document.querySelectorAll<HTMLElement>("[data-help]")) e.title = helping ? e.dataset.help! : "";
 }
+const help = $("help");
+help.addEventListener("click", () => {
+  helping = !helping;
+  help.setAttribute("aria-pressed", String(helping));
+  tooltips();
+});
 
 // The control pointed at
 function focus(c: Control) {

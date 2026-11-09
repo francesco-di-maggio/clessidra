@@ -205,34 +205,39 @@ export function toggle(c: Control, parent: Element, options: [number, string][],
   };
 }
 
-// A browser level, as Start is laid out: its name a button, the signal a bar
-// along its foot, a click muting it or not (mute: true once muted). Beside it
-// a small dial for the gain and its value. Drag up and down, arrows, double
+// A browser level: its name a button as Start is, a click muting it or not
+// (mute: true once muted); beside it a fader on its side, as Speed's slot, the
+// signal in the slot, the value under it. Drag or click along, arrows, double
 // click for its starting value.
 export function gain(c: Control, parent: Element, h: Handlers, mute: (c: Control) => boolean) {
   const root = html("div", { class: "gain", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
-  const name = html("button", { class: "mute", type: "button", "aria-pressed": "false", title: `Mute ${c.name.toLowerCase()}` }, root);
+  const name = html("button", { class: "mute", type: "button", "aria-pressed": "false" }, root);
   name.textContent = c.name;
-  const fill = html("span", { class: "signal" }, name);
   name.addEventListener("pointerdown", (e) => e.stopPropagation());
   name.addEventListener("click", () => name.setAttribute("aria-pressed", String(mute(c))));
-  const dial = svg("svg", { viewBox: "0 0 56 56", "aria-hidden": "true" }, root);
-  const draw = dialDrawing(dial, { centred: !!c.bipolar });
-  const readout = html("span", { class: "value" }, root);
+  const stack = html("div", { class: "stack" }, root);
+  const track = html("span", { class: "track" }, stack);
+  const fill = html("span", { class: "signal" }, track);
+  const line = html("span", { class: "fill" }, track);
+  const knobAt = html("span", { class: "handle" }, track);
+  const readout = html("span", { class: "value" }, stack);
   let v = c.initial ?? 0;
-  let drag: { y: number; v: number } | null = null;
+  const set = (e: PointerEvent) => {
+    const r = track.getBoundingClientRect();
+    h.onInput(c, clamp((e.clientX - r.left) / r.width));
+  };
+  let dragging = false;
   root.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     root.setPointerCapture(e.pointerId);
     root.focus({ preventScroll: true });
     root.classList.add("dragging");
-    drag = { y: e.clientY, v };
+    dragging = true;
+    set(e);
   });
-  root.addEventListener("pointermove", (e) => {
-    if (drag) h.onInput(c, clamp(drag.v + ((drag.y - e.clientY) / 180) * (e.altKey ? 0.2 : 1)));
-  });
+  root.addEventListener("pointermove", (e) => dragging && set(e));
   const release = () => {
-    drag = null;
+    dragging = false;
     root.classList.remove("dragging");
   };
   root.addEventListener("pointerup", release);
@@ -252,7 +257,11 @@ export function gain(c: Control, parent: Element, h: Handlers, mute: (c: Control
     root,
     draw: (x: number) => {
       v = x;
-      draw(x);
+      knobAt.style.left = `${x * 100}%`;
+      // Bipolar: from the centre, where the level is unchanged
+      const from = c.bipolar ? Math.min(x, 0.5) : 0;
+      line.style.left = `${from * 100}%`;
+      line.style.width = `${(c.bipolar ? Math.abs(x - 0.5) : x) * 100}%`;
       root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
     },
     value: (text: string) => (readout.textContent = text),
