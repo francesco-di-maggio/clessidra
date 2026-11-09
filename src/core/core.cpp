@@ -71,7 +71,13 @@ void Core::Process(const float* const* in, float** out, size_t size)
         playhead_.Jump(to - std::floor(to));
     }
 
-    const double play_inc = p.freeze ? 0.0 : p.speed / sel_len; // per sample
+    // Stop: the speed of everything ramps to 0 or back to 1 over
+    // kStopSeconds, at a steady rate as a tape machine's
+    const float tape_step = float(size) / (kStopSeconds * sample_rate_);
+    tape_                 = p.stop ? std::max(0.0f, tape_ - tape_step)
+                   : std::min(1.0f, tape_ + tape_step);
+    const double play_inc
+        = p.freeze ? 0.0 : p.speed * double(tape_) / sel_len; // per sample
 
     const size_t block = std::min(size, kMaxBlock);
 
@@ -83,9 +89,10 @@ void Core::Process(const float* const* in, float** out, size_t size)
         // but one at once.
         playhead_.Advance(play_inc, p.end);
         const double phase = playhead_.Phase();
-        const bool   due
-            = !playhead_.Ended()
-              && Due(schedule_, density / sample_rate_, p.random_starts);
+        const bool   due   = !playhead_.Ended()
+                         && Due(schedule_,
+                                density * tape_ / sample_rate_,
+                                p.random_starts);
         if(due || (now && i == 0))
         {
             const bool reverse = (p.speed < 0.0f) != (playhead_.Heading() < 0);
@@ -112,7 +119,14 @@ void Core::Process(const float* const* in, float** out, size_t size)
     std::fill(send_r, send_r + block, 0.0f);
     Grain::Sums sums;
     for(auto& grain : grains_)
-        grain.Render(grain_inc, out[0], out[1], send_l, send_r, block, sums);
+        grain.Render(grain_inc,
+                     double(tape_),
+                     out[0],
+                     out[1],
+                     send_l,
+                     send_r,
+                     block,
+                     sums);
     float power_sum = 0.0f;
     for(size_t i = 0; i < block; i++)
         power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
@@ -154,9 +168,11 @@ void Core::Process(const float* const* in, float** out, size_t size)
         filter.Set(filter_hz, filter_q, sample_rate_);
 
     const float mute_target = p.mute ? 0.0f : 1.0f;
-    const float mute_step   = 1.0f / (kMuteSeconds * sample_rate_);
-    const float norm_step   = (norm_ - norm_gain_) / n;
-    const float input_step  = (std::max(p.input, 0.0f) - input_gain_) / n;
+    // Stopping: faded over its slowest part
+    const float stop_gain  = std::min(1.0f, tape_ / kStopFade);
+    const float mute_step  = 1.0f / (kMuteSeconds * sample_rate_);
+    const float norm_step  = (norm_ - norm_gain_) / n;
+    const float input_step = (std::max(p.input, 0.0f) - input_gain_) / n;
     const float output_step
         = (std::clamp(p.output, 0.0f, 1.0f) - output_gain_) / n;
     // Dry and wet, equal power, exact at the ends
@@ -182,9 +198,10 @@ void Core::Process(const float* const* in, float** out, size_t size)
         mute_gain_ = mute_gain_ < mute_target
                          ? std::min(mute_target, mute_gain_ + mute_step)
                          : std::max(mute_target, mute_gain_ - mute_step);
-        l *= mute_gain_;
-        r *= mute_gain_;
-        const float gain = norm_gain_ * mute_gain_;
+        const float muted = mute_gain_ * stop_gain;
+        l *= muted;
+        r *= muted;
+        const float gain = norm_gain_ * muted;
         float       reverb_l, reverb_r;
         reverb_.Process(
             send_l[i] * gain, send_r[i] * gain, &reverb_l, &reverb_r);

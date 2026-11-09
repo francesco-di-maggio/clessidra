@@ -25,10 +25,12 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 |---|---|---|
 | P10 | Record. Tap: the last 8 s. Hold: up to 30 s, the input heard. The new recording pours in over 2 s | Listen: the input heard, nothing recorded |
 | P11 | Shift, held | |
+| P00 | Stop, as a tape machine: everything slows to a halt over 0.6 s, the pitch falling. Touch again to start | |
 | P01 | | Reset: the twins back to their defaults |
+| P02 | Retrig: back to the start of the loop, with a grain at once | |
 | P03–P09 | Slices: the loop in seven, its start then the recording's strongest attacks inside it (even parts without attacks), left to right on the board (P03, P04, P08, P05, P09, P06, P07). A touch: the playhead there, a grain at once, the beat from it. Held: it stays there | |
 
-Not assigned yet: P00, P02.
+Not assigned yet: P01 alone.
 
 | LED | |
 |---|---|

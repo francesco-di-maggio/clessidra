@@ -5,7 +5,9 @@ export const RATE = 48000; // config.h kSampleRateHz
 export const BLOCK = 128; // Web Audio's render quantum
 export const MAX_RECORD_S = 30; // config.h kBufferSeconds
 // CoreUI's pads
+export const STOP_PAD = 0;
 export const RESET_PAD = 1; // with Shift
+export const RETRIG_PAD = 2;
 export const SLICE_PADS = [3, 4, 8, 5, 9, 6, 7]; // P03–P09, left to right
 export const RECORD_PAD = 10;
 export const SHIFT_PAD = 11;
@@ -22,8 +24,8 @@ export const VIEW_SIZE = 5;
 // set. randomStarts: 1 random, 0 regular. end: End, 0 once, 1 turn, 2 loop.
 // spread: pan width, 0..1. sandLeft: ahead of the playhead, 0..1. filter:
 // -1 low-pass, 0 off, 1 high-pass. quantize: 0 off, 1 semitones, 2 octaves.
-export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randomStarts: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, randPos: 12, randSize: 13, end: 14, grainMsSet: 15, minGrainMs: 16, maxGrainMs: 17, spread: 18, sandLeft: 19, filter: 20, quantize: 21 } as const;
-export const PARAM_SIZE = 22;
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randomStarts: 6, randPitch: 7, shape: 8, start: 9, length: 10, mix: 11, randPos: 12, randSize: 13, end: 14, grainMsSet: 15, minGrainMs: 16, maxGrainMs: 17, spread: 18, sandLeft: 19, filter: 20, quantize: 21, stop: 22 } as const;
+export const PARAM_SIZE = 23;
 export const SLICES = 7; // Onsets::kNumSlices
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window
 // shape, pan, pitch in semitones, size in ms

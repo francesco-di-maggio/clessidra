@@ -409,6 +409,14 @@ void Fuzz()
     panel.c.touched.fill(false);
     panel.c.switches = {Controls::Up, Controls::Down};
     panel.Run(0.01, Silence);
+    // Stopped by the fuzz: started again
+    if(panel.rig.core.CurrentParams().stop)
+    {
+        panel.c.touched[CoreUI::kStopPad] = true;
+        panel.Run(0.01, Silence);
+        panel.c.touched[CoreUI::kStopPad] = false;
+        panel.Run(Core::kStopSeconds, Silence);
+    }
     for(float end : {0.0f, 1.0f})
     {
         panel.c.knobs.fill(end);
@@ -453,6 +461,7 @@ std::vector<float> Window(float shape)
         sr(1000);
     Grain::Sums sums;
     grain.Render(1.0 / 1000.0,
+                 1.0,
                  window.data(),
                  right.data(),
                  sl.data(),
@@ -1451,6 +1460,41 @@ void Mapping()
     Check(r.core.PlayheadPhase() > seventh,
           "slice 7 released: runs on from there",
           r.core.PlayheadPhase());
+
+    // P00: stop as a tape machine, slowing to a halt, then back. P02: from
+    // the loop's start.
+    // The reverb off (P11 + S37 down), so only the grains are measured
+    c.knobs[Controls::S37] = 1.0f;
+    press(CoreUI::kShiftPad, true);
+    c.knobs[Controls::S37] = 0.0f;
+    ui.Process(c, r.core);
+    press(CoreUI::kShiftPad, false);
+    r.Run(2.0, Silence);
+    const double playing = Rms(r, 0.2);
+    press(CoreUI::kStopPad, true);
+    press(CoreUI::kStopPad, false);
+    r.Run(Core::kStopSeconds, Silence);
+    const double stopped = Rms(r, 0.2);
+    press(CoreUI::kStopPad, true);
+    press(CoreUI::kStopPad, false);
+    r.Run(Core::kStopSeconds + 0.2, Silence);
+    const double again = Rms(r, 0.3);
+    Check(p.stop == false && stopped < 0.2 * playing && again > 0.5 * playing,
+          "P00: stopped as a tape machine, then started again (rms)",
+          stopped / playing);
+    r.Run(0.3, Silence);
+    press(CoreUI::kRetrigPad, true);
+    r.Run(0.001, Silence);
+    Check(r.core.PlayheadPhase() < 0.01,
+          "P02: the playhead from the loop's start",
+          r.core.PlayheadPhase());
+    press(CoreUI::kRetrigPad, false);
+    press(CoreUI::kShiftPad, true);
+    press(CoreUI::kResetPad, true);
+    press(CoreUI::kResetPad, false);
+    press(CoreUI::kShiftPad, false);
+    c.knobs[Controls::S37] = 0.75f;
+    ui.Process(c, r.core);
 
     // Detent pulse: on reaching the centre, renewed while turned within it
     c.knobs[Controls::S33] = 0.4f;

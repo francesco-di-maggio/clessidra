@@ -58,6 +58,7 @@ void Grain::FadeOut(size_t samples)
 }
 
 void Grain::Render(double inc,
+                   double speed,
                    float* left,
                    float* right,
                    float* send_l,
@@ -75,11 +76,12 @@ void Grain::Render(double inc,
     const float   gain        = latch_.gain;
     const float   send_gain_l = gain_l_ * latch_.send;
     const float   send_gain_r = gain_r_ * latch_.send;
-    inc /= double(latch_.size);
-    float power        = 0.0f;
-    float window_sum   = 0.0f;
-    float window_power = 0.0f;
-    float fade         = fade_;
+    inc *= speed / double(latch_.size);
+    const double step         = double(latch_.rate) * speed;
+    float        power        = 0.0f;
+    float        window_sum   = 0.0f;
+    float        window_power = 0.0f;
+    float        fade         = fade_;
     for(size_t n = offset_; n < size; n++)
     {
         const float x = mirrored_ ? 1.0f - float(phase) : float(phase);
@@ -108,7 +110,7 @@ void Grain::Render(double inc,
         window_sum += window;
         window_power += window * window;
 
-        read += latch_.rate;
+        read += step;
         phase += inc;
         if(phase >= 1.0 || fade <= 0.0f)
         {

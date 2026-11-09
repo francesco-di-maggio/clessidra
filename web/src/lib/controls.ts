@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { PARAM, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS } from "./engine";
+import { PARAM, RATE, RECORD_PAD, RESET_PAD, RETRIG_PAD, SHIFT_PAD, SLICE_PADS, STOP_PAD } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -149,10 +149,15 @@ export const CONTROLS: Control[] = [
     id: "P01", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
     does: "With Shift: second functions back to their defaults.",
   },
-  ...[0, 2].map((index): Control => ({
-    id: `P0${index}`, type: "pad", index, ...padAt(index), name: `P0${index}`, free: true,
-    does: "Not assigned yet.",
-  })),
+  {
+    id: "P00", type: "pad", index: STOP_PAD, ...padAt(STOP_PAD), name: "Stop",
+    does: "Stops as a tape machine, slowing to a halt. Touch again to start.",
+    value: (p) => (p[PARAM.stop] ? "Stopped" : ""),
+  },
+  {
+    id: "P02", type: "pad", index: RETRIG_PAD, ...padAt(RETRIG_PAD), name: "Retrig",
+    does: "Back to the start of the loop, with a grain at once.",
+  },
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
     does: `Jump to the ${["first", "second", "third", "fourth", "fifth", "sixth", "seventh"][i]} attack in the loop. Hold to stay there.`,

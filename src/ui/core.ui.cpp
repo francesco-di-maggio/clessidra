@@ -150,6 +150,7 @@ void CoreUI::Process(const Controls& c, Core& core)
     if(p.mix == 1.0f)
         p.mix = twin(Controls::S36);
 
+    Transport(c, core, p);
     core.SetParams(p);
     Pulse(c,
           {semitones == 0.0f,
@@ -205,6 +206,23 @@ void CoreUI::Scrub(float fader, bool frozen, Core& core)
         return;
     core.Scrub(fader - scrub_from_);
     scrub_from_ = fader;
+}
+
+// P00: stop as a tape machine, everything slowing to a halt, then a touch
+// to start again. P02: the playhead back to the loop's start, its end in
+// reverse, with a grain at once.
+void CoreUI::Transport(const Controls& c, Core& core, Core::Params& p)
+{
+    const bool stop = c.touched[kStopPad];
+    if(stop && !stop_touched_)
+        stop_ = !stop_;
+    stop_touched_ = stop;
+    p.stop        = stop_;
+
+    const bool retrig = c.touched[kRetrigPad];
+    if(retrig && !retrig_touched_)
+        core.Jump(p.speed < 0.0f ? 1.0f : 0.0f);
+    retrig_touched_ = retrig;
 }
 
 // P11 with P01: the second layer's values back to their defaults

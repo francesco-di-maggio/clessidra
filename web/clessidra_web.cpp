@@ -73,6 +73,7 @@ enum Param : size_t
     kSandLeft,
     kFilter,
     kQuantize,
+    kStop,
     kNumParams
 };
 float params[kNumParams];
@@ -267,5 +268,6 @@ EXPORT const float* cl_params()
     params[kSandLeft]     = core.SandLeft();
     params[kFilter]       = p.filter;
     params[kQuantize]     = float(p.quantize);
+    params[kStop]         = p.stop ? 1.0f : 0.0f;
     return params;
 }

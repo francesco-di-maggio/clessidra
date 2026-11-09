@@ -1,5 +1,5 @@
-// Play: the controls drive the firmware, the buffer and the readout show what it
-// does.
+// Play: the controls drive the firmware, the views and each control's value
+// show what it does, its tooltip what it is for.
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type State } from "./controls";
@@ -21,7 +21,6 @@ const inputs = [...document.querySelectorAll<HTMLButtonElement>("#input button")
 const file = $<HTMLInputElement>("file");
 const led = $("led");
 const held = $("held");
-const readout = { name: $("readout-name"), value: $("readout-value"), does: $("readout-does") };
 
 const audio = new Audio(onMessage);
 // Until Start, the values come from a silent copy of the firmware on the page
@@ -42,7 +41,7 @@ function send(m: Message) {
   refresh();
 }
 
-// The preview's values in the readouts
+// The preview's values on the controls
 function refresh() {
   if (!preview) return;
   const { params, view } = preview.read();
@@ -57,9 +56,6 @@ const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainShape = new GrainShape($<HTMLCanvasElement>("grain-shape"));
 const hourglass = new Hourglass($<HTMLCanvasElement>("hourglass"));
 let last: Frame | null = null;
-// Nothing pointed at: the readout shows how to play
-const HINT = { name: "How to play", does: "Drag a control, ⌥ for fine. Double-click resets. Keys: R record, 1–7 slices, Shift." };
-let focused: Control | null = null;
 
 const parts = new Map<string, Widget>();
 const positions = new Map<string, number>(); // each switch's, as set
@@ -86,11 +82,13 @@ for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), 
 add(toggle(byId("S09"), $("s09"), [[POSITION.up, "Forward"], [POSITION.centre, "Freeze"], [POSITION.down, "Reverse"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.up, "Oct"], [POSITION.centre, "Semi"], [POSITION.down, "Off"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
-const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "P00"], ["P01", "Reset"], ["P02", "P02"]];
+// Rec in the source bar, where playing begins; the other upper pads over the
+// slices
+add(pad(byId("P10"), $("rec"), "Rec", on)).root.classList.add("rec");
+const FUNCTIONS: [string, string][] = [["P11", "Shift"], ["P00", "Stop"], ["P01", "Reset"], ["P02", "Retrig"]];
 for (const [id, label] of FUNCTIONS) {
   const w = add(pad(byId(id), $("functions"), label, on));
   if (w.c.free) w.root.classList.add("free");
-  if (id === "P10") w.root.classList.add("rec");
 }
 
 // Every control at its starting value, sent to the firmware
@@ -200,7 +198,7 @@ function shifted() {
 }
 function layer() {
   document.querySelector(".instrument")?.classList.toggle("shifted", shifted());
-  if (focused) focus(focused);
+  tooltips();
   show();
 }
 
@@ -211,20 +209,21 @@ function recording() {
 }
 
 function hint() {
-  focused = null;
   for (const w of parts.values()) w.root.classList.remove("focus");
-  readout.name.textContent = HINT.name;
-  readout.value.textContent = "";
-  readout.does.textContent = HINT.does;
+}
+
+// What each control does, on hover: its own, or its twin's while P11 is held
+function tooltips() {
+  for (const w of parts.values()) {
+    const twin = shifted() ? w.c.twin : undefined;
+    const name = twin ? `P11 + ${w.c.id} ${twin.name}` : `${w.c.id} ${w.c.name}`;
+    w.root.title = `${name}. ${(twin ?? w.c).does ?? ""}`;
+  }
 }
 
 // The control pointed at
 function focus(c: Control) {
-  focused = c;
   for (const w of parts.values()) w.root.classList.toggle("focus", w.c === c);
-  const twin = shifted() ? c.twin : undefined;
-  readout.name.textContent = twin ? `P11 + ${c.id} ${twin.name}` : `${c.id} ${c.name}`;
-  readout.does.textContent = (twin ?? c).does ?? "";
   show();
 }
 
@@ -244,8 +243,7 @@ function show() {
       w.root.classList.toggle("twin", !!twin);
     }
   }
-  const twin = shifted() ? focused?.twin : undefined;
-  if (focused) readout.value.textContent = twin ? twin.value(last.params) : (focused.value?.(last.params, v) ?? "");
+  parts.get("P00")?.root.classList.toggle("latched", last.params[PARAM.stop] === 1);
   held.textContent = v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   monitor.textContent = v.recording ? `● ${v.recording.toFixed(1)} s · heard` : "";
   held.classList.toggle("on", v.recording > 0);
@@ -270,9 +268,7 @@ function onMessage(m: FromWorklet) {
 }
 
 function fail(name: string, message: string) {
-  readout.name.textContent = name;
-  readout.value.textContent = "";
-  readout.does.textContent = message;
+  monitor.textContent = `${name}: ${message}`;
 }
 
 // The source goes into the input: chosen before or after Start
@@ -313,3 +309,6 @@ async function choose(kind: Input) {
 
 for (const b of inputs) b.addEventListener("click", () => (b.dataset.input === "file" ? file.click() : choose(b.dataset.input as Input)));
 file.addEventListener("change", () => file.files?.[0] && choose(file.files[0]));
+
+// Each control's tooltip, once the touches it reads exist
+tooltips();

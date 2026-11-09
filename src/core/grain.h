@@ -48,8 +48,10 @@ class Grain
     };
 
     // Adds the grain to left and right, and by its send to send_l and send_r,
-    // while active. inc: window phase per sample.
+    // while active. inc: window phase per sample. speed: of everything, 1 as
+    // started, slower as a tape machine stopping.
     void Render(double inc,
+                double speed,
                 float* left,
                 float* right,
                 float* send_l,

@@ -92,7 +92,7 @@ try {
 
   // Density: random above the centre. A slice, then P11 held: the twins
   // brought forward, Density's reverb beneath it.
-  const pad = (name, down) => run(`document.querySelector('.pads .pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
+  const pad = (name, down) => run(`document.querySelector('.pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
   const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
   const density = await value("Density");
   check(/^Random /.test(density), "Density up: random grains at once", density);

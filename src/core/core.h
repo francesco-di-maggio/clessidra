@@ -60,6 +60,10 @@ class Core
     static constexpr float kReverbLowpassHz = 10000.0f;
     // Mute: the fade of the grains, in and out
     static constexpr float kMuteSeconds = 0.005f;
+    // Stop, as a tape machine: everything slowed to a halt, or back up to
+    // speed, over this; faded out over the slowest kStopFade of it
+    static constexpr float kStopSeconds = 0.6f;
+    static constexpr float kStopFade    = 0.25f;
     // Filter on the grains, before the reverb. From off, exponential to the
     // ends, resonance rising with it from flat (Butterworth). Fades in over
     // the first kFilterFade of each side.
@@ -124,7 +128,10 @@ class Core
         float filter = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
         // The grains silent, faded over kMuteSeconds; the reverb rings on
-        bool  mute = false;
+        bool mute = false;
+        // Slowed to a halt as a tape machine, over kStopSeconds; the reverb
+        // rings on
+        bool  stop = false;
         float mix  = 1.0f; // 0 dry .. 1 wet, equal power
         // gain on the input, before the recording and the dry signal
         float input  = 1.0f;
@@ -315,6 +322,7 @@ class Core
     // Gains at the end of the last block
     float norm_gain_   = 0.0f;
     float mute_gain_   = 1.0f;
+    float tape_        = 1.0f; // speed of everything, Params.stop ramping it
     float reverb_dry_  = 1.0f;
     float reverb_wet_  = 0.0f;
     float input_gain_  = 1.0f;
