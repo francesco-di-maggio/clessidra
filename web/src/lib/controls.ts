@@ -103,7 +103,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Random position", short: "Rnd pos", initial: 0,
-    does: "How far grains stray from the playhead, spreading across the stereo field.",
+    does: "How far grains stray from the playhead, up to the whole loop, and how wide across the stereo field.",
     value: (p) => (p[PARAM.spread] === 0 ? "Off" : percent(p[PARAM.spread])),
   },
   {

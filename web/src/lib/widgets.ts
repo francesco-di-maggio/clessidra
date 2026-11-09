@@ -225,13 +225,18 @@ export function gain(c: Control, parent: Element, h: Handlers, mute: (c: Control
     e.preventDefault();
     root.setPointerCapture(e.pointerId);
     root.focus({ preventScroll: true });
+    root.classList.add("dragging");
     drag = { y: e.clientY, v };
   });
   root.addEventListener("pointermove", (e) => {
     if (drag) h.onInput(c, clamp(drag.v + ((drag.y - e.clientY) / 180) * (e.altKey ? 0.2 : 1)));
   });
-  root.addEventListener("pointerup", () => (drag = null));
-  root.addEventListener("pointercancel", () => (drag = null));
+  const release = () => {
+    drag = null;
+    root.classList.remove("dragging");
+  };
+  root.addEventListener("pointerup", release);
+  root.addEventListener("pointercancel", release);
   root.addEventListener("dblclick", () => h.onInput(c, c.initial ?? 0));
   root.addEventListener("keydown", (e) => {
     const step = ({ ArrowRight: 0.02, ArrowUp: 0.02, ArrowLeft: -0.02, ArrowDown: -0.02 } as Record<string, number>)[e.key];
