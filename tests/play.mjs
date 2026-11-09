@@ -97,7 +97,7 @@ try {
   const pad = (name, down) => run(`document.querySelector('.pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
   const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
   const density = await value("Density");
-  check(/^Random /.test(density), "Density up: random grains at once", density);
+  check(/^Random\s/.test(density), "Density up: random grains at once", density);
   await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "4" }))`);
   await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "4" }))`);
   await pad("Shift", true);
