@@ -1437,12 +1437,12 @@ void Mapping()
           "P00: stopped as a tape machine, then started again (rms)",
           stopped / playing);
     r.Run(0.3, Silence);
-    press(CoreUI::kTurnPad, true);
+    press(CoreUI::kTrigPad, true);
     r.Run(0.001, Silence);
     Check(r.core.PlayheadPhase() < 0.01,
-          "P02 Turn: the playhead from the loop's start",
+          "P02 Trig: the playhead from the loop's start",
           r.core.PlayheadPhase());
-    press(CoreUI::kTurnPad, false);
+    press(CoreUI::kTrigPad, false);
     press(CoreUI::kShiftPad, true);
     press(CoreUI::kResetPad, true);
     press(CoreUI::kResetPad, false);

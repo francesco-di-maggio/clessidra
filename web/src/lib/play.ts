@@ -60,8 +60,15 @@ const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
 const add = (w: Widget) => (parts.set(w.c.id, w), w);
 // In and Out, the browser's own, beside the source: the gain a handle, the
 // signal the fill
+// A level's name mutes it, the setting kept
+const muted = new Set<string>();
+function mute(c: Control) {
+  if (!muted.delete(c.id)) muted.add(c.id);
+  set(c, LEVELS_VALUE.get(c.id) ?? c.initial ?? 0, false);
+  return muted.has(c.id);
+}
 function level(l: Level) {
-  const s = slider(l, $("levels"), on);
+  const s = slider(l, $("levels"), on, mute);
   add(s);
   return s.level;
 }
@@ -77,7 +84,7 @@ for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), 
 add(toggle(byId("S09"), $("s09"), [[POSITION.down, "REVERSE"], [POSITION.centre, "FREEZE"], [POSITION.up, "FORWARD"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.down, "OFF"], [POSITION.centre, "SEMITONE"], [POSITION.up, "OCTAVE"]], on));
 // The pads as an octave: the slices the white keys, the others the black,
-// Rec and Shift on C# and D#, Stop, Reset and Turn on F#, G# and A#. A slice
+// Rec and Shift on C# and D#, Stop, Reset and Trig on F#, G# and A#. A slice
 // held is tinted in the recording, and a press there is a touch of its pad.
 SLICE_PADS.forEach((index, i) => {
   const w = add(pad(padOf(index), $("keys"), `${i + 1}`, on));
@@ -85,7 +92,7 @@ SLICE_PADS.forEach((index, i) => {
   w.draw = (p) => (draw(p), waveform.hold(i, p));
 });
 waveform.onSlice = (i, down, e) => press(padOf(SLICE_PADS[i]), down, e);
-const BLACK: [string, string, number][] = [["P10", "Rec", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Turn", 6]];
+const BLACK: [string, string, number][] = [["P10", "Rec", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Trig", 6]];
 for (const [id, label, edge] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
   w.root.classList.add("black");
@@ -111,7 +118,7 @@ function set(c: Control, value: number, show = true) {
     const level = c as Level;
     parts.get(c.id)!.draw(value);
     LEVELS_VALUE.set(c.id, value);
-    audio.setGain(c.id === "IN" ? "input" : "output", level.gain(value));
+    audio.setGain(c.id === "IN" ? "input" : "output", muted.has(c.id) ? 0 : level.gain(value));
     parts.get(c.id)!.value?.(level.value!(new Float32Array(0), { sound: 0, recording: 0 }));
     if (show) focus(c);
     return;

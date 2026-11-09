@@ -207,9 +207,13 @@ export function toggle(c: Control, parent: Element, options: [number, string][],
 
 // A browser level: its name over a slim track, the gain its handle, the
 // signal its fill. Drag across, arrows, double click for its starting value.
-export function slider(c: Control, parent: Element, h: Handlers) {
+// Its name a button: a click mutes it, or unmutes it. mute: true once muted.
+export function slider(c: Control, parent: Element, h: Handlers, mute: (c: Control) => boolean) {
   const root = html("div", { class: "slider", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
-  html("span", { class: "label" }, root).textContent = c.name;
+  const name = html("button", { class: "mute", type: "button", "aria-pressed": "false", title: `Mute ${c.name.toLowerCase()}` }, root);
+  name.textContent = c.name;
+  name.addEventListener("pointerdown", (e) => e.stopPropagation());
+  name.addEventListener("click", () => name.setAttribute("aria-pressed", String(mute(c))));
   const track = html("span", { class: "track" }, root);
   const fill = html("span", { class: "signal" }, track);
   const line = html("span", { class: "fill" }, track);

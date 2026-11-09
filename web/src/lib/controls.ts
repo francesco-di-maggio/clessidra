@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { TURN_PAD, PARAM, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, STOP_PAD } from "./engine";
+import { TRIG_PAD, PARAM, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, STOP_PAD } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -156,8 +156,8 @@ export const CONTROLS: Control[] = [
     value: (p) => (p[PARAM.stop] ? "Stopped" : ""),
   },
   {
-    id: "P02", type: "pad", index: TURN_PAD, ...padAt(TURN_PAD), name: "Turn",
-    does: "As an hourglass turned over: from the top of the loop again, with a grain at once.",
+    id: "P02", type: "pad", index: TRIG_PAD, ...padAt(TRIG_PAD), name: "Trig",
+    does: "Playback again from the loop's start, with a grain at once: back on the beat.",
   },
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,

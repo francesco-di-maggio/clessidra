@@ -209,7 +209,7 @@ void CoreUI::Scrub(float fader, bool frozen, Core& core)
 }
 
 // P00: stop as a tape machine, everything slowing to a halt, then a touch
-// to start again. P02, Turn, as an hourglass turned over: the playhead back to
+// to start again. P02, Trig: playback triggered again, the playhead back to
 // the loop's start, its end
 // in reverse, with a grain at once.
 void CoreUI::Transport(const Controls& c, Core& core, Core::Params& p)
@@ -220,10 +220,10 @@ void CoreUI::Transport(const Controls& c, Core& core, Core::Params& p)
     stop_touched_ = stop;
     p.stop        = stop_;
 
-    const bool turn = c.touched[kTurnPad];
-    if(turn && !turn_touched_)
+    const bool trig = c.touched[kTrigPad];
+    if(trig && !trig_touched_)
         core.Jump(p.speed < 0.0f ? 1.0f : 0.0f);
-    turn_touched_ = turn;
+    trig_touched_ = trig;
 }
 
 // P01: the second layer's values back to their defaults
