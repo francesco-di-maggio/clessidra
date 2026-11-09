@@ -48,9 +48,19 @@ import "../styles/play.css";
 
     <section id="density" class="tile fader" aria-label="Density"></section>
 
+    <section class="tile view grain" aria-label="A grain's envelope at its size">
+      <span class="label">Grain</span>
+      <canvas id="grain-shape" role="img" aria-label="One grain's envelope as Shape and Size set it, faint the lengths Random size reaches"></canvas>
+    </section>
+
     <section class="tile pads" aria-label="The 12 pads">
       <div id="functions" class="pad-row functions"></div>
       <div id="slices" class="pad-row slices"></div>
+    </section>
+
+    <section class="tile view output" aria-label="The output">
+      <span class="label">Output</span>
+      <canvas id="scope" role="img" aria-label="The sound leaving the firmware, as a trace"></canvas>
     </section>
 
     <p class="tile readout" aria-live="polite"><span class="line"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span></span><span id="readout-does" class="does"></span></p>

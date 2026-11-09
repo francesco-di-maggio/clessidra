@@ -2,7 +2,7 @@
 // runs here, one render quantum at a time. The page sends the controls and
 // gets back what it draws, once per screen frame.
 
-import { BLOCK, GRAIN_FIELDS, INCOMING_COLUMNS, INCOMING_SECONDS, PARAM_SIZE, SLICES, VIEW_SIZE, type Control, type Exports, type FromWorklet } from "./engine";
+import { BLOCK, GRAIN_FIELDS, INCOMING_COLUMNS, INCOMING_SECONDS, PARAM_SIZE, SCOPE, SCOPE_HELD, SLICES, VIEW_SIZE, type Control, type Exports, type FromWorklet } from "./engine";
 
 // The AudioWorkletGlobalScope, as far as this uses it
 declare const sampleRate: number;
@@ -23,6 +23,8 @@ class Clessidra extends AudioWorkletProcessor {
   private peaks = new Float32Array(0);
   private input = 0; // peaks since the last frame
   private output = 0;
+  private scope = new Float32Array(SCOPE_HELD); // the output, a ring
+  private scopeAt = 0;
   // The input's peak per column, a ring of the last INCOMING_SECONDS
   private incoming = new Float32Array(INCOMING_COLUMNS);
   private column = 0;
@@ -89,6 +91,8 @@ class Clessidra extends AudioWorkletProcessor {
       const x = Math.max(Math.abs(this.io[0][i]), Math.abs(this.io[1][i]));
       this.input = Math.max(this.input, x);
       this.output = Math.max(this.output, Math.abs(this.io[2][i]), Math.abs(this.io[3][i]));
+      this.scope[this.scopeAt] = 0.5 * (this.io[2][i] + this.io[3][i]);
+      this.scopeAt = (this.scopeAt + 1) % SCOPE_HELD;
       this.columnPeak = Math.max(this.columnPeak, x);
       if (++this.columnSamples >= perColumn) {
         this.incoming[this.column] = this.columnPeak;
@@ -103,6 +107,20 @@ class Clessidra extends AudioWorkletProcessor {
     return true;
   }
 
+  // The output's last SCOPE samples, from a rising zero crossing so the trace
+  // stands still
+  private trace() {
+    const held = (k: number) => this.scope[(this.scopeAt + k) % SCOPE_HELD];
+    let from = 0;
+    for (let k = 1; k < SCOPE_HELD - SCOPE; k++) {
+      if (held(k - 1) < 0 && held(k) >= 0) {
+        from = k;
+        break;
+      }
+    }
+    return Float32Array.from({ length: SCOPE }, (_, k) => held(from + k));
+  }
+
   private send(now: number) {
     const w = this.w!;
     const count = w.cl_grains();
@@ -111,10 +129,11 @@ class Clessidra extends AudioWorkletProcessor {
     const params = this.f32(w.cl_params(), PARAM_SIZE).slice();
     const peaks = this.peaks.slice();
     const slices = this.f32(w.cl_slices(), SLICES).slice();
+    const scope = this.trace();
     const incoming = new Float32Array(INCOMING_COLUMNS);
     incoming.set(this.incoming.subarray(this.column));
     incoming.set(this.incoming.subarray(0, this.column), INCOMING_COLUMNS - this.column);
-    this.post({ type: "view", led: w.cl_led(now), input: this.input, output: this.output, incoming, view, grains, params, peaks, slices }, [view.buffer, grains.buffer, params.buffer, peaks.buffer, incoming.buffer, slices.buffer]);
+    this.post({ type: "view", led: w.cl_led(now), input: this.input, output: this.output, incoming, view, grains, params, peaks, slices, scope }, [view.buffer, grains.buffer, params.buffer, peaks.buffer, incoming.buffer, slices.buffer, scope.buffer]);
     this.input = this.output = 0;
   }
 }

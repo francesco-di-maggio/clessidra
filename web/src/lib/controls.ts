@@ -70,56 +70,56 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 export const CONTROLS: Control[] = [
   {
     id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3), scale: SPEED_SCALE,
-    does: "How fast the playhead runs: the time stretched, the pitch kept. Stops at ¼, ½, 1, 2 and 4×. Frozen: scrubs through the loop, the speed taken up again after.",
+    does: "Playback speed, 0 to 4×, the pitch kept. Frozen, it scrubs through the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${signed(p[PARAM.speed], 2)}×`),
-    twin: { name: "Dry/wet", short: "Mix", does: "The input against the grains, equal power.", value: (p) => percent(p[PARAM.mix]) },
+    twin: { name: "Dry/wet", short: "Mix", does: "The input against the grains, dry to wet.", value: (p) => percent(p[PARAM.mix]) },
   },
   {
     id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.8, bipolar: true, detent: true, scale: DENSITY_SCALE,
-    does: "Grains at once, 1/16 to 16. None at the centre. Down: regular, drops to a stream. Up: random, scattered to a cloud.",
+    does: "Grains at once, up to 16. None at the centre, regular below, random above.",
     value: (p) => {
       const d = p[PARAM.density];
       if (d === 0) return "None";
       return `${p[PARAM.randomStarts] ? "Random" : "Regular"} ${fraction((d * p[PARAM.grainMsSet]) / 1000)}`;
     },
-    twin: { name: "Reverb", does: "On the grains: none to most, the decay 0.5 to 16 s.", value: (p) => percent(p[PARAM.reverb]) },
+    twin: { name: "Reverb", does: "Reverb on the grains, from none to long tails.", value: (p) => percent(p[PARAM.reverb]) },
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
-    does: "Where the loop starts, anywhere in the recording. Frozen: moves the point with it.",
+    does: "Where the loop starts in the recording.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
-    does: "How long the loop is, past the end round to the start.",
+    does: "How long the loop is. Past the end it wraps to the start.",
     value: (p, v) => seconds(p[PARAM.length] * v.sound),
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
-    does: "Grain length, 5 ms to 2 s, 100 ms at the centre, at most half the recording.",
+    does: "Grain length, 5 ms to 2 s, 100 ms at the centre.",
     value: (p) => ms(p[PARAM.grainMs]),
-    twin: { name: "Random size", short: "Rnd size", does: "Each grain's size, longer or shorter, up to about two octaves either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
+    twin: { name: "Random size", short: "Rnd size", does: "Each grain a different length, up to two octaves either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
   },
   {
     id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Random position", short: "Rnd pos", initial: 0,
-    does: "How far grains stray from the playhead, evenly, up to the whole loop, across the stereo field with it.",
+    does: "How far grains stray from the playhead, spreading across the stereo field.",
     value: (p) => (p[PARAM.spread] === 0 ? "Off" : percent(p[PARAM.spread])),
   },
   {
     id: "S33", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,
-    does: "±24 semitones. Stops at 0, 1, 3, 4, 7, 12, 24.",
+    does: "Transpose up to two octaves either way, with stops at musical intervals.",
     value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
-    twin: { name: "Random pitch", short: "Rnd pitch", does: "Each grain's pitch, up to an octave either way, snapped as S07 sets.", value: (p) => (p[PARAM.randPitch] === 0 ? "Off" : `±${(p[PARAM.randPitch] * RAND_PITCH).toFixed(1)} st`) },
+    twin: { name: "Random pitch", short: "Rnd pitch", does: "Each grain a different pitch, up to an octave, snapped by Quantize.", value: (p) => (p[PARAM.randPitch] === 0 ? "Off" : `±${(p[PARAM.randPitch] * RAND_PITCH).toFixed(1)} st`) },
   },
   {
     id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 0.5, bipolar: true, detent: true,
-    does: "The grain's window: reverse percussive down, Hann at the centre, percussive up.",
+    does: "Grain envelope: reversed attack, smooth at the centre, sharp attack.",
     value: (p) => {
       const s = p[PARAM.shape];
       return s === 0.5 ? "Hann" : s < 0.5 ? `Rev ${percent(1 - 2 * s)}` : `Perc ${percent(2 * s - 1)}`;
     },
     twin: {
-      name: "Filter", does: "On the grains: low-pass down to 200 Hz, off at the centre, high-pass up to 2 kHz.",
+      name: "Filter", does: "Low-pass below the centre, off at the centre, high-pass above.",
       value: (p) => {
         const f = p[PARAM.filter];
         return f === 0 ? "Off" : f < 0 ? `LP ${percent(-f)}` : `HP ${percent(f)}`;
@@ -128,26 +128,26 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Mode", initial: POSITION.up,
-    does: "Up forward, centre frozen, down reverse.",
+    does: "Forward, freeze or reverse. Frozen, Speed scrubs through the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Quantize", initial: POSITION.down,
-    does: "The random pitch: down free, centre in semitones, up in octaves.",
+    does: "Snaps random pitch to octaves or semitones, or leaves it free.",
     value: (p) => QUANTIZE[p[PARAM.quantize]] ?? "",
   },
   {
     id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
-    does: "Tap: the last 8 s. Hold: up to 30 s, the input heard. The new recording pours in over 2 s. With P11: listen, the input heard, nothing recorded.",
+    does: "Tap to keep the last 8 s, hold to record up to 30 s. With Shift: listen.",
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
     id: "P11", type: "pad", index: SHIFT_PAD, ...padAt(SHIFT_PAD), name: "Shift",
-    does: "Held: the knobs' twins. With P01: the twins back to their defaults. With P10: listen.",
+    does: "Hold for each knob’s second function, shown in orange.",
   },
   {
     id: "P01", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
-    does: "With P11: the twins back to their defaults, nothing jumps. Alone: nothing yet.",
+    does: "With Shift: second functions back to their defaults.",
   },
   ...[0, 2].map((index): Control => ({
     id: `P0${index}`, type: "pad", index, ...padAt(index), name: `P0${index}`, free: true,
@@ -155,7 +155,7 @@ export const CONTROLS: Control[] = [
   })),
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
-    does: `The loop in seven slices at the recording's attacks, left to right, this the ${["first", "second", "third", "fourth", "fifth", "sixth", "seventh"][i]}. A touch: the playhead there, a grain at once, the beat from it. Held: it stays there.`,
+    does: `Jump to the ${["first", "second", "third", "fourth", "fifth", "sixth", "seventh"][i]} attack in the loop. Hold to stay there.`,
   })),
 ];
 
@@ -190,12 +190,12 @@ const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.l
 export const LEVELS: Level[] = [
   {
     id: "IN", type: "knob", index: -1, x: 0, y: 0, name: "In", initial: 0.5, bipolar: true,
-    does: "Input level, ±12 dB. Browser only.",
+    does: "Input level, ±12 dB. In the browser only.",
     gain: (x) => 10 ** (((x - 0.5) * 24) / 20),
   },
   {
     id: "OUT", type: "knob", index: -1, x: 0, y: 0, name: "Out", initial: 1,
-    does: "Output level, −60 to 0 dB, off at the bottom. Browser only.",
+    does: "Output level, off to 0 dB. In the browser only.",
     gain: (x) => (x <= 0 ? 0 : 10 ** ((60 * (x - 1)) / 20)),
   },
 ];
