@@ -287,8 +287,6 @@ start.addEventListener("click", async () => {
   } else await audio.pause(audio.running);
   start.textContent = audio.running ? "Pause" : "Start";
   start.classList.toggle("on", audio.running);
-  // Running: Rec the one filled control, as Start was
-  document.querySelector(".instrument")?.classList.toggle("running", audio.running);
 });
 
 async function choose(kind: Input) {
