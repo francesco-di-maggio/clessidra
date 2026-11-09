@@ -19,12 +19,11 @@ import "../styles/play.css";
       <div id="levels" class="levels" aria-label="Input and output level, browser only"></div>
     </section>
 
-    <section class="tile input" aria-label="The input">
-      <canvas id="incoming" role="img" aria-label="The input over the last 8 s, the part being recorded in orange"></canvas>
-      <span id="monitor" class="figure on"></span>
-    </section>
-
-    <section class="tile sound" aria-label="The recording">
+    <section class="tile sound" aria-label="The input and the recording">
+      <div class="input">
+        <canvas id="incoming" role="img" aria-label="The input over the last 8 s, the part being recorded in orange"></canvas>
+        <span id="monitor" class="figure on"></span>
+      </div>
       <canvas id="buffer" role="img" aria-label="The recording: the loop, its slices, a click on one plays it, the playhead, the reach of Random position, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
     </section>
 

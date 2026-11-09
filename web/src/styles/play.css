@@ -12,10 +12,9 @@ body.app main { flex: 1; min-height: 0; }
 
 .instrument { --in: 14px; --name: 16px; --band: 48px; --radius-control: 8px;
               height: 100%; display: grid; gap: var(--unit); grid-template-columns: repeat(12, minmax(0, 1fr));
-              grid-template-rows: 56px 56px minmax(180px, 1fr) auto auto;
+              grid-template-rows: 56px minmax(236px, 1fr) auto auto;
               grid-template-areas:
                 "transport transport transport transport transport transport transport transport transport transport transport transport"
-                "input input input input input input input input input input input input"
                 "sound sound sound sound sound sound sound sound sound sound sound sound"
                 "speed speed knobs knobs knobs knobs knobs knobs knobs knobs density density"
                 "pads pads pads pads pads pads pads pads pads pads pads pads"; }
@@ -38,8 +37,8 @@ body.app main { flex: 1; min-height: 0; }
 .slider .signal.clip { background: var(--accent); }
 .slider .handle { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--surface); border: 1.5px solid var(--ink); }
 
-/* The input, the last 8 s */
-.input { grid-area: input; display: flex; align-items: center; gap: 12px; padding: 0 var(--in); }
+/* One tile: the input, the last 8 s, over a hairline, then the recording */
+.input { display: flex; align-items: center; gap: 12px; height: 56px; flex: none; padding: 0 var(--in); border-bottom: 1px solid var(--line); }
 .input canvas { flex: 1; min-width: 0; height: 100%; }
 .input #monitor:empty { display: none; }
 
@@ -111,15 +110,15 @@ body.app main { flex: 1; min-height: 0; }
 /* Little height: the page scrolls rather than squeezing */
 @media (max-height: 700px) {
   body.app { height: auto; min-height: 100dvh; overflow: visible; }
-  .instrument { height: auto; grid-template-rows: 56px 56px 240px auto auto; }
+  .instrument { height: auto; grid-template-rows: 56px 296px auto auto; }
 }
 
 /* Narrow: the board's order, two columns */
 @media (max-width: 600px) {
   body.app { height: auto; min-height: 100dvh; overflow: visible; }
   .transport { flex-wrap: wrap; padding: 12px var(--in); }
-  .instrument { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 56px 260px auto auto auto;
-                grid-template-areas: "transport transport" "input input" "sound sound" "knobs knobs" "speed density" "pads pads"; }
+  .instrument { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 316px auto auto auto;
+                grid-template-areas: "transport transport" "sound sound" "knobs knobs" "speed density" "pads pads"; }
   .pad.black { font-size: 0; }
   .knob.fader { min-height: 240px; }
 }

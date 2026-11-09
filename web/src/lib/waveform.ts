@@ -105,9 +105,9 @@ export class Waveform {
 
     const pad = 14;
     const width = W - 2 * pad;
-    const top = 18; // the slices' numbers above
+    const top = 12; // the playhead's mark above
     const axis = H - 14; // seconds
-    const bottom = axis - 18;
+    const bottom = axis - 28; // the slices' numbers below
     const mid = (top + bottom) / 2;
     const half = (bottom - top) / 2 - 6;
     const f = this.frame;
@@ -139,8 +139,8 @@ export class Waveform {
     bracket(ctx, a, top, bottom, 1);
     bracket(ctx, b > pad + width + 0.5 ? b - width : b, top, bottom, -1);
 
-    // The slices: a hairline where each starts, its number beside it at the
-    // top, the first at the bracket. Held, tinted.
+    // The slices: a hairline where each starts, its number centred under it.
+    // Held, tinted.
     const starts = Array.from(f.slices, (s) => x(v[VIEW.selStart] + s * v[VIEW.selLength]));
     this.spans = starts.map((s, i) => [s, i + 1 < starts.length ? starts[i + 1] : b]);
     this.band = [top, bottom];
@@ -153,12 +153,11 @@ export class Waveform {
     ctx.fillStyle = c.dim;
     ctx.lineWidth = 1;
     ctx.textBaseline = "top";
-    ctx.textAlign = "left";
-    starts.forEach((px, i) => {
-      if (i > 0) line(ctx, px, top + 2, px, bottom - 2);
-      ctx.fillText(`${i + 1}`, px + 4, top + 2);
-    });
     ctx.textAlign = "center";
+    this.spans.forEach(([s0, s1], i) => {
+      if (i > 0) line(ctx, s0, top + 2, s0, bottom - 2);
+      ctx.fillText(`${i + 1}`, (s0 + s1) / 2, bottom + 8);
+    });
 
     // Random position: the reach of the grains about the playhead, round the
     // loop, faint
@@ -223,7 +222,7 @@ export class Waveform {
   }
 
   // Columns of dots on a DOT grid, each up to its peak, mirrored about mid
-  // The seconds of the recording below
+  // The seconds of the recording below: a tick each step, its ends named
   private axis(seconds: number, W: number, pad: number, width: number, axis: number) {
     const { ctx, c } = this;
     ctx.font = `500 10px ${c.mono}`;
@@ -237,8 +236,9 @@ export class Waveform {
     for (let s = 0; s <= seconds + 1e-6; s += step) {
       const px = pad + (s / seconds) * width;
       line(ctx, px, axis - 8, px, axis - 3);
-      if (px < W - pad - 36) ctx.fillText(`${s}`, px, axis + 3);
     }
+    ctx.textAlign = "left";
+    ctx.fillText("0", pad, axis + 3);
     ctx.textAlign = "right";
     ctx.fillText(`${seconds.toFixed(1)} s`, W - pad, axis + 3);
     ctx.textAlign = "center";
