@@ -86,12 +86,12 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
-    does: "Where the loop starts in the recording.",
+    does: "Where the loop sits, from the recording's start to its end.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
-    does: "How long the loop is. It ends no later than the recording.",
+    does: "How long the loop is, from a sliver to the whole recording.",
     value: (p, v) => seconds(p[PARAM.length] * v.sound),
   },
   {

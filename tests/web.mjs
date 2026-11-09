@@ -90,14 +90,14 @@ run(0.5);
 v = view();
 check(w.cl_recordings() === 2 && Math.abs(v[V.sound] / RATE - 8) < 0.02, "tap: the last 8 s", (v[V.sound] / RATE).toFixed(2));
 
-// S35 half, S30 at the middle: the second half. Grains inside, with no
+// S35 half, S30 at the top: the second half. Grains inside, with no
 // randomness, many at once
-w.cl_knob(KNOB.S30, 0.5);
+w.cl_knob(KNOB.S30, 1);
 w.cl_knob(KNOB.S35, 0.5);
 w.cl_knob(KNOB.S37, 1);
 run(1, silence);
 v = view();
-check(Math.abs(v[V.selStart] / v[V.sound] - 0.5) < 1e-3 && Math.abs(v[V.selLength] / v[V.sound] - 0.5) < 1e-3, "S35 half, S30 middle: the second half");
+check(Math.abs(v[V.selStart] / v[V.sound] - 0.5) < 1e-3 && Math.abs(v[V.selLength] / v[V.sound] - 0.5) < 1e-3, "S35 half, S30 top: the second half");
 const grainSamples = (f32(w.cl_params(), 13)[3] / 1000) * RATE;
 const held = grains();
 const inside = held.every((x) => {
@@ -107,16 +107,16 @@ const inside = held.every((x) => {
 check(held.length > 0 && inside, "grains inside the selection", held.length);
 w.cl_knob(KNOB.S37, 0.75);
 
-// S30 three quarters, S35 half: the loop ends with the recording
-w.cl_knob(KNOB.S30, 0.75);
+// S30 at the middle, S35 half: the middle half, the playhead inside it
+w.cl_knob(KNOB.S30, 0.5);
 w.cl_knob(KNOB.S36, 1);
-let wrapped = true;
+let inLoop = true;
 for (let i = 0; i < 40; i++) {
   run(0.05, silence);
   const at = view()[V.playhead] / v[V.sound];
-  wrapped &&= at >= 0.75 - 1e-3 && at < 1;
+  inLoop &&= at >= 0.25 - 1e-3 && at < 0.75 + 1e-3;
 }
-check(wrapped, "S30 three quarters, S35 half: the last quarter, ending with the recording");
+check(inLoop, "S30 middle, S35 half: the middle half, the playhead inside it");
 w.cl_knob(KNOB.S30, 0.5);
 w.cl_knob(KNOB.S36, SPEED_1);
 run(0.1, silence);

@@ -1162,6 +1162,22 @@ void Mapping()
           "S30 bottom, S35 top: the whole recording",
           p.length);
 
+    // S35 half: S30 moves the half through the recording, no dead range
+    c.knobs[Controls::S35] = 0.5f;
+    const auto from        = [&](float position) {
+        c.knobs[Controls::S30] = position;
+        ui.Process(c, r.core);
+        return p.start;
+    };
+    const float first = from(0.0f), middle = from(0.5f), last = from(1.0f);
+    Check(first == 0.0f && Near(middle, 0.25, 1e-6) && Near(last, 0.5, 1e-6)
+              && p.length == 0.5f,
+          "S35 half, S30 bottom to top: from the start to ending at the end",
+          last);
+    c.knobs[Controls::S30] = 0.0f;
+    c.knobs[Controls::S35] = 1.0f;
+    ui.Process(c, r.core);
+
     // S37, Density: none at the centre, regular below, random above, 1/16 to
     // 16 grains at once at the size
     const auto at = [&](float x) {
