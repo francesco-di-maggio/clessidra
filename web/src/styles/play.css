@@ -101,10 +101,12 @@ body.app main { flex: 1; min-height: 0; }
 .pads { grid-area: pads; display: grid; }
 /* Mode and Quantize side by side over the keys, as the sources are: the
    board's down to up, left to right */
-.switches { display: grid; grid-template-columns: 1fr 1fr; padding: 0 12px; border-bottom: 1px solid var(--line); }
+.switches { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 0 12px; border-bottom: 1px solid var(--line); }
 .switches > div { padding: 8px 0; }
-.switches > div:first-child { padding-right: 12px; }
-.switches > div + div { padding-left: 12px; border-left: 1px solid var(--line); }
+/* Each three keys wide, over the outer keys; a hairline down the middle */
+.switches > div:first-child { grid-column: 1 / 4; }
+.switches > div + div { grid-column: 5 / 8; }
+.switches::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--line); }
 .switches .segmented { height: 28px; }
 .switches .segmented button { font-size: 10px; letter-spacing: 0.06em; }
 .keys { --gap: 6px; margin: 12px; position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 88px; }

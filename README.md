@@ -19,7 +19,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | S33 | Pitch: ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24 | Random pitch, up to ±12 semitones |
 | S34 | Shape: the grain's window, reverse percussive, Hann at the centre, percussive | Filter: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz |
 | S09 | Mode: up forward, centre freeze, down reverse | |
-| S07 | Quantize, the random pitch: down OFF, centre SEMI, up OCT | |
+| S07 | Quantize, the random pitch: down off, centre semitones, up octaves | |
 
 | Pad | Alone | P11 held |
 |---|---|---|
