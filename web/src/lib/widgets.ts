@@ -16,6 +16,8 @@ export interface Widget {
   value?: (text: string) => void;
   // The name shown, for a knob's twin while P11 is held
   label?: (text: string) => void;
+  // Filled from the centre, as the twin shown may not be
+  centred?: (on: boolean) => void;
 }
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -66,7 +68,8 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
   const value = html("span", { class: "value" }, root);
   value.textContent = "–";
   let v = c.initial ?? 0;
-  const draw = c.type === "fader" ? faderDrawing(c, dial) : dialDrawing(c, dial);
+  const mode = { centred: !!c.bipolar };
+  const draw = c.type === "fader" ? faderDrawing(c, dial, mode) : dialDrawing(dial, mode);
 
   let drag: { y: number; v: number } | null = null;
   root.addEventListener("pointerdown", (e) => {
@@ -100,13 +103,18 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
     root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
   };
   show(v);
-  return { c, root, draw: show, value: (text) => (value.textContent = text), label: (text) => (label.textContent = text) };
+  const centred = (on: boolean) => {
+    if (mode.centred === on) return;
+    mode.centred = on;
+    draw(v);
+  };
+  return { c, root, draw: show, value: (text) => (value.textContent = text), label: (text) => (label.textContent = text), centred };
 }
 
 // A fader: its slot, filled from the bottom or, bipolar, the centre, and a
 // cap. A stop at the centre marked. It stretches to the height it is given.
 const FADER = { height: 112, top: 6, bottom: 106 };
-function faderDrawing(c: Control, dial: SVGSVGElement) {
+function faderDrawing(c: Control, dial: SVGSVGElement, mode: { centred: boolean }) {
   const mid = (FADER.top + FADER.bottom) / 2;
   svg("line", { class: "slot", x1: 12, x2: 12, y1: FADER.top, y2: FADER.bottom }, dial);
   for (const s of c.scale ?? []) {
@@ -118,20 +126,20 @@ function faderDrawing(c: Control, dial: SVGSVGElement) {
   const cap = svg("rect", { class: "cap", x: 2, width: 20, height: 7, rx: 2 }, dial);
   return (x: number) => {
     const y = FADER.bottom - x * (FADER.bottom - FADER.top);
-    fill.setAttribute("y1", String(c.bipolar ? mid : FADER.bottom));
+    fill.setAttribute("y1", String(mode.centred ? mid : FADER.bottom));
     fill.setAttribute("y2", String(y));
     cap.setAttribute("y", String(y - 3.5));
   };
 }
 
 // A dial: its arc, filled from the start or, bipolar, the centre, and a tick
-function dialDrawing(c: Control, dial: SVGSVGElement) {
+function dialDrawing(dial: SVGSVGElement, mode: { centred: boolean }) {
   svg("path", { class: "track", d: arc(-SWEEP / 2, SWEEP / 2) }, dial);
   const fill = svg("path", { class: "fill" }, dial);
   const tick = svg("line", { class: "tick" }, dial);
   return (x: number) => {
     const deg = -SWEEP / 2 + x * SWEEP;
-    const from = c.bipolar ? 0 : -SWEEP / 2;
+    const from = mode.centred ? 0 : -SWEEP / 2;
     fill.setAttribute("d", Math.abs(deg - from) > 1 ? arc(Math.min(from, deg), Math.max(from, deg)) : "");
     const [x0, y0] = polar(deg, R - 9);
     const [x1, y1] = polar(deg, R);

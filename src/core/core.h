@@ -10,6 +10,7 @@
 #include "grain.h"
 #include "buffer.h"
 #include "limiter.h"
+#include "onsets.h"
 #include "playhead.h"
 #include "ring.h"
 #include "svf.h"
@@ -40,6 +41,8 @@ class Core
     // Voices. All sounding, a new grain is dropped and counted: the neck
     // clogs. Grains keep their size.
     static constexpr size_t kNumVoices = 32;
+    // Slices of the selection, each held one its own playhead
+    static constexpr size_t kNumSlices = Onsets::kNumSlices;
     // the furthest Params.rand_pitch takes a grain's pitch, either way
     static constexpr float kRandPitchSemitones = 12.0f;
     // the quietest Params.rand_gain takes a grain
@@ -140,6 +143,13 @@ class Core
         // others: level down to kRandGainDb, send from none to all
         float rand_gain = 0.0f;
         float rand_send = 0.0f;
+        // Slices of the selection, 0..1 of it. Each held one plays its own
+        // span from its start, round it, at speed and density, a grain at
+        // once. At no density: two grains at once, regular, the slice as it
+        // is. While any is held the selection's playhead waits.
+        std::array<float, kNumSlices> slice_start{};
+        std::array<float, kNumSlices> slice_length{};
+        uint32_t                      slices_held = 0; // bit i: slice i
     };
 
     // ring: ring_size floats. buffers: kNumBuffers of buffer_size floats, the
@@ -291,16 +301,17 @@ class Core
 
     // Grains. Running positions in double: float steps reach 1/32 sample at 8
     // s.
-    std::array<Grain, kNumVoices> grains_;
-    Playhead                      playhead_;
-    Schedule                      schedule_;
+    std::array<Grain, kNumVoices>    grains_;
+    Playhead                         playhead_;
+    Schedule                         schedule_;
+    std::array<Playhead, kNumSlices> slice_heads_;
+    std::array<Schedule, kNumSlices> slice_schedules_;
+    uint32_t                         slices_held_ = 0; // at the last block
 
     bool               restart_ = false; // a new recording: from the top
     std::atomic<float> scrub_{0.0f};
     std::atomic<float> jump_{-1.0f}; // none below 0
-    uint32_t           seed_ = 1;
-    // The selection's length in samples at the last block: a new length keeps
-    // the playhead where it is in the recording
+    uint32_t           seed_     = 1;
     float              grain_ms_ = 0.0f;
     std::atomic<float> grain_level_{0.0f};
 

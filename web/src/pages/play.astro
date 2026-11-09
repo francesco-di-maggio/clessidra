@@ -9,7 +9,6 @@ import "../styles/play.css";
 
   <div class="instrument">
     <section class="tile transport" aria-label="Source and levels">
-      <span class="label name">Source</span>
       <button id="start" class="control primary" type="button">Start</button>
       <div id="input" class="segmented" role="group" aria-label="Input">
         <button type="button" data-input="demo" aria-pressed="true">Demo</button>
@@ -20,15 +19,17 @@ import "../styles/play.css";
       <div id="levels" class="levels" aria-label="Input and output level, browser only"></div>
     </section>
 
+    <section id="rec" class="tile side" aria-label="Record"></section>
+
     <section class="tile input" aria-label="The input">
-      <span class="label name">Input</span>
       <canvas id="incoming" role="img" aria-label="The input over the last 8 s, the part being recorded in orange"></canvas>
       <span id="monitor" class="figure on"></span>
     </section>
 
+    <section id="shift" class="tile side" aria-label="Shift"></section>
+
     <section class="tile sound" aria-label="The recording">
       <div class="bar">
-        <span class="label">Recording</span>
         <span class="figures"><span id="grain-figure" class="figure" title="Grain size, grains sounding of the voices">100 ms · 0/32</span><span id="held" class="figure">Empty</span></span>
       </div>
       <canvas id="buffer" role="img" aria-label="The recording: the loop, its slices, a click on one plays it, the playhead, the reach of Random position, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
@@ -49,8 +50,9 @@ import "../styles/play.css";
 
     <section id="density" class="tile fader" aria-label="Density"></section>
 
-    <section class="tile pads" aria-label="The pads: Rec, Shift, Stop, Reset and Cue. The slices are in the recording.">
-      <div id="functions" class="functions"></div>
+    <section class="tile pads" aria-label="The pads: Stop, Reset and Cue, then the slices">
+      <div id="functions" class="pad-row functions"></div>
+      <div id="slices" class="pad-row slices"></div>
     </section>
   </div>
 </Base>

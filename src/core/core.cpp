@@ -75,22 +75,62 @@ void Core::Process(const float* const* in, float** out, size_t size)
 
     const size_t block = std::min(size, kMaxBlock);
 
+    // Slices: each newly held one from its start, a grain at once. At no
+    // density, two grains at once, regular: the slice as it is.
+    const bool   slicing      = p.slices_held != 0;
+    const bool   slice_random = density > 0.0f && p.random_starts;
+    const double slice_density
+        = density > 0.0f ? double(density) : 2.0 * sample_rate_ / grain_samples;
+    for(size_t s = 0; s < kNumSlices; s++)
+    {
+        const uint32_t bit = 1u << s;
+        if((p.slices_held & bit) && !(slices_held_ & bit))
+        {
+            slice_heads_[s].Restart(p.speed < 0.0f);
+            slice_schedules_[s].phase = slice_schedules_[s].next;
+        }
+    }
+    slices_held_ = p.slices_held;
+
     // Grain starts in this block, at the sample they fall on. A voice that ends
     // in this block is free from the next.
     for(size_t i = 0; i < size && len > 0.0; i++)
     {
         // Through the selection, as End sets at its edges. Run out: no grains
-        // but one at once.
-        playhead_.Advance(play_inc, p.end);
-        const double phase = playhead_.Phase();
-        const bool   due   = !playhead_.Ended()
-                         && Due(schedule_,
-                                density * tape_ / sample_rate_,
-                                p.random_starts);
-        if(due || (now && i == 0))
+        // but one at once. Waiting while slices play.
+        if(!slicing)
         {
-            const bool reverse = (p.speed < 0.0f) != (playhead_.Heading() < 0);
-            StartGrain(p, {sel_start, sel_len, phase, reverse}, &sound, i);
+            playhead_.Advance(play_inc, p.end);
+            const double phase = playhead_.Phase();
+            const bool   due   = !playhead_.Ended()
+                             && Due(schedule_,
+                                    density * tape_ / sample_rate_,
+                                    p.random_starts);
+            if(due || (now && i == 0))
+            {
+                const bool reverse
+                    = (p.speed < 0.0f) != (playhead_.Heading() < 0);
+                StartGrain(p, {sel_start, sel_len, phase, reverse}, &sound, i);
+            }
+        }
+        for(size_t s = 0; s < kNumSlices && slicing; s++)
+        {
+            if(!(p.slices_held & (1u << s)))
+                continue;
+            const double span = std::max(p.slice_length[s] * sel_len, 1.0);
+            Playhead&    head = slice_heads_[s];
+            head.Advance(p.freeze ? 0.0 : p.speed * double(tape_) / span,
+                         End::Loop);
+            if(Due(slice_schedules_[s],
+                   slice_density * tape_ / sample_rate_,
+                   slice_random))
+                StartGrain(p,
+                           {sel_start + p.slice_start[s] * sel_len,
+                            span,
+                            head.Phase(),
+                            p.speed < 0.0f},
+                           &sound,
+                           i);
         }
     }
 

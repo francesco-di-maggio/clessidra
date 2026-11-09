@@ -100,9 +100,8 @@ class CoreUI
     // The knobs' values on both layers. Frozen, S36 scrubs instead.
     void Knobs(const Controls& c, bool frozen);
     void Record(const Controls& c, Core& core, Core::Params& p);
-    // The slices of the loop, at the recording's onsets. True while one is
-    // held.
-    bool Slices(const Controls& c, Core& core, float start, float length);
+    // The slices of the loop, at the recording's onsets, and those held
+    void Slices(const Controls& c, const Core& core, Core::Params& p);
     void Scrub(float fader, bool frozen, Core& core);
     void Reset(const Controls& c);
     // P00 Stop, P02 Cue
@@ -117,15 +116,16 @@ class CoreUI
     // S36 when it last scrubbed
     float scrub_from_ = 0.0f;
     // P10: touched, recording, or listening with Shift
-    bool                          record_touched_ = false;
-    bool                          listening_      = false;
-    bool                          record_         = false;
-    uint32_t                      rec_since_      = 0; // ms
-    bool                          reset_touched_  = false;
-    bool                          stop_touched_   = false;
-    bool                          stop_           = false;
-    bool                          cue_touched_    = false;
-    std::array<bool, kNumSlices>  slices_touched_{};
+    bool     record_touched_ = false;
+    bool     listening_      = false;
+    bool     record_         = false;
+    uint32_t rec_since_      = 0; // ms
+    bool     reset_touched_  = false;
+    bool     stop_touched_   = false;
+    bool     stop_           = false;
+    bool     cue_touched_    = false;
+    // Touched through a new recording: silent until let go
+    std::array<bool, kNumSlices>  slices_stale_{};
     Onsets                        onsets_;
     uint32_t                      analysed_ = 0; // Core::Recordings() then
     std::array<float, kNumSlices> slice_starts_{};

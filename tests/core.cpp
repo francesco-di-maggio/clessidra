@@ -593,6 +593,27 @@ size_t Starts(Rig& r, double seconds)
     return n;
 }
 
+// Where each grain starting over seconds reads, 0..1 of the recording
+std::vector<double> StartsAt(Rig& r, double seconds)
+{
+    std::vector<double>                  at;
+    std::array<double, Core::kNumVoices> last{};
+    last.fill(2.0);
+    r.Run(seconds, Silence, [&](size_t) {
+        const auto& grains = r.core.Grains();
+        for(size_t i = 0; i < grains.size(); i++)
+        {
+            const double now
+                = grains[i].IsActive() ? grains[i].Progress() : 2.0;
+            if(grains[i].IsActive() && now < last[i])
+                at.push_back(grains[i].Settings().position
+                             / double(r.core.SoundSamples()));
+            last[i] = now;
+        }
+    });
+    return at;
+}
+
 // End: the sand runs out and stops, turns the glass over, or starts again.
 // Speed the other way, a glass run out runs back. A jump: a
 // grain at once, whatever the density.
@@ -1398,38 +1419,70 @@ void Mapping()
 
     // The LED glows with the grains, dimmer as the sand runs out
     c.knobs[Controls::S37] = 1.0f;
-    press(CoreUI::kSlicePads[0], true);
-    press(CoreUI::kSlicePads[0], false);
+    press(CoreUI::kCuePad, true);
+    press(CoreUI::kCuePad, false);
     r.Run(0.1, Silence);
     const float full = ui.Led(100000, r.core);
     r.Run(0.8, Silence);
     const float less = ui.Led(100000, r.core);
     Check(full > 0.0f && less < full, "LED: dims as the sand runs out", less);
 
-    // P03-P09, the slices: the loop in sevenths, left to right. A touch:
-    // there with a grain at once. Held: stays there. Released: runs on.
+    // P03-P09, the slices, left to right. Each held one plays its own slice,
+    // the loop's playhead waiting. No density: the slice as it is, two grains
+    // at once.
+    const auto& starts = ui.SliceStarts();
+    const auto  span   = [&](size_t i) {
+        const double to = i + 1 < starts.size() ? starts[i + 1] : 1.0;
+        return std::pair<double, double>(starts[i], to);
+    };
+    const auto inside = [&](const std::vector<double>&    at,
+                            std::initializer_list<size_t> held) {
+        for(double x : at)
+        {
+            bool in = false;
+            for(size_t i : held)
+                in = in
+                     || (x >= span(i).first - 1e-3
+                         && x <= span(i).second + 0.01);
+            if(!in)
+                return false;
+        }
+        return !at.empty();
+    };
     c.knobs[Controls::S37] = 0.5f;
     ui.Process(c, r.core);
     r.Run(0.5, Silence);
+    const double waiting = r.core.PlayheadPhase();
     press(CoreUI::kSlicePads[3], true);
-    const size_t one = Starts(r, 0.1);
-    Check(one == 1 && Near(r.core.PlayheadPhase(), ui.SliceStarts()[3], 1e-3),
-          "slice 4 at no density: one grain, at its start",
+    const auto four = StartsAt(r, 0.2);
+    Check(four.size() >= 4 && inside(four, {3}),
+          "slice 4 held, no density: a stream, all inside slice 4",
+          double(four.size()));
+    Check(r.core.PlayheadPhase() == waiting,
+          "slice 4 held: the loop's playhead waits",
           r.core.PlayheadPhase());
     press(CoreUI::kSlicePads[3], false);
+    r.Run(0.3, Silence); // the slice's grains end
     const size_t none = Starts(r, 0.1);
-    Check(none == 0, "slice 4 released, no density: no more grains", none);
+    Check(none == 0, "slice 4 released, no density: the loop rests", none);
     c.knobs[Controls::S37] = 0.75f;
-    press(CoreUI::kSlicePads[6], true);
-    r.Run(0.3, Silence);
-    const double seventh = ui.SliceStarts()[6];
-    Check(Near(r.core.PlayheadPhase(), seventh, 1e-3),
-          "slice 7 held: the playhead stays at its start",
-          r.core.PlayheadPhase());
-    press(CoreUI::kSlicePads[6], false);
+    press(CoreUI::kSlicePads[1], true);
+    press(CoreUI::kSlicePads[5], true);
+    const auto both = StartsAt(r, 0.3);
+    bool       two = false, six = false;
+    for(double x : both)
+    {
+        two = two || inside({x}, {1});
+        six = six || inside({x}, {5});
+    }
+    Check(two && six && inside(both, {1, 5}),
+          "slices 2 and 6 held: both play, nothing else",
+          double(both.size()));
+    press(CoreUI::kSlicePads[1], false);
+    press(CoreUI::kSlicePads[5], false);
     r.Run(0.1, Silence);
-    Check(r.core.PlayheadPhase() > seventh,
-          "slice 7 released: runs on from there",
+    Check(r.core.PlayheadPhase() != waiting,
+          "slices released: the loop runs on",
           r.core.PlayheadPhase());
 
     // P00: stop as a tape machine, slowing to a halt, then back. P02: from

@@ -75,17 +75,18 @@ for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), 
 
 add(toggle(byId("S09"), $("s09"), [[POSITION.up, "FWD"], [POSITION.centre, "FRZ"], [POSITION.down, "REV"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.up, "OCT"], [POSITION.centre, "SEMI"], [POSITION.down, "OFF"]], on));
-// The slices in the recording: a press on one is a touch of its pad, shown
-// there
-SLICE_PADS.forEach((index, i) => add({ c: padOf(index), root: document.createElement("span"), draw: (p) => waveform.hold(i, p) }));
+// Rec and Shift beside the input, as at the top of the board. Stop, Reset and
+// Cue, then the slices, under the knobs. A slice held is tinted in the
+// recording, and a press there is a touch of its pad.
+add(pad(byId("P10"), $("rec"), "Rec", on)).root.classList.add("rec");
+add(pad(byId("P11"), $("shift"), "Shift", on));
+for (const [id, label] of [["P00", "Stop"], ["P01", "Reset"], ["P02", "Cue"]]) add(pad(byId(id), $("functions"), label, on));
+SLICE_PADS.forEach((index, i) => {
+  const w = add(pad(padOf(index), $("slices"), `${i + 1}`, on));
+  const draw = w.draw;
+  w.draw = (p) => (draw(p), waveform.hold(i, p));
+});
 waveform.onSlice = (i, down, e) => press(padOf(SLICE_PADS[i]), down, e);
-// The board's upper pads in a row
-const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "Stop"], ["P01", "Reset"], ["P02", "Cue"]];
-for (const [id, label] of FUNCTIONS) {
-  const w = add(pad(byId(id), $("functions"), label, on));
-  if (w.c.free) w.root.classList.add("free");
-  if (id === "P10") w.root.classList.add("rec");
-}
 
 // Every control at its starting value, sent to the firmware
 for (const w of parts.values()) {
@@ -237,6 +238,7 @@ function show() {
     if (w.c.twin) {
       w.label?.(twin ? (twin.short ?? twin.name) : scrub ? "Scrub" : (w.c.short ?? w.c.name));
       w.root.classList.toggle("twin", !!twin);
+      w.centred?.(twin ? !!twin.bipolar : !!w.c.bipolar);
     }
   }
   parts.get("P00")?.root.classList.toggle("latched", last.params[PARAM.stop] === 1);

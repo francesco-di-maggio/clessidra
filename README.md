@@ -28,7 +28,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | P00 | Stop, as a tape machine: everything slows to a halt over 0.6 s, the pitch falling. Touch again to start | |
 | P01 | Reset: the twins back to their defaults | |
 | P02 | Cue: back to the start of the loop, with a grain at once | |
-| P03–P09 | Slices: the loop in seven, its start then the recording's strongest attacks inside it (even parts without attacks), left to right on the board (P03, P04, P08, P05, P09, P06, P07). On the page, a click on the waveform. A touch: the playhead there, a grain at once, the beat from it. Held: it stays there | |
+| P03–P09 | Slices: the loop in seven, its start then the recording's strongest attacks inside it (even parts without attacks), left to right on the board (P03, P04, P08, P05, P09, P06, P07). Held: plays its slice from the start, round it, at Speed and Density, forward, frozen at its start or reverse as S09 sets, a grain at once. Several at once. The loop waits while any is held, a new recording ends them. At Density's centre: two grains at once, regular, the slice as it is. On the page, also a press on the waveform | |
 
 | LED | |
 |---|---|
@@ -39,8 +39,8 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 
 | To play | Set |
 |---|---|
-| Rhythm | Density below the centre, Shape up, Size short. Tap the slices: each restarts the beat |
-| Drums by hand | Density at the centre: each slice plays one grain |
+| Rhythm | Density below the centre, Shape up, Size short. Hold the slices: each its own pulse |
+| Drums by hand | Density at the centre, Shape up: tap the slices, several at once |
 | Cloud | Density at the top, Random position up, Size long, Reverb (P11 + S37) up |
 | Stretch | Speed at ¼ or ½, Density up. S09 down to hear it backwards |
 | A moment held | S09 at the centre, Density up, a little Random position. Speed scrubs the point |

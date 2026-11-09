@@ -146,7 +146,7 @@ export class Waveform {
     this.band = [top, bottom];
     this.spans.forEach(([s0, s1], i) => {
       if (!this.held[i]) return;
-      ctx.fillStyle = withAlpha(c.accent, 0.15 + 0.2 * this.held[i]);
+      ctx.fillStyle = withAlpha(c.accent, 0.08 + 0.1 * this.held[i]);
       ctx.fillRect(s0, top, s1 - s0, bottom - top);
     });
     ctx.strokeStyle = c.line;

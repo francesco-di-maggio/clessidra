@@ -94,13 +94,12 @@ void CoreUI::Process(const Controls& c, Core& core)
         = std::max(own(Controls::S35) * (1.0f - p.start), Core::kMinLength);
 
     // S36, Speed: the time stretched, the grains' pitch their own. Frozen, it
-    // scrubs through the loop instead, and takes the speed up again after. A
-    // slice held freezes too.
+    // scrubs through the loop instead, and takes the speed up again after.
     const float speed = Stops(0.5f + 0.5f * own(Controls::S36), kSpeeds);
-    const bool  slice = Slices(c, core, p.start, p.length);
-    p.speed           = mode == Controls::Down ? -speed : speed;
-    p.freeze          = frozen || slice || speed == 0.0f;
-    p.end             = End::Loop;
+    Slices(c, core, p);
+    p.speed  = mode == Controls::Down ? -speed : speed;
+    p.freeze = frozen || speed == 0.0f;
+    p.end    = End::Loop;
 
     // S31, Size: kMinGrainMs to kMaxGrainMs, exponential, 100 ms at the
     // centre, up to half the recording. Shift: its randomness.
@@ -262,27 +261,27 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
 }
 
 // P03-P09: the loop in slices, left to right, each from an onset of the
-// recording. A touch jumps the playhead to its slice with a grain at once, the
-// starts counted from it.
-bool CoreUI::Slices(const Controls& c, Core& core, float start, float length)
+// recording. Each held one plays its slice. A new recording ends those held.
+void CoreUI::Slices(const Controls& c, const Core& core, Core::Params& p)
 {
-    if(core.Recordings() != analysed_)
+    const bool fresh = core.Recordings() != analysed_;
+    if(fresh)
     {
         analysed_ = core.Recordings();
         onsets_.Find(
             core.Sound().Samples(), core.SoundSamples(), float(kSampleRateHz));
     }
-    slice_starts_ = onsets_.Slices(start, length);
-    bool held     = false;
+    slice_starts_ = onsets_.Slices(p.start, p.length);
     for(size_t i = 0; i < kNumSlices; i++)
     {
         const bool touched = c.touched[kSlicePads[i]];
-        if(touched && !slices_touched_[i])
-            core.Jump(slice_starts_[i]);
-        slices_touched_[i] = touched;
-        held               = held || touched;
+        slices_stale_[i]   = touched && (fresh || slices_stale_[i]);
+        const float end    = i + 1 < kNumSlices ? slice_starts_[i + 1] : 1.0f;
+        p.slice_start[i]   = slice_starts_[i];
+        p.slice_length[i]  = std::max(end - slice_starts_[i], 0.0f);
+        if(touched && !slices_stale_[i])
+            p.slices_held |= 1u << i;
     }
-    return held;
 }
 
 // Reaching a detent, or turning within it: a pulse

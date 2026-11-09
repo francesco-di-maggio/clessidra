@@ -17,6 +17,7 @@ export interface State {
 export interface Twin {
   name: string;
   short?: string; // where room is short
+  bipolar?: boolean; // drawn from its centre
   does: string;
   value: (p: Float32Array) => string;
 }
@@ -119,7 +120,7 @@ export const CONTROLS: Control[] = [
       return s === 0.5 ? "Hann" : s < 0.5 ? `Rev ${percent(1 - 2 * s)}` : `Perc ${percent(2 * s - 1)}`;
     },
     twin: {
-      name: "Filter", does: "Low-pass below the centre, off at the centre, high-pass above.",
+      name: "Filter", bipolar: true, does: "Low-pass below the centre, off at the centre, high-pass above.",
       value: (p) => {
         const f = p[PARAM.filter];
         return f === 0 ? "Off" : f < 0 ? `LP ${percent(-f)}` : `HP ${percent(f)}`;
@@ -160,7 +161,7 @@ export const CONTROLS: Control[] = [
   },
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
-    does: `Jump to the ${["first", "second", "third", "fourth", "fifth", "sixth", "seventh"][i]} attack in the loop. Hold to stay there.`,
+    does: "Held: plays its slice, round it, in the direction set. Several at once. The loop waits.",
   })),
 ];
 
