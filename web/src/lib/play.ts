@@ -82,13 +82,13 @@ for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), 
 add(toggle(byId("S09"), $("s09"), [[POSITION.up, "Forward"], [POSITION.centre, "Freeze"], [POSITION.down, "Reverse"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.up, "Oct"], [POSITION.centre, "Semi"], [POSITION.down, "Off"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
-// Rec in the source bar, where playing begins; the other upper pads over the
-// slices
-add(pad(byId("P10"), $("rec"), "Rec", on)).root.classList.add("rec");
-const FUNCTIONS: [string, string][] = [["P11", "Shift"], ["P00", "Stop"], ["P01", "Reset"], ["P02", "Retrig"]];
+// The pads in the board's order: Rec and Shift, then Stop, Reset and Cue, over
+// the slices
+const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "Stop"], ["P01", "Reset"], ["P02", "Cue"]];
 for (const [id, label] of FUNCTIONS) {
   const w = add(pad(byId(id), $("functions"), label, on));
   if (w.c.free) w.root.classList.add("free");
+  if (id === "P10") w.root.classList.add("rec");
 }
 
 // Every control at its starting value, sent to the firmware

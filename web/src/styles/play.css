@@ -28,8 +28,7 @@ body.app main { flex: 1; min-height: 0; }
 .transport .name { width: 56px; flex: none; }
 .transport .control.primary { width: 88px; height: 32px; flex: none; justify-content: center; color: var(--bg); }
 .transport .control.primary.on { background: none; color: var(--ink); border-color: var(--line); }
-.transport .segmented { width: 168px; height: 32px; flex: none; }
-.rec-cell { width: 72px; height: 32px; flex: none; }
+.transport .segmented { width: 184px; height: 32px; flex: none; }
 .levels { flex: 1; display: flex; gap: 16px; min-width: 0; }
 .slider { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; outline: none; touch-action: none; cursor: ew-resize; }
 .slider .label { flex: none; }
@@ -97,7 +96,7 @@ body.app main { flex: 1; min-height: 0; }
 /* The pads under the knobs: the board's upper pads, then the slices, square */
 .pads { grid-area: pads; display: grid; gap: var(--unit); padding: 12px; }
 .pad-row { display: grid; gap: var(--unit); }
-.functions { grid-template-columns: repeat(4, minmax(0, 1fr)); height: 28px; }
+.functions { grid-template-columns: repeat(5, minmax(0, 1fr)); height: 28px; }
 .slices { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .pad { display: grid; place-content: center; width: 100%; height: 100%; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink);
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }

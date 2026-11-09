@@ -85,11 +85,12 @@ void CoreUI::Process(const Controls& c, Core& core)
     const auto own  = [this](Controls::Knob k) { return own_[k].Value(); };
     const auto twin = [this](Controls::Knob k) { return twin_[k].Value(); };
 
-    // S35, Length: how long the loop is. S30, Position: where it sits, through
-    // the room the length leaves: at the bottom from the recording's start, at
-    // the top up to its end.
-    p.length = std::max(own(Controls::S35), Core::kMinLength);
-    p.start  = own(Controls::S30) * (1.0f - p.length);
+    // S30, Position: where the loop starts, anywhere in the recording. S35,
+    // Length: a share of what is left after it, at the top to the recording's
+    // end. Both always alive, nothing wraps.
+    p.start = std::min(own(Controls::S30), 1.0f - Core::kMinLength);
+    p.length
+        = std::max(own(Controls::S35) * (1.0f - p.start), Core::kMinLength);
 
     // S36, Speed: the time stretched, the grains' pitch their own. Frozen, it
     // scrubs through the loop instead, and takes the speed up again after. A
@@ -209,8 +210,8 @@ void CoreUI::Scrub(float fader, bool frozen, Core& core)
 }
 
 // P00: stop as a tape machine, everything slowing to a halt, then a touch
-// to start again. P02: the playhead back to the loop's start, its end in
-// reverse, with a grain at once.
+// to start again. P02, Cue: the playhead back to the loop's start, its end
+// in reverse, with a grain at once.
 void CoreUI::Transport(const Controls& c, Core& core, Core::Params& p)
 {
     const bool stop = c.touched[kStopPad];
@@ -219,10 +220,10 @@ void CoreUI::Transport(const Controls& c, Core& core, Core::Params& p)
     stop_touched_ = stop;
     p.stop        = stop_;
 
-    const bool retrig = c.touched[kRetrigPad];
-    if(retrig && !retrig_touched_)
+    const bool cue = c.touched[kCuePad];
+    if(cue && !cue_touched_)
         core.Jump(p.speed < 0.0f ? 1.0f : 0.0f);
-    retrig_touched_ = retrig;
+    cue_touched_ = cue;
 }
 
 // P11 with P01: the second layer's values back to their defaults

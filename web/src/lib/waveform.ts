@@ -1,8 +1,8 @@
-// The buffer: the recording playing, the selection the playhead moves through,
+// The recording view: the recording playing, the loop the playhead moves through,
 // and every grain at the point it reads, as high as its pitch and as big as its
 // size. Laid out to the canvas's size.
 
-import { GRAIN_FIELDS, PARAM, RATE, VIEW, type Frame } from "./engine";
+import { GRAIN_FIELDS, RATE, VIEW, type Frame } from "./engine";
 
 
 const PITCH_RANGE = 36; // semitones: Pitch's ±24 and Random pitch's ±12
@@ -137,16 +137,6 @@ export class Waveform {
     ctx.lineTo(px + 4, top - 6);
     ctx.lineTo(px, top);
     ctx.fill();
-
-    // A grain to scale: a shadow from the playhead, as far as one reads,
-    // the way it reads, fading
-    const span = (((f.params[PARAM.grainMs] / 1000) * RATE * 2 ** (f.params[PARAM.pitch] / 12)) / sound) * width;
-    const dir = f.params[PARAM.speed] < 0 ? -1 : 1;
-    const shade = ctx.createLinearGradient(px, 0, px + dir * span, 0);
-    shade.addColorStop(0, withAlpha(c.accent, 0.22));
-    shade.addColorStop(1, withAlpha(c.accent, 0));
-    ctx.fillStyle = shade;
-    ctx.fillRect(Math.min(px, px + dir * span), top, span, bottom - top);
 
     // Grains over the waveform where they read, as high as their pitch (the
     // centre unison, the edges PITCH_RANGE either way), as big as their size,

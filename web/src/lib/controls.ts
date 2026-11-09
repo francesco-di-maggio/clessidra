@@ -3,7 +3,7 @@
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Mapping and the panel drawing read them.
 
-import { PARAM, RATE, RECORD_PAD, RESET_PAD, RETRIG_PAD, SHIFT_PAD, SLICE_PADS, STOP_PAD } from "./engine";
+import { CUE_PAD, PARAM, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, STOP_PAD } from "./engine";
 
 export const POSITION = { centre: 0, up: 1, down: 2 } as const; // libDaisy's Switch3
 
@@ -86,12 +86,12 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
-    does: "Where the loop sits, from the recording's start to its end.",
+    does: "Where the loop starts, anywhere in the recording.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
-    does: "How long the loop is, from a sliver to the whole recording.",
+    does: "How much of the rest the loop takes: at the top, to the end.",
     value: (p, v) => seconds(p[PARAM.length] * v.sound),
   },
   {
@@ -155,7 +155,7 @@ export const CONTROLS: Control[] = [
     value: (p) => (p[PARAM.stop] ? "Stopped" : ""),
   },
   {
-    id: "P02", type: "pad", index: RETRIG_PAD, ...padAt(RETRIG_PAD), name: "Retrig",
+    id: "P02", type: "pad", index: CUE_PAD, ...padAt(CUE_PAD), name: "Cue",
     does: "Back to the start of the loop, with a grain at once.",
   },
   ...SLICE_PADS.map((index, i): Control => ({

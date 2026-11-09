@@ -23,8 +23,8 @@ class CoreUI
     static constexpr size_t kStopPad
         = 0; // a touch: stop as a tape machine, or start
     static constexpr size_t kResetPad = 1; // with Shift: the twins reset
-    static constexpr size_t kRetrigPad
-        = 2; // the playhead back to the loop's start
+    static constexpr size_t kCuePad
+        = 2; // cue: the playhead back to the loop's start
     static constexpr size_t kRecordPad = 10; // tap or hold. With Shift: listen
     static constexpr size_t kShiftPad  = 11; // held: the second layer
     static constexpr size_t kNumSlices = Onsets::kNumSlices;
@@ -105,7 +105,7 @@ class CoreUI
     bool Slices(const Controls& c, Core& core, float start, float length);
     void Scrub(float fader, bool frozen, Core& core);
     void Reset(const Controls& c);
-    // P00 Stop, P02 Retrig
+    // P00 Stop, P02 Cue
     void Transport(const Controls& c, Core& core, Core::Params& p);
     void Pulse(const Controls& c, const std::array<bool, kNumDetents>& at);
 
@@ -124,7 +124,7 @@ class CoreUI
     bool                          reset_touched_  = false;
     bool                          stop_touched_   = false;
     bool                          stop_           = false;
-    bool                          retrig_touched_ = false;
+    bool                          cue_touched_    = false;
     std::array<bool, kNumSlices>  slices_touched_{};
     Onsets                        onsets_;
     uint32_t                      analysed_ = 0; // Core::Recordings() then

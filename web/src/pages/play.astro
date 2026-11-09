@@ -17,7 +17,6 @@ import "../styles/play.css";
         <button type="button" data-input="file" aria-pressed="false">File</button>
       </div>
       <input id="file" type="file" accept="audio/*" hidden>
-      <div id="rec" class="rec-cell"></div>
       <div id="levels" class="levels" aria-label="Input and output level, browser only"></div>
     </section>
 
@@ -49,8 +48,10 @@ import "../styles/play.css";
 
     <section id="density" class="tile fader" aria-label="Density"></section>
 
-    <section class="tile view grain" aria-label="A grain's envelope at its size">
-      <canvas id="grain-shape" role="img" aria-label="One grain's envelope as Shape and Size set it, faint the lengths Random size reaches"></canvas>
+
+
+    <section class="tile view grain" aria-label="Grains relative to their size: their shape, how many overlap, regular or scattered">
+      <canvas id="grain-shape" role="img" aria-label="Grains as Size, Shape and Density set them, regular or scattered, over a short timeline"></canvas>
     </section>
 
     <section class="tile pads" aria-label="The 12 pads">
@@ -61,7 +62,6 @@ import "../styles/play.css";
     <section class="tile view glass" aria-label="The hourglass">
       <canvas id="hourglass" role="img" aria-label="The loop as an hourglass: the sand left above, the grains falling, on its side when frozen, upside down in reverse"></canvas>
     </section>
-
   </div>
 </Base>
 

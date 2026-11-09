@@ -1187,20 +1187,18 @@ void Mapping()
           "S30 bottom, S35 top: the whole recording",
           p.length);
 
-    // S35 half: S30 moves the half through the recording, no dead range
+    // S30 anywhere, S35 a share of what is left after it: both always alive
+    c.knobs[Controls::S30] = 0.5f;
     c.knobs[Controls::S35] = 0.5f;
-    const auto from        = [&](float position) {
-        c.knobs[Controls::S30] = position;
-        ui.Process(c, r.core);
-        return p.start;
-    };
-    const float first = from(0.0f), middle = from(0.5f), last = from(1.0f);
-    Check(first == 0.0f && Near(middle, 0.25, 1e-6) && Near(last, 0.5, 1e-6)
-              && p.length == 0.5f,
-          "S35 half, S30 bottom to top: from the start to ending at the end",
-          last);
-    c.knobs[Controls::S30] = 0.0f;
+    ui.Process(c, r.core);
+    const float half_rest  = p.length;
     c.knobs[Controls::S35] = 1.0f;
+    ui.Process(c, r.core);
+    Check(p.start == 0.5f && Near(half_rest, 0.25, 1e-6)
+              && Near(p.length, 0.5, 1e-6),
+          "S30 middle: S35 half is half the rest, S35 top to the end",
+          half_rest);
+    c.knobs[Controls::S30] = 0.0f;
     ui.Process(c, r.core);
 
     // S37, Density: none at the centre, regular below, random above, 1/16 to
@@ -1483,12 +1481,12 @@ void Mapping()
           "P00: stopped as a tape machine, then started again (rms)",
           stopped / playing);
     r.Run(0.3, Silence);
-    press(CoreUI::kRetrigPad, true);
+    press(CoreUI::kCuePad, true);
     r.Run(0.001, Silence);
     Check(r.core.PlayheadPhase() < 0.01,
-          "P02: the playhead from the loop's start",
+          "P02 Cue: the playhead from the loop's start",
           r.core.PlayheadPhase());
-    press(CoreUI::kRetrigPad, false);
+    press(CoreUI::kCuePad, false);
     press(CoreUI::kShiftPad, true);
     press(CoreUI::kResetPad, true);
     press(CoreUI::kResetPad, false);

@@ -1,9 +1,13 @@
-// The grain tile: one grain's envelope as Shape and Size set it, its length
-// on a log axis from the shortest grain to the longest. Faint: the lengths
-// Random size reaches.
+// The grain tile: the texture of the grains, drawn relative to their size (the
+// size itself is the Recording header's figure). Each grain its envelope, as
+// Shape sets it; as many overlapping as Density sounds at once, evenly spaced
+// when regular, scattered when random; their widths varied by Random size.
+// None at Density's centre: one grain, faint.
 
 import { PARAM } from "./engine";
 import { windowAt } from "./waveform";
+
+const MOST = 48; // grains drawn at most
 
 export class GrainShape {
   private ctx: CanvasRenderingContext2D;
@@ -30,37 +34,49 @@ export class GrainShape {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     const css = getComputedStyle(document.documentElement);
+    const ink = css.getPropertyValue("--ink");
+    const accent = css.getPropertyValue("--accent");
 
-    // Size on a log axis, as the knob sets it
-    const min = p[PARAM.minGrainMs];
-    const max = Math.max(p[PARAM.maxGrainMs], min * 1.01);
-    const at = (ms: number) => Math.min(Math.max(Math.log(ms / min) / Math.log(max / min), 0), 1);
-    const used = p[PARAM.grainMs];
+    const size = p[PARAM.grainMs] / 1000; // s
+    const density = p[PARAM.density]; // grains per second
     const shape = p[PARAM.shape];
-    const octaves = Math.log2(max / min);
+    const octaves = Math.log2(Math.max(p[PARAM.maxGrainMs], p[PARAM.minGrainMs] * 1.01) / p[PARAM.minGrainMs]);
     const reach = Math.min(Math.max(Math.sqrt(4 * p[PARAM.randSize]), 0), 1) * 0.25 * octaves;
-    const envelope = (ms: number) => {
-      const right = 2 + at(ms) * (W - 4);
-      ctx.beginPath();
-      ctx.moveTo(2, H - 1);
-      for (let x = 2; x <= right; x++) ctx.lineTo(x, H - 1 - windowAt((x - 2) / Math.max(right - 2, 1), shape) * (H - 3));
-      ctx.lineTo(right, H - 1);
-    };
-    ctx.lineWidth = 1;
-    if (reach > 0) {
-      ctx.strokeStyle = css.getPropertyValue("--line");
-      for (const ms of [used / 2 ** reach, used * 2 ** reach]) {
-        envelope(Math.min(Math.max(ms, min), max));
-        ctx.stroke();
+
+    // The same scatter every frame: it changes with the settings, not by itself
+    let seed = 7;
+    const random = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff) * 2 - 1;
+
+    // Long enough for four grains' length, or three starts when sparse
+    const span = density > 0 ? Math.max(4 * size, 3 / density) : 2 * size;
+    const grains: [number, number][] = []; // start, length, s
+    if (density === 0) grains.push([0.5 * size, size]);
+    else {
+      let t = -size;
+      while (t < span && grains.length < MOST) {
+        const length = size * 2 ** (random() * reach);
+        grains.push([t, length]);
+        // Random: nearly exponential intervals of the same mean
+        const gap = p[PARAM.randomStarts] ? -Math.log(Math.max(1e-3, 0.5 + 0.5 * random())) : 1;
+        t += gap / density;
       }
     }
-    envelope(used);
-    ctx.fillStyle = css.getPropertyValue("--accent");
-    ctx.globalAlpha = 0.14;
-    ctx.fill();
+
+    const x = (t: number) => (t / span) * W;
+    const floor = H - 1;
+    for (const [start, length] of grains) {
+      ctx.beginPath();
+      ctx.moveTo(x(start), floor);
+      for (let k = 0; k <= 32; k++) ctx.lineTo(x(start + (k / 32) * length), floor - windowAt(k / 32, shape) * (H - 3));
+      ctx.lineTo(x(start + length), floor);
+      ctx.globalAlpha = 0.1;
+      ctx.fillStyle = accent;
+      ctx.fill();
+      ctx.globalAlpha = density === 0 ? 0.35 : 0.8;
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
     ctx.globalAlpha = 1;
-    ctx.strokeStyle = css.getPropertyValue("--ink");
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
   }
 }
