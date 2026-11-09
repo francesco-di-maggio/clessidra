@@ -9,6 +9,8 @@ body.app main { flex: 1; min-height: 0; }
 /* An instrument: the arrow over every control, as on a desktop app; dragging,
    the drag cursor */
 .instrument button, .instrument .pad { cursor: default; }
+/* Nothing selected by a drag: every control is played, none read as text */
+.instrument { user-select: none; -webkit-user-select: none; }
 .mark .slash { margin: 0 2px; }
 
 .instrument { --in: 14px; --name: 16px; --band: 48px; --radius-control: 8px;
@@ -97,9 +99,9 @@ body.app main { flex: 1; min-height: 0; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
 /* Between Position and Length, one grain as the knobs set it: a name, the
-   grain in the dial's band, the grains sounding as its value */
+   grain in the dial and value lines */
 .knobs .grains { grid-column: span 2; }
-.knobs .grains canvas { width: calc(100% - 16px); height: var(--band); }
+.knobs .grains canvas { width: calc(100% - 16px); height: calc(var(--band) + 6px + var(--name)); }
 
 /* The pads as an octave: the slices white keys, the others black keys on
    their edges, two then three as on a piano. Names at the foot of each key.

@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type State } from "./controls";
-import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { GrainShape } from "./shape";
@@ -50,7 +50,6 @@ const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const monitor = $("monitor");
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainShape = new GrainShape($<HTMLCanvasElement>("grain-shape"));
-const voices = $("voices");
 let last: Frame | null = null;
 
 const parts = new Map<string, Widget>();
@@ -243,7 +242,6 @@ function show() {
     }
   }
   parts.get("P00")?.root.classList.toggle("latched", last.params[PARAM.stop] === 1);
-  monitor.textContent = v.recording ? `● ${v.recording.toFixed(1)} s · heard` : "";
   // Its length is on its scale. Named with it for screen readers and tests.
   $("buffer").setAttribute("aria-label", v.sound ? `Recording, ${(v.sound / RATE).toFixed(1)} s` : "Recording, empty");
 }
@@ -251,7 +249,6 @@ function show() {
 function onMessage(m: FromWorklet) {
   if (m.type === "view") {
     last = m;
-    voices.textContent = `${Math.round(m.grains.length / GRAIN_FIELDS)} / ${VOICES}`;
     outMeter(m.output);
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming);

@@ -86,5 +86,20 @@ export class Incoming {
     ctx.fillText(`−${this.seconds} s`, pad, axis + 9);
     ctx.textAlign = "right";
     ctx.fillText("now", W - pad, axis + 9);
+    // Recording: its time at the centre, the dot flashing as the board's LED
+    // does, 4 Hz
+    if (this.recording > 0) {
+      const text = `${this.recording.toFixed(1)} s`;
+      ctx.textAlign = "left";
+      const w = ctx.measureText(text).width;
+      const x = (W - w) / 2 + 5;
+      ctx.fillStyle = css.getPropertyValue("--accent");
+      ctx.fillText(text, x, axis + 9);
+      if (Math.floor(performance.now() / 125) % 2 === 0) {
+        ctx.beginPath();
+        ctx.arc(x - 8, axis + 9, 3, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    }
   }
 }
