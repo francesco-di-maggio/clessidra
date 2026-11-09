@@ -2,7 +2,7 @@
 // and every grain at the point it reads, as high as its pitch and as big as its
 // size. Laid out to the canvas's size.
 
-import { GRAIN_FIELDS, RATE, VIEW, type Frame } from "./engine";
+import { GRAIN_FIELDS, PARAM, RATE, VIEW, type Frame } from "./engine";
 
 const PITCH_RANGE = 36; // semitones: Pitch's ±24 and Random pitch's ±12
 const SIZE_MIN = 5; // ms, CoreUI::kMinGrainMs
@@ -76,7 +76,7 @@ export class Waveform {
 
     const pad = 14;
     const width = W - 2 * pad;
-    const top = 28; // the status line above
+    const top = 18; // the slices' numbers above
     const axis = H - 14; // seconds
     const bottom = axis - 18;
     const mid = (top + bottom) / 2;
@@ -150,6 +150,23 @@ export class Waveform {
     ctx.lineTo(px + 4, top - 6);
     ctx.lineTo(px, top);
     ctx.fill();
+
+    // A grain to scale: its window from the playhead the way it reads, a
+    // faint orange
+    // A grain reads its size at its pitch
+    const span = (((f.params[PARAM.grainMs] / 1000) * RATE * 2 ** (f.params[PARAM.pitch] / 12)) / sound) * width;
+    const dir = f.params[PARAM.speed] < 0 ? -1 : 1;
+    const shape = f.params[PARAM.shape];
+    ctx.beginPath();
+    ctx.moveTo(px, bottom);
+    for (let t = 0; t <= 1.0001; t += 1 / 48) ctx.lineTo(px + dir * t * span, bottom - windowAt(t, shape) * (bottom - top));
+    ctx.lineTo(px + dir * span, bottom);
+    ctx.closePath();
+    ctx.fillStyle = withAlpha(c.accent, 0.14);
+    ctx.fill();
+    ctx.strokeStyle = withAlpha(c.accent, 0.55);
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
     // Grains over the waveform where they read, as high as their pitch (the
     // centre unison, the edges PITCH_RANGE either way), as big as their size,

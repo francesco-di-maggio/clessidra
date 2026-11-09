@@ -8,8 +8,8 @@ import "../styles/play.css";
   </Fragment>
 
   <div class="instrument">
-    <section class="tile source" aria-label="Source and levels">
-      <span class="label tag">Source</span>
+    <section class="tile transport" aria-label="Source and levels">
+      <span class="label name">Source</span>
       <button id="start" class="control primary" type="button">Start</button>
       <div id="input" class="segmented" role="group" aria-label="Input">
         <button type="button" data-input="demo" aria-pressed="true">Demo</button>
@@ -20,22 +20,17 @@ import "../styles/play.css";
       <div id="levels" class="levels" aria-label="Input and output level, browser only"></div>
     </section>
 
-    <section class="tile incoming" aria-label="Input: what a tap keeps">
-      <span class="label tag">Input</span>
-      <div id="tap" class="segmented tap" role="radiogroup" aria-label="A tap keeps"></div>
+    <section class="tile sound" aria-label="The recording and the input">
+      <div class="bar">
+        <span class="label">Recording</span>
+        <span class="figures"><span id="grain-figure" class="figure" title="Grain size, grains sounding of the voices">100 ms · 0/32</span><span id="held" class="figure">Empty</span></span>
+      </div>
+      <canvas id="buffer" role="img" aria-label="The recording: the loop, its slices, the playhead with a grain's window to scale, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
+      <div class="bar lane">
+        <span class="label">Input</span>
+        <div id="tap" class="segmented" role="radiogroup" aria-label="A tap keeps"></div>
+      </div>
       <canvas id="incoming" role="img" aria-label="The input over the seconds a tap keeps"></canvas>
-    </section>
-
-    <section class="tile grain" aria-label="Grain">
-      <span class="label tag">Grain</span>
-      <span id="voices" class="figure corner" title="Grains sounding, of the voices">0/32</span>
-      <canvas id="grain-view" role="img" aria-label="A grain's window at its size, and the range randomness reaches"></canvas>
-    </section>
-
-    <section class="tile buffer" aria-label="Recording">
-      <span class="label tag">Recording</span>
-      <span id="held" class="figure corner">Empty</span>
-      <canvas id="buffer" role="img" aria-label="The recording: the loop, the playhead, and each grain where it reads, as high as its pitch, as big as its size"></canvas>
     </section>
 
     <section id="speed" class="tile fader" aria-label="Speed"></section>
@@ -54,8 +49,8 @@ import "../styles/play.css";
     <section id="density" class="tile fader" aria-label="Density"></section>
 
     <section class="tile pads" aria-label="The 12 pads">
-      <div id="functions" class="row functions"></div>
-      <div id="slices" class="row slices"></div>
+      <div id="functions" class="pad-row functions"></div>
+      <div id="slices" class="pad-row slices"></div>
     </section>
 
     <p class="tile readout" aria-live="polite"><span class="line"><span id="readout-name" class="label"></span><span id="readout-value" class="value"></span></span><span id="readout-does" class="does"></span></p>

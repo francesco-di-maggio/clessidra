@@ -72,7 +72,7 @@ export const CONTROLS: Control[] = [
     id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3), scale: SPEED_SCALE,
     does: "How fast the playhead runs: the time stretched, the pitch kept. Stops at ¼, ½, 1, 2 and 4×. Frozen: scrubs through the loop, the speed taken up again after.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${signed(p[PARAM.speed], 2)}×`),
-    twin: { name: "Dry/wet", does: "The input against the grains, equal power.", value: (p) => percent(p[PARAM.mix]) },
+    twin: { name: "Dry/wet", short: "Mix", does: "The input against the grains, equal power.", value: (p) => percent(p[PARAM.mix]) },
   },
   {
     id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.8, bipolar: true, detent: true, scale: DENSITY_SCALE,

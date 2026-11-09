@@ -101,9 +101,9 @@ try {
   await pad("Shift", true);
   await sleep(300);
   const shifted = await run(`document.querySelector(".instrument").classList.contains("shifted")`);
-  const twin = await run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Density").querySelector(".twin").textContent`);
+  const twin = await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Density"); return k.classList.contains("twin") + " " + k.querySelector(".label").textContent + " " + k.querySelector(".value").textContent; })()`);
   await pad("Shift", false);
-  check(shifted && /^Reverb \d+\s%$/.test(twin), "P11 held: the twins forward", twin);
+  check(shifted && /^true Reverb \d+\s%$/.test(twin), "P11 held: Density shows Reverb in its place", twin);
 
   // A tap keeps the seconds set over the input
   await run(`[...document.querySelectorAll("#tap button")].find((b) => b.textContent === "4 s").click()`);

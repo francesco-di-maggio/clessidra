@@ -3,12 +3,11 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type Live } from "./controls";
-import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
-import { GrainView } from "./grain";
+import { GRAIN_FIELDS, VOICES, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, TAP_DEFAULT, TAP_SECONDS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { Waveform } from "./waveform";
-import { knob, lever, meter, pad, type Handlers, type Widget } from "./widgets";
+import { knob, pad, slider, toggle, type Handlers, type Widget } from "./widgets";
 
 const LIGHT = 0.35; // a touch, as the board's pads read it (0.3–0.5)
 const FIRM_S = 1.2; // held this long, a pad reaches full pressure
@@ -46,13 +45,11 @@ function refresh() {
   if (!preview) return;
   const { params, view } = preview.read();
   last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, view };
-  grainView.update(params);
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
-const grainView = new GrainView($<HTMLCanvasElement>("grain-view"));
-const voices = $("voices");
+const grainFigure = $("grain-figure");
 let last: Frame | null = null;
 // Nothing pointed at: the readout shows how to play
 const HINT = { name: "How to play", does: "Drag a control · ⌥ fine · Double-click resets · R record · 1–7 slices · Shift held: P11, the twins · 0 reset" };
@@ -62,13 +59,12 @@ const parts = new Map<string, Widget>();
 
 const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
 const add = (w: Widget) => (parts.set(w.c.id, w), w);
-// In and Out, the browser's own, beside the source
+// In and Out, the browser's own, beside the source: the gain a handle, the
+// signal the fill
 function level(l: Level) {
-  const at = document.createElement("div");
-  at.className = "level";
-  $("levels").append(at);
-  add(knob(l, at, on));
-  return meter(at, l.name);
+  const s = slider(l, $("levels"), on);
+  add(s);
+  return s.level;
 }
 const inMeter = level(LEVELS[0]);
 const outMeter = level(LEVELS[1]);
@@ -80,8 +76,8 @@ add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
-add(lever(byId("S09"), $("s09"), [[POSITION.up, "Fwd"], [POSITION.centre, "Frz"], [POSITION.down, "Rev"]], on));
-add(lever(byId("S07"), $("s07"), [[POSITION.up, "Oct"], [POSITION.centre, "Semi"], [POSITION.down, "Off"]], on));
+add(toggle(byId("S09"), $("s09"), [[POSITION.up, "Fwd"], [POSITION.centre, "Freeze"], [POSITION.down, "Rev"]], on));
+add(toggle(byId("S07"), $("s07"), [[POSITION.up, "Oct"], [POSITION.centre, "Semi"], [POSITION.down, "Off"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
 const FUNCTIONS: [string, string][] = [["P10", "Rec"], ["P11", "Shift"], ["P00", "P00"], ["P01", "Reset"], ["P02", "P02"]];
 for (const [id, label] of FUNCTIONS) {
@@ -212,6 +208,7 @@ function shifted() {
 function layer() {
   document.querySelector(".instrument")?.classList.toggle("shifted", shifted());
   if (focused) focus(focused);
+  show();
 }
 
 // Seconds P10 has been held to record, 0 when it isn't
@@ -241,16 +238,22 @@ function focus(c: Control) {
 function show() {
   if (!last) return;
   const v: Live = { sound: last.view[VIEW.sound], recording: recording() };
+  // P11 held: each knob with a twin shows the twin, its name and value
   for (const w of parts.values()) {
     if (w.c.index < 0) continue;
-    w.value?.(w.c.value?.(last.params, v) ?? "");
-    if (w.c.twin) w.twin?.(w.c.twin.value(last.params));
+    const twin = shifted() ? w.c.twin : undefined;
+    w.value?.(twin ? twin.value(last.params) : (w.c.value?.(last.params, v) ?? ""));
+    if (w.c.twin) {
+      w.label?.(twin ? (twin.short ?? twin.name) : (w.c.short ?? w.c.name));
+      w.root.classList.toggle("twin", !!twin);
+    }
   }
   const twin = shifted() ? focused?.twin : undefined;
   if (focused) readout.value.textContent = twin ? twin.value(last.params) : (focused.value?.(last.params, v) ?? "");
   held.textContent = v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${(v.sound / RATE).toFixed(1)} s` : "Empty";
   held.classList.toggle("on", v.recording > 0);
-  voices.textContent = `${Math.round(last.grains.length / GRAIN_FIELDS)}/${VOICES}`;
+  const size = last.params[PARAM.grainMs];
+  grainFigure.textContent = `${size < 1000 ? `${Math.round(size)} ms` : `${(size / 1000).toFixed(2)} s`} · ${Math.round(last.grains.length / GRAIN_FIELDS)}/${VOICES}`;
 }
 
 function onMessage(m: FromWorklet) {
@@ -262,7 +265,6 @@ function onMessage(m: FromWorklet) {
     waveform.recording = incoming.recording = recording();
     waveform.update(m);
     incoming.update(m.incoming);
-    grainView.update(m.params);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);

@@ -14,7 +14,8 @@ export interface Widget {
   root: HTMLElement;
   draw: (value: number) => void;
   value?: (text: string) => void;
-  twin?: (text: string) => void;
+  // The name shown, for a knob's twin while P11 is held
+  label?: (text: string) => void;
 }
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -64,9 +65,6 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
   }
   const value = html("span", { class: "value" }, root);
   value.textContent = "–";
-  // The function with P11 held, beneath
-  const twin = c.twin ? html("span", { class: "twin" }, root) : null;
-  if (twin) twin.textContent = c.twin!.short ?? c.twin!.name;
   let v = c.initial ?? 0;
   const draw = c.type === "fader" ? faderDrawing(c, dial) : dialDrawing(c, dial);
 
@@ -102,7 +100,7 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
     root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
   };
   show(v);
-  return { c, root, draw: show, value: (text) => (value.textContent = text), twin: twin ? (text) => (twin.textContent = `${c.twin!.short ?? c.twin!.name} ${text}`) : undefined };
+  return { c, root, draw: show, value: (text) => (value.textContent = text), label: (text) => (label.textContent = text) };
 }
 
 // A fader: its slot, filled from the bottom or, bipolar, the centre, and a
@@ -177,67 +175,76 @@ export function pad(c: Control, parent: Element, label: string, h: Handlers): Wi
   };
 }
 
-// A level as a column of dots, -48 to 0 dBFS, 6 dB each, lit from the bottom. The top
-// dot turns orange at full scale. Falls back slowly, as a meter does.
-export function meter(parent: Element, label: string) {
-  const DOTS = 8;
-  const root = html("div", { class: "meter", role: "meter", "aria-label": label, "aria-valuemin": -48, "aria-valuemax": 0 }, parent);
-  const dots = Array.from({ length: DOTS }, () => html("i", {}, root)).reverse();
-  let shown = 0;
-  return (peak: number) => {
-    shown = Math.max(peak, shown * 0.85);
-    const db = 20 * Math.log10(Math.max(shown, 1e-6));
-    const lit = Math.round(((db + 48) / 48) * DOTS);
-    dots.forEach((d, i) => {
-      d.classList.toggle("on", i < lit);
-      d.classList.toggle("clip", i === DOTS - 1 && db > -0.5);
-    });
-    root.setAttribute("aria-valuenow", String(Math.round(db)));
+// A three-way switch: its name, then its three positions stacked as the lever
+// moves, the one chosen lit. Takes a knob's room: dial and value.
+export function toggle(c: Control, parent: Element, options: [number, string][], h: Handlers): Widget {
+  const root = html("div", { class: "knob toggle" }, parent);
+  html("span", { class: "label" }, root).textContent = c.short ?? c.name;
+  const group = html("div", { class: "segmented vertical", role: "radiogroup", "aria-label": c.name }, root);
+  const buttons = options.map(([position, text]): [number, HTMLButtonElement] => {
+    const b = html("button", { type: "button", role: "radio" }, group);
+    b.textContent = text;
+    b.addEventListener("click", () => h.onInput(c, position));
+    b.addEventListener("focus", () => h.onFocus(c));
+    return [position, b];
+  });
+  root.addEventListener("pointerenter", () => h.onFocus(c));
+  return {
+    c,
+    root,
+    draw: (position) => {
+      for (const [p, b] of buttons) b.setAttribute("aria-checked", String(p === position));
+    },
   };
 }
 
-// A three-way switch as on the board: a short slot, its lever at one of three
-// positions, each named beside it. Laid out as a knob: label, lever, value.
-// Click a position, or arrows up and down.
-export function lever(c: Control, parent: Element, options: [number, string][], h: Handlers): Widget {
-  const root = html("div", { class: "knob lever", tabindex: 0, role: "radiogroup", "aria-label": c.name }, parent);
-  html("span", { class: "label" }, root).textContent = c.short ?? c.name;
-  const holder = html("div", { class: "throw" }, root);
-  const slot = svg("svg", { viewBox: "0 0 16 40", "aria-hidden": "true" }, holder);
-  svg("rect", { class: "slot", x: 4, y: 2, width: 8, height: 36, rx: 4 }, slot);
-  const cap = svg("rect", { class: "cap", x: 1, y: 0, width: 14, height: 12, rx: 3 }, slot);
-  // Top to bottom, as options lists them
-  const y = (i: number) => 6 + i * 14;
-  const marks = options.map(([position, text], i) => {
-    const m = html("button", { type: "button", class: "mark-at", role: "radio", tabindex: -1 }, holder);
-    m.textContent = text;
-    m.style.top = `${(y(i) / 40) * 100}%`;
-    m.addEventListener("click", () => h.onInput(c, position));
-    return [position, m] as const;
-  });
-  const value = html("span", { class: "value" }, root);
-  value.textContent = "–";
-  let current = c.initial ?? 0;
-  slot.addEventListener("click", (e) => {
-    const r = slot.getBoundingClientRect();
-    const i = Math.min(options.length - 1, Math.max(0, Math.floor(((e.clientY - r.top) / r.height) * options.length)));
-    h.onInput(c, options[i][0]);
-  });
-  root.addEventListener("keydown", (e) => {
-    const i = options.findIndex(([p]) => p === current);
-    const next = e.key === "ArrowUp" ? i - 1 : e.key === "ArrowDown" ? i + 1 : -1;
-    if (next < 0 || next >= options.length || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
+// A browser level: its name over a slim track, the gain its handle, the
+// signal its fill. Drag across, arrows, double click for its starting value.
+export function slider(c: Control, parent: Element, h: Handlers) {
+  const root = html("div", { class: "slider", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
+  html("span", { class: "label" }, root).textContent = c.name;
+  const track = html("span", { class: "track" }, root);
+  const fill = html("span", { class: "signal" }, track);
+  const knobAt = html("span", { class: "handle" }, track);
+  let v = c.initial ?? 0;
+  const set = (e: PointerEvent) => {
+    const r = track.getBoundingClientRect();
+    h.onInput(c, clamp((e.clientX - r.left) / r.width));
+  };
+  let dragging = false;
+  root.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-    h.onInput(c, options[next][0]);
+    root.setPointerCapture(e.pointerId);
+    root.focus({ preventScroll: true });
+    dragging = true;
+    set(e);
+  });
+  root.addEventListener("pointermove", (e) => dragging && set(e));
+  root.addEventListener("pointerup", () => (dragging = false));
+  root.addEventListener("dblclick", () => h.onInput(c, c.initial ?? 0));
+  root.addEventListener("keydown", (e) => {
+    const step = ({ ArrowRight: 0.02, ArrowUp: 0.02, ArrowLeft: -0.02, ArrowDown: -0.02 } as Record<string, number>)[e.key];
+    if (step === undefined) return;
+    e.preventDefault();
+    h.onInput(c, clamp(v + step));
   });
   root.addEventListener("pointerenter", () => h.onFocus(c));
   root.addEventListener("focus", () => h.onFocus(c));
-  const draw = (position: number) => {
-    current = position;
-    const i = Math.max(0, options.findIndex(([p]) => p === position));
-    cap.setAttribute("y", String(y(i) - 6));
-    for (const [p, m] of marks) m.setAttribute("aria-checked", String(p === position));
+  let shown = 0;
+  return {
+    c,
+    root,
+    draw: (x: number) => {
+      v = x;
+      knobAt.style.left = `${x * 100}%`;
+      root.setAttribute("aria-valuenow", String(Math.round(x * 100)));
+    },
+    // Peak 0..1: the fill, -48 to 0 dBFS, falling back slowly
+    level: (peak: number) => {
+      shown = Math.max(peak, shown * 0.85);
+      const db = 20 * Math.log10(Math.max(shown, 1e-6));
+      fill.style.width = `${Math.max(0, Math.min(1, (db + 48) / 48)) * 100}%`;
+      fill.classList.toggle("clip", db > -0.5);
+    },
   };
-  draw(current);
-  return { c, root, draw, value: (text) => (value.textContent = text) };
 }
