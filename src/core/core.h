@@ -302,6 +302,7 @@ class Core
     // The selection's length in samples at the last block: a new length keeps
     // the playhead where it is in the recording
     double             sel_len_  = 0.0;
+    double             sel_start_ = 0.0;
     float              grain_ms_ = 0.0f;
     std::atomic<float> grain_level_{0.0f};
 

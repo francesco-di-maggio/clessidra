@@ -85,12 +85,10 @@ void CoreUI::Process(const Controls& c, Core& core)
     const auto own  = [this](Controls::Knob k) { return own_[k].Value(); };
     const auto twin = [this](Controls::Knob k) { return twin_[k].Value(); };
 
-    // S30, Position: where the loop starts, anywhere in the recording. S35,
-    // Length: a share of what is left after it, at the top to the recording's
-    // end. Both always alive, nothing wraps.
-    p.start = std::min(own(Controls::S30), 1.0f - Core::kMinLength);
-    p.length
-        = std::max(own(Controls::S35) * (1.0f - p.start), Core::kMinLength);
+    // S30, Start, and S35, End: the loop's two ends in the recording. End
+    // below Start: the shortest loop. The playhead keeps its place.
+    p.start  = std::min(own(Controls::S30), 1.0f - Core::kMinLength);
+    p.length = std::max(own(Controls::S35) - p.start, Core::kMinLength);
 
     // S36, Speed: the time stretched, the grains' pitch their own. Frozen, it
     // scrubs through the loop instead, and takes the speed up again after. A
@@ -226,11 +224,11 @@ void CoreUI::Transport(const Controls& c, Core& core, Core::Params& p)
     cue_touched_ = cue;
 }
 
-// P11 with P01: the second layer's values back to their defaults
+// P01: the second layer's values back to their defaults
 void CoreUI::Reset(const Controls& c)
 {
     const bool touched = c.touched[kResetPad];
-    if(touched && !reset_touched_ && shift_)
+    if(touched && !reset_touched_)
     {
         twin_[Controls::S31].Set(kRandomSize, c.knobs[Controls::S31]);
         twin_[Controls::S33].Set(kRandomPitch, c.knobs[Controls::S33]);

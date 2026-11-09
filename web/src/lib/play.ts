@@ -73,14 +73,14 @@ const inMeter = level(LEVELS[0]);
 const outMeter = level(LEVELS[1]);
 
 // As on the board: a fader at each edge, the knobs in their cells, the
-// switches between Position and Length. The pads in two rows: the board's
+// switches between Start and End. The pads in two rows: the board's
 // upper pads, then the slices in order.
 add(knob(byId("S36"), $("speed"), on));
 add(knob(byId("S37"), $("density"), on));
 for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), $(`k-${id}`), on));
 
-add(toggle(byId("S09"), $("s09"), [[POSITION.up, "Forward"], [POSITION.centre, "Freeze"], [POSITION.down, "Reverse"]], on));
-add(toggle(byId("S07"), $("s07"), [[POSITION.up, "Oct"], [POSITION.centre, "Semi"], [POSITION.down, "Off"]], on));
+add(toggle(byId("S09"), $("s09"), [[POSITION.up, "FWD"], [POSITION.centre, "FRZ"], [POSITION.down, "REV"]], on));
+add(toggle(byId("S07"), $("s07"), [[POSITION.up, "OCT"], [POSITION.centre, "SEMI"], [POSITION.down, "OFF"]], on));
 SLICE_PADS.forEach((index, i) => add(pad(padOf(index), $("slices"), `${i + 1}`, on)));
 // The pads in the board's order: Rec and Shift, then Stop, Reset and Cue, over
 // the slices
@@ -260,7 +260,7 @@ function onMessage(m: FromWorklet) {
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming);
     waveform.update(m);
-    grainShape.update(m.params);
+    grainShape.update(m.params, m.grains);
     hourglass.update(m);
     show();
     for (const t of touches.values()) sendPad(t);

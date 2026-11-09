@@ -107,8 +107,8 @@ const inside = held.every((x) => {
 check(held.length > 0 && inside, "grains inside the selection", held.length);
 w.cl_knob(KNOB.S37, 0.75);
 
-// S30 at the middle, S35 half: half of the rest, the playhead inside it
-w.cl_knob(KNOB.S35, 0.5);
+// S30 at the middle, S35 at three quarters: a quarter, the playhead inside it
+w.cl_knob(KNOB.S35, 0.75);
 w.cl_knob(KNOB.S36, 1);
 let inLoop = true;
 for (let i = 0; i < 40; i++) {
@@ -116,7 +116,7 @@ for (let i = 0; i < 40; i++) {
   const at = view()[V.playhead] / v[V.sound];
   inLoop &&= at >= 0.5 - 1e-3 && at < 0.75 + 1e-3;
 }
-check(inLoop, "S30 middle, S35 half: from the middle, a quarter, the playhead inside it");
+check(inLoop, "S30 middle, S35 three quarters: a quarter, the playhead inside it");
 w.cl_knob(KNOB.S30, 0.5);
 w.cl_knob(KNOB.S36, SPEED_1);
 run(0.1, silence);

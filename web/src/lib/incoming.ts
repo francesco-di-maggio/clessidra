@@ -1,10 +1,11 @@
 // The input strip: the input over the seconds a tap on Rec keeps, newest at
-// the right, as dots on a dB scale, its scale below. The part being recorded
+// the right, as dots on a linear scale, its scale below. The part being recorded
 // in orange.
 
 import { INCOMING_SECONDS, TAP_SECONDS } from "./engine";
 
-const DOT = 4; // the grid, px
+const DOT = 3; // the grid, px
+const SIZE = 1.5; // a dot, px
 
 export class Incoming {
   private ctx: CanvasRenderingContext2D;
@@ -55,12 +56,11 @@ export class Incoming {
       const i1 = Math.max(i0 + 1, Math.floor(from + ((k + 1) / cols) * span));
       let peak = 0;
       for (let i = i0; i < i1 && i < this.peaks.length; i++) peak = Math.max(peak, this.peaks[i]);
-      // On a dB scale, -48 to 0 dBFS: quiet input still shows
-      const db = 20 * Math.log10(Math.max(peak, 1e-6));
-      const n = Math.round(Math.max(0, Math.min(1, (db + 48) / 48)) * rows);
+      // Linear, as a waveform: a normal level reads thin, the peaks stand out
+      const n = Math.round(Math.min(1, peak) * rows);
       const cx = pad + k * DOT + DOT / 2;
       const path = k >= cols * (1 - held) ? rec : n > 0 ? loud : quiet;
-      for (let j = -n; j <= n; j++) path.rect(cx - 1, mid + j * DOT - 1, 2, 2);
+      for (let j = -n; j <= n; j++) path.rect(cx - SIZE / 2, mid + j * DOT - SIZE / 2, SIZE, SIZE);
     }
     ctx.fillStyle = css.getPropertyValue("--line");
     ctx.fill(quiet);

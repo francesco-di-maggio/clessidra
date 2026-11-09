@@ -43,11 +43,19 @@ void Core::Process(const float* const* in, float** out, size_t size)
     grain_ms_
         = len > 0.0 ? float(1000.0 * grain_samples / sample_rate_) : p.grain_ms;
 
-    // A new length keeps the playhead where it is in the recording. Past the
-    // new end: what End does there.
-    if(sel_len_ > 0.0 && sel_len != sel_len_)
-        playhead_.Scale(sel_len_ / sel_len);
-    sel_len_ = sel_len;
+    // A new loop keeps the playhead where it is in the recording. Left
+    // outside: from the loop's start, or its end in reverse.
+    if(sel_len_ > 0.0 && (sel_len != sel_len_ || sel_start != sel_start_))
+    {
+        const double at
+            = (sel_start_ + playhead_.Phase() * sel_len_ - sel_start) / sel_len;
+        if(at >= 0.0 && at <= 1.0)
+            playhead_.Move(at);
+        else
+            playhead_.Jump(p.speed < 0.0f ? 1.0 : 0.0);
+    }
+    sel_len_   = sel_len;
+    sel_start_ = sel_start;
 
     if(restart_)
     {

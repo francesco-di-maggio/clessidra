@@ -23,9 +23,9 @@ import "../styles/play.css";
     <section class="tile sound" aria-label="The input and the recording">
       <div class="bar">
         <span class="label">Input</span>
-        <span class="figures"><span id="monitor" class="figure on"></span><span class="figure dim">a tap keeps 8 s</span></span>
+        <span class="figures"><span id="monitor" class="figure on"></span></span>
       </div>
-      <canvas id="incoming" role="img" aria-label="The input over the last 8 s, what a tap keeps, the part being recorded in orange"></canvas>
+      <canvas id="incoming" role="img" aria-label="The input over the last 8 s, the part being recorded in orange"></canvas>
       <div class="bar lane">
         <span class="label">Recording</span>
         <span class="figures"><span id="grain-figure" class="figure" title="Grain size, grains sounding of the voices">100 ms · 0/32</span><span id="held" class="figure">Empty</span></span>
@@ -51,7 +51,7 @@ import "../styles/play.css";
 
 
     <section class="tile view grain" aria-label="Grains relative to their size: their shape, how many overlap, regular or scattered">
-      <canvas id="grain-shape" role="img" aria-label="Grains as Size, Shape and Density set them, regular or scattered, over a short timeline"></canvas>
+      <canvas id="grain-shape" role="img" aria-label="The grains sounding now, each its envelope, the now line at the centre"></canvas>
     </section>
 
     <section class="tile pads" aria-label="The 12 pads">

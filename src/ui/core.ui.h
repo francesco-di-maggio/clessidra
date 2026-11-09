@@ -22,7 +22,7 @@ class CoreUI
     // Pads
     static constexpr size_t kStopPad
         = 0; // a touch: stop as a tape machine, or start
-    static constexpr size_t kResetPad = 1; // with Shift: the twins reset
+    static constexpr size_t kResetPad = 1; // the twins back to their defaults
     static constexpr size_t kCuePad
         = 2; // cue: the playhead back to the loop's start
     static constexpr size_t kRecordPad = 10; // tap or hold. With Shift: listen

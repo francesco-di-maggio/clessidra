@@ -85,14 +85,14 @@ export const CONTROLS: Control[] = [
     twin: { name: "Reverb", does: "Reverb on the grains, from none to long tails.", value: (p) => percent(p[PARAM.reverb]) },
   },
   {
-    id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
-    does: "Where the loop starts, anywhere in the recording.",
+    id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Start", initial: 0,
+    does: "Where the loop starts. The playhead keeps its place.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
   },
   {
-    id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
-    does: "How much of the rest the loop takes: at the top, to the end.",
-    value: (p, v) => seconds(p[PARAM.length] * v.sound),
+    id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "End", initial: 1,
+    does: "Where the loop ends. Below Start: the shortest loop.",
+    value: (p, v) => seconds((p[PARAM.start] + p[PARAM.length]) * v.sound),
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
@@ -147,7 +147,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P01", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
-    does: "With Shift: second functions back to their defaults.",
+    does: "Second functions back to their defaults.",
   },
   {
     id: "P00", type: "pad", index: STOP_PAD, ...padAt(STOP_PAD), name: "Stop",

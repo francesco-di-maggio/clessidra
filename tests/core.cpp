@@ -780,13 +780,13 @@ void Selection()
     p.length = 0.2f;
     r.core.SetParams(p);
     r.Run(0.01, Silence);
-    const double wrapped = 5.0 * was - std::floor(5.0 * was);
-    Check(Near(r.core.PlayheadPhase(), wrapped, 1e-3),
-          "length short of the playhead, loop: round again (phase)",
+    const double inside = 5.0 * was <= 1.0 ? 5.0 * was : 0.0;
+    Check(Near(r.core.PlayheadPhase(), inside, 1e-3),
+          "length short of the playhead: from the loop's start (phase)",
           r.core.PlayheadPhase());
 
-    // Frozen: the point holds. S30 moves it with the selection, a new length
-    // keeps it in the recording.
+    // Frozen: the point holds in the recording while the loop changes round
+    // it
     p.length = 1.0f;
     p.speed  = 1.0f;
     r.core.SetParams(p);
@@ -800,13 +800,13 @@ void Selection()
     p.start = 0.25f;
     r.core.SetParams(p);
     r.Run(0.01, Silence);
-    Check(Near(r.core.PlayheadPhase(), point / 0.75, 1e-6),
-          "frozen, S30 moved: the point keeps its place from the start (phase)",
+    Check(Near(r.core.PlayheadPhase(), (point - 0.25) / 0.75, 1e-6),
+          "frozen, start moved: the point stays in the recording (phase)",
           r.core.PlayheadPhase());
     p.length = 0.5f;
     r.core.SetParams(p);
     r.Run(0.01, Silence);
-    Check(Near(r.core.PlayheadPhase(), 2.0 * point, 1e-6),
+    Check(Near(r.core.PlayheadPhase(), (point - 0.25) / 0.5, 1e-6),
           "frozen, length halved: the point stays in the recording (phase)",
           r.core.PlayheadPhase());
 }
@@ -1187,17 +1187,19 @@ void Mapping()
           "S30 bottom, S35 top: the whole recording",
           p.length);
 
-    // S30 anywhere, S35 a share of what is left after it: both always alive
-    c.knobs[Controls::S30] = 0.5f;
-    c.knobs[Controls::S35] = 0.5f;
+    // S30 Start, S35 End. End at or below Start: the shortest loop.
+    c.knobs[Controls::S30] = 0.25f;
+    c.knobs[Controls::S35] = 0.75f;
     ui.Process(c, r.core);
-    const float half_rest  = p.length;
+    const float between    = p.length;
+    c.knobs[Controls::S35] = 0.1f;
+    ui.Process(c, r.core);
+    Check(p.start == 0.25f && Near(between, 0.5, 1e-6)
+              && p.length == Core::kMinLength,
+          "S30 a quarter, S35 three quarters: the half between, End below: "
+          "the shortest",
+          between);
     c.knobs[Controls::S35] = 1.0f;
-    ui.Process(c, r.core);
-    Check(p.start == 0.5f && Near(half_rest, 0.25, 1e-6)
-              && Near(p.length, 0.5, 1e-6),
-          "S30 middle: S35 half is half the rest, S35 top to the end",
-          half_rest);
     c.knobs[Controls::S30] = 0.0f;
     ui.Process(c, r.core);
 
@@ -1397,13 +1399,13 @@ void Mapping()
     ui.Process(c, r.core);
     Check(Near(p.pitch, 0.25, 1e-3), "then S33 takes its own over", p.pitch);
 
-    // P11 + P01: the twins reset. P11 + P10: listen, nothing recorded.
-    press(CoreUI::kShiftPad, true);
+    // P01: the twins reset. P11 + P10: listen, nothing recorded.
     press(CoreUI::kResetPad, true);
     press(CoreUI::kResetPad, false);
+    press(CoreUI::kShiftPad, true);
     Check(p.rand_pitch == 0.0f && p.reverb == CoreUI::kReverb
               && p.filter == 0.0f && p.rand_size == 0.0f && p.mix == 1.0f,
-          "P11 + P01: the twins back to their defaults",
+          "P01: the twins back to their defaults",
           p.rand_pitch);
     const uint32_t recordings = r.core.Recordings();
     press(CoreUI::kRecordPad, true);

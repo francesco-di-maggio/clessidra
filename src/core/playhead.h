@@ -24,8 +24,8 @@ class Playhead
     // One sample. Once it has run out, it waits at the edge until a step the
     // other way.
     void Advance(double step, End end);
-    // The span changed: the point kept where it is, phase scaled by factor
-    void Scale(double factor) { phase_ *= factor; }
+    // The span changed: the same point, at its new phase
+    void Move(double phase) { phase_ = phase; }
 
     double Phase() const { return phase_; }
     bool   Ended() const { return ended_; }
