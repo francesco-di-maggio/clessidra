@@ -63,8 +63,12 @@ export class Audio {
     if (this.input instanceof AudioBufferSourceNode) this.input.stop();
     this.stream?.getTracks().forEach((t) => t.stop());
     this.input = this.stream = null;
-    if (kind === "demo") this.input = loop(ctx, demo(ctx));
-    else if (kind === "mic") {
+    if (kind === "demo") {
+      // The demo, as a file: into the recording, and on as the input
+      const buffer = demo(ctx);
+      this.send({ type: "load", index: -1, samples: mono(buffer, MAX_RECORD_S * RATE) });
+      this.input = loop(ctx, buffer);
+    } else if (kind === "mic") {
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
