@@ -10,7 +10,7 @@ const SIZE_MIN = 5; // ms, CoreUI::kMinGrainMs
 const SIZE_MAX = 2000; // ms, CoreUI::kMaxGrainMs
 const CYCLES = 6; // inside the grain at unison
 const RAND_PITCH = 12; // semitones, Core::kRandPitchSemitones
-const INSET = 10; // px, inside the window
+const INSET = 8; // px, at the sides
 
 export class GrainShape {
   private ctx: CanvasRenderingContext2D;
@@ -46,7 +46,7 @@ export class GrainShape {
     const shape = p[PARAM.shape];
     const mid = H / 2;
     const room = W - 2 * INSET;
-    const amplitude = mid - INSET;
+    const amplitude = mid - 1; // as tall as a dial and its value
     const width = (ms: number) => (0.08 + 0.92 * Math.min(1, Math.max(0, Math.log(ms / SIZE_MIN) / Math.log(SIZE_MAX / SIZE_MIN)))) * room;
     const grain = (w: number, semitones: number, colour: string, lineWidth: number) => {
       const cycles = CYCLES * 2 ** (semitones / 12);
