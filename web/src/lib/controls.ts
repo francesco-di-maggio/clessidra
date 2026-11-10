@@ -82,7 +82,7 @@ export const CONTROLS: Control[] = [
       const d = p[PARAM.density];
       return d === 0 ? "None" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
     },
-    twin: { name: "Jitter", does: "When grains start, from a regular pulse to random, as many per second.", value: (p) => (p[PARAM.randTime] === 0 ? "Regular" : percent(p[PARAM.randTime])) },
+    twin: { name: "Random timing", short: "Rnd time", does: "When grains start, from a regular pulse to random, as many per second.", value: (p) => (p[PARAM.randTime] === 0 ? "Regular" : percent(p[PARAM.randTime])) },
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
@@ -178,7 +178,7 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 
 // Starting points: a sound and how to set the panel for it
 export const PLAY: [string, string][] = [
-  ["Rhythm", "Density low, Jitter (P11 + S37) down, Shape up, Size short. Size sets how long each hit lasts"],
+  ["Rhythm", "Density low, Random timing (P11 + S37) down, Shape up, Size short. Size sets how long each hit lasts"],
   ["Drops", "Density near the bottom, Size short: single grains, now and then"],
   ["Drums by hand", "Density at the bottom, Shape up: tap the slices, several at once"],
   ["Cloud", "Density at the top, Spray up, Size long, Reverb (P11 + S35) up"],
