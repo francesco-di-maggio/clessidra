@@ -204,6 +204,8 @@ class Core
     // Through the selection, what is left ahead of the playhead, 0..1: 0 once
     // run out
     float SandLeft() const { return float(playhead_.Left()); }
+    // 1 upright, -1 turned over at an end
+    int Heading() const { return playhead_.Heading(); }
     // A grain's size in use, ms: grain_ms within the recording
     float GrainMs() const { return grain_ms_; }
     // Grains dropped so far, all voices sounding: the neck clogged

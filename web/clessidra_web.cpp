@@ -71,6 +71,7 @@ enum Param : size_t
     kRandShape,
     kReverse,
     kSandLeft,
+    kHeading,
     kNumParams
 };
 float params[kNumParams];
@@ -263,5 +264,6 @@ EXPORT const float* cl_params()
     params[kRandShape]    = p.rand_shape;
     params[kReverse]      = p.reverse;
     params[kSandLeft]     = core.SandLeft();
+    params[kHeading]      = float(core.Heading());
     return params;
 }
