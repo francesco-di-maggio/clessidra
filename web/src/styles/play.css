@@ -98,8 +98,8 @@ body.app main { flex: 1; min-height: 0; }
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
-/* Between Position and Length, the grain at the playhead, as tall as a knob
-   with its name and value */
+/* Between Position and Length, one grain of sand, as tall as a knob with its
+   name and value */
 .knobs .grains { grid-column: span 2; }
 .knobs .grains canvas { width: calc(100% - 16px); height: calc(var(--band) + 12px + 2 * var(--name)); }
 
@@ -132,7 +132,6 @@ body.app main { flex: 1; min-height: 0; }
 /* Rec black as the others, its name orange: the one orange not "on".
    Recording, solid orange. */
 .pad.rec { color: var(--accent); }
-.pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: currentColor; vertical-align: 1px; }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 .pad.latched { border-color: var(--accent); color: var(--accent); }
 .pad.free { pointer-events: none; color: var(--dim); background: none; border-style: dashed; }

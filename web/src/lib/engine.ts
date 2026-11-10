@@ -31,9 +31,6 @@ export const SLICES = 7; // Onsets::kNumSlices
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window
 // shape, pan, pitch in semitones, size in ms
 export const GRAIN_FIELDS = 6;
-// cl_wave: the grain the playhead would start now, per column its lowest and
-// highest sample
-export const WAVE_COLUMNS = 128;
 
 export interface Exports {
   memory: WebAssembly.Memory;
@@ -54,7 +51,6 @@ export interface Exports {
   cl_grain_fields(): number;
   cl_params(): number;
   cl_slices(): number;
-  cl_wave(): number;
   cl_chunk(): number;
   cl_chunk_size(): number;
   cl_feed(length: number): void;
@@ -74,7 +70,6 @@ export interface Frame {
   params: Float32Array;
   peaks: Float32Array;
   slices: Float32Array; // where each slice starts in the loop, 0..1
-  wave: Float32Array; // the grain at the playhead, low and high per column
 }
 
 // What the page sends: Controls' knobs, switches and pads

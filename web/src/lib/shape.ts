@@ -1,22 +1,23 @@
-// The grain at the playhead, between Position and Length: the recording as
-// that grain reads it, as wide as its Size (5 ms to 2 s across), as fast as
-// its Pitch, swelling and fading as Shape sets. Nothing recorded: the shape
-// alone, solid. Random size: the narrowest and widest shapes, faint.
+// One grain of sand between Position and Length, as the knobs set it: as big
+// as its Size (5 ms to 2 s), as high as its Pitch (two octaves either way),
+// leaning as its Shape: round at Hann, heavy at its start when percussive, at
+// its end when reversed. Random size and random pitch: how far it may go,
+// faint.
 
-import { PARAM, WAVE_COLUMNS, type Frame } from "./engine";
-import { windowAt } from "./waveform";
+import { PARAM } from "./engine";
 
 const SIZE_MIN = 5; // ms, CoreUI::kMinGrainMs
 const SIZE_MAX = 2000; // ms, CoreUI::kMaxGrainMs
-const INSET = 8; // px, at the sides
-const STEPS = 96; // along a shape
-const FLOOR = 0.05; // of full scale: a quiet recording is not drawn tall
+const PITCH_RANGE = 24; // semitones, either way
+const RAND_PITCH = 12; // semitones, Core::kRandPitchSemitones
+const SMALLEST = 3; // px, the radius at the shortest size
+const LARGEST = 0.6; // of half the height, at the longest: the rest is Pitch's
+const LEAN = 0.55; // how much of its width a grain loses at its light end
+const STEPS = 72; // round it
 
 export class GrainShape {
   private ctx: CanvasRenderingContext2D;
   private params: Float32Array = new Float32Array(0);
-  private wave: Float32Array = new Float32Array(0);
-  private level = 0; // the recording's peak
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
@@ -25,19 +26,16 @@ export class GrainShape {
     new ResizeObserver(() => this.draw()).observe(canvas);
   }
 
-  update(m: Frame) {
+  update(params: Float32Array) {
     // Drawn again only when what it shows changes
-    const shown = [PARAM.grainMs, PARAM.shape, PARAM.randSize, PARAM.minGrainMs, PARAM.maxGrainMs];
-    const same = this.params.length === m.params.length && shown.every((i) => this.params[i] === m.params[i])
-      && this.wave.length === m.wave.length && this.wave.every((x, i) => x === m.wave[i]);
-    this.params = m.params.slice();
-    this.wave = m.wave.slice();
-    this.level = m.peaks.reduce((a, b) => Math.max(a, b), 0);
+    const shown = [PARAM.grainMs, PARAM.shape, PARAM.pitch, PARAM.randSize, PARAM.randPitch, PARAM.minGrainMs, PARAM.maxGrainMs];
+    const same = this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
+    this.params = params.slice();
     if (!same) this.draw();
   }
 
   draw() {
-    const { canvas, ctx, params: p, wave } = this;
+    const { canvas, ctx, params: p } = this;
     const dpr = devicePixelRatio || 1;
     const W = canvas.clientWidth;
     const H = canvas.clientHeight;
@@ -47,19 +45,22 @@ export class GrainShape {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     const css = getComputedStyle(document.documentElement);
-    const accent = css.getPropertyValue("--accent");
 
-    const shape = p[PARAM.shape];
-    const mid = H / 2;
-    const room = W - 2 * INSET;
-    const amplitude = mid - 6;
-    const width = (ms: number) => (0.08 + 0.92 * Math.min(1, Math.max(0, Math.log(ms / SIZE_MIN) / Math.log(SIZE_MAX / SIZE_MIN)))) * room;
-    // The window alone, above the middle and back below it
-    const outline = (w: number, colour: string, solid: boolean) => {
-      const x0 = (W - w) / 2;
+    const half = H / 2 - 2;
+    const largest = LARGEST * half;
+    const radius = (ms: number) => SMALLEST + (largest - SMALLEST) * Math.min(1, Math.max(0, Math.log(ms / SIZE_MIN) / Math.log(SIZE_MAX / SIZE_MIN)));
+    const height = (semitones: number) => H / 2 - Math.max(-1, Math.min(1, semitones / PITCH_RANGE)) * (half - largest);
+    // -1 reversed .. 0 round .. 1 percussive: heavy where the sound is
+    const lean = 2 * Math.min(Math.max(p[PARAM.shape], 0), 1) - 1;
+    const grain = (r: number, y: number, colour: string, solid: boolean) => {
       ctx.beginPath();
-      for (let k = 0; k <= STEPS; k++) ctx.lineTo(x0 + (k / STEPS) * w, mid - windowAt(k / STEPS, shape) * amplitude);
-      for (let k = STEPS; k >= 0; k--) ctx.lineTo(x0 + (k / STEPS) * w, mid + windowAt(k / STEPS, shape) * amplitude);
+      for (let k = 0; k <= STEPS; k++) {
+        const a = (2 * Math.PI * k) / STEPS;
+        // Longer as it leans, narrower towards its light end
+        const x = Math.cos(a) * r * (1 + 0.5 * Math.abs(lean));
+        const light = 0.5 + 0.5 * Math.sign(lean) * Math.cos(a); // 1 at its light end
+        ctx.lineTo(W / 2 + x, y + Math.sin(a) * r * (1 - LEAN * Math.abs(lean) * light));
+      }
       ctx.closePath();
       ctx.fillStyle = ctx.strokeStyle = colour;
       ctx.lineWidth = 1;
@@ -68,28 +69,14 @@ export class GrainShape {
     };
 
     const ms = p[PARAM.grainMs];
+    const pitch = p[PARAM.pitch];
+    const faint = css.getPropertyValue("--line");
     const octaves = Math.log2(Math.max(p[PARAM.maxGrainMs], p[PARAM.minGrainMs] * 1.01) / p[PARAM.minGrainMs]);
     const reach = Math.min(Math.max(Math.sqrt(4 * p[PARAM.randSize]), 0), 1) * 0.25 * octaves;
-    if (reach > 0) for (const r of [-reach, reach]) outline(width(ms * 2 ** r), css.getPropertyValue("--line"), false);
-
-    const w = width(ms);
-    if (wave.length < 2 * WAVE_COLUMNS || this.level === 0) {
-      outline(w, accent, true);
-      return;
-    }
-    // Low to high in each column, under the window
-    const x0 = (W - w) / 2;
-    const scale = amplitude / Math.max(this.level, FLOOR);
-    const at = (c: number, edge: number) => mid - wave[2 * c + edge] * windowAt(c / (WAVE_COLUMNS - 1), shape) * scale;
-    ctx.beginPath();
-    for (let c = 0; c < WAVE_COLUMNS; c++) ctx.lineTo(x0 + (c / (WAVE_COLUMNS - 1)) * w, at(c, 1));
-    for (let c = WAVE_COLUMNS - 1; c >= 0; c--) ctx.lineTo(x0 + (c / (WAVE_COLUMNS - 1)) * w, at(c, 0));
-    ctx.closePath();
-    ctx.fillStyle = accent;
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 1.5;
-    ctx.lineJoin = "round";
-    ctx.fill();
-    ctx.stroke();
+    if (reach > 0) grain(radius(ms * 2 ** reach), height(pitch), faint, false);
+    // In octaves, below 0: an octave either way whatever the odds
+    const spread = p[PARAM.randPitch] < 0 ? RAND_PITCH : p[PARAM.randPitch] * RAND_PITCH;
+    if (spread > 0) for (const s of [-spread, spread]) grain(radius(ms), height(pitch + s), faint, false);
+    grain(radius(ms), height(pitch), css.getPropertyValue("--accent"), true);
   }
 }

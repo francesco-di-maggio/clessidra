@@ -235,40 +235,6 @@ EXPORT const float* cl_grain_fields()
     return grains;
 }
 
-// The grain the playhead would start now, before its window: what it reads,
-// its Size long at its Pitch, in kWaveColumns columns, each its lowest and
-// highest of kWavePerColumn samples
-constexpr size_t    kWaveColumns   = 128;
-constexpr size_t    kWavePerColumn = 16;
-float               wave[2 * kWaveColumns];
-EXPORT const float* cl_wave()
-{
-    const Core::Params& p     = core.CurrentParams();
-    const Buffer&       b     = core.Sound();
-    const double        sound = double(b.Length());
-    const double        sel_length
-        = std::min(double(p.length), 1.0 - double(p.start)) * sound;
-    const double from
-        = double(p.start) * sound + core.PlayheadPhase() * sel_length;
-    const double span = core.GrainMs() * 0.001 * kSampleRateHz * p.pitch
-                        * (p.speed < 0.0f ? -1.0 : 1.0);
-    const double step = span / double(kWaveColumns * kWavePerColumn);
-    for(size_t c = 0; c < kWaveColumns; c++)
-    {
-        float low = 1.0f, high = -1.0f;
-        for(size_t i = 0; i < kWavePerColumn; i++)
-        {
-            const float s
-                = b.Read(from + double(c * kWavePerColumn + i) * step);
-            low  = std::min(low, s);
-            high = std::max(high, s);
-        }
-        wave[2 * c]     = low;
-        wave[2 * c + 1] = high;
-    }
-    return wave;
-}
-
 // Where each slice starts in the loop, 0..1
 EXPORT const float* cl_slices()
 {

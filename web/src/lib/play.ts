@@ -42,8 +42,8 @@ function send(m: Message) {
 function refresh() {
   if (!preview) return;
   const { params, view } = preview.read();
-  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), incomingAt: 0, grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), wave: new Float32Array(0), params, view };
-  grainShape.update(last);
+  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), incomingAt: 0, grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, view };
+  grainShape.update(params);
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
@@ -82,7 +82,7 @@ for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), 
 add(toggle(byId("S09"), $("s09"), [[POSITION.down, "REVERSE"], [POSITION.centre, "FREEZE"], [POSITION.up, "FORWARD"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.down, "ONCE"], [POSITION.centre, "TURN"], [POSITION.up, "LOOP"]], on));
 // The pads as an octave: the slices the white keys, the others the black,
-// Rec and Shift on C# and D#, Stop, Reset and Trig on F#, G# and A#. A slice
+// Rec and Shift on C# and D#, Stop, Reset and Trigger on F#, G# and A#. A slice
 // held is tinted in the recording, and a press there is a touch of its pad.
 SLICE_PADS.forEach((index, i) => {
   const w = add(pad(padOf(index), $("keys"), `${i + 1}`, on));
@@ -90,7 +90,7 @@ SLICE_PADS.forEach((index, i) => {
   w.draw = (p) => (draw(p), waveform.hold(i, p));
 });
 waveform.onSlice = (i, down, e) => press(padOf(SLICE_PADS[i]), down, e);
-const BLACK: [string, string, number][] = [["P10", "Rec", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Trig", 6]];
+const BLACK: [string, string, number][] = [["P10", "Rec", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Trigger", 6]];
 for (const [id, label, edge] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
   w.root.classList.add("black");
@@ -253,7 +253,7 @@ function onMessage(m: FromWorklet) {
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming, m.incomingAt);
     waveform.update(m);
-    grainShape.update(m);
+    grainShape.update(m.params);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);

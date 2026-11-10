@@ -80,8 +80,6 @@ r = run(2, silence);
 check(r.finite && r.peak > 0.01 && r.peak <= 1, "the recording plays, under full scale", r.peak.toFixed(3));
 const peaks = f32(w.cl_peaks(), w.cl_columns());
 check(peaks.some((p) => p > 0.1), "the waveform shows the recording");
-const wave = f32(w.cl_wave(), 256);
-check(wave.some((x) => Math.abs(x) > 0.01) && wave.every((x, i) => i % 2 === 0 || x >= wave[i - 1]), "the grain at the playhead: the recording there, low then high");
 
 // A tap keeps the last 8 s
 run(9);

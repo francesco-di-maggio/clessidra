@@ -2,7 +2,7 @@
 // runs here, one render quantum at a time. The page sends the controls and
 // gets back what it draws, once per screen frame.
 
-import { BLOCK, GRAIN_FIELDS, INCOMING_COLUMNS, INCOMING_SECONDS, PARAM_SIZE, SLICES, VIEW_SIZE, WAVE_COLUMNS, type Control, type Exports, type FromWorklet } from "./engine";
+import { BLOCK, GRAIN_FIELDS, INCOMING_COLUMNS, INCOMING_SECONDS, PARAM_SIZE, SLICES, VIEW_SIZE, type Control, type Exports, type FromWorklet } from "./engine";
 
 // The AudioWorkletGlobalScope, as far as this uses it
 declare const sampleRate: number;
@@ -126,12 +126,11 @@ class Clessidra extends AudioWorkletProcessor {
     const params = this.f32(w.cl_params(), PARAM_SIZE).slice();
     const peaks = this.peaks.slice();
     const slices = this.f32(w.cl_slices(), SLICES).slice();
-    const wave = this.f32(w.cl_wave(), 2 * WAVE_COLUMNS).slice();
     const incoming = new Float32Array(INCOMING_COLUMNS);
     incoming.set(this.incoming.subarray(this.column));
     incoming.set(this.incoming.subarray(0, this.column), INCOMING_COLUMNS - this.column);
     const incomingAt = this.columns + this.columnSamples / ((INCOMING_SECONDS * sampleRate) / INCOMING_COLUMNS);
-    this.post({ type: "view", led: w.cl_led(now), input: this.input, output: this.output, incoming, incomingAt, view, grains, params, peaks, slices, wave }, [view.buffer, grains.buffer, params.buffer, peaks.buffer, incoming.buffer, slices.buffer, wave.buffer]);
+    this.post({ type: "view", led: w.cl_led(now), input: this.input, output: this.output, incoming, incomingAt, view, grains, params, peaks, slices }, [view.buffer, grains.buffer, params.buffer, peaks.buffer, incoming.buffer, slices.buffer]);
     this.input = this.output = 0;
   }
 }

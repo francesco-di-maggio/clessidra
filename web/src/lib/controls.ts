@@ -142,7 +142,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "End", initial: POSITION.up,
-    does: "At the loop's end: once and no more, turned over to run back, or round again. Trig pours it again.",
+    does: "At the loop's end: once and no more, turned over to run back, or round again. Trigger pours it again.",
     value: (p) => END[p[PARAM.end]] ?? "",
   },
   {
@@ -164,7 +164,7 @@ export const CONTROLS: Control[] = [
     value: (p) => (p[PARAM.stop] ? "Stopped" : ""),
   },
   {
-    id: "P02", type: "pad", index: TRIG_PAD, ...padAt(TRIG_PAD), name: "Trig",
+    id: "P02", type: "pad", index: TRIG_PAD, ...padAt(TRIG_PAD), name: "Trigger",
     does: "Playback from the loop's start, with a grain at once: back on the beat. Stopped: starts at once.",
   },
   ...SLICE_PADS.map((index, i): Control => ({
@@ -184,7 +184,7 @@ export const PLAY: [string, string][] = [
   ["Cloud", "Density at the top, Spray up, Size long, Reverb (P11 + S35) up"],
   ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards"],
   ["A moment held", "S09 at the centre, Density up, a little Spray. Speed scrubs the point"],
-  ["One pour", "S07 down: the loop plays once and stops. Trig pours it again"],
+  ["One pour", "S07 down: the loop plays once and stops. Trigger pours it again"],
   ["Shimmer", "Random pitch (P11 + S33) below the centre: octaves"],
   ["Backwards syllables", "Reverse (P11 + S32) at the top: the phrase in order, each grain backwards"],
 ];
