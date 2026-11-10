@@ -3,8 +3,8 @@
 // as the playhead moves: upright at full speed, leaning as it slows, on its
 // side when frozen or stopped, turned over in reverse and when Turn turns it.
 // The sand lies level in each bulb, in dots on a grid as the recording is
-// drawn, and falls in a thread while it runs: faster with Speed, and thicker
-// above 1×. Nothing recorded: the glass alone, standing the same way.
+// drawn, and falls in a thread while it runs, faster with Speed. Nothing
+// recorded: the glass alone, standing the same way.
 
 import { PARAM } from "./engine";
 
@@ -183,16 +183,11 @@ export class Hourglass {
       ctx.beginPath();
       dots(from.sand);
       dots(into.sand);
-      // The thread, from the neck down to the sand below: its dots moving
-      // down, one abreast up to 1×, two at 2×, three at 4×
+      // The thread, from the neck down to the sand below, its dots moving
+      // down
       const lower = inside(-ahead);
-      const abreast = 1 + Math.round(Math.log2(Math.max(speed, 1)));
       for (let y = cy + this.fallen; speed > 0 && left > 0 && y < into.level; y += DOT) {
-        for (let k = 0; k < abreast; k++) {
-          const x = cx + (k - (abreast - 1) / 2) * DOT;
-          // Through the neck, then wherever the bulb has room
-          if ((x === cx && y - cy < 2 * DOT) || within(lower, x, y)) ctx.rect(x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
-        }
+        if (y - cy < 2 * DOT || within(lower, cx, y)) ctx.rect(cx - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
       }
       ctx.fill();
     }
