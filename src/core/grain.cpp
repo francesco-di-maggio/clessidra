@@ -6,28 +6,6 @@
 
 namespace clessidra
 {
-float Grain::rise_[Grain::kWindowSize + 1];
-float Grain::decay_[Grain::kWindowSize + 1];
-
-void Grain::InitWindow()
-{
-    for(size_t i = 0; i <= kWindowSize; i++)
-    {
-        const float x    = float(i) / float(kWindowSize);
-        const float sine = std::sin(HALFPI_F * x);
-        rise_[i]         = sine * sine;
-        decay_[i]        = std::exp(-kDecay * x) * std::cos(HALFPI_F * x);
-    }
-}
-
-float Grain::Lookup(const float* table, float x)
-{
-    const float w = x * float(kWindowSize);
-    // x can round up to 1
-    const size_t i = std::min(static_cast<size_t>(w), kWindowSize - 1);
-    return table[i] + (w - float(i)) * (table[i + 1] - table[i]);
-}
-
 void Grain::Start(const Latch& latch, size_t offset)
 {
     latch_  = latch;
@@ -40,14 +18,29 @@ void Grain::Start(const Latch& latch, size_t offset)
     gain_l_           = std::cos(angle);
     gain_r_           = std::sin(angle);
 
-    // Hann at 0.5. Towards 1 the peak moves to the start and the decay turns
-    // exponential (percussive); towards 0 the same, reversed.
-    const float skew = 2.0f * std::clamp(latch.shape, 0.0f, 1.0f) - 1.0f;
-    percussive_      = std::fabs(skew);
-    mirrored_        = skew < 0.0f;
-    peak_            = 0.5f - (0.5f - kMinPeak) * percussive_;
-    rise_scale_      = 1.0f / peak_;
-    fall_scale_      = 1.0f / (1.0f - peak_);
+    // Beads' grain envelope (beads/dsp/grain_envelope.h:57): square, decay,
+    // bell, reverse along the shape. Here the grain keeps its length, so the
+    // shortest rise and fall are taken from it, not added to it.
+    const float shape   = std::clamp(latch.shape, 0.0f, 1.0f);
+    const float sustain = std::max(1.0f - 3.0f * shape, 0.0f);
+    float       attack  = std::max((shape - 1.0f / 3.0f) * 1.5f, 0.0f);
+    if(attack < 0.5f)
+        attack = attack * attack * attack * 4.0f;
+    smoothness_     = attack < 0.5f ? 2.0f * attack : 2.0f - 2.0f * attack;
+    const float inc = float(latch.inc);
+    float rise = std::max(attack, kMinAttack * (1.0f + 3.0f * sustain) * inc);
+    float fall
+        = std::max((1.0f - attack) * (1.0f - sustain), kMinRelease * inc);
+    const float both = rise + fall;
+    if(both > 1.0f)
+    {
+        rise /= both;
+        fall /= both;
+    }
+    attack_        = rise;
+    release_from_  = 1.0f - fall;
+    attack_scale_  = 1.0f / rise;
+    release_scale_ = 1.0f / fall;
 }
 
 void Grain::Render(double speed,
@@ -70,18 +63,19 @@ void Grain::Render(double speed,
     float         window_power = 0.0f;
     for(size_t n = offset_; n < size; n++)
     {
-        const float x = mirrored_ ? 1.0f - float(phase) : float(phase);
-        float       window;
-        if(x < peak_)
+        const float x      = float(phase);
+        float       window = 1.0f;
+        if(x < attack_ || x >= release_from_)
         {
-            window = Lookup(rise_, x * rise_scale_);
-        }
-        else
-        {
-            const float fall = std::min(1.0f, (x - peak_) * fall_scale_);
-            window           = Lookup(rise_, 1.0f - fall);
-            if(percussive_ > 0.0f)
-                window += percussive_ * (Lookup(decay_, fall) - window);
+            // Up: straight. Down: its fourth power. Both towards a smooth
+            // step.
+            const bool  rising = x < attack_;
+            const float t
+                = rising ? x * attack_scale_
+                         : std::max(1.0f - (x - release_from_) * release_scale_,
+                                    0.0f);
+            const float base = rising ? t : (t * t) * (t * t);
+            window = base + (t * t * (3.0f - 2.0f * t) - base) * smoothness_;
         }
         const double position = latch_.position + read;
         const float  s        = buffer.Read(position) * window;

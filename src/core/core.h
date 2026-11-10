@@ -101,8 +101,8 @@ class Core
         float pitch        = 1.0f; // grain playback rate
         // grains per second on average, up to kMaxDensity
         float density = 80.0f;
-        // 0 reverse percussive, 0.5 Hann, 1 percussive
-        float window_shape = 0.5f;
+        // 0 square, 1/3 decay, 2/3 bell, 1 reverse
+        float window_shape = 2.0f / 3.0f;
         // Randomness of each grain, 0..1: 0 none, 1 anywhere in the range,
         // evenly. Position within the amount around the playhead, round the
         // selection. Size between min_grain_ms and max_grain_ms, exponential.

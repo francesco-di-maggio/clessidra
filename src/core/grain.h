@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include "buffer.h"
+#include "config.h"
 
 namespace clessidra
 {
@@ -16,13 +17,10 @@ class Grain
         double        position = 0.0;  // samples
         float         rate     = 1.0f; // samples read per output sample
         float         pan      = 0.5f; // 0 left .. 1 right
-        // window: 0 reverse percussive, 0.5 Hann, 1 percussive
-        float  shape = 0.5f;
+        // window: 0 square, 1/3 decay, 2/3 bell, 1 reverse
+        float  shape = 2.0f / 3.0f;
         double inc   = 0.0; // window phase per sample: 1 / length in samples
     };
-
-    // Once, before any Grain is used.
-    static void InitWindow();
 
     bool          IsActive() const { return active_; }
     const Buffer* Source() const { return latch_.buffer; }
@@ -47,15 +45,10 @@ class Grain
     Render(double speed, float* left, float* right, size_t size, Sums& sums);
 
   private:
-    static constexpr size_t kWindowSize = 512;
-    // percussive decay: e^-5 at the end, -43 dB
-    static constexpr float kDecay   = 5.0f;
-    static constexpr float kMinPeak = 0.01f; // percussive peak, of the grain
-    // Over 0..1: Hann's rise sin^2(pi/2 x), the percussive decay e^-kx cos(pi/2
-    // x)
-    static float rise_[kWindowSize + 1];
-    static float decay_[kWindowSize + 1];
-    static float Lookup(const float* table, float x);
+    // The shortest rise and fall, samples: no click at a grain's edges. A
+    // grain shorter than both keeps their proportion.
+    static constexpr float kMinAttack  = 0.0005f * float(kSampleRateHz);
+    static constexpr float kMinRelease = 0.010f * float(kSampleRateHz);
 
     Latch  latch_;
     double phase_  = 0.0;
@@ -63,14 +56,14 @@ class Grain
     size_t offset_ = 0;
     float  gain_l_ = 0.0f;
     float  gain_r_ = 0.0f;
-    // Window: rises to its peak, then decays as Hann blended to the percussive
-    // decay
-    float peak_       = 0.5f; // of the grain
-    float rise_scale_ = 2.0f; // 1 / peak_
-    float fall_scale_ = 2.0f; // 1 / (1 - peak_)
-    float percussive_ = 0.0f;
-    bool  mirrored_   = false; // percussive window reversed
-    bool  active_     = false;
+    // Window: a rise, a hold at 1, a fall, as shares of the grain. Straight
+    // up and steeply down, or both smooth.
+    float attack_        = 0.5f;
+    float release_from_  = 0.5f;
+    float attack_scale_  = 2.0f; // 1 / attack_
+    float release_scale_ = 2.0f; // 1 / (1 - release_from_)
+    float smoothness_    = 1.0f;
+    bool  active_        = false;
 };
 
 } // namespace clessidra

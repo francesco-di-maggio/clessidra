@@ -20,8 +20,6 @@ void Core::Init(float        sample_rate,
     reverb_.Init(sample_rate);
     reverb_.SetLpFreq(kReverbLowpassHz);
     limiter_.Init(sample_rate);
-
-    Grain::InitWindow();
 }
 
 void Core::Process(const float* const* in, float** out, size_t size)

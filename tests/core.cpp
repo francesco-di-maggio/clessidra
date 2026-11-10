@@ -445,7 +445,7 @@ void Fuzz()
     Check(kept > 0.05, "after it all: a new recording plays (rms)", kept);
 }
 
-// One grain of 1000 samples over a buffer of ones: its window, sample by
+// One grain of 10000 samples over a buffer of ones: its window, sample by
 // sample
 std::vector<float> Window(float shape)
 {
@@ -454,7 +454,6 @@ std::vector<float> Window(float shape)
     buffer.Init(ones.data(), ones.size(), kRate);
     std::fill(ones.begin(), ones.end(), 1.0f);
     buffer.Finish(ones.size());
-    Grain::InitWindow();
     Grain        grain;
     Grain::Latch latch;
     latch.buffer   = &buffer;
@@ -462,9 +461,9 @@ std::vector<float> Window(float shape)
     latch.rate     = 0.0f;
     latch.pan      = 0.0f; // all left, gain 1
     latch.shape    = shape;
-    latch.inc      = 1.0 / 1000.0;
+    latch.inc      = 1.0 / 10000.0;
     grain.Start(latch, 0);
-    std::vector<float> window(1000, 0.0f), right(1000, 0.0f);
+    std::vector<float> window(10000, 0.0f), right(10000, 0.0f);
     Grain::Sums        sums;
     grain.Render(1.0, window.data(), right.data(), window.size(), sums);
     return window;
@@ -472,21 +471,49 @@ std::vector<float> Window(float shape)
 
 void Windows()
 {
-    const auto hann = Window(0.5f);
-    Check(Near(hann[250], 0.5, 0.01) && Near(hann[500], 1.0, 0.01),
-          "window 0.5: Hann (at 1/4, 1/2)",
-          hann[250]);
-    const auto   percussive = Window(1.0f);
+    const auto square = Window(0.0f);
+    Check(square[0] == 0.0f && square[200] == 1.0f && square[9000] == 1.0f
+              && square[9990] < 0.1f,
+          "window 0: square, 2 ms up, held, 10 ms down (at 9990)",
+          square[9990]);
+    const auto   decay = Window(1.0f / 3.0f);
     const size_t peak
-        = size_t(std::max_element(percussive.begin(), percussive.end())
-                 - percussive.begin());
-    Check(peak == 10 && Near(percussive[500], 0.060, 0.005),
-          "window 1: percussive (peak at 1 %, half way)",
-          percussive[500]);
-    const auto reverse = Window(0.0f);
-    Check(Near(reverse[999 - 500], percussive[500], 0.002),
-          "window 0: percussive reversed",
-          reverse[499]);
+        = size_t(std::max_element(decay.begin(), decay.end()) - decay.begin());
+    Check(peak < 30 && Near(decay[5000], 0.0625, 0.005),
+          "window 1/3: decay, at once up, a sixteenth half way",
+          decay[5000]);
+    const auto bell = Window(2.0f / 3.0f);
+    Check(Near(bell[2500], 0.5, 0.01) && Near(bell[5000], 1.0, 0.01)
+              && Near(bell[7500], 0.5, 0.01),
+          "window 2/3: bell (at 1/4, 1/2, 3/4)",
+          bell[2500]);
+    const auto reverse = Window(1.0f);
+    Check(Near(reverse[4760], 0.5, 0.01) && reverse[9500] > 0.99f
+              && reverse[9999] < 0.01f,
+          "window 1: reverse, straight up, 10 ms down (half way up)",
+          reverse[4760]);
+    // Shorter than the shortest rise and fall: both, in proportion
+    Grain              grain;
+    Grain::Latch       latch;
+    Buffer             buffer;
+    std::vector<float> ones(kRate, 1.0f);
+    buffer.Init(ones.data(), ones.size(), kRate);
+    std::fill(ones.begin(), ones.end(), 1.0f);
+    buffer.Finish(ones.size());
+    latch.buffer   = &buffer;
+    latch.position = kRate / 2;
+    latch.rate     = 0.0f;
+    latch.pan      = 0.0f;
+    latch.shape    = 0.0f;
+    latch.inc      = 1.0 / 240.0; // 5 ms
+    grain.Start(latch, 0);
+    std::vector<float> small(240, 0.0f), right(240, 0.0f);
+    Grain::Sums        sums;
+    grain.Render(1.0, small.data(), right.data(), small.size(), sums);
+    const float top = *std::max_element(small.begin(), small.end());
+    Check(small[0] == 0.0f && top > 0.9f && small[239] < 0.01f,
+          "window, 5 ms square: up and down within it (peak)",
+          top);
 }
 
 // The filter's gain at hz, dB, on a sine after a second to settle
@@ -805,9 +832,9 @@ void Mirrored()
     }
     bool same = true;
     for(const auto& g : grains(1.0f, 0.0f, 0.0f))
-        same = same && g.shape == 0.5f;
+        same = same && g.shape == Core::Params().window_shape;
     Check(low < 0.1f && high > 0.9f && same,
-          "random shape: from reversed to sharp. Off: as set (highest)",
+          "random shape: from square to reverse. Off: as set (highest)",
           high);
 }
 
@@ -1248,7 +1275,8 @@ void Mapping()
               && p.filter == 0.0f && p.reverb == CoreUI::kReverb
               && p.rand_pitch == 0.0f && p.rand_time == 1.0f
               && p.rand_shape == 0.0f && p.reverse == 0.0f && p.volume == 1.0f,
-          "power-up: unison, Hann, filter off, short reverb, random starts, "
+          "power-up: unison, shape as set, filter off, short reverb, random "
+          "starts, "
           "full volume",
           p.pitch);
     Check(p.start == 0.0f && p.length == 1.0f,
@@ -1341,10 +1369,10 @@ void Mapping()
     // S34, Shape: the window, reverse percussive to percussive
     c.knobs[Controls::S34] = 0.0f;
     ui.Process(c, r.core);
-    Check(p.window_shape == 0.0f, "S34 down: reverse percussive", 0.0);
+    Check(p.window_shape == 0.0f, "S34 down: square", 0.0);
     c.knobs[Controls::S34] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.window_shape == 1.0f, "S34 up: percussive", p.window_shape);
+    Check(p.window_shape == 1.0f, "S34 up: reverse", p.window_shape);
     c.knobs[Controls::S34] = 0.5f;
     ui.Process(c, r.core);
 

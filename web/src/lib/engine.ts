@@ -24,9 +24,10 @@ export const VIEW_SIZE = 4;
 // set. randTime: starts, 0 regular to 1 random. randPitch: below 0 in
 // octaves, above free. volume: linear. spread: pan width, 0..1. filter: -1
 // low-pass, 0 off, 1 high-pass. end: End, 0 once, 1 turn, 2 loop. reverse:
-// the odds a grain reads the other way.
-export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randTime: 6, randPitch: 7, shape: 8, start: 9, length: 10, volume: 11, randPos: 12, randSize: 13, grainMsSet: 14, minGrainMs: 15, maxGrainMs: 16, spread: 17, filter: 18, end: 19, stop: 20, randShape: 21, reverse: 22 } as const;
-export const PARAM_SIZE = 23;
+// the odds a grain reads the other way. shape: 0 square, 1/3 decay, 2/3 bell,
+// 1 reverse. sandLeft: of the loop, ahead of the playhead, 0..1.
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randTime: 6, randPitch: 7, shape: 8, start: 9, length: 10, volume: 11, randPos: 12, randSize: 13, grainMsSet: 14, minGrainMs: 15, maxGrainMs: 16, spread: 17, filter: 18, end: 19, stop: 20, randShape: 21, reverse: 22, sandLeft: 23 } as const;
+export const PARAM_SIZE = 24;
 export const SLICES = 7; // Onsets::kNumSlices
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window
 // shape, pan, pitch in semitones, size in ms

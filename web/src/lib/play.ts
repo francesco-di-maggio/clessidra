@@ -6,7 +6,7 @@ import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, 
 import { MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
-import { GrainShape } from "./shape";
+import { Hourglass } from "./hourglass";
 import { Waveform } from "./waveform";
 import { gain, knob, pad, toggle, type Handlers, type Widget } from "./widgets";
 
@@ -43,13 +43,13 @@ function refresh() {
   if (!preview) return;
   const { params, view } = preview.read();
   last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), incomingAt: 0, grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, view };
-  grainShape.update(params);
+  hourglass.update(params);
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const monitor = $("monitor");
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
-const grainShape = new GrainShape($<HTMLCanvasElement>("grain-shape"));
+const hourglass = new Hourglass($<HTMLCanvasElement>("glass"));
 // The board's LED: its light output, as bright to the eye
 const led = $("led");
 const light = (output: number) => led.style.setProperty("--light", String(Math.cbrt(output)));
@@ -244,7 +244,11 @@ function show() {
       w.centred?.(twin ? !!twin.bipolar : !!w.c.bipolar);
     }
   }
-  parts.get("P00")?.root.classList.toggle("latched", last.params[PARAM.stop] === 1);
+  // Stopped, the Stop key offers the start
+  const stopped = last.params[PARAM.stop] === 1;
+  const stop = parts.get("P00")!.root;
+  stop.classList.toggle("latched", stopped);
+  stop.querySelector(".num")!.textContent = stopped ? "Start" : "Stop";
   // Its length is on its scale. Named with it for screen readers and tests.
   $("buffer").setAttribute("aria-label", v.sound ? `Recording, ${(v.sound / RATE).toFixed(1)} s` : "Recording, empty");
 }
@@ -257,7 +261,7 @@ function onMessage(m: FromWorklet) {
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming, m.incomingAt);
     waveform.update(m);
-    grainShape.update(m.params);
+    hourglass.update(m.params);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);

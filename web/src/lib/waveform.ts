@@ -8,18 +8,21 @@ const PITCH_RANGE = 36; // semitones: Pitch's ±24 and Random pitch's ±12
 const SIZE_MIN = 5; // ms, CoreUI::kMinGrainMs
 const SIZE_MAX = 2000; // CoreUI::kMaxGrainMs
 
-// Grain::Render's window at progress x for shape: Hann at 0.5, percussive
-// towards 1, reversed towards 0
+// Grain::Render's window at progress x for shape: square at 0, decay at 1/3,
+// bell at 2/3, reverse at 1. Without the shortest rise and fall, which depend
+// on the grain's length.
 export function windowAt(x: number, shape: number) {
-  const skew = 2 * Math.min(Math.max(shape, 0), 1) - 1;
-  const percussive = Math.abs(skew);
-  if (skew < 0) x = 1 - x;
-  const peak = 0.5 - 0.49 * percussive;
-  const rise = (t: number) => Math.sin((Math.PI / 2) * t) ** 2;
-  if (x < peak) return rise(x / peak);
-  const fall = Math.min(1, (x - peak) / (1 - peak));
-  const hann = rise(1 - fall);
-  return hann + percussive * (Math.exp(-5 * fall) * Math.cos((Math.PI / 2) * fall) - hann);
+  shape = Math.min(Math.max(shape, 0), 1);
+  const sustain = Math.max(1 - 3 * shape, 0);
+  let attack = Math.max((shape - 1 / 3) * 1.5, 0);
+  if (attack < 0.5) attack = attack ** 3 * 4;
+  const smoothness = attack < 0.5 ? 2 * attack : 2 - 2 * attack;
+  const release = (1 - attack) * (1 - sustain);
+  const rising = x < attack;
+  if (!rising && x < 1 - release) return 1;
+  const t = rising ? x / attack : Math.max(1 - (x - (1 - release)) / release, 0);
+  const base = rising ? t : t ** 4;
+  return base + (t * t * (3 - 2 * t) - base) * smoothness;
 }
 
 interface Colours {

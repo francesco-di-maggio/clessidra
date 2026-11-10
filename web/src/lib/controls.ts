@@ -46,6 +46,8 @@ const ms = (x: number) => (x < 1000 ? `${Math.round(x)} ms` : `${(x / 1000).toFi
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
 const RAND_PITCH = 12; // Core::kRandPitchSemitones
 const END = ["Once", "Turn", "Loop"]; // Playhead's End
+// Shape's four, evenly along the knob, and their short names
+const SHAPES = [["Square", "Sq"], ["Decay", "Dec"], ["Bell", "Bell"], ["Reverse", "Rev"]];
 
 // Speed's stops from the bottom, as CoreUI's Stops(): each flat over the first
 // third of its segment, marked at the middle of it
@@ -127,13 +129,15 @@ export const CONTROLS: Control[] = [
     },
   },
   {
-    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 0.5, bipolar: true, detent: true,
-    does: "Grain envelope: reversed attack, smooth at the centre, sharp attack.",
+    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 2 / 3,
+    does: "Grain envelope: square, decay, bell, reverse, and everything between.",
     value: (p) => {
-      const s = p[PARAM.shape];
-      return s === 0.5 ? "Hann" : s < 0.5 ? `Rev ${percent(1 - 2 * s)}` : `Perc ${percent(2 * s - 1)}`;
+      // At a shape, its name. Between two, both.
+      const at = p[PARAM.shape] * (SHAPES.length - 1);
+      const i = Math.min(Math.floor(at + 0.04), SHAPES.length - 1);
+      return Math.abs(at - i) < 0.04 ? SHAPES[i][0] : `${SHAPES[i][1]} › ${SHAPES[i + 1][1]}`;
     },
-    twin: { name: "Random shape", short: "Rnd shape", does: "Each grain a different envelope, from reversed to sharp.", value: (p) => (p[PARAM.randShape] === 0 ? "Off" : percent(p[PARAM.randShape])) },
+    twin: { name: "Random shape", short: "Rnd shape", does: "Each grain a different envelope, anywhere from square to reverse.", value: (p) => (p[PARAM.randShape] === 0 ? "Off" : percent(p[PARAM.randShape])) },
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Mode", initial: POSITION.up,
@@ -178,9 +182,9 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 
 // Starting points: a sound and how to set the panel for it
 export const PLAY: [string, string][] = [
-  ["Rhythm", "Density low, Random timing (P11 + S37) down, Shape up, Size short. Size sets how long each hit lasts"],
+  ["Rhythm", "Density low, Random timing (P11 + S37) down, Shape on decay, Size short. Size sets how long each hit lasts"],
   ["Drops", "Density near the bottom, Size short: single grains, now and then"],
-  ["Drums by hand", "Density at the bottom, Shape up: tap the slices, several at once"],
+  ["Drums by hand", "Density at the bottom, Shape on square: tap the slices, several at once"],
   ["Cloud", "Density at the top, Spray up, Size long, Reverb (P11 + S35) up"],
   ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards"],
   ["A moment held", "S09 at the centre, Density up, a little Spray. Speed scrubs the point"],
@@ -192,7 +196,7 @@ export const PLAY: [string, string][] = [
 export const LED: [string, string][] = [
   ["Glow", "Grains falling, dimmer as the sand runs out"],
   ["Flashing", "Recording"],
-  ["Pulse", "At a stop: unison, speed 1×, 100 ms, Hann, filter off, random pitch off"],
+  ["Pulse", "At a stop: unison, speed 1×, 100 ms, filter off, random pitch off"],
   ["Steady", "P11 held: the twin last turned"],
 ];
 

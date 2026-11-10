@@ -148,11 +148,10 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.pitch               = std::exp2(semitones / 12.0f);
     p.rand_pitch = rnd_pitch < 0.0f ? rnd_pitch : rnd_pitch * rnd_pitch;
 
-    // S34, Shape: the grain's window, reverse percussive, Hann at the centre,
-    // percussive. Shift: its randomness.
-    const float shape = Detent(own(Controls::S34), 0.05f);
-    p.window_shape    = shape;
-    p.rand_shape      = twin(Controls::S34);
+    // S34, Shape: the grain's window, from square through decay and bell to
+    // reverse. Shift: its randomness.
+    p.window_shape = own(Controls::S34);
+    p.rand_shape   = twin(Controls::S34);
 
     const bool trig = Transport(c, p);
     core.SetParams(p);
@@ -162,7 +161,6 @@ void CoreUI::Process(const Controls& c, Core& core)
           {semitones == 0.0f,
            !frozen && speed == 1.0f,
            size == 0.5f,
-           shape == 0.5f,
            filter == 0.5f,
            rnd_pitch == 0.0f});
 }
@@ -297,7 +295,6 @@ void CoreUI::Pulse(const Controls& c, const std::array<bool, kNumDetents>& at)
         = {own_[Controls::S33].Value(),
            own_[Controls::S36].Value(),
            own_[Controls::S31].Value(),
-           own_[Controls::S34].Value(),
            twin_[Controls::S30].Value(),
            twin_[Controls::S33].Value()};
     if(!detents_ready_)
