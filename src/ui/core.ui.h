@@ -106,7 +106,7 @@ class CoreUI
     void Slices(const Controls& c, const Core& core, Core::Params& p);
     void Scrub(float fader, bool frozen, Core& core);
     void Reset(const Controls& c);
-    // P00 Stop, P02 Trigger: true when Trigger is touched
+    // P00 Stop, P02 Trig: true when Trig is touched
     bool Transport(const Controls& c, Core::Params& p);
     void Pulse(const Controls& c, const std::array<bool, kNumDetents>& at);
 

@@ -50,6 +50,9 @@ const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
 const monitor = $("monitor");
 const incoming = new Incoming($<HTMLCanvasElement>("incoming"));
 const grainShape = new GrainShape($<HTMLCanvasElement>("grain-shape"));
+// The board's LED: its light output, as bright to the eye
+const led = $("led");
+const light = (output: number) => led.style.setProperty("--light", String(Math.cbrt(output)));
 let last: Frame | null = null;
 
 const parts = new Map<string, Widget>();
@@ -82,7 +85,7 @@ for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), 
 add(toggle(byId("S09"), $("s09"), [[POSITION.down, "REVERSE"], [POSITION.centre, "FREEZE"], [POSITION.up, "FORWARD"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.down, "ONCE"], [POSITION.centre, "TURN"], [POSITION.up, "LOOP"]], on));
 // The pads as an octave: the slices the white keys, the others the black,
-// Rec and Shift on C# and D#, Stop, Reset and Trigger on F#, G# and A#. A slice
+// Rec and Shift on C# and D#, Stop, Reset and Trig on F#, G# and A#. A slice
 // held is tinted in the recording, and a press there is a touch of its pad.
 SLICE_PADS.forEach((index, i) => {
   const w = add(pad(padOf(index), $("keys"), `${i + 1}`, on));
@@ -90,7 +93,7 @@ SLICE_PADS.forEach((index, i) => {
   w.draw = (p) => (draw(p), waveform.hold(i, p));
 });
 waveform.onSlice = (i, down, e) => press(padOf(SLICE_PADS[i]), down, e);
-const BLACK: [string, string, number][] = [["P10", "Rec", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Trigger", 6]];
+const BLACK: [string, string, number][] = [["P10", "Rec", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Trig", 6]];
 for (const [id, label, edge] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
   w.root.classList.add("black");
@@ -179,7 +182,7 @@ addEventListener("pointermove", (e) => {
   for (const t of touches.values()) if (t.pointers.has(e.pointerId)) t.pen = e.pressure;
 });
 
-// Keys: 1–7 the places, R record, T turn, S shake, M mute, H hold
+// Keys: 1–7 the slices, R record, Shift the second layer, 0 reset
 const KEYS: Record<string, number> = { r: RECORD_PAD, shift: SHIFT_PAD, "0": RESET_PAD };
 SLICE_PADS.forEach((index, i) => (KEYS[`${i + 1}`] = index));
 function keyPad(e: KeyboardEvent) {
@@ -249,6 +252,7 @@ function show() {
 function onMessage(m: FromWorklet) {
   if (m.type === "view") {
     last = m;
+    light(m.led);
     outMeter(m.output);
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming, m.incomingAt);
@@ -281,6 +285,7 @@ start.addEventListener("click", async () => {
     preview = null;
     start.disabled = false;
   } else await audio.pause(audio.running);
+  if (!audio.running) light(0);
   start.textContent = audio.running ? "Pause" : "Start";
   start.classList.toggle("on", audio.running);
 });

@@ -90,7 +90,7 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
   root.addEventListener("pointercancel", release);
   root.addEventListener("dblclick", () => h.onInput(c, c.initial ?? 0));
   root.addEventListener("keydown", (e) => {
-    const step = ({ ArrowUp: 0.01, ArrowRight: 0.01, ArrowDown: -0.01, ArrowLeft: -0.01, PageUp: 0.1, PageDown: -0.1 } as Record<string, number>)[e.key];
+    const step = ({ ArrowUp: 0.01, ArrowRight: 0.01, ArrowDown: -0.01, ArrowLeft: -0.01, PageUp: 0.1, PageDown: -0.1, Home: -1, End: 1 } as Record<string, number>)[e.key];
     if (step === undefined) return;
     e.preventDefault();
     h.onInput(c, clamp(v + step));
@@ -108,7 +108,7 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
     mode.centred = on;
     draw(v);
   };
-  return { c, root, draw: show, value: (text) => (value.textContent = text), label: (text) => (label.textContent = text), centred };
+  return { c, root, draw: show, value: (text) => (value.textContent = text, root.setAttribute("aria-valuetext", text)), label: (text) => (label.textContent = text), centred };
 }
 
 // A fader: its slot, filled from the bottom or, bipolar, the centre, and a
@@ -243,7 +243,7 @@ export function gain(c: Control, parent: Element, h: Handlers, mute: (c: Control
   root.addEventListener("pointercancel", release);
   root.addEventListener("dblclick", () => h.onInput(c, c.initial ?? 0));
   root.addEventListener("keydown", (e) => {
-    const step = ({ ArrowRight: 0.02, ArrowUp: 0.02, ArrowLeft: -0.02, ArrowDown: -0.02 } as Record<string, number>)[e.key];
+    const step = ({ ArrowRight: 0.02, ArrowUp: 0.02, ArrowLeft: -0.02, ArrowDown: -0.02, Home: -1, End: 1 } as Record<string, number>)[e.key];
     if (step === undefined) return;
     e.preventDefault();
     h.onInput(c, clamp(v + step));
