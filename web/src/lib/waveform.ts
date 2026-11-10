@@ -44,11 +44,7 @@ export class Waveform {
   private dotsKey = "";
   recording = 0; // seconds held, 0 when not recording
   started = false;
-  // A slice pressed or let go, by its number from 0
-  onSlice: (i: number, down: boolean, e: { pointerId: number }) => void = () => {};
-  private spans: [number, number][] = []; // each slice, px
   private held: number[] = []; // each slice's pressure, 0 when not held
-  private band: [number, number] = [0, 0]; // the slices' height, px
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
@@ -56,25 +52,6 @@ export class Waveform {
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => this.colours());
     new MutationObserver(() => this.colours()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     new ResizeObserver(() => this.draw()).observe(canvas);
-    const at = (e: PointerEvent) => {
-      if (e.offsetY < this.band[0] || e.offsetY > this.band[1]) return -1;
-      return this.spans.findIndex(([a, b]) => e.offsetX >= a && e.offsetX < b);
-    };
-    canvas.addEventListener("pointermove", (e) => canvas.classList.toggle("over", at(e) >= 0));
-    canvas.addEventListener("pointerdown", (e) => {
-      const i = at(e);
-      if (i < 0) return;
-      e.preventDefault();
-      canvas.setPointerCapture(e.pointerId);
-      const up = () => {
-        canvas.removeEventListener("pointerup", up);
-        canvas.removeEventListener("pointercancel", up);
-        this.onSlice(i, false, e);
-      };
-      canvas.addEventListener("pointerup", up);
-      canvas.addEventListener("pointercancel", up);
-      this.onSlice(i, true, e);
-    });
   }
 
   hold(i: number, pressure: number) {
@@ -121,7 +98,6 @@ export class Waveform {
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
     if (!f || !sound) {
-      this.spans = [];
       ctx.fillStyle = this.recording ? c.accent : c.dim;
       ctx.fillText(this.recording ? "RECORDING" : this.started ? "TAP OR HOLD REC" : "PRESS START", W / 2, mid);
       return;
@@ -146,9 +122,8 @@ export class Waveform {
     // in ink, the seconds' figures dim.
     // Held, tinted.
     const starts = Array.from(f.slices, (s) => x(v[VIEW.selStart] + s * v[VIEW.selLength]));
-    this.spans = starts.map((s, i) => [s, i + 1 < starts.length ? starts[i + 1] : b]);
-    this.band = [top, bottom];
-    this.spans.forEach(([s0, s1], i) => {
+    const spans: [number, number][] = starts.map((s, i) => [s, i + 1 < starts.length ? starts[i + 1] : b]);
+    spans.forEach(([s0, s1], i) => {
       if (!this.held[i]) return;
       ctx.fillStyle = withAlpha(c.accent, 0.08 + 0.1 * this.held[i]);
       ctx.fillRect(s0, top, s1 - s0, bottom - top);
@@ -158,7 +133,7 @@ export class Waveform {
     ctx.lineWidth = 1;
     ctx.textBaseline = "top";
     ctx.textAlign = "center";
-    this.spans.forEach(([s0, s1], i) => {
+    spans.forEach(([s0, s1], i) => {
       if (i > 0) line(ctx, s0, top + 2, s0, bottom - 2);
       ctx.fillStyle = c.ink;
       ctx.fillText(`${i + 1}`, (s0 + s1) / 2, bottom + 8);

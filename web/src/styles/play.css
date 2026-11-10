@@ -62,7 +62,6 @@ body.app main { flex: 1; min-height: 0; }
 /* The recording: its loop, slices, playhead and grains, the whole tile */
 .sound { grid-area: sound; display: flex; flex-direction: column; }
 .sound #buffer { flex: 1; min-height: 0; }
-.sound #buffer.over { cursor: pointer; }
 .figure.dim { color: var(--dim); }
 
 /* The controls row: a fader at each edge, the knobs and switches between.
