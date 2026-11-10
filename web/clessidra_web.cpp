@@ -64,9 +64,6 @@ enum Param : size_t
     kVolume,
     kRandPos,
     kRandSize,
-    kGrainMsSet,
-    kMinGrainMs,
-    kMaxGrainMs,
     kSpread,
     kFilter,
     kEnd,
@@ -259,9 +256,6 @@ EXPORT const float* cl_params()
     params[kVolume]       = p.volume;
     params[kRandPos]      = p.rand_pos;
     params[kRandSize]     = p.rand_size;
-    params[kGrainMsSet]   = p.grain_ms;
-    params[kMinGrainMs]   = p.min_grain_ms;
-    params[kMaxGrainMs]   = p.max_grain_ms;
     params[kSpread]       = p.spread;
     params[kFilter]       = p.filter;
     params[kEnd]          = float(p.end);
