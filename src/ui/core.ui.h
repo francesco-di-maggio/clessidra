@@ -60,7 +60,7 @@ class CoreUI
     // S36 frozen: moves under this are noise, not scrubbing
     static constexpr float kScrubStep = 0.002f;
 
-    // P10 held past a tap, or listening: the input heard with the grains,
+    // P11 + P10, listening: the input heard with the grains,
     // equal power
     static constexpr float kMonitorMix = 0.5f;
 
@@ -119,14 +119,13 @@ class CoreUI
     // S36 when it last scrubbed
     float scrub_from_ = 0.0f;
     // P10: touched, recording, or listening with Shift
-    bool     record_touched_ = false;
-    bool     listening_      = false;
-    bool     record_         = false;
-    uint32_t rec_since_      = 0; // ms
-    bool     reset_touched_  = false;
-    bool     stop_touched_   = false;
-    bool     stop_           = false;
-    bool     trig_touched_   = false;
+    bool record_touched_ = false;
+    bool listening_      = false;
+    bool record_         = false;
+    bool reset_touched_  = false;
+    bool stop_touched_   = false;
+    bool stop_           = false;
+    bool trig_touched_   = false;
     // Touched through a new recording: silent until let go
     std::array<bool, kNumSlices>  slices_stale_{};
     Onsets                        onsets_;

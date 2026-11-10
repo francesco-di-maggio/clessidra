@@ -93,7 +93,7 @@ try {
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
 
   // Density: grains per second. A slice, then P11 held: the twins brought
-  // forward, Density's random timing beneath it.
+  // forward, Density's randomness beneath it.
   const pad = (name, down) => run(`document.querySelector('.pad[aria-label="${name}"]').dispatchEvent(new KeyboardEvent("${down ? "keydown" : "keyup"}", { key: " " }))`);
   const value = (name) => run(`[...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "${name}").querySelector(".value").textContent`);
   const density = await value("Density");
@@ -105,7 +105,7 @@ try {
   const shifted = await run(`document.querySelector(".instrument").classList.contains("shifted")`);
   const twin = await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Density"); return k.classList.contains("twin") + " " + k.querySelector(".label").textContent + " " + k.querySelector(".value").textContent; })()`);
   await pad("Shift", false);
-  check(shifted && /^true Rnd time \d+\s%$/.test(twin), "P11 held: Density shows Random timing in its place", twin);
+  check(shifted && /^true Rnd density \d+\s%$/.test(twin), "P11 held: Density shows Random density in its place", twin);
 
   // A tap keeps the last 8 s of the input
   await pad("Record", true);

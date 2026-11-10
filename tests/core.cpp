@@ -305,15 +305,21 @@ void Record()
           "silence at both ends: trimmed (s)",
           Seconds(trim.rig.core));
 
-    // P10 held past a tap: the input heard with the grains. Otherwise only
-    // the grains.
+    // P10 held: only the grains. With P11: the input heard with them.
     auto  level = [](double) { return 0.25f; };
+    Panel held;
+    held.c.touched[CoreUI::kRecordPad] = true;
+    held.Run(0.5, level);
+    const double unheard = PanelRms(held, 0.3, level);
+    Check(unheard < 1e-6, "P10 held: the input not heard (rms)", unheard);
     Panel dry;
+    dry.c.touched[CoreUI::kShiftPad] = true;
+    dry.Run(0.01, level);
     dry.c.touched[CoreUI::kRecordPad] = true;
     dry.Run(0.5, level);
     const double through = PanelRms(dry, 0.3, level);
     Check(Near(through, 0.25 * std::sqrt(0.5), 0.002),
-          "P10 held: the input heard, equal power (rms)",
+          "P11 + P10: the input heard, equal power (rms)",
           through);
     Panel wet;
     wet.Run(0.5, Sine);

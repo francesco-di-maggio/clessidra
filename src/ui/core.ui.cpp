@@ -242,8 +242,8 @@ void CoreUI::Reset(const Controls& c)
     reset_touched_ = touched;
 }
 
-// P10: record while held. A tap keeps the seconds before it, held longer the
-// input is heard with the grains. Touched with Shift: the input heard, nothing
+// P10: record while held, the grains playing on. A tap keeps the seconds
+// before it. Touched with Shift: the input heard with the grains, nothing
 // recorded.
 void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
 {
@@ -251,14 +251,9 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
     if(touched && !record_touched_)
         listening_ = shift_;
     record_touched_ = touched;
-    const bool rec  = touched && !listening_;
-    if(rec && !record_)
-        rec_since_ = c.now_ms;
-    record_ = rec;
-    core.SetRecording(rec);
-    const bool holding
-        = rec && c.now_ms - rec_since_ >= uint32_t(Core::kTapSeconds * 1000.0f);
-    p.mix = holding || (touched && listening_) ? kMonitorMix : 1.0f;
+    record_         = touched && !listening_;
+    core.SetRecording(record_);
+    p.mix = touched && listening_ ? kMonitorMix : 1.0f;
 }
 
 // P03-P09: the loop in slices, left to right, each from an onset of the
