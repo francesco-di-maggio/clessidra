@@ -755,6 +755,62 @@ void RandomPitch()
           widest);
 }
 
+// Reverse: the odds a grain reads the other way. Random shape: each grain
+// its own window.
+void Mirrored()
+{
+    const auto grains = [](float speed, float reverse, float rand_shape) {
+        Rig r(1.0);
+        r.Fill(Sine);
+        Core::Params p;
+        p.speed      = speed;
+        p.density    = 200.0f;
+        p.grain_ms   = 20.0f;
+        p.reverse    = reverse;
+        p.rand_shape = rand_shape;
+        r.core.SetParams(p);
+        r.Run(0.3, Silence); // the grains before these end
+        std::vector<Grain::Latch> started;
+        r.Run(1.0, Silence, [&](size_t) {
+            for(const auto& g : r.core.Grains())
+                if(g.IsActive() && g.Progress() < 0.1)
+                    started.push_back(g.Settings());
+        });
+        return started;
+    };
+    const auto backwards = [&](float speed, float reverse) {
+        double n = 0.0, all = 0.0;
+        for(const auto& g : grains(speed, reverse, 0.0f))
+        {
+            n += g.rate < 0.0f;
+            all++;
+        }
+        return n / all;
+    };
+    Check(backwards(1.0f, 0.0f) == 0.0 && backwards(1.0f, 1.0f) == 1.0,
+          "reverse off: grains forward. All: every grain backwards (share)",
+          backwards(1.0f, 1.0f));
+    Check(Near(backwards(1.0f, 0.5f), 0.5, 0.08),
+          "reverse half: half the grains backwards (share)",
+          backwards(1.0f, 0.5f));
+    Check(backwards(-1.0f, 1.0f) == 0.0,
+          "playing backwards, reverse all: every grain forward (share)",
+          backwards(-1.0f, 1.0f));
+
+    float low = 1.0f, high = 0.0f;
+    for(const auto& g : grains(1.0f, 0.0f, 1.0f))
+    {
+        low  = std::min(low, g.shape);
+        high = std::max(high, g.shape);
+    }
+    bool same = true;
+    for(const auto& g : grains(1.0f, 0.0f, 0.0f))
+        same = same && g.shape == 0.5f;
+    Check(low < 0.1f && high > 0.9f && same,
+          "random shape: from reversed to sharp. Off: as set (highest)",
+          high);
+}
+
 // The selection ending with the recording, and its length drawn per pass
 void Selection()
 {
@@ -1191,7 +1247,7 @@ void Mapping()
     Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.mix == 1.0f
               && p.filter == 0.0f && p.reverb == CoreUI::kReverb
               && p.rand_pitch == 0.0f && p.rand_time == 1.0f
-              && p.volume == 1.0f,
+              && p.rand_shape == 0.0f && p.reverse == 0.0f && p.volume == 1.0f,
           "power-up: unison, Hann, filter off, short reverb, random starts, "
           "full volume",
           p.pitch);
@@ -1396,19 +1452,27 @@ void Mapping()
     const float density    = p.density;
     c.knobs[Controls::S33] = 1.0f;
     c.knobs[Controls::S37] = 0.0f;
-    c.knobs[Controls::S34] = 0.0f;
+    c.knobs[Controls::S34] = 1.0f;
     c.knobs[Controls::S31] = 1.0f;
     c.knobs[Controls::S35] = 0.0f;
     c.knobs[Controls::S36] = 0.0f;
+    c.knobs[Controls::S30] = 1.0f;
+    c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
     Check(p.pitch == 1.0f && Near(p.rand_pitch, 1.0, 1e-2)
-              && Near(p.rand_time, 0.0, 1e-2) && Near(p.filter, -1.0, 1e-2)
+              && Near(p.rand_time, 0.0, 1e-2) && Near(p.rand_shape, 1.0, 1e-2)
               && Near(p.rand_size, 0.25, 1e-2) && Near(p.reverb, 0.0, 1e-2)
               && p.volume == 0.0f && Near(p.speed, 1.0, 1e-6)
               && p.density == density && p.length == 1.0f,
           "P11 + S33, S37, S34, S31, S35, S36: random pitch, regular starts, "
-          "filter, random size, no reverb, no volume",
+          "random shape, random size, no reverb, no volume",
           p.rand_pitch);
+    Check(Near(p.filter, 1.0, 1e-2) && Near(p.reverse, 1.0, 1e-2)
+              && p.start == 0.0f && p.rand_pos == 0.0f
+              && p.window_shape == 0.5f,
+          "P11 + S30, S32: high-pass, every grain reversed, Position, Spray "
+          "and Shape kept",
+          p.filter);
     c.knobs[Controls::S33] = 0.0f;
     c.knobs[Controls::S36] = 0.5f;
     ui.Process(c, r.core);
@@ -1425,8 +1489,11 @@ void Mapping()
           p.pitch);
     c.knobs[Controls::S33] = 0.0f;
     c.knobs[Controls::S35] = 1.0f;
+    c.knobs[Controls::S30] = 0.0f;
+    c.knobs[Controls::S32] = 0.0f;
     ui.Process(c, r.core);
-    Check(Near(p.pitch, 0.25, 1e-3) && p.length == 1.0f,
+    Check(Near(p.pitch, 0.25, 1e-3) && p.length == 1.0f && p.start == 0.0f
+              && p.rand_pos == 0.0f,
           "then S33 takes its own over",
           p.pitch);
 
@@ -1436,7 +1503,7 @@ void Mapping()
     press(CoreUI::kShiftPad, true);
     Check(p.rand_pitch == 0.0f && p.reverb == CoreUI::kReverb
               && p.filter == 0.0f && p.rand_size == 0.0f && p.rand_time == 1.0f
-              && p.volume == 1.0f,
+              && p.rand_shape == 0.0f && p.reverse == 0.0f && p.volume == 1.0f,
           "P01: the twins back to their defaults",
           p.rand_pitch);
     const uint32_t recordings = r.core.Recordings();
@@ -1555,6 +1622,19 @@ void Mapping()
           "P02 Trig: the playhead from the loop's start",
           r.core.PlayheadPhase());
     press(CoreUI::kTrigPad, false);
+    // Stopped, P02 starts it at once: no slow start
+    press(CoreUI::kStopPad, true);
+    press(CoreUI::kStopPad, false);
+    r.Run(Core::kStopSeconds + 0.1, Silence);
+    press(CoreUI::kTrigPad, true);
+    press(CoreUI::kTrigPad, false);
+    r.Run(0.02, Silence);
+    const double from    = r.core.PlayheadPhase();
+    const double at_once = Rms(r, 0.1);
+    Check(p.stop == false && from < 0.05 && at_once > 0.5 * playing,
+          "stopped, P02: started from the loop's start, at speed at once "
+          "(rms)",
+          at_once / playing);
     press(CoreUI::kShiftPad, true);
     press(CoreUI::kResetPad, true);
     press(CoreUI::kResetPad, false);
@@ -1592,6 +1672,7 @@ int main()
     Scrubbed();
     Ends();
     RandomPitch();
+    Mirrored();
     Selection();
     Pour();
     Randomness();

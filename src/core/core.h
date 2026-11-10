@@ -107,10 +107,14 @@ class Core
         // evenly. Position within the amount around the playhead, round the
         // selection. Size between min_grain_ms and max_grain_ms, exponential.
         // Pitch up to kRandPitchSemitones either way. Below 0, to -1: in
-        // octaves, the odds rising to kRandPitchOctaveOdds.
+        // octaves, the odds rising to kRandPitchOctaveOdds. Shape anywhere
+        // from reverse percussive to percussive.
         float rand_pos   = 0.0f;
         float rand_size  = 0.0f;
         float rand_pitch = 0.0f;
+        float rand_shape = 0.0f;
+        // The odds a grain reads the other way, 0..1
+        float reverse = 0.0f;
         // Starts from periodic, 0, to random intervals, 1: mostly short, a
         // long tail. The same mean.
         float rand_time = 0.0f;
@@ -154,7 +158,7 @@ class Core
     }
     // Main loop, at the next block: the playhead to phase of the selection,
     // 0..1, a grain there at once whatever the density, the next start an
-    // interval later
+    // interval later. Not stopped, everything at speed at once.
     void Jump(float phase)
     {
         jump_.store(std::clamp(phase, 0.0f, 1.0f), std::memory_order_relaxed);
@@ -313,6 +317,7 @@ class Core
     // Gains at the end of the last block
     float norm_gain_  = 0.0f;
     float tape_       = 1.0f; // speed of everything, Params.stop ramping it
+    float stop_gain_  = 1.0f;
     float reverb_dry_ = 1.0f;
     float reverb_wet_ = 0.0f;
     float dry_gain_   = 0.0f;

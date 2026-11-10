@@ -12,12 +12,12 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 |---|---|---|
 | S36 | Speed: 0 to 4×, stops at ¼, ½, 1, 2 and 4×, the pitch kept. Frozen: scrubs through the loop, a full stroke the whole loop, the speed taken up again after | Volume: the output, off to 0 dB |
 | S37 | Density: grains per second, 0.25 to 130, whatever their size. None at the bottom. 32 voices: with all sounding, a new grain is dropped | Jitter: when grains start, from a regular pulse to random, as many per second |
-| S30 | Position: where the loop starts, anywhere in the recording. The playhead keeps its place in the loop, so it moves with it, playing or frozen | |
+| S30 | Position: where the loop starts, anywhere in the recording. The playhead keeps its place in the loop, so it moves with it, playing or frozen | Filter: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz |
 | S35 | Length: a share of what is left after Position, at the top to the recording's end | Reverb: none to most, decay 0.5 to 16 s |
 | S31 | Size: 5 ms to 2 s, 100 ms at the centre, at most half the recording | Random size, up to about two octaves either way |
-| S32 | Spray: grains stray from the playhead, evenly, up to the whole loop, across the stereo field with it | |
+| S32 | Spray: grains stray from the playhead, evenly, up to the whole loop, across the stereo field with it | Reverse: how many grains read the other way, none to all. The phrase keeps its direction, each grain turns |
 | S33 | Pitch: ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24 | Random pitch: off at the centre. Up: free, to ±12 semitones. Down: in octaves, up to two grains in three an octave up or down |
-| S34 | Shape: the grain's window, reverse percussive, Hann at the centre, percussive | Filter: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz |
+| S34 | Shape: the grain's window, reverse percussive, Hann at the centre, percussive | Random shape: each grain a different window, from reversed to percussive |
 | S09 | Mode: up forward, centre freeze, down reverse | |
 | S07 | End, at the loop's end: down once and no more, centre turned over to run back, up round again | |
 
@@ -27,7 +27,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | P11 | Shift, held | |
 | P00 | Stop, as a tape machine: everything slows to a halt over 0.6 s, the pitch falling. Touch again to start | |
 | P01 | Reset: the twins back to their defaults | |
-| P02 | Trig: playback again from the loop's start (its end in reverse), with a grain at once. After a loop played once, it pours again | |
+| P02 | Trig: playback again from the loop's start (its end in reverse), with a grain at once. After a loop played once, it pours again. Stopped: starts at once, no slow start | |
 | P03–P09 | Slices: the loop in seven, its start then the recording's strongest attacks inside it (even parts without attacks), left to right on the board (P03, P04, P08, P05, P09, P06, P07). Held: plays its slice from the start, round it, at Speed and Density, forward, frozen at its start or reverse as S09 sets, round it whatever S07 says, a grain at once. Several at once. The loop waits while any is held, a new recording ends them. At Density's bottom: two grains at once, regular, the slice as it is. On the page, also a press on the waveform | |
 
 | LED | |
@@ -47,6 +47,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | A moment held | S09 at the centre, Density up, a little Spray. Speed scrubs the point |
 | One pour | S07 down: the loop plays once and stops. Trig pours it again |
 | Shimmer | Random pitch (P11 + S33) below the centre: octaves |
+| Backwards syllables | Reverse (P11 + S32) at the top: the phrase in order, each grain backwards |
 
 ## Play in the Browser
 

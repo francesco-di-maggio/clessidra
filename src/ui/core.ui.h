@@ -12,8 +12,8 @@
 namespace clessidra
 {
 // Maps the Simple Touch's controls to the core's parameters and recording, and
-// drives the LED. Two layers: each control's own, and P11 held (Shift) for the
-// knobs' twins. A knob moves a value from where it is after a layer change,
+// drives the LED. Two layers: each control's own, and P11 held (Shift) for
+// each knob's twin. A knob moves a value from where it is after a layer change,
 // scaled so both reach the end stops together. No hardware code: the board and
 // the host tests run the same mapping.
 class CoreUI
@@ -24,7 +24,7 @@ class CoreUI
         = 0; // a touch: stop as a tape machine, or start
     static constexpr size_t kResetPad = 1; // the twins back to their defaults
     static constexpr size_t kTrigPad
-        = 2; // playback triggered again from the loop's start
+        = 2; // playback from the loop's start, at once, stopped or not
     static constexpr size_t kRecordPad = 10; // tap or hold. With Shift: listen
     static constexpr size_t kShiftPad  = 11; // held: the second layer
     static constexpr size_t kNumSlices = Onsets::kNumSlices;
@@ -45,12 +45,14 @@ class CoreUI
     static constexpr float kMinGrainMs = 5.0f;
     static constexpr float kMaxGrainMs = 2000.0f;
 
-    // The second layer's values at power-up and after a reset: sizes and
-    // pitches as set, starts at random, the filter off, a short reverb (1.7 s,
-    // a quarter wet), full volume
+    // The second layer's values at power-up and after a reset: sizes,
+    // pitches, shapes and direction as set, starts at random, the filter off,
+    // a short reverb (1.7 s, a quarter wet), full volume
     static constexpr float kRandomPitch = 0.5f;
     static constexpr float kRandomSize  = 0.0f;
+    static constexpr float kRandomShape = 0.0f;
     static constexpr float kRandomTime  = 1.0f;
+    static constexpr float kReverse     = 0.0f;
     static constexpr float kFilter      = 0.5f;
     static constexpr float kReverb      = 0.35f;
     static constexpr float kVolume      = 1.0f;
@@ -96,9 +98,6 @@ class CoreUI
     // Knobs whose own value means most at the centre: Size, Pitch, Shape
     static constexpr std::array<bool, Controls::kNumKnobs> kCentred
         = {false, true, false, true, true, false, false, false};
-    // Knobs with a twin on the second layer
-    static constexpr std::array<bool, Controls::kNumKnobs> kTwinned
-        = {false, true, false, true, true, true, true, true};
 
     // The knobs' values on both layers. Frozen, S36 scrubs instead.
     void Knobs(const Controls& c, bool frozen);
@@ -107,8 +106,8 @@ class CoreUI
     void Slices(const Controls& c, const Core& core, Core::Params& p);
     void Scrub(float fader, bool frozen, Core& core);
     void Reset(const Controls& c);
-    // P00 Stop, P02 Trig
-    void Transport(const Controls& c, Core& core, Core::Params& p);
+    // P00 Stop, P02 Trig: true when Trig is touched
+    bool Transport(const Controls& c, Core::Params& p);
     void Pulse(const Controls& c, const std::array<bool, kNumDetents>& at);
 
     std::array<Takeover, Controls::kNumKnobs> own_{};

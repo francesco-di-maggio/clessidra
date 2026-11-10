@@ -88,6 +88,13 @@ export const CONTROLS: Control[] = [
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
     does: "Where the loop starts. The playhead moves with it.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
+    twin: {
+      name: "Filter", bipolar: true, does: "Low-pass below the centre, off at the centre, high-pass above.",
+      value: (p) => {
+        const f = p[PARAM.filter];
+        return f === 0 ? "Off" : f < 0 ? `LP ${percent(-f)}` : `HP ${percent(f)}`;
+      },
+    },
   },
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
@@ -105,6 +112,7 @@ export const CONTROLS: Control[] = [
     id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
     does: "How far grains stray from the playhead, up to the whole loop, and how wide across the stereo field.",
     value: (p) => (p[PARAM.spread] === 0 ? "Off" : percent(p[PARAM.spread])),
+    twin: { name: "Reverse", does: "How many grains read the other way: none, some, all. The phrase keeps its direction, each grain turns.", value: (p) => (p[PARAM.reverse] === 0 ? "Off" : percent(p[PARAM.reverse])) },
   },
   {
     id: "S33", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,
@@ -125,13 +133,7 @@ export const CONTROLS: Control[] = [
       const s = p[PARAM.shape];
       return s === 0.5 ? "Hann" : s < 0.5 ? `Rev ${percent(1 - 2 * s)}` : `Perc ${percent(2 * s - 1)}`;
     },
-    twin: {
-      name: "Filter", bipolar: true, does: "Low-pass below the centre, off at the centre, high-pass above.",
-      value: (p) => {
-        const f = p[PARAM.filter];
-        return f === 0 ? "Off" : f < 0 ? `LP ${percent(-f)}` : `HP ${percent(f)}`;
-      },
-    },
+    twin: { name: "Random shape", short: "Rnd shape", does: "Each grain a different envelope, from reversed to sharp.", value: (p) => (p[PARAM.randShape] === 0 ? "Off" : percent(p[PARAM.randShape])) },
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Mode", initial: POSITION.up,
@@ -163,7 +165,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P02", type: "pad", index: TRIG_PAD, ...padAt(TRIG_PAD), name: "Trig",
-    does: "Playback again from the loop's start, with a grain at once: back on the beat.",
+    does: "Playback from the loop's start, with a grain at once: back on the beat. Stopped: starts at once.",
   },
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
@@ -184,6 +186,7 @@ export const PLAY: [string, string][] = [
   ["A moment held", "S09 at the centre, Density up, a little Spray. Speed scrubs the point"],
   ["One pour", "S07 down: the loop plays once and stops. Trig pours it again"],
   ["Shimmer", "Random pitch (P11 + S33) below the centre: octaves"],
+  ["Backwards syllables", "Reverse (P11 + S32) at the top: the phrase in order, each grain backwards"],
 ];
 
 export const LED: [string, string][] = [

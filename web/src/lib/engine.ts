@@ -23,13 +23,17 @@ export const VIEW_SIZE = 4;
 // cl_params, in the core's units. grainMs: the size in use, grainMsSet: as
 // set. randTime: starts, 0 regular to 1 random. randPitch: below 0 in
 // octaves, above free. volume: linear. spread: pan width, 0..1. filter: -1
-// low-pass, 0 off, 1 high-pass. end: End, 0 once, 1 turn, 2 loop.
-export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randTime: 6, randPitch: 7, shape: 8, start: 9, length: 10, volume: 11, randPos: 12, randSize: 13, grainMsSet: 14, minGrainMs: 15, maxGrainMs: 16, spread: 17, filter: 18, end: 19, stop: 20 } as const;
-export const PARAM_SIZE = 21;
+// low-pass, 0 off, 1 high-pass. end: End, 0 once, 1 turn, 2 loop. reverse:
+// the odds a grain reads the other way.
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randTime: 6, randPitch: 7, shape: 8, start: 9, length: 10, volume: 11, randPos: 12, randSize: 13, grainMsSet: 14, minGrainMs: 15, maxGrainMs: 16, spread: 17, filter: 18, end: 19, stop: 20, randShape: 21, reverse: 22 } as const;
+export const PARAM_SIZE = 23;
 export const SLICES = 7; // Onsets::kNumSlices
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window
 // shape, pan, pitch in semitones, size in ms
 export const GRAIN_FIELDS = 6;
+// cl_wave: the grain the playhead would start now, per column its lowest and
+// highest sample
+export const WAVE_COLUMNS = 128;
 
 export interface Exports {
   memory: WebAssembly.Memory;
@@ -50,6 +54,7 @@ export interface Exports {
   cl_grain_fields(): number;
   cl_params(): number;
   cl_slices(): number;
+  cl_wave(): number;
   cl_chunk(): number;
   cl_chunk_size(): number;
   cl_feed(length: number): void;
@@ -68,6 +73,7 @@ export interface Frame {
   params: Float32Array;
   peaks: Float32Array;
   slices: Float32Array; // where each slice starts in the loop, 0..1
+  wave: Float32Array; // the grain at the playhead, low and high per column
 }
 
 // What the page sends: Controls' knobs, switches and pads

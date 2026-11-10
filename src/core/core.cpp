@@ -55,6 +55,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
     {
         playhead_.Jump(jump);
         schedule_.phase = 0.0;
+        if(!p.stop)
+            tape_ = 1.0f;
     }
     const bool  now   = jump >= 0.0f && len > 0.0;
     const float scrub = scrub_.exchange(0.0f, std::memory_order_relaxed);
@@ -192,7 +194,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
         filter.Set(filter_hz, filter_q, sample_rate_);
 
     // Stopping: faded over its slowest part
-    const float stop_gain = std::min(1.0f, tape_ / kStopFade);
+    const float stop_step
+        = (std::min(1.0f, tape_ / kStopFade) - stop_gain_) / n;
     const float norm_step = (norm_ - norm_gain_) / n;
     // Dry and wet, equal power, exact at the ends
     const float mix         = std::clamp(p.mix, 0.0f, 1.0f);
@@ -207,7 +210,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
         reverb_dry_ += reverb_dry_step;
         reverb_wet_ += reverb_wet_step;
         norm_gain_ += norm_step;
-        const float gain = norm_gain_ * stop_gain;
+        stop_gain_ += stop_step;
+        const float gain = norm_gain_ * stop_gain_;
         // Into the reverb before the filter
         float reverb_l, reverb_r;
         reverb_.Process(
@@ -394,8 +398,9 @@ void Core::StartGrain(const Params& p,
             std::log2(p.grain_ms / p.min_grain_ms) / octaves, 0.0f, 1.0f);
         length = std::exp2((Randomise(size, p.rand_size) - size) * octaves);
     }
-    latch.inc             = 1.0 / std::max(source.grain_samples * length, 1.0);
-    latch.shape           = p.window_shape;
+    latch.inc   = 1.0 / std::max(source.grain_samples * length, 1.0);
+    latch.shape = p.rand_shape > 0.0f ? Randomise(p.window_shape, p.rand_shape)
+                                      : p.window_shape;
     const float pitch     = std::clamp(p.rand_pitch, -1.0f, 1.0f);
     const float random    = Random();
     float       semitones = random * pitch * kRandPitchSemitones;
@@ -405,7 +410,9 @@ void Core::StartGrain(const Params& p,
         semitones       = away ? std::copysign(12.0f, random) : 0.0f;
     }
     latch.rate = p.pitch * std::exp2(semitones / 12.0f);
-    if(source.backwards)
+    const bool mirrored
+        = p.reverse > 0.0f && 0.5f + 0.5f * Random() < p.reverse;
+    if(source.backwards != mirrored)
         latch.rate = -latch.rate;
     // Width with the grains sounding and how much they differ: a lone grain
     // near the centre, most of the others too

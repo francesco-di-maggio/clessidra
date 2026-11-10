@@ -60,9 +60,11 @@ namespace
 
 CoreUI::CoreUI()
 {
+    twin_[Controls::S30] = Takeover(kFilter, true);
     twin_[Controls::S31] = Takeover(kRandomSize);
+    twin_[Controls::S32] = Takeover(kReverse);
     twin_[Controls::S33] = Takeover(kRandomPitch, true);
-    twin_[Controls::S34] = Takeover(kFilter, true);
+    twin_[Controls::S34] = Takeover(kRandomShape);
     twin_[Controls::S35] = Takeover(kReverb);
     twin_[Controls::S36] = Takeover(kVolume);
     twin_[Controls::S37] = Takeover(kRandomTime);
@@ -86,12 +88,15 @@ void CoreUI::Process(const Controls& c, Core& core)
     // S30, Position: where the loop starts, anywhere in the recording. S35,
     // Length: a share of what is left after it, at the top to the recording's
     // end. Both always alive. The playhead keeps its share of the loop, so
-    // Position carries it through the recording, playing or frozen. S35 with
-    // Shift: the reverb.
+    // Position carries it through the recording, playing or frozen. With
+    // Shift, S30: the filter, low-pass down, off at the centre, high-pass up.
+    // S35: the reverb.
     p.start = std::min(own(Controls::S30), 1.0f - Core::kMinLength);
     p.length
         = std::max(own(Controls::S35) * (1.0f - p.start), Core::kMinLength);
-    p.reverb = twin(Controls::S35);
+    const float filter = Detent(twin(Controls::S30), 0.05f);
+    p.filter           = 2.0f * filter - 1.0f;
+    p.reverb           = twin(Controls::S35);
 
     // S36, Speed: the time stretched, the grains' pitch their own. Frozen, it
     // scrubs through the loop instead, and takes the speed up again after.
@@ -129,10 +134,12 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.rand_time = twin(Controls::S37);
 
     // S32, Spray: how far each grain strays from the playhead,
-    // evenly, up to the whole loop, and across the stereo field with it
+    // evenly, up to the whole loop, and across the stereo field with it.
+    // Shift, Reverse: the odds a grain reads the other way.
     const float rnd_pos = own(Controls::S32);
     p.rand_pos          = rnd_pos * rnd_pos;
     p.spread            = rnd_pos;
+    p.reverse           = twin(Controls::S32);
 
     // S33, Pitch. Shift: its randomness, none at the centre. Up: free, to an
     // octave either way. Down: in octaves, more grains an octave away.
@@ -142,15 +149,15 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.rand_pitch = rnd_pitch < 0.0f ? rnd_pitch : rnd_pitch * rnd_pitch;
 
     // S34, Shape: the grain's window, reverse percussive, Hann at the centre,
-    // percussive. Shift: the filter, low-pass down, off at the centre,
-    // high-pass up.
-    const float shape  = Detent(own(Controls::S34), 0.05f);
-    const float filter = Detent(twin(Controls::S34), 0.05f);
-    p.window_shape     = shape;
-    p.filter           = 2.0f * filter - 1.0f;
+    // percussive. Shift: its randomness.
+    const float shape = Detent(own(Controls::S34), 0.05f);
+    p.window_shape    = shape;
+    p.rand_shape      = twin(Controls::S34);
 
-    Transport(c, core, p);
+    const bool trig = Transport(c, p);
     core.SetParams(p);
+    if(trig)
+        core.Jump(p.speed < 0.0f ? 1.0f : 0.0f);
     Pulse(c,
           {semitones == 0.0f,
            !frozen && speed == 1.0f,
@@ -171,8 +178,8 @@ void CoreUI::Knobs(const Controls& c, bool frozen)
         const float knob = c.knobs[k];
         if(!ready_)
             own_[k] = Takeover(knob, kCentred[k]);
-        Takeover& was = shift_ && kTwinned[k] ? twin_[k] : own_[k];
-        Takeover& now = shift && kTwinned[k] ? twin_[k] : own_[k];
+        Takeover& was = shift_ ? twin_[k] : own_[k];
+        Takeover& now = shift ? twin_[k] : own_[k];
         // Frozen, S36 scrubs: its speed held, taken up from here after
         const bool speed = k == Controls::S36;
         if(&was != &now)
@@ -209,21 +216,21 @@ void CoreUI::Scrub(float fader, bool frozen, Core& core)
 }
 
 // P00: stop as a tape machine, everything slowing to a halt, then a touch
-// to start again. P02, Trig: playback triggered again, the playhead back to
-// the loop's start, its end
-// in reverse, with a grain at once.
-void CoreUI::Transport(const Controls& c, Core& core, Core::Params& p)
+// to start again. P02, Trig: playback from the loop's start, its end in
+// reverse, with a grain at once. Stopped: started, at speed at once.
+bool CoreUI::Transport(const Controls& c, Core::Params& p)
 {
     const bool stop = c.touched[kStopPad];
     if(stop && !stop_touched_)
         stop_ = !stop_;
     stop_touched_ = stop;
-    p.stop        = stop_;
 
-    const bool trig = c.touched[kTrigPad];
-    if(trig && !trig_touched_)
-        core.Jump(p.speed < 0.0f ? 1.0f : 0.0f);
-    trig_touched_ = trig;
+    const bool trig = c.touched[kTrigPad] && !trig_touched_;
+    trig_touched_   = c.touched[kTrigPad];
+    if(trig)
+        stop_ = false;
+    p.stop = stop_;
+    return trig;
 }
 
 // P01: the second layer's values back to their defaults
@@ -232,9 +239,11 @@ void CoreUI::Reset(const Controls& c)
     const bool touched = c.touched[kResetPad];
     if(touched && !reset_touched_)
     {
+        twin_[Controls::S30].Set(kFilter, c.knobs[Controls::S30]);
         twin_[Controls::S31].Set(kRandomSize, c.knobs[Controls::S31]);
+        twin_[Controls::S32].Set(kReverse, c.knobs[Controls::S32]);
         twin_[Controls::S33].Set(kRandomPitch, c.knobs[Controls::S33]);
-        twin_[Controls::S34].Set(kFilter, c.knobs[Controls::S34]);
+        twin_[Controls::S34].Set(kRandomShape, c.knobs[Controls::S34]);
         twin_[Controls::S35].Set(kReverb, c.knobs[Controls::S35]);
         twin_[Controls::S36].Set(kVolume, c.knobs[Controls::S36]);
         twin_[Controls::S37].Set(kRandomTime, c.knobs[Controls::S37]);
@@ -289,7 +298,7 @@ void CoreUI::Pulse(const Controls& c, const std::array<bool, kNumDetents>& at)
            own_[Controls::S36].Value(),
            own_[Controls::S31].Value(),
            own_[Controls::S34].Value(),
-           twin_[Controls::S34].Value(),
+           twin_[Controls::S30].Value(),
            twin_[Controls::S33].Value()};
     if(!detents_ready_)
     {

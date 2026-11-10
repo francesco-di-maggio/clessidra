@@ -42,8 +42,8 @@ function send(m: Message) {
 function refresh() {
   if (!preview) return;
   const { params, view } = preview.read();
-  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, view };
-  grainShape.update(params);
+  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), wave: new Float32Array(0), params, view };
+  grainShape.update(last);
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
@@ -253,7 +253,7 @@ function onMessage(m: FromWorklet) {
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming);
     waveform.update(m);
-    grainShape.update(m.params);
+    grainShape.update(m);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);
