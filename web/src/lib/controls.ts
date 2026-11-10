@@ -129,8 +129,8 @@ export const CONTROLS: Control[] = [
     },
   },
   {
-    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 2 / 3,
-    does: "Grain envelope: square, decay, bell, reverse, and everything between.",
+    id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 0.5, bipolar: true, detent: true,
+    does: "Grain envelope: square at the bottom, decay, bell at the centre, reverse at the top, and everything between.",
     value: (p) => {
       // At a shape, its name. Between two, both.
       const at = p[PARAM.shape] * (SHAPES.length - 1);
@@ -196,7 +196,7 @@ export const PLAY: [string, string][] = [
 export const LED: [string, string][] = [
   ["Glow", "Grains falling, dimmer as the sand runs out"],
   ["Flashing", "Recording"],
-  ["Pulse", "At a stop: unison, speed 1×, 100 ms, filter off, random pitch off"],
+  ["Pulse", "At a stop: unison, speed 1×, 100 ms, bell, filter off, random pitch off"],
   ["Steady", "P11 held: the twin last turned"],
 ];
 

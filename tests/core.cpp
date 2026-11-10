@@ -1314,10 +1314,11 @@ void Mapping()
     Check(Near(p.speed, 1.0, 1e-6) && !p.freeze && p.end == End::Loop,
           "S36 on its fourth stop, S09 up: speed 1 forward, looped",
           p.speed);
-    Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.mix == 1.0f
-              && p.filter == 0.0f && p.reverb == CoreUI::kReverb
-              && p.rand_pitch == 0.0f && p.rand_time == 1.0f
-              && p.rand_shape == 0.0f && p.reverse == 0.0f && p.volume == 1.0f,
+    Check(Near(p.pitch, 1.0, 1e-6) && Near(p.window_shape, 2.0 / 3.0, 1e-6)
+              && p.mix == 1.0f && p.filter == 0.0f
+              && p.reverb == CoreUI::kReverb && p.rand_pitch == 0.0f
+              && p.rand_time == 1.0f && p.rand_shape == 0.0f
+              && p.reverse == 0.0f && p.volume == 1.0f,
           "power-up: unison, shape as set, filter off, short reverb, random "
           "starts, "
           "full volume",
@@ -1416,6 +1417,11 @@ void Mapping()
     c.knobs[Controls::S34] = 1.0f;
     ui.Process(c, r.core);
     Check(p.window_shape == 1.0f, "S34 up: reverse", p.window_shape);
+    c.knobs[Controls::S34] = 0.225f;
+    ui.Process(c, r.core);
+    Check(Near(p.window_shape, 1.0 / 3.0, 1e-6),
+          "S34 half way down: decay",
+          p.window_shape);
     c.knobs[Controls::S34] = 0.5f;
     ui.Process(c, r.core);
 
@@ -1540,7 +1546,7 @@ void Mapping()
           p.rand_pitch);
     Check(Near(p.filter, 1.0, 1e-2) && Near(p.reverse, 1.0, 1e-2)
               && p.start == 0.0f && p.rand_pos == 0.0f
-              && p.window_shape == 0.5f,
+              && Near(p.window_shape, 2.0 / 3.0, 1e-6),
           "P11 + S30, S32: high-pass, every grain reversed, Position, Spray "
           "and Shape kept",
           p.filter);

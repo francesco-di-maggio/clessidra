@@ -93,11 +93,11 @@ class CoreUI
     }
 
   private:
-    // Pitch unison, speed 1, size centre, filter off, pitches as set
-    static constexpr size_t kNumDetents = 5;
-    // Knobs whose own value means most at the centre: Size, Pitch
+    // Pitch unison, speed 1, size centre, bell, filter off, pitches as set
+    static constexpr size_t kNumDetents = 6;
+    // Knobs whose own value means most at the centre: Size, Pitch, Shape
     static constexpr std::array<bool, Controls::kNumKnobs> kCentred
-        = {false, true, false, true, false, false, false, false};
+        = {false, true, false, true, true, false, false, false};
 
     // The knobs' values on both layers. Frozen, S36 scrubs instead.
     void Knobs(const Controls& c, bool frozen);
