@@ -667,6 +667,49 @@ void Ends()
           double(dropped));
 }
 
+// A held slice ends as End sets: once and no more, turned over, or round it
+void SliceEnds()
+{
+    const auto held = [](End end, size_t* late, bool* backwards) {
+        Rig r(1.0);
+        r.Fill(Sine);
+        Core::Params p;
+        p.density         = 50.0f;
+        p.grain_ms        = 20.0f;
+        p.end             = end;
+        p.slice_start[0]  = 0.0f;
+        p.slice_length[0] = 0.25f; // 0.25 s
+        r.core.SetParams(p);
+        r.Run(0.1, Silence);
+        p.slices_held = 1;
+        r.core.SetParams(p);
+        const size_t first = Starts(r, 0.2);
+        r.Run(0.1, Silence);
+        *backwards = false;
+        r.Run(0.1, Silence, [&](size_t) {
+            for(const auto& g : r.core.Grains())
+                *backwards
+                    = *backwards || (g.IsActive() && g.Settings().rate < 0.0f);
+        });
+        *late = Starts(r, 0.2);
+        return first;
+    };
+    size_t late;
+    bool   backwards;
+    size_t first = held(End::Once, &late, &backwards);
+    Check(first > 5 && late == 0,
+          "slice held, once: it plays through and no more (starts after)",
+          double(late));
+    first = held(End::Turn, &late, &backwards);
+    Check(first > 5 && late > 5 && backwards,
+          "slice held, turn: turned over at its end, its grains backwards",
+          double(late));
+    first = held(End::Loop, &late, &backwards);
+    Check(first > 5 && late > 5 && !backwards,
+          "slice held, loop: round it, its grains forward",
+          double(late));
+}
+
 // A jump: a grain at once, whatever the density, the starts counted from it
 void Jumps()
 {
@@ -1699,6 +1742,7 @@ int main()
     Jumps();
     Scrubbed();
     Ends();
+    SliceEnds();
     RandomPitch();
     Mirrored();
     Selection();

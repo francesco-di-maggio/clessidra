@@ -101,10 +101,10 @@ body.app main { flex: 1; min-height: 0; }
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
-/* Between Position and Length, the hourglass, as tall as a knob with its
-   name and value */
+/* Between Position and Length, the hourglass, as tall as a dial and beside
+   the dials */
 .knobs .glass { grid-column: span 2; cursor: default; }
-.knobs .glass canvas { width: calc(100% - 16px); height: calc(var(--band) + 12px + 2 * var(--name)); }
+.knobs .glass canvas { width: calc(100% - 16px); height: var(--band); margin-top: calc(var(--name) + 6px); }
 
 /* The pads as an octave: the slices white keys, the others black keys on
    their edges, two then three as on a piano. Names at the foot of each key.

@@ -119,15 +119,16 @@ void Core::Process(const float* const* in, float** out, size_t size)
             const double span = std::max(p.slice_length[s] * sel_len, 1.0);
             Playhead&    head = slice_heads_[s];
             head.Advance(p.freeze ? 0.0 : p.speed * double(tape_) / span,
-                         End::Loop);
-            if(Due(slice_schedules_[s],
-                   slice_density * tape_ / sample_rate_,
-                   slice_random))
+                         p.end);
+            if(!head.Ended()
+               && Due(slice_schedules_[s],
+                      slice_density * tape_ / sample_rate_,
+                      slice_random))
                 StartGrain(p,
                            {sel_start + p.slice_start[s] * sel_len,
                             span,
                             head.Phase(),
-                            p.speed < 0.0f,
+                            (p.speed < 0.0f) != (head.Heading() < 0),
                             grain_samples},
                            &sound,
                            i);

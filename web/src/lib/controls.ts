@@ -173,7 +173,7 @@ export const CONTROLS: Control[] = [
   },
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
-    does: "Held: plays its slice, round it, in the direction set. Several at once. The loop waits.",
+    does: "Held: plays its slice in the direction set, to its end as End sets. Several at once. The loop waits.",
   })),
 ];
 
