@@ -1,7 +1,7 @@
 // The grain at the playhead, between Position and Length: the recording as
 // that grain reads it, as wide as its Size (5 ms to 2 s across), as fast as
 // its Pitch, swelling and fading as Shape sets. Nothing recorded: the shape
-// alone. Random size: the narrowest and widest shapes, faint.
+// alone, solid. Random size: the narrowest and widest shapes, faint.
 
 import { PARAM, WAVE_COLUMNS, type Frame } from "./engine";
 import { windowAt } from "./waveform";
@@ -54,31 +54,27 @@ export class GrainShape {
     const room = W - 2 * INSET;
     const amplitude = mid - 6;
     const width = (ms: number) => (0.08 + 0.92 * Math.min(1, Math.max(0, Math.log(ms / SIZE_MIN) / Math.log(SIZE_MAX / SIZE_MIN)))) * room;
-    // The window alone, above and below the middle
-    const outline = (w: number, colour: string, lineWidth: number) => {
+    // The window alone, above the middle and back below it
+    const outline = (w: number, colour: string, solid: boolean) => {
       const x0 = (W - w) / 2;
       ctx.beginPath();
-      for (const side of [-1, 1]) {
-        for (let k = 0; k <= STEPS; k++) {
-          const x = k / STEPS;
-          const y = mid + side * windowAt(x, shape) * amplitude;
-          if (k === 0) ctx.moveTo(x0, y);
-          else ctx.lineTo(x0 + x * w, y);
-        }
-      }
-      ctx.strokeStyle = colour;
-      ctx.lineWidth = lineWidth;
+      for (let k = 0; k <= STEPS; k++) ctx.lineTo(x0 + (k / STEPS) * w, mid - windowAt(k / STEPS, shape) * amplitude);
+      for (let k = STEPS; k >= 0; k--) ctx.lineTo(x0 + (k / STEPS) * w, mid + windowAt(k / STEPS, shape) * amplitude);
+      ctx.closePath();
+      ctx.fillStyle = ctx.strokeStyle = colour;
+      ctx.lineWidth = 1;
+      if (solid) ctx.fill();
       ctx.stroke();
     };
 
     const ms = p[PARAM.grainMs];
     const octaves = Math.log2(Math.max(p[PARAM.maxGrainMs], p[PARAM.minGrainMs] * 1.01) / p[PARAM.minGrainMs]);
     const reach = Math.min(Math.max(Math.sqrt(4 * p[PARAM.randSize]), 0), 1) * 0.25 * octaves;
-    if (reach > 0) for (const r of [-reach, reach]) outline(width(ms * 2 ** r), css.getPropertyValue("--line"), 1);
+    if (reach > 0) for (const r of [-reach, reach]) outline(width(ms * 2 ** r), css.getPropertyValue("--line"), false);
 
     const w = width(ms);
     if (wave.length < 2 * WAVE_COLUMNS || this.level === 0) {
-      outline(w, accent, 1.5);
+      outline(w, accent, true);
       return;
     }
     // Low to high in each column, under the window

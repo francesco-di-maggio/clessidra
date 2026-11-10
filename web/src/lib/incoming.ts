@@ -1,15 +1,22 @@
 // The input strip: the input over the seconds a tap on Rec keeps, newest at
 // the right, as dots on a linear scale, its scale below. The part being recorded
-// in orange.
+// in orange. Each column of dots holds one stretch of the input and moves left
+// with it, every screen frame.
 
-import { INCOMING_SECONDS, TAP_SECONDS } from "./engine";
+import { INCOMING_COLUMNS, INCOMING_SECONDS, TAP_SECONDS } from "./engine";
 
 const DOT = 3; // the grid, px
 const SIZE = 1.5; // a dot, px
+const PER_SECOND = INCOMING_COLUMNS / INCOMING_SECONDS; // the input's columns
+const FRESH_MS = 200; // without the input for this long: still
+const AHEAD_S = 0.05; // at most, moved on past the input last heard of
 
 export class Incoming {
   private ctx: CanvasRenderingContext2D;
   private peaks: Float32Array = new Float32Array(0);
+  private at = 0; // the input's columns so far, with the part of the next
+  private stamp = 0; // when that came, ms
+  private frame = 0;
   recording = 0; // seconds held, 0 when not recording
   seconds = TAP_SECONDS; // shown, the newest of the INCOMING_SECONDS held
 
@@ -20,10 +27,17 @@ export class Incoming {
     new ResizeObserver(() => this.draw()).observe(canvas);
   }
 
-  update(peaks: Float32Array) {
+  update(peaks: Float32Array, at: number) {
     this.peaks = peaks;
-    this.draw();
+    this.at = at;
+    this.stamp = performance.now();
+    if (!this.frame) this.frame = requestAnimationFrame(this.tick);
   }
+
+  private tick = () => {
+    this.draw();
+    this.frame = performance.now() - this.stamp < FRESH_MS ? requestAnimationFrame(this.tick) : 0;
+  };
 
   draw() {
     const { canvas, ctx } = this;
@@ -46,20 +60,27 @@ export class Incoming {
     const rows = Math.floor((bottom - top) / 2 / DOT);
     const mid = (top + bottom) / 2;
     const held = Math.min(this.recording / this.seconds, 1); // share of the strip, from the right
-    const from = this.peaks.length * (1 - this.seconds / INCOMING_SECONDS);
-    const span = this.peaks.length - from;
+    // The input's columns in each column of dots, counted from the input's
+    // start: a column of dots keeps its part of the input as it moves
+    const bin = (this.seconds * PER_SECOND) / cols;
+    const done = Math.floor(this.at); // the input's columns complete
+    const first = done - this.peaks.length; // the oldest held
+    const ahead = Math.min(Math.max(performance.now() - this.stamp, 0) / 1000, AHEAD_S);
+    const now = this.at + (this.stamp ? ahead * PER_SECOND : 0);
     const quiet = new Path2D();
     const loud = new Path2D();
     const rec = new Path2D();
-    for (let k = 0; k < cols; k++) {
-      const i0 = Math.floor(from + (k / cols) * span);
-      const i1 = Math.max(i0 + 1, Math.floor(from + ((k + 1) / cols) * span));
+    // Before the input's start: silence
+    for (let b = Math.floor((done - 1) / bin); ; b--) {
+      const cx = pad + width - (now / bin - b) * DOT + DOT / 2;
+      if (cx < pad - DOT) break;
+      const i0 = Math.max(Math.ceil(b * bin), first);
+      const i1 = Math.min(Math.ceil((b + 1) * bin), done);
       let peak = 0;
-      for (let i = i0; i < i1 && i < this.peaks.length; i++) peak = Math.max(peak, this.peaks[i]);
+      for (let i = i0; i < i1; i++) peak = Math.max(peak, this.peaks[i - first]);
       // Linear, as a waveform: a normal level reads thin, the peaks stand out
       const n = Math.round(Math.min(1, peak) * rows);
-      const cx = pad + k * DOT + DOT / 2;
-      const path = k >= cols * (1 - held) ? rec : n > 0 ? loud : quiet;
+      const path = cx >= pad + width * (1 - held) ? rec : n > 0 ? loud : quiet;
       for (let j = -n; j <= n; j++) path.rect(cx - SIZE / 2, mid + j * DOT - SIZE / 2, SIZE, SIZE);
     }
     ctx.fillStyle = css.getPropertyValue("--line");

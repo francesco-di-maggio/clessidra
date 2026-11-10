@@ -26,6 +26,7 @@ class Clessidra extends AudioWorkletProcessor {
   // The input's peak per column, a ring of the last INCOMING_SECONDS
   private incoming = new Float32Array(INCOMING_COLUMNS);
   private column = 0;
+  private columns = 0; // so far
   private columnPeak = 0;
   private columnSamples = 0;
 
@@ -106,6 +107,7 @@ class Clessidra extends AudioWorkletProcessor {
       if (++this.columnSamples >= perColumn) {
         this.incoming[this.column] = this.columnPeak;
         this.column = (this.column + 1) % INCOMING_COLUMNS;
+        this.columns++;
         this.columnPeak = this.columnSamples = 0;
       }
     }
@@ -128,7 +130,8 @@ class Clessidra extends AudioWorkletProcessor {
     const incoming = new Float32Array(INCOMING_COLUMNS);
     incoming.set(this.incoming.subarray(this.column));
     incoming.set(this.incoming.subarray(0, this.column), INCOMING_COLUMNS - this.column);
-    this.post({ type: "view", led: w.cl_led(now), input: this.input, output: this.output, incoming, view, grains, params, peaks, slices, wave }, [view.buffer, grains.buffer, params.buffer, peaks.buffer, incoming.buffer, slices.buffer, wave.buffer]);
+    const incomingAt = this.columns + this.columnSamples / ((INCOMING_SECONDS * sampleRate) / INCOMING_COLUMNS);
+    this.post({ type: "view", led: w.cl_led(now), input: this.input, output: this.output, incoming, incomingAt, view, grains, params, peaks, slices, wave }, [view.buffer, grains.buffer, params.buffer, peaks.buffer, incoming.buffer, slices.buffer, wave.buffer]);
     this.input = this.output = 0;
   }
 }

@@ -68,6 +68,7 @@ export interface Frame {
   input: number; // peak since the last frame, 0..1
   output: number;
   incoming: Float32Array; // the input's peaks over INCOMING_SECONDS, oldest first
+  incomingAt: number; // columns of it so far, with the part of the next
   view: Float32Array;
   grains: Float32Array;
   params: Float32Array;

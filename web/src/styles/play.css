@@ -132,6 +132,7 @@ body.app main { flex: 1; min-height: 0; }
 /* Rec black as the others, its name orange: the one orange not "on".
    Recording, solid orange. */
 .pad.rec { color: var(--accent); }
+.pad.rec .num::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: currentColor; vertical-align: 1px; }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 .pad.latched { border-color: var(--accent); color: var(--accent); }
 .pad.free { pointer-events: none; color: var(--dim); background: none; border-style: dashed; }
