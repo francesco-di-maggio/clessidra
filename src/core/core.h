@@ -17,14 +17,6 @@
 
 namespace clessidra
 {
-// Steps a grain's random pitch snaps to
-enum class Quantize
-{
-    Off,
-    Semitones,
-    Octaves
-};
-
 // The instrument's signal path. No hardware code here.
 class Core
 {
@@ -45,6 +37,9 @@ class Core
     static constexpr size_t kNumSlices = Onsets::kNumSlices;
     // the furthest Params.rand_pitch takes a grain's pitch, either way
     static constexpr float kRandPitchSemitones = 12.0f;
+    // In octaves, at the most: the odds a grain is an octave away, up or down
+    // alike. A third stay.
+    static constexpr float kRandPitchOctaveOdds = 2.0f / 3.0f;
     // One jack or two: -3 dB on one, +3 dB on two in phase, not -6 and 0
     static constexpr float kInputSum = 0.7071f;
     // +6 dB after the grains, into the limiter: at equal power they sound
@@ -93,10 +88,12 @@ class Core
     {
         // Selection, 0..1 of the sound: from start, length long, ending no
         // later than the sound's end
-        float start    = 0.0f;
-        float length   = 1.0f;
-        float speed    = 1.0f;  // 1 = real time, negative = reverse
-        bool  freeze   = false; // the playhead held where it was, speed ignored
+        float start  = 0.0f;
+        float length = 1.0f;
+        float speed  = 1.0f;  // 1 = real time, negative = reverse
+        bool  freeze = false; // the playhead held where it was, speed ignored
+        // At the end of the selection: stop, turn over, or round again
+        End   end      = End::Loop;
         float grain_ms = 100.0f; // grain size
         // the size's range, exponential: where rand_size takes it
         float min_grain_ms = 10.0f;
@@ -109,14 +106,14 @@ class Core
         // Randomness of each grain, 0..1: 0 none, 1 anywhere in the range,
         // evenly. Position within the amount around the playhead, round the
         // selection. Size between min_grain_ms and max_grain_ms, exponential.
-        // Pitch up to kRandPitchSemitones either way, snapped by quantize.
-        float    rand_pos   = 0.0f;
-        float    rand_size  = 0.0f;
-        float    rand_pitch = 0.0f;
-        Quantize quantize   = Quantize::Off;
-        // Starts at random intervals, mostly short, a long tail, the same mean.
-        // Otherwise periodic.
-        bool random_starts = false;
+        // Pitch up to kRandPitchSemitones either way. Below 0, to -1: in
+        // octaves, the odds rising to kRandPitchOctaveOdds.
+        float rand_pos   = 0.0f;
+        float rand_size  = 0.0f;
+        float rand_pitch = 0.0f;
+        // Starts from periodic, 0, to random intervals, 1: mostly short, a
+        // long tail. The same mean.
+        float rand_time = 0.0f;
         // 0..1, how much the grains differ: with the grains sounding, the pan
         // width
         float spread = 0.0f;
@@ -124,8 +121,9 @@ class Core
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
         // Slowed to a halt as a tape machine, over kStopSeconds; the reverb
         // rings on
-        bool  stop = false;
-        float mix  = 1.0f; // 0 dry .. 1 wet, equal power
+        bool  stop   = false;
+        float mix    = 1.0f; // 0 dry .. 1 wet, equal power
+        float volume = 1.0f; // output gain, after the limiter
         // Slices of the selection, 0..1 of it. Each held one plays its own
         // span from its start, round it, at speed and density, a grain at
         // once. At no density: two grains at once, regular, the slice as it
@@ -199,6 +197,9 @@ class Core
     const std::array<Grain, kNumVoices>& Grains() const { return grains_; }
     const Params& CurrentParams() const { return params_; }
     double        PlayheadPhase() const { return playhead_.Phase(); }
+    // Through the selection, what is left ahead of the playhead, 0..1: 0 once
+    // run out
+    float SandLeft() const { return float(playhead_.Left()); }
     // A grain's size in use, ms: grain_ms within the recording
     float GrainMs() const { return grain_ms_; }
     // Grains dropped so far, all voices sounding: the neck clogged
@@ -243,13 +244,14 @@ class Core
     // plays it
     void UpdateCapture(size_t size);
     // Advances grain starts by one sample; true when a grain starts
-    bool Due(Schedule& s, double sched_inc, bool random);
+    bool Due(Schedule& s, double sched_inc, float random);
     // Updates norm_ from the mean powers of the last block
-    void  Normalise(float  power_grains,
-                    float  power_sum,
-                    float  window_power,
-                    size_t size);
-    float Interval(bool random); // to the next start, 1 = mean
+    void Normalise(float  power_grains,
+                   float  power_sum,
+                   float  window_power,
+                   size_t size);
+    // To the next start, 1 = mean: from periodic, 0, to random, 1
+    float Interval(float random);
     // x, 0..1, moved by amount towards an even random value
     float Randomise(float x, float amount);
     float Random(); // uniform -1..1
@@ -315,6 +317,7 @@ class Core
     float reverb_wet_ = 0.0f;
     float dry_gain_   = 0.0f;
     float wet_gain_   = 1.0f;
+    float volume_     = 1.0f;
 };
 
 } // namespace clessidra

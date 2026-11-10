@@ -45,7 +45,7 @@ const percent = (x: number) => `${Math.round(x * 100)} %`;
 const ms = (x: number) => (x < 1000 ? `${Math.round(x)} ms` : `${(x / 1000).toFixed(2)} s`);
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
 const RAND_PITCH = 12; // Core::kRandPitchSemitones
-const QUANTIZE = ["Off", "Semitones", "Octaves"]; // Core's Quantize
+const END = ["Once", "Turn", "Loop"]; // Playhead's End
 
 // Speed's stops from the bottom, as CoreUI's Stops(): each flat over the first
 // third of its segment, marked at the middle of it
@@ -53,14 +53,14 @@ const SPEED_STOPS = ["0", "¼", "½", "1×", "2×", "4×"];
 const SEGMENTS = SPEED_STOPS.length - 1;
 const speedAt = (stop: number) => (stop === SEGMENTS ? SEGMENTS : stop === 0 ? 0 : stop + 1 / 6) / SEGMENTS;
 const SPEED_SCALE = SPEED_STOPS.map((label, i) => ({ at: speedAt(i), label })).reverse();
-// Density's grains at once where the fader puts them, either side of the
-// centre (CoreUI: kDensityDetent, kMinOverlap, kMaxOverlap)
-const DETENT = 0.04;
-const overlapAt = (overlap: number, sign: number) => 0.5 + sign * (DETENT + (0.5 - DETENT) * (Math.log(overlap * 16) / Math.log(256)));
-const DENSITY_SCALE = [16, 4, 1].map((o) => ({ at: overlapAt(o, 1), label: `${o}` }))
-  .concat([{ at: 0.5, label: "0" }])
-  .concat([1, 4, 16].map((o) => ({ at: overlapAt(o, -1), label: `${o}` })));
-const fraction = (x: number) => (x >= 1 ? x.toFixed(1) : `1/${Math.round(1 / x)}`);
+// Density's grains per second where the fader puts them (CoreUI:
+// kDensityNone, kMinDensity, kMaxDensity)
+const NONE = 0.04;
+const MIN_DENSITY = 0.25;
+const MAX_DENSITY = 130;
+const densityAt = (rate: number) => NONE + (1 - NONE) * (Math.log(rate / MIN_DENSITY) / Math.log(MAX_DENSITY / MIN_DENSITY));
+const DENSITY_SCALE = [100, 10, 1].map((r) => ({ at: densityAt(r), label: `${r}` })).concat([{ at: 0, label: "0" }]);
+const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.log10(gain), 0)} dB`);
 
 const PAD_AT: Record<number, [number, number]> = {
   0: [150, 620], 1: [310, 610], 2: [412, 625], 3: [48, 800], 4: [170, 765], 5: [285, 795],
@@ -73,18 +73,16 @@ export const CONTROLS: Control[] = [
     id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3), scale: SPEED_SCALE,
     does: "Playback speed, 0 to 4×, the pitch kept. Frozen, it scrubs through the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
-    twin: { name: "Dry/wet", short: "Mix", does: "The input against the grains, dry to wet.", value: (p) => percent(p[PARAM.mix]) },
+    twin: { name: "Volume", does: "Output level, off to 0 dB.", value: (p) => db(p[PARAM.volume]) },
   },
   {
-    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: 0.8, bipolar: true, detent: true, scale: DENSITY_SCALE,
-    does: "Grains at once, up to 16. None at the centre, regular below, random above.",
+    id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: densityAt(20), scale: DENSITY_SCALE,
+    does: "Grains per second, 0.25 to 130, whatever their size. None at the bottom.",
     value: (p) => {
       const d = p[PARAM.density];
-      if (d === 0) return "None";
-      // The words padded to one length: the figure stays put
-      return `${(p[PARAM.randomStarts] ? "Random" : "Regular").padEnd(7, "\u00a0")} ${fraction((d * p[PARAM.grainMsSet]) / 1000)}`;
+      return d === 0 ? "None" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
     },
-    twin: { name: "Reverb", does: "Reverb on the grains, from none to long tails.", value: (p) => percent(p[PARAM.reverb]) },
+    twin: { name: "Random timing", short: "Rnd time", does: "When grains start, from a regular pulse to random, as many per second.", value: (p) => (p[PARAM.randTime] === 0 ? "Regular" : percent(p[PARAM.randTime])) },
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
@@ -95,6 +93,7 @@ export const CONTROLS: Control[] = [
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
     does: "How much of the rest the loop takes: at the top, to the end.",
     value: (p, v) => seconds(p[PARAM.length] * v.sound),
+    twin: { name: "Reverb", does: "Reverb on the grains, from none to long tails.", value: (p) => percent(p[PARAM.reverb]) },
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
@@ -103,7 +102,7 @@ export const CONTROLS: Control[] = [
     twin: { name: "Random size", short: "Rnd size", does: "Each grain a different length, up to two octaves either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
   },
   {
-    id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Random position", short: "Rnd pos", initial: 0,
+    id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
     does: "How far grains stray from the playhead, up to the whole loop, and how wide across the stereo field.",
     value: (p) => (p[PARAM.spread] === 0 ? "Off" : percent(p[PARAM.spread])),
   },
@@ -111,7 +110,13 @@ export const CONTROLS: Control[] = [
     id: "S33", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,
     does: "Transpose up to two octaves either way, with stops at musical intervals.",
     value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
-    twin: { name: "Random pitch", short: "Rnd pitch", does: "Each grain a different pitch, up to an octave, snapped by Quantize.", value: (p) => (p[PARAM.randPitch] === 0 ? "Off" : `±${(p[PARAM.randPitch] * RAND_PITCH).toFixed(1)} st`) },
+    twin: {
+      name: "Random pitch", short: "Rnd pitch", bipolar: true, does: "Off at the centre. Above: each grain a different pitch, up to an octave either way. Below: in octaves, more grains an octave up or down.",
+      value: (p) => {
+        const r = p[PARAM.randPitch];
+        return r === 0 ? "Off" : r < 0 ? `Oct ${percent(-r)}` : `±${(r * RAND_PITCH).toFixed(1)} st`;
+      },
+    },
   },
   {
     id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 0.5, bipolar: true, detent: true,
@@ -134,9 +139,9 @@ export const CONTROLS: Control[] = [
     value: (p) => (p[PARAM.freeze] ? "Frozen" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   {
-    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "Quantize", initial: POSITION.down,
-    does: "Snaps random pitch to octaves or semitones, or leaves it free.",
-    value: (p) => QUANTIZE[p[PARAM.quantize]] ?? "",
+    id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "End", initial: POSITION.up,
+    does: "At the loop's end: once and no more, turned over to run back, or round again. Trig pours it again.",
+    value: (p) => END[p[PARAM.end]] ?? "",
   },
   {
     id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
@@ -171,18 +176,20 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 
 // Starting points: a sound and how to set the panel for it
 export const PLAY: [string, string][] = [
-  ["Rhythm", "Density below the centre, Shape up, Size short. Tap the slices: each restarts the beat"],
-  ["Drums by hand", "Density at the centre: each slice plays one grain"],
-  ["Cloud", "Density at the top, Random position up, Size long, Reverb (P11 + S37) up"],
+  ["Rhythm", "Density low, Random timing (P11 + S37) down, Shape up, Size short. Size sets how long each hit lasts"],
+  ["Drops", "Density near the bottom, Size short: single grains, now and then"],
+  ["Drums by hand", "Density at the bottom, Shape up: tap the slices, several at once"],
+  ["Cloud", "Density at the top, Spray up, Size long, Reverb (P11 + S35) up"],
   ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards"],
-  ["A moment held", "S09 at the centre, Density up, a little Random position. Speed scrubs the point"],
-  ["Shimmer", "Random pitch (P11 + S33) up, S07 up: octaves"],
+  ["A moment held", "S09 at the centre, Density up, a little Spray. Speed scrubs the point"],
+  ["One pour", "S07 down: the loop plays once and stops. Trig pours it again"],
+  ["Shimmer", "Random pitch (P11 + S33) below the centre: octaves"],
 ];
 
 export const LED: [string, string][] = [
   ["Glow", "Grains falling, dimmer as the sand runs out"],
   ["Flashing", "Recording"],
-  ["Pulse", "At a stop: unison, speed 1×, 100 ms, Hann, filter off"],
+  ["Pulse", "At a stop: unison, speed 1×, 100 ms, Hann, filter off, random pitch off"],
   ["Steady", "P11 held: the twin last turned"],
 ];
 
@@ -191,8 +198,6 @@ export const LED: [string, string][] = [
 export interface Level extends Control {
   gain: (x: number) => number; // linear
 }
-
-const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.log10(gain), 0)} dB`);
 
 export const LEVELS: Level[] = [
   {

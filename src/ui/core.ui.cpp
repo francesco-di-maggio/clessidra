@@ -18,16 +18,6 @@ namespace
         return 0.5f;
     }
 
-    // Of each side of S37's centre, 0..1: none within the detent
-    float Side(float density)
-    {
-        return std::clamp(
-            (std::fabs(2.0f * density - 1.0f) - 2.0f * CoreUI::kDensityDetent)
-                / (1.0f - 2.0f * CoreUI::kDensityDetent),
-            0.0f,
-            1.0f);
-    }
-
     // Either side of the centre, the stops in turn: flat for the first third
     // of each segment, smooth between
     template <size_t N>
@@ -51,12 +41,19 @@ namespace
     constexpr float kSpeeds[] = {0.0f, 0.25f, 0.5f, 1.0f, 2.0f, 4.0f};
 
 
-    Quantize QuantizeOf(Controls::Position s07)
+    End EndOf(Controls::Position s07)
     {
         return s07 == Controls::Up
-                   ? Quantize::Octaves
-                   : s07 == Controls::Centre ? Quantize::Semitones
-                                             : Quantize::Off;
+                   ? End::Loop
+                   : s07 == Controls::Centre ? End::Turn : End::Once;
+    }
+
+    // Off at the bottom, then kVolumeDb up to 0 dB
+    float Volume(float x)
+    {
+        return x > 0.0f
+                   ? std::pow(10.0f, CoreUI::kVolumeDb * (x - 1.0f) / 20.0f)
+                   : 0.0f;
     }
 
 } // namespace
@@ -64,10 +61,11 @@ namespace
 CoreUI::CoreUI()
 {
     twin_[Controls::S31] = Takeover(kRandomSize);
-    twin_[Controls::S33] = Takeover(kRandomPitch);
+    twin_[Controls::S33] = Takeover(kRandomPitch, true);
     twin_[Controls::S34] = Takeover(kFilter, true);
-    twin_[Controls::S36] = Takeover(kDryWet);
-    twin_[Controls::S37] = Takeover(kReverb);
+    twin_[Controls::S35] = Takeover(kReverb);
+    twin_[Controls::S36] = Takeover(kVolume);
+    twin_[Controls::S37] = Takeover(kRandomTime);
 }
 
 void CoreUI::Process(const Controls& c, Core& core)
@@ -88,17 +86,23 @@ void CoreUI::Process(const Controls& c, Core& core)
     // S30, Position: where the loop starts, anywhere in the recording. S35,
     // Length: a share of what is left after it, at the top to the recording's
     // end. Both always alive. The playhead keeps its share of the loop, so
-    // Position carries it through the recording, playing or frozen.
+    // Position carries it through the recording, playing or frozen. S35 with
+    // Shift: the reverb.
     p.start = std::min(own(Controls::S30), 1.0f - Core::kMinLength);
     p.length
         = std::max(own(Controls::S35) * (1.0f - p.start), Core::kMinLength);
+    p.reverb = twin(Controls::S35);
 
     // S36, Speed: the time stretched, the grains' pitch their own. Frozen, it
     // scrubs through the loop instead, and takes the speed up again after.
+    // Shift: the output volume. S07, End: at the loop's end once and no more,
+    // turned over, or round again.
     const float speed = Stops(0.5f + 0.5f * own(Controls::S36), kSpeeds);
     Slices(c, core, p);
     p.speed  = mode == Controls::Down ? -speed : speed;
     p.freeze = frozen || speed == 0.0f;
+    p.end    = EndOf(c.switches[Controls::S07]);
+    p.volume = Volume(twin(Controls::S36));
 
     // S31, Size: kMinGrainMs to kMaxGrainMs, exponential, 100 ms at the
     // centre, up to half the recording. Shift: its randomness.
@@ -115,28 +119,27 @@ void CoreUI::Process(const Controls& c, Core& core)
     const float rnd_size = twin(Controls::S31);
     p.rand_size          = rnd_size * rnd_size / 4.0f;
 
-    // S37, Density: grains at once, so per second at this size. Below the
-    // centre regular, above random. Shift: the reverb.
-    const float side = Side(own(Controls::S37));
-    const float overlap
-        = kMinOverlap * std::pow(kMaxOverlap / kMinOverlap, side);
-    p.density       = side > 0.0f ? overlap * 1000.0f / p.grain_ms : 0.0f;
-    p.random_starts = own(Controls::S37) > 0.5f;
-    p.reverb        = twin(Controls::S37);
+    // S37, Density: grains per second, none at the bottom. Shift: their
+    // starts, from regular to random.
+    const float rate
+        = (own(Controls::S37) - kDensityNone) / (1.0f - kDensityNone);
+    p.density = rate > 0.0f
+                    ? kMinDensity * std::pow(kMaxDensity / kMinDensity, rate)
+                    : 0.0f;
+    p.rand_time = twin(Controls::S37);
 
-    // S32, Random position: how far each grain strays from the playhead,
+    // S32, Spray: how far each grain strays from the playhead,
     // evenly, up to the whole loop, and across the stereo field with it
     const float rnd_pos = own(Controls::S32);
     p.rand_pos          = rnd_pos * rnd_pos;
     p.spread            = rnd_pos;
 
-    // S33, Pitch. Shift: its randomness, up to an octave either way. S07,
-    // Quantize: the random pitch free, in semitones or in octaves.
+    // S33, Pitch. Shift: its randomness, none at the centre. Up: free, to an
+    // octave either way. Down: in octaves, more grains an octave away.
     const float semitones = Stops(own(Controls::S33), kIntervals);
-    const float rnd_pitch = twin(Controls::S33);
+    const float rnd_pitch = 2.0f * Detent(twin(Controls::S33), 0.05f) - 1.0f;
     p.pitch               = std::exp2(semitones / 12.0f);
-    p.rand_pitch          = rnd_pitch * rnd_pitch;
-    p.quantize            = QuantizeOf(c.switches[Controls::S07]);
+    p.rand_pitch = rnd_pitch < 0.0f ? rnd_pitch : rnd_pitch * rnd_pitch;
 
     // S34, Shape: the grain's window, reverse percussive, Hann at the centre,
     // percussive. Shift: the filter, low-pass down, off at the centre,
@@ -146,10 +149,6 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.window_shape     = shape;
     p.filter           = 2.0f * filter - 1.0f;
 
-    // S36 with Shift: dry to wet, unless P10 asks to hear the input
-    if(p.mix == 1.0f)
-        p.mix = twin(Controls::S36);
-
     Transport(c, core, p);
     core.SetParams(p);
     Pulse(c,
@@ -157,7 +156,8 @@ void CoreUI::Process(const Controls& c, Core& core)
            !frozen && speed == 1.0f,
            size == 0.5f,
            shape == 0.5f,
-           filter == 0.5f});
+           filter == 0.5f,
+           rnd_pitch == 0.0f});
 }
 
 // Each knob drives its own value, or its twin while Shift is held. On a layer
@@ -235,8 +235,9 @@ void CoreUI::Reset(const Controls& c)
         twin_[Controls::S31].Set(kRandomSize, c.knobs[Controls::S31]);
         twin_[Controls::S33].Set(kRandomPitch, c.knobs[Controls::S33]);
         twin_[Controls::S34].Set(kFilter, c.knobs[Controls::S34]);
-        twin_[Controls::S36].Set(kDryWet, c.knobs[Controls::S36]);
-        twin_[Controls::S37].Set(kReverb, c.knobs[Controls::S37]);
+        twin_[Controls::S35].Set(kReverb, c.knobs[Controls::S35]);
+        twin_[Controls::S36].Set(kVolume, c.knobs[Controls::S36]);
+        twin_[Controls::S37].Set(kRandomTime, c.knobs[Controls::S37]);
     }
     reset_touched_ = touched;
 }
@@ -293,7 +294,8 @@ void CoreUI::Pulse(const Controls& c, const std::array<bool, kNumDetents>& at)
            own_[Controls::S36].Value(),
            own_[Controls::S31].Value(),
            own_[Controls::S34].Value(),
-           twin_[Controls::S34].Value()};
+           twin_[Controls::S34].Value(),
+           twin_[Controls::S33].Value()};
     if(!detents_ready_)
     {
         // Power-up: no pulse

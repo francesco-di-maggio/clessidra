@@ -68,7 +68,8 @@ export class GrainShape {
     const octaves = Math.log2(Math.max(p[PARAM.maxGrainMs], p[PARAM.minGrainMs] * 1.01) / p[PARAM.minGrainMs]);
     const reach = Math.min(Math.max(Math.sqrt(4 * p[PARAM.randSize]), 0), 1) * 0.25 * octaves;
     if (reach > 0) for (const r of [-reach, reach]) grain(width(ms * 2 ** r), pitch, faint, 1);
-    const spread = p[PARAM.randPitch] * RAND_PITCH;
+    // In octaves, below 0: an octave either way whatever the odds
+    const spread = p[PARAM.randPitch] < 0 ? RAND_PITCH : p[PARAM.randPitch] * RAND_PITCH;
     if (spread > 0) for (const s of [-spread, spread]) grain(width(ms), pitch + s, faint, 1);
     grain(width(ms), pitch, css.getPropertyValue("--accent"), 1.5);
   }

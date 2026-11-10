@@ -54,7 +54,7 @@ const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_gr
 const silence = () => 0;
 
 // Panel: speed 1, 100 ms, pitch unison, Hann, whole selection, plain grains,
-// random, about one at once, looped
+// 25 per second, looped
 w.cl_knob(KNOB.S36, SPEED_1);
 w.cl_knob(KNOB.S31, 0.5);
 w.cl_knob(KNOB.S32, 0);
@@ -64,7 +64,7 @@ w.cl_knob(KNOB.S30, 0);
 w.cl_knob(KNOB.S35, 1);
 w.cl_knob(KNOB.S37, 0.75);
 w.cl_switch(0, 1);
-w.cl_switch(1, 2);
+w.cl_switch(1, 1);
 
 let r = run(3);
 check(r.finite && r.peak === 0, "nothing recorded: silent", r.peak.toFixed(3));
@@ -124,26 +124,27 @@ run(0.1, silence);
 const params = f32(w.cl_params(), 13);
 check(Math.abs(params[0] - 1) < 1e-6, "Speed on its fourth stop: 1", params[0]);
 
-// P11 held: S37 sets the reverb, Density stays as it was
+// P11 held: S35 sets the reverb, S37 the starts. Length and Density stay as
+// they were
 const SHIFT = 11;
-const reverb = () => f32(w.cl_params(), 21)[5];
-const density = () => f32(w.cl_params(), 21)[2];
-const before = density();
+const param = (i) => f32(w.cl_params(), 21)[i];
+const before = [param(10), param(2)];
 w.cl_pad(SHIFT, 1, 0.5);
 run(0.02, silence);
-w.cl_knob(KNOB.S37, 1);
+w.cl_knob(KNOB.S35, 1);
+w.cl_knob(KNOB.S37, 0);
 run(0.02, silence);
-const shifted = reverb();
+const shifted = [param(5), param(6)];
 w.cl_pad(SHIFT, 0, 0);
 run(0.02, silence);
-check(shifted > 0.9 && density() === before, "P11 + S37: the reverb, Density kept", shifted.toFixed(2));
-w.cl_knob(KNOB.S37, 0.75);
-run(0.02, silence);
+check(shifted[0] > 0.9 && shifted[1] === 0 && param(10) === before[0] && param(2) === before[1], "P11 + S35, S37: the reverb, regular starts, Length and Density kept", shifted.join(" "));
 
-// S37 at the centre: no grains. At the top: a cloud, 16 at once
+// S37 at the bottom: no grains. At the top: a cloud, 130 a second of 100 ms
 w.cl_knob(KNOB.S37, 0.5);
+run(0.02, silence);
+w.cl_knob(KNOB.S37, 0);
 run(1, silence);
-check(w.cl_grains() === 0, "S37 centre: no grains", w.cl_grains());
+check(w.cl_grains() === 0, "S37 bottom: no grains", w.cl_grains());
 w.cl_knob(KNOB.S37, 1);
 run(1, silence);
 let sounding = 0;
@@ -151,7 +152,7 @@ for (let i = 0; i < 50; i++) {
   run(0.02, silence);
   sounding += w.cl_grains() / 50;
 }
-check(Math.abs(sounding - 16) < 3, "S37 top: a cloud, 16 at once", sounding.toFixed(1));
+check(Math.abs(sounding - 13) < 3, "S37 top: a cloud, 13 at once", sounding.toFixed(1));
 w.cl_knob(KNOB.S37, 0.75);
 check(w.cl_led(Math.floor(now)) >= 0, "LED in range");
 

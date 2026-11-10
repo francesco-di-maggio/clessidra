@@ -35,24 +35,27 @@ class CoreUI
     static constexpr std::array<size_t, kNumSlices> kSlicePads
         = {3, 4, 8, 5, 9, 6, 7};
 
-    // S37, Density: none at the centre, regular grains below, random above,
-    // more of them further out. How many sound at once, exponential: grains
-    // per second follow the size.
-    static constexpr float kDensityDetent = 0.04f; // either side of the centre
-    static constexpr float kMinOverlap    = 1.0f / 16.0f;
-    static constexpr float kMaxOverlap    = 16.0f;
+    // S37, Density: none at the bottom, then grains per second, exponential,
+    // whatever the size
+    static constexpr float kDensityNone = 0.04f; // of its travel
+    static constexpr float kMinDensity  = 0.25f;
+    static constexpr float kMaxDensity  = 130.0f;
 
     // S31, Size: from kMinGrainMs to kMaxGrainMs, exponential
     static constexpr float kMinGrainMs = 5.0f;
     static constexpr float kMaxGrainMs = 2000.0f;
 
-    // The second layer's values at power-up and after a reset: no randomness,
-    // the filter off, a short reverb (1.7 s, a quarter wet), all wet
-    static constexpr float kRandomPitch = 0.0f;
+    // The second layer's values at power-up and after a reset: sizes and
+    // pitches as set, starts at random, the filter off, a short reverb (1.7 s,
+    // a quarter wet), full volume
+    static constexpr float kRandomPitch = 0.5f;
     static constexpr float kRandomSize  = 0.0f;
+    static constexpr float kRandomTime  = 1.0f;
     static constexpr float kFilter      = 0.5f;
     static constexpr float kReverb      = 0.35f;
-    static constexpr float kDryWet      = 1.0f;
+    static constexpr float kVolume      = 1.0f;
+    // P11 + S36, Volume: off at the bottom, then this range up to 0 dB
+    static constexpr float kVolumeDb = 60.0f;
 
     // S36 frozen: moves under this are noise, not scrubbing
     static constexpr float kScrubStep = 0.002f;
@@ -88,15 +91,14 @@ class CoreUI
     }
 
   private:
-    // Pitch unison, speed 1, size centre, Hann, filter off
-    static constexpr size_t kNumDetents = 5;
-    // Knobs whose own value means most at the centre: Size, Pitch, Shape,
-    // Density
+    // Pitch unison, speed 1, size centre, Hann, filter off, pitches as set
+    static constexpr size_t kNumDetents = 6;
+    // Knobs whose own value means most at the centre: Size, Pitch, Shape
     static constexpr std::array<bool, Controls::kNumKnobs> kCentred
-        = {false, true, false, true, true, false, false, true};
+        = {false, true, false, true, true, false, false, false};
     // Knobs with a twin on the second layer
     static constexpr std::array<bool, Controls::kNumKnobs> kTwinned
-        = {false, true, false, true, true, false, true, true};
+        = {false, true, false, true, true, true, true, true};
 
     // The knobs' values on both layers. Frozen, S36 scrubs instead.
     void Knobs(const Controls& c, bool frozen);

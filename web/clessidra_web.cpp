@@ -56,12 +56,12 @@ enum Param : size_t
     kGrainMs,
     kPitch,
     kReverb,
-    kRandomStarts,
+    kRandTime,
     kRandPitch,
     kWindowShape,
     kStart,
     kLength,
-    kMix,
+    kVolume,
     kRandPos,
     kRandSize,
     kGrainMsSet,
@@ -69,7 +69,7 @@ enum Param : size_t
     kMaxGrainMs,
     kSpread,
     kFilter,
-    kQuantize,
+    kEnd,
     kStop,
     kNumParams
 };
@@ -248,12 +248,12 @@ EXPORT const float* cl_params()
     params[kGrainMs]      = core.GrainMs();
     params[kPitch]        = 12.0f * std::log2(p.pitch);
     params[kReverb]       = p.reverb;
-    params[kRandomStarts] = p.random_starts ? 1.0f : 0.0f;
+    params[kRandTime]     = p.rand_time;
     params[kRandPitch]    = p.rand_pitch;
     params[kWindowShape]  = p.window_shape;
     params[kStart]        = p.start;
     params[kLength]       = p.length;
-    params[kMix]          = p.mix;
+    params[kVolume]       = p.volume;
     params[kRandPos]      = p.rand_pos;
     params[kRandSize]     = p.rand_size;
     params[kGrainMsSet]   = p.grain_ms;
@@ -261,7 +261,7 @@ EXPORT const float* cl_params()
     params[kMaxGrainMs]   = p.max_grain_ms;
     params[kSpread]       = p.spread;
     params[kFilter]       = p.filter;
-    params[kQuantize]     = float(p.quantize);
+    params[kEnd]          = float(p.end);
     params[kStop]         = p.stop ? 1.0f : 0.0f;
     return params;
 }

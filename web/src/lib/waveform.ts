@@ -161,7 +161,7 @@ export class Waveform {
       ctx.fillText(`${i + 1}`, (s0 + s1) / 2, bottom + 8);
     });
 
-    // Random position: the reach of the grains about the playhead, round the
+    // Spray: the reach of the grains about the playhead, round the
     // loop, faint
     const reach = 0.5 * Math.min(f.params[PARAM.randPos] ?? 0, 1) * v[VIEW.selLength];
     if (reach > 0) {

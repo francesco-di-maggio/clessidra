@@ -75,7 +75,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
     // Slices: each newly held one from its start, a grain at once. At no
     // density, two grains at once, regular: the slice as it is.
     const bool   slicing      = p.slices_held != 0;
-    const bool   slice_random = density > 0.0f && p.random_starts;
+    const float  slice_random = density > 0.0f ? p.rand_time : 0.0f;
     const double slice_density
         = density > 0.0f ? double(density) : 2.0 * sample_rate_ / grain_samples;
     for(size_t s = 0; s < kNumSlices; s++)
@@ -93,18 +93,21 @@ void Core::Process(const float* const* in, float** out, size_t size)
     // in this block is free from the next.
     for(size_t i = 0; i < size && len > 0.0; i++)
     {
-        // Round the selection. Waiting while slices play.
+        // Through the selection, as End sets at its edges. Run out: no grains
+        // but one at once. Waiting while slices play.
         if(!slicing)
         {
-            playhead_.Advance(play_inc);
-            const bool due = Due(
-                schedule_, density * tape_ / sample_rate_, p.random_starts);
+            playhead_.Advance(play_inc, p.end);
+            const bool due = !playhead_.Ended()
+                             && Due(schedule_,
+                                    density * tape_ / sample_rate_,
+                                    p.rand_time);
             if(due || (now && i == 0))
                 StartGrain(p,
                            {sel_start,
                             sel_len,
                             playhead_.Phase(),
-                            p.speed < 0.0f,
+                            (p.speed < 0.0f) != (playhead_.Heading() < 0),
                             grain_samples},
                            &sound,
                            i);
@@ -115,7 +118,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
                 continue;
             const double span = std::max(p.slice_length[s] * sel_len, 1.0);
             Playhead&    head = slice_heads_[s];
-            head.Advance(p.freeze ? 0.0 : p.speed * double(tape_) / span);
+            head.Advance(p.freeze ? 0.0 : p.speed * double(tape_) / span,
+                         End::Loop);
             if(Due(slice_schedules_[s],
                    slice_density * tape_ / sample_rate_,
                    slice_random))
@@ -191,12 +195,13 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float stop_gain = std::min(1.0f, tape_ / kStopFade);
     const float norm_step = (norm_ - norm_gain_) / n;
     // Dry and wet, equal power, exact at the ends
-    const float mix       = std::clamp(p.mix, 0.0f, 1.0f);
-    const float mix_angle = HALFPI_F * mix;
-    const float dry       = mix >= 1.0f ? 0.0f : std::cos(mix_angle);
-    const float wet       = mix <= 0.0f ? 0.0f : std::sin(mix_angle);
-    const float dry_step  = (dry - dry_gain_) / n;
-    const float wet_step  = (wet - wet_gain_) / n;
+    const float mix         = std::clamp(p.mix, 0.0f, 1.0f);
+    const float mix_angle   = HALFPI_F * mix;
+    const float dry         = mix >= 1.0f ? 0.0f : std::cos(mix_angle);
+    const float wet         = mix <= 0.0f ? 0.0f : std::sin(mix_angle);
+    const float dry_step    = (dry - dry_gain_) / n;
+    const float wet_step    = (wet - wet_gain_) / n;
+    const float volume_step = (std::clamp(p.volume, 0.0f, 1.0f) - volume_) / n;
     for(size_t i = 0; i < size; i++)
     {
         reverb_dry_ += reverb_dry_step;
@@ -229,6 +234,9 @@ void Core::Process(const float* const* in, float** out, size_t size)
         out[0][i] = out[0][i] * kOutputGain * wet_gain_ + in_l * dry_gain_;
         out[1][i] = out[1][i] * kOutputGain * wet_gain_ + in_r * dry_gain_;
         limiter_.Process(out[0][i], out[1][i]);
+        volume_ += volume_step;
+        out[0][i] *= volume_;
+        out[1][i] *= volume_;
     }
     UpdateCapture(size);
 }
@@ -386,14 +394,16 @@ void Core::StartGrain(const Params& p,
             std::log2(p.grain_ms / p.min_grain_ms) / octaves, 0.0f, 1.0f);
         length = std::exp2((Randomise(size, p.rand_size) - size) * octaves);
     }
-    latch.inc   = 1.0 / std::max(source.grain_samples * length, 1.0);
-    latch.shape = p.window_shape;
-    float semitones
-        = Random() * std::clamp(p.rand_pitch, 0.0f, 1.0f) * kRandPitchSemitones;
-    if(p.quantize == Quantize::Semitones)
-        semitones = std::round(semitones);
-    else if(p.quantize == Quantize::Octaves)
-        semitones = 12.0f * std::round(semitones / 12.0f);
+    latch.inc             = 1.0 / std::max(source.grain_samples * length, 1.0);
+    latch.shape           = p.window_shape;
+    const float pitch     = std::clamp(p.rand_pitch, -1.0f, 1.0f);
+    const float random    = Random();
+    float       semitones = random * pitch * kRandPitchSemitones;
+    if(pitch < 0.0f)
+    {
+        const bool away = std::fabs(random) < -pitch * kRandPitchOctaveOdds;
+        semitones       = away ? std::copysign(12.0f, random) : 0.0f;
+    }
     latch.rate = p.pitch * std::exp2(semitones / 12.0f);
     if(source.backwards)
         latch.rate = -latch.rate;
@@ -405,7 +415,7 @@ void Core::StartGrain(const Params& p,
     grain->Start(latch, offset);
 }
 
-bool Core::Due(Schedule& s, double sched_inc, bool random)
+bool Core::Due(Schedule& s, double sched_inc, float random)
 {
     // None at no density, not even the grain at once of a restart
     if(sched_inc <= 0.0)
@@ -420,16 +430,18 @@ bool Core::Due(Schedule& s, double sched_inc, bool random)
     return true;
 }
 
-float Core::Interval(bool random)
+float Core::Interval(float random)
 {
-    if(!random)
+    if(random <= 0.0f)
         return 1.0f;
     // -ln(1 - x) to its fourth term, x even on 0.1..1: nearly exponential
     // (Poisson) without the closest starts and the longest gaps. kMean: of the
     // series, for a mean of 1.
     static constexpr float kMean = 0.883f;
     const float            x     = 0.1f + 0.9f * (0.5f - 0.5f * Random());
-    return x * (1.0f + x * (0.5f + x * (0.3333f + x * 0.25f))) / kMean;
+    const float            interval
+        = x * (1.0f + x * (0.5f + x * (0.3333f + x * 0.25f))) / kMean;
+    return 1.0f + std::min(random, 1.0f) * (interval - 1.0f);
 }
 
 float Core::Randomise(float x, float amount)
