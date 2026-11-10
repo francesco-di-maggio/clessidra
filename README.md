@@ -11,7 +11,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | Control | Alone | P11 held |
 |---|---|---|
 | S36 | Speed: 0 to 4×, stops at ¼, ½, 1, 2 and 4×, the pitch kept. Frozen: scrubs through the loop, a full stroke the whole loop, the speed taken up again after | Volume: the output, off to 0 dB |
-| S37 | Density: grains per second, 0.25 to 400, whatever their size. None at the bottom. 32 voices: with all sounding, a new grain is dropped | Random timing: when grains start, from a regular pulse to random, as many per second |
+| S37 | Density: grains per second, 0.25 to 320, whatever their size. None at the bottom. 32 voices: all sound at the top with Size at its centre, and a new grain is dropped while they do | Random timing: when grains start, from a regular pulse to random, as many per second |
 | S30 | Position: where the loop starts, anywhere in the recording. The playhead keeps its place in the loop, so it moves with it, playing or frozen | Filter: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz |
 | S35 | Length: a share of what is left after Position, at the top to the recording's end | Reverb: none to most, decay 0.5 to 16 s |
 | S31 | Size: 5 ms to 2 s, 100 ms at the centre, at most half the recording | Random size, up to about two octaves either way |

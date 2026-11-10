@@ -54,7 +54,7 @@ const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_gr
 const silence = () => 0;
 
 // Panel: speed 1, 100 ms, pitch unison, whole selection, plain grains,
-// 59 per second, looped
+// 50 per second, looped
 w.cl_knob(KNOB.S36, SPEED_1);
 w.cl_knob(KNOB.S31, 0.5);
 w.cl_knob(KNOB.S32, 0);
@@ -139,7 +139,7 @@ w.cl_pad(SHIFT, 0, 0);
 run(0.02, silence);
 check(shifted[0] > 0.9 && shifted[1] === 0 && param(10) === before[0] && param(2) === before[1], "P11 + S35, S37: the reverb, regular starts, Length and Density kept", shifted.join(" "));
 
-// S37 at the bottom: no grains. At the top: a cloud, 400 a second of 100 ms
+// S37 at the bottom: no grains. At the top: a cloud, 320 a second of 100 ms
 // fills the 32 voices
 w.cl_knob(KNOB.S37, 0.5);
 run(0.02, silence);

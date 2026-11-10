@@ -36,10 +36,11 @@ class CoreUI
         = {3, 4, 8, 5, 9, 6, 7};
 
     // S37, Density: none at the bottom, then grains per second, exponential,
-    // whatever the size
+    // whatever the size. At the top, all the voices sound at the size's
+    // centre, 100 ms.
     static constexpr float kDensityNone = 0.04f; // of its travel
     static constexpr float kMinDensity  = 0.25f;
-    static constexpr float kMaxDensity  = 400.0f;
+    static constexpr float kMaxDensity  = 320.0f;
 
     // S31, Size: from kMinGrainMs to kMaxGrainMs, exponential
     static constexpr float kMinGrainMs = 5.0f;

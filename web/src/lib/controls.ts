@@ -59,7 +59,7 @@ const SPEED_SCALE = SPEED_STOPS.map((label, i) => ({ at: speedAt(i), label })).r
 // kDensityNone, kMinDensity, kMaxDensity)
 const NONE = 0.04;
 const MIN_DENSITY = 0.25;
-const MAX_DENSITY = 400;
+const MAX_DENSITY = 320;
 const densityAt = (rate: number) => NONE + (1 - NONE) * (Math.log(rate / MIN_DENSITY) / Math.log(MAX_DENSITY / MIN_DENSITY));
 const DENSITY_SCALE = [100, 10, 1].map((r) => ({ at: densityAt(r), label: `${r}` })).concat([{ at: 0, label: "0" }]);
 const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.log10(gain), 0)} dB`);
@@ -79,7 +79,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: densityAt(20), scale: DENSITY_SCALE,
-    does: "Grains per second, 0.25 to 400, whatever their size. None at the bottom.",
+    does: "Grains per second, 0.25 to 320, whatever their size. None at the bottom. At the top with Size at its centre, all 32 voices sound.",
     value: (p) => {
       const d = p[PARAM.density];
       return d === 0 ? "None" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
