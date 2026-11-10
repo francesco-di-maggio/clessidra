@@ -17,7 +17,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | S31 | Size: 5 ms to 2 s, 100 ms at the centre, at most half the recording | Random size, up to about two octaves either way |
 | S32 | Spray: grains stray from the playhead, evenly, up to the whole loop, across the stereo field with it | Reverse: how many grains read the other way, none to all. The phrase keeps its direction, each grain turns |
 | S33 | Pitch: ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24 | Random pitch: off at the centre. Up: free, to ±12 semitones. Down: in octaves, up to two grains in three an octave up or down |
-| S34 | Shape: the grain's window, square at the bottom, decay half way up, bell at the centre, reverse at the top, and everything between. Square: at full level its whole length. Decay: at once up, then falling. Bell: smooth both ways. Reverse: rising to its end | Random shape: each grain a different window, anywhere from square to reverse |
+| S34 | Shape: the grain's window, square, decay, bell, reverse at even steps along the knob, and everything between. Square: at full level its whole length. Decay: at once up, then falling. Bell: smooth both ways. Reverse: rising to its end | Random shape: each grain a different window, anywhere from square to reverse |
 | S09 | Mode: up forward, centre freeze, down reverse | |
 | S07 | End, at the loop's end: down once and no more, centre turned over to run back, up round again | |
 
@@ -34,7 +34,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 |---|---|
 | Glow | Grains falling |
 | Flash | Recording |
-| Pulse | At a stop: unison, speed 1×, 100 ms, bell, filter off, random pitch off |
+| Pulse | At a stop: unison, speed 1×, 100 ms, filter off, random pitch off |
 | Steady | P11 held: the twin last turned |
 
 | To play | Set |
