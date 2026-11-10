@@ -39,7 +39,7 @@ class CoreUI
     // whatever the size
     static constexpr float kDensityNone = 0.04f; // of its travel
     static constexpr float kMinDensity  = 0.25f;
-    static constexpr float kMaxDensity  = 130.0f;
+    static constexpr float kMaxDensity  = 400.0f;
 
     // S31, Size: from kMinGrainMs to kMaxGrainMs, exponential
     static constexpr float kMinGrainMs = 5.0f;

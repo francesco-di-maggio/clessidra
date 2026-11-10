@@ -2,17 +2,20 @@
 // the loop still ahead of the playhead, the other what has played. It stands
 // as the playhead moves: upright at full speed, leaning as it slows, on its
 // side when frozen or stopped, turned over in reverse and when Turn turns it.
-// The sand lies level in each bulb and falls in a thread while it runs.
-// Nothing recorded: the glass alone, upright.
+// The sand lies level in each bulb and falls in a thread while it runs, in
+// dots on a grid as the recording is drawn. Nothing recorded: the glass
+// alone, upright.
 
 import { PARAM } from "./engine";
 
 type Point = [number, number];
 
-const WIDTH = 0.62; // of the height
+const WIDTH = 0.78; // of the height
 const NECK = 0.07; // half its width, of the bulb's
 const STEPS = 24; // along each side of a bulb
-const INSET = 1.5; // px, the sand from the glass
+const INSET = 2; // px, the sand from the glass
+const DOT = 3; // the grid, px, as the input's
+const SIZE = 1.5; // a dot, px
 const EASE = 0.25; // of the way to its angle, per frame
 const SETTLED = 0.005; // rad
 
@@ -73,7 +76,7 @@ export class Hourglass {
 
     // The glass about its neck: a bulb's height, half its width at t of it,
     // 0 at the neck, 1 at its cap
-    const bulb = H / 2 - 5;
+    const bulb = H / 2 - 3;
     const wide = WIDTH * bulb;
     const half = (t: number, inset: number) => Math.max(wide * (NECK + (1 - NECK) * (1 - (1 - t) ** 2)) - inset, 0);
     const cos = Math.cos(this.angle);
@@ -119,10 +122,27 @@ export class Hourglass {
       }
       return { sand: below(points, low), level: low };
     };
-    const path = (points: Point[]) => {
-      ctx.beginPath();
-      for (const [x, y] of points) ctx.lineTo(x, y);
-      ctx.closePath();
+    const within = (points: Point[], x: number, y: number) => {
+      let inside = false;
+      for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+        const [xi, yi] = points[i];
+        const [xj, yj] = points[j];
+        if (yi > y !== yj > y && x < xi + ((xj - xi) * (y - yi)) / (yj - yi)) inside = !inside;
+      }
+      return inside;
+    };
+    // A shape as dots: every point of the grid inside it, the grid about the
+    // neck
+    const reach = Math.ceil(bulb / DOT) + 1;
+    const dots = (points: Point[]) => {
+      if (points.length < 3) return;
+      for (let i = -reach; i <= reach; i++) {
+        for (let j = -reach; j <= reach; j++) {
+          const x = W / 2 + i * DOT;
+          const y = H / 2 + j * DOT;
+          if (within(points, x, y)) ctx.rect(x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
+        }
+      }
     };
 
     if (this.sound) {
@@ -134,24 +154,15 @@ export class Hourglass {
       const from = settle(inside(ahead), left);
       const into = settle(inside(-ahead), 1 - left);
       ctx.fillStyle = accent;
-      for (const part of [from, into]) {
-        if (part.sand.length < 3) continue;
-        path(part.sand);
-        ctx.fill();
+      ctx.beginPath();
+      dots(from.sand);
+      dots(into.sand);
+      // The thread: down the grid from the neck to the sand below
+      const lower = inside(-ahead);
+      for (let y = H / 2; pace > 0 && left > 0 && y < into.level; y += DOT) {
+        if (y === H / 2 || within(lower, W / 2, y)) ctx.rect(W / 2 - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
       }
-      if (pace > 0 && left > 0) {
-        ctx.save();
-        path(inside(-ahead));
-        ctx.clip();
-        ctx.strokeStyle = accent;
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([1.5, 3]);
-        ctx.beginPath();
-        ctx.moveTo(W / 2, H / 2);
-        ctx.lineTo(W / 2, Math.max(into.level, H / 2));
-        ctx.stroke();
-        ctx.restore();
-      }
+      ctx.fill();
     }
 
     // The glass: its sides and its caps

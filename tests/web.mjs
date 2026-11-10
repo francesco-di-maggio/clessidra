@@ -53,8 +53,8 @@ const view = () => f32(w.cl_view(), 4);
 const grains = () => Array.from({ length: w.cl_grains() }, (_, g) => f32(w.cl_grain_fields() + g * 24, 6)[0]);
 const silence = () => 0;
 
-// Panel: speed 1, 100 ms, pitch unison, Hann, whole selection, plain grains,
-// 25 per second, looped
+// Panel: speed 1, 100 ms, pitch unison, whole selection, plain grains,
+// 59 per second, looped
 w.cl_knob(KNOB.S36, SPEED_1);
 w.cl_knob(KNOB.S31, 0.5);
 w.cl_knob(KNOB.S32, 0);
@@ -139,7 +139,8 @@ w.cl_pad(SHIFT, 0, 0);
 run(0.02, silence);
 check(shifted[0] > 0.9 && shifted[1] === 0 && param(10) === before[0] && param(2) === before[1], "P11 + S35, S37: the reverb, regular starts, Length and Density kept", shifted.join(" "));
 
-// S37 at the bottom: no grains. At the top: a cloud, 130 a second of 100 ms
+// S37 at the bottom: no grains. At the top: a cloud, 400 a second of 100 ms
+// fills the 32 voices
 w.cl_knob(KNOB.S37, 0.5);
 run(0.02, silence);
 w.cl_knob(KNOB.S37, 0);
@@ -152,7 +153,7 @@ for (let i = 0; i < 50; i++) {
   run(0.02, silence);
   sounding += w.cl_grains() / 50;
 }
-check(Math.abs(sounding - 13) < 3, "S37 top: a cloud, 13 at once", sounding.toFixed(1));
+check(sounding > 29 && sounding <= 32, "S37 top: a cloud, all 32 voices", sounding.toFixed(1));
 w.cl_knob(KNOB.S37, 0.75);
 check(w.cl_led(Math.floor(now)) >= 0, "LED in range");
 

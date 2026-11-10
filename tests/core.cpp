@@ -171,7 +171,7 @@ struct Panel
         c.knobs[Controls::S30] = 0.0f;
         c.knobs[Controls::S35] = 1.0f;
         c.knobs[Controls::S32] = 0.0f;             // plain
-        c.knobs[Controls::S37] = 0.75f;            // 25 grains per second
+        c.knobs[Controls::S37] = 0.75f;            // 59 grains per second
         c.switches = {Controls::Up, Controls::Up}; // forward, looped
     }
 
@@ -1341,7 +1341,7 @@ void Mapping()
     c.knobs[Controls::S30] = 0.0f;
     ui.Process(c, r.core);
 
-    // S37, Density: none at the bottom, then 0.25 to 130 grains per second,
+    // S37, Density: none at the bottom, then 0.25 to 400 grains per second,
     // whatever the size
     const auto at = [&](float x) {
         c.knobs[Controls::S37] = x;
@@ -1359,10 +1359,10 @@ void Mapping()
     Check(Near(middle.density,
                std::sqrt(CoreUI::kMinDensity * CoreUI::kMaxDensity),
                1e-2),
-          "S37 halfway: 5.7 grains per second, exponential",
+          "S37 halfway: 10 grains per second, exponential",
           middle.density);
     Check(Near(cloud.density, CoreUI::kMaxDensity, 1e-2),
-          "S37 top: 130 grains per second",
+          "S37 top: 400 grains per second",
           cloud.density);
     c.knobs[Controls::S31] = 0.1f;
     ui.Process(c, r.core);
