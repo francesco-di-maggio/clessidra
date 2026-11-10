@@ -24,6 +24,10 @@ const leverY = (p: number) => (p === POSITION.up ? -26 : p === POSITION.down ? 8
 <svg class="touch" viewBox="0 0 600 973" role="img" aria-label="The Simple Touch panel with each control's name">
   <rect class="plate" x="2" y="2" width="596" height="969" rx="18" />
   {[[50, 26], [550, 26], [50, 947], [550, 947]].map(([x, y]) => <rect class="hole" x={x - 18} y={y - 9} width="36" height="18" rx="9" />)}
+  <g class="logo" aria-hidden="true">
+    <path transform="translate(300 172) scale(3)" d="M-5.5-7.5h11M-5.5 7.5h11M-4-7.5C-4-2.5-1-1.5-1 0S-4 2.5-4 7.5M4-7.5C4-2.5 1-1.5 1 0S4 2.5 4 7.5" />
+    <text x="304" y="232">CLESSIDRA</text>
+  </g>
   {[[118, "IN"], [196, "OUT"]].map(([y, label]) => (
     <g><circle class="jack" cx="34" cy={y} r="13" /><text class="code" x="34" y={Number(y) + 34}>{label}</text></g>
   ))}

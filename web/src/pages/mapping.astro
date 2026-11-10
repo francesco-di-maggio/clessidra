@@ -4,11 +4,11 @@ import TouchPanel from "../components/TouchPanel.astro";
 import { CONTROLS } from "../lib/controls";
 
 // What the help shows for each control, by id
-const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { name: c.name, does: (c.does ?? "") + (c.twin ? ` P11: ${c.twin.name}. ${c.twin.does}` : "") }]));
+const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { name: c.name, does: c.does ?? "", twin: c.twin ? `${c.twin.name}. ${c.twin.does}` : "" }]));
 ---
 <Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch.">
 <h1>Mapping</h1>
-<p class="lead">Point at a control. Two layers: each knob alone, and its twin with P11 held.</p>
+<p class="lead">Point at a control. Each knob has a second function with Shift held.</p>
 <div class="mapping">
   <div class="panel touch-panel"><TouchPanel /></div>
   <div class="stack">
@@ -16,11 +16,12 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
       <span id="help-board" class="label">Help</span>
       <b id="help-name">Point at a control</b>
       <p id="help-does">Its name and what it does show here.</p>
+      <p id="help-twin" class="twin"></p>
     </div>
     <ul class="panel notes">
-      <li><span class="label">Sampler</span>Record a sound, then Speed, Position and Length move through it</li>
-      <li><span class="label">Density</span>Grains per second, whatever their size: drops, a pulse, a cloud</li>
-      <li><span class="label">Shift</span>P11 held: each knob's twin, its randomness or the space around it</li>
+      <li><span class="label">Record</span>Tap or hold Rec. The sound becomes the loop.</li>
+      <li><span class="label">Play</span>Speed, Position and Length move through it. Density and Size pour it as grains.</li>
+      <li><span class="label">Shift</span>Hold P11: each knob's second function.</li>
     </ul>
   </div>
 </div>
@@ -29,10 +30,10 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
 
 <script>
   // The help for the control pointed at
-  interface Help { name: string; does: string }
+  interface Help { name: string; does: string; twin: string }
   const help: Record<string, Help> = JSON.parse(document.getElementById("help-data")!.textContent!);
   const panel = document.querySelector<SVGSVGElement>(".touch")!;
-  const out = { board: document.getElementById("help-board")!, name: document.getElementById("help-name")!, does: document.getElementById("help-does")! };
+  const out = { board: document.getElementById("help-board")!, name: document.getElementById("help-name")!, does: document.getElementById("help-does")!, twin: document.getElementById("help-twin")! };
 
   function describe(id: string) {
     for (const g of panel.querySelectorAll(".ctl")) g.classList.toggle("active", (g as SVGGElement).dataset.id === id);
@@ -40,6 +41,7 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
     out.board.textContent = id;
     out.name.textContent = h?.name ?? "Free";
     out.does.textContent = h?.does ?? "No function yet.";
+    out.twin.textContent = h?.twin ? `Shift: ${h.twin}` : "";
   }
 
   for (const g of panel.querySelectorAll<SVGGElement>(".ctl")) {

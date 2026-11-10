@@ -6,24 +6,18 @@ import { url } from "../lib/url";
 <h1>Download</h1>
 <p class="lead">Firmware for the Synthux Simple Touch, flashed from the browser.</p>
 
-<h2 class="label">Firmware</h2>
+<h2 class="label">Flash</h2>
+<ol class="panel rows steps">
+  <li class="row"><span class="label">01</span><span>Download the <a href="https://github.com/francesco-di-maggio/clessidra/releases/latest/download/Clessidra.bin">firmware</a>, Clessidra.bin</span></li>
+  <li class="row"><span class="label">02</span><span>Connect the Seed over USB</span></li>
+  <li class="row"><span class="label">03</span><span>Hold BOOT, press and release RESET, release BOOT</span></li>
+  <li class="row"><span class="label">04</span><span>Open the <a href="https://electro-smith.github.io/Programmer/">Daisy Web Programmer</a> in Chrome or Edge: Connect, choose the file, Program</span></li>
+</ol>
+
+<h2 class="label">More</h2>
 <ul class="panel lists list">
-  <li><a href="https://github.com/francesco-di-maggio/clessidra/releases/latest/download/Clessidra.bin"><span class="text"><b>Firmware</b><span class="sub">Latest release, Clessidra.bin</span></span><span class="arrow" aria-hidden="true">↓</span></a></li>
-  <li><a href="https://electro-smith.github.io/Programmer/"><span class="text"><b>Daisy Web Programmer</b><span class="sub">USB, in Chrome or Edge</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+  <li><a href={url("clessidra-manual.pdf")} download><span class="text"><b>Manual</b><span class="sub">A4, 2 pages</span></span><svg class="file" viewBox="0 0 24 24" aria-label="PDF"><path d="M6 2.5h8l4.5 4.5v14.5h-12.5z M14 2.5v4.5h4.5" /><text x="12" y="17.5">PDF</text></svg></a></li>
   <li><a href="https://github.com/francesco-di-maggio/clessidra/releases"><span class="text"><b>Releases</b><span class="sub">Changes per version</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
   <li><a href="https://github.com/francesco-di-maggio/clessidra"><span class="text"><b>Source</b><span class="sub">Builds with the Daisy Toolchain</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
 </ul>
-
-<h2 class="label">Manual</h2>
-<ul class="panel lists list">
-  <li><a href={url("clessidra-manual.pdf")} download><span class="text"><b>Manual</b><span class="sub">A4, 2 pages</span></span><svg class="file" viewBox="0 0 24 24" aria-label="PDF"><path d="M6 2.5h8l4.5 4.5v14.5h-12.5z M14 2.5v4.5h4.5" /><text x="12" y="17.5">PDF</text></svg></a></li>
-</ul>
-
-<h2 class="label">Flash</h2>
-<ol class="panel rows steps">
-  <li class="row"><span class="label">01</span><span>Download Clessidra.bin</span></li>
-  <li class="row"><span class="label">02</span><span>Connect the Seed over USB</span></li>
-  <li class="row"><span class="label">03</span><span>Hold BOOT, press and release RESET, release BOOT</span></li>
-  <li class="row"><span class="label">04</span><span>In the Daisy Web Programmer: Connect, choose the file, Program</span></li>
-</ol>
 </Base>

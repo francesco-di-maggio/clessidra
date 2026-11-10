@@ -59,16 +59,20 @@ ol.rows { gap: 6px; padding: 14px; }
 .mapping { display: grid; gap: 16px; align-items: start; }
 @media (min-width: 640px) { .mapping { grid-template-columns: auto minmax(0, 1fr); } }
 .mapping .touch-panel { padding: 8px; }
-.mapping svg.touch { width: auto; height: max(420px, calc(100dvh - 324px)); max-height: none; }
+.mapping svg.touch { width: auto; height: max(420px, calc(100dvh - 310px)); max-height: none; }
 .segmented.vertical { height: auto; grid-auto-flow: row; }
 .segmented.vertical button { height: 36px; justify-content: flex-start; padding: 0 12px; }
 .segmented.vertical button + button { border-left: 0; border-top: 1px solid var(--line); }
 .notes { list-style: none; margin: 0; display: grid; gap: 10px; }
-.notes li { display: grid; gap: 2px; font-size: 13px; line-height: 18px; }
+.notes li { display: grid; gap: 2px; font-size: 13px; line-height: 18px; text-align: justify; hyphens: auto; }
 .notes .label { color: var(--dim); }
-.help { display: grid; gap: 4px; min-height: 112px; align-content: start; }
+/* As tall as its longest text: pointing at a control never moves the page */
+.help { display: grid; gap: 4px; height: 200px; align-content: start; overflow: hidden; }
 .help b { font-size: 17px; font-weight: 600; }
-.help p { margin: 0; color: var(--dim); }
+.help p { margin: 0; color: var(--dim); font-size: 15px; line-height: 20px; text-align: justify; hyphens: auto; }
+.help .twin { color: var(--accent); }
+.touch .logo path { fill: none; stroke: var(--dim); stroke-width: 2; stroke-linejoin: round; }
+.touch .logo text { font: 500 20px var(--mono); letter-spacing: 0.3em; fill: var(--dim); text-anchor: middle; }
 
 /* A segmented control: one of a few, the chosen one lit */
 .segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); overflow: hidden; background: var(--bg); }

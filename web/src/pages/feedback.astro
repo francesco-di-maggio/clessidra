@@ -13,9 +13,7 @@ import Base from "../layouts/Base.astro";
       <label><input type="radio" name="where" value="Simple Touch"><span>Simple Touch</span></label>
     </div>
   </fieldset>
-  <label class="field"><span class="label">What you played</span><textarea name="played" rows="3" required placeholder="The controls you used and the sound going in"></textarea></label>
-  <label class="field"><span class="label">What you heard, and what you expected</span><textarea name="heard" rows="3" required></textarea></label>
-  <label class="field"><span class="label">What you would change</span><textarea name="change" rows="2"></textarea></label>
+  <label class="field"><span class="label">Your feedback</span><textarea name="feedback" rows="7" required placeholder="The sound going in and the controls you used. What you heard, and what you expected. What you would change."></textarea></label>
   <div class="actions">
     <button class="control primary" type="submit">Send on GitHub</button>
     <button id="email" class="control" type="button">Send by Email</button>
@@ -33,10 +31,9 @@ import Base from "../layouts/Base.astro";
 
   function text() {
     const data = new FormData(form);
-    const part = (title: string, name: string) => `### ${title}\n\n${String(data.get(name) ?? "").trim() || "–"}`;
-    return [part("Played on", "where"), part("What you played", "played"), part("What you heard, and what you expected", "heard"), part("What you would change", "change")].join("\n\n");
+    return `Played on: ${data.get("where")}\n\n${String(data.get("feedback") ?? "").trim()}`;
   }
-  const title = () => `Feedback: ${String(new FormData(form).get("played") ?? "").trim().slice(0, 60)}`;
+  const title = () => `Feedback: ${String(new FormData(form).get("feedback") ?? "").trim().slice(0, 60)}`;
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
