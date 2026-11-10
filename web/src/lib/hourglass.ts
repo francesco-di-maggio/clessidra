@@ -10,12 +10,13 @@ import { PARAM } from "./engine";
 
 type Point = [number, number];
 
-// A dial beside it, px: its arc below its top and across, what lies under
-// it (the gap and its value's line), the value's figures above the foot
+// A dial beside it, px, as measured on the page: its arc below its top and
+// across, what lies under it (the gap and its value's line), and the foot of
+// the value's figures above the foot of their line, less half a stroke
 const ARC_TOP = 5;
 const ARC = 38;
 const BELOW = 22;
-const FOOT = 7;
+const FOOT = 4.75;
 const CAP = 3; // px, a cap past the glass at each side
 const NECK = 0.07; // half its width, of the bulb's
 const STEPS = 24; // along each side of a bulb
