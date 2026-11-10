@@ -4,13 +4,18 @@
 // side when frozen or stopped, turned over in reverse and when Turn turns it.
 // The sand lies level in each bulb and falls in a thread while it runs, in
 // dots on a grid as the recording is drawn. Nothing recorded: the glass
-// alone, upright.
+// alone, standing the same way.
 
 import { PARAM } from "./engine";
 
 type Point = [number, number];
 
-const BELOW = 22; // px, under a dial: the gap and its value's line
+// A dial beside it, px: its arc below its top and across, what lies under
+// it (the gap and its value's line), the value's figures above the foot
+const ARC_TOP = 5;
+const ARC = 38;
+const BELOW = 22;
+const FOOT = 3;
 const CAP = 3; // px, a cap past the glass at each side
 const NECK = 0.07; // half its width, of the bulb's
 const STEPS = 24; // along each side of a bulb
@@ -46,7 +51,7 @@ export class Hourglass {
   // Which way the playhead moves through the loop, and how fast, up to 1
   private motion() {
     const p = this.params;
-    const still = !this.sound || p[PARAM.freeze] || p[PARAM.stop];
+    const still = p[PARAM.freeze] || p[PARAM.stop];
     const way = (p[PARAM.speed] < 0 ? -1 : 1) * (p[PARAM.heading] < 0 ? -1 : 1);
     return { way, pace: still ? 0 : Math.min(Math.abs(p[PARAM.speed]), 1) };
   }
@@ -54,7 +59,7 @@ export class Hourglass {
   // Turns towards where it should stand, a frame at a time
   private tick = () => {
     const { way, pace } = this.motion();
-    const to = this.sound ? (Math.PI / 2) * (1 - way * pace) : 0;
+    const to = (Math.PI / 2) * (1 - way * pace);
     this.angle += (to - this.angle) * EASE;
     const settled = Math.abs(to - this.angle) < SETTLED;
     if (settled) this.angle = to;
@@ -75,13 +80,15 @@ export class Hourglass {
     const css = getComputedStyle(document.documentElement);
     const accent = css.getPropertyValue("--accent");
 
-    // Upright it fills the height, a dial and its value. On its side it is
-    // as tall as the dial, and level with it: its neck moves up as it turns.
-    const dial = H - BELOW;
-    const bulb = H / 2 - 3;
-    const wide = dial / 2 - CAP;
+    // Upright, from the top of a dial's arc to the foot of its value's
+    // figures. On its side, as tall as the arc and beside it: its neck moves
+    // up as it turns.
+    const tall = H - ARC_TOP - FOOT;
+    const bulb = tall / 2 - 2;
+    const wide = ARC / 2 - CAP;
     const cx = W / 2;
-    const cy = dial / 2 + (H / 2 - dial / 2) * Math.abs(Math.cos(this.angle));
+    const beside = (H - BELOW) / 2;
+    const cy = beside + (ARC_TOP + tall / 2 - beside) * Math.abs(Math.cos(this.angle));
     // Half its width at t of a bulb, 0 at the neck, 1 at its cap
     const half = (t: number, inset: number) => Math.max(wide * (NECK + (1 - NECK) * (1 - (1 - t) ** 2)) - inset, 0);
     const cos = Math.cos(this.angle);
