@@ -7,7 +7,7 @@
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
 body.app main { flex: 1; min-height: 0; }
 /* An instrument: the arrow over every control, as on a desktop app; dragging,
-   the drag cursor */
+   no cursor, the control shows the move */
 .instrument button, .instrument .pad { cursor: default; }
 /* Nothing selected by a drag: every control is played, none read as text */
 .instrument { user-select: none; -webkit-user-select: none; }
@@ -39,7 +39,7 @@ body.app main { flex: 1; min-height: 0; }
 .levels .gain { align-self: stretch; }
 /* Out: its name a button as Start is, a fader on its side, the value */
 .gain { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; outline: none; touch-action: none; }
-.gain.dragging { cursor: ew-resize; }
+.gain.dragging { cursor: none; }
 /* The board's LED, last on the line: lit by --light, 0..1 */
 .led { position: relative; flex: none; width: 10px; height: 10px; margin: 0 2px; border-radius: 50%; background: var(--well); }
 .led::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--accent); opacity: var(--light, 0); }
@@ -83,7 +83,7 @@ body.app main { flex: 1; min-height: 0; }
 .knob .tick { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
 .knob line.track, .knob line.fill { stroke-width: 2; }
 .knob .cap { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
-.knob.dragging { cursor: ns-resize; }
+.knob.dragging { cursor: none; }
 .knob.focus .label, .knob:focus-visible .label { color: var(--ink); }
 .knob:focus-visible, .gain:focus-visible, .pad:focus-visible { outline: none; }
 /* P11 held: the twin's name and value in place, in orange */
