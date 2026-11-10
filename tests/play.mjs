@@ -105,7 +105,7 @@ try {
   const shifted = await run(`document.querySelector(".instrument").classList.contains("shifted")`);
   const twin = await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Density"); return k.classList.contains("twin") + " " + k.querySelector(".label").textContent + " " + k.querySelector(".value").textContent; })()`);
   await pad("Shift", false);
-  check(shifted && /^true Rnd density \d+\s%$/.test(twin), "P11 held: Density shows Random density in its place", twin);
+  check(shifted && /^true Jitter \d+\s%$/.test(twin), "P11 held: Density shows Jitter in its place", twin);
 
   // A tap keeps the last 8 s of the input
   await pad("Record", true);

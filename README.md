@@ -11,7 +11,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | Control | Alone | P11 held |
 |---|---|---|
 | S36 | Speed: 0 to 4×, stops at ¼, ½, 1, 2 and 4×, the pitch kept. Frozen: scrubs through the loop, a full stroke the whole loop, the speed taken up again after | Volume: the output, off to 0 dB |
-| S37 | Density: grains per second, 0.25 to 130, whatever their size. None at the bottom. 32 voices: with all sounding, a new grain is dropped | Random density: when grains start, from a regular pulse to random, as many per second |
+| S37 | Density: grains per second, 0.25 to 130, whatever their size. None at the bottom. 32 voices: with all sounding, a new grain is dropped | Jitter: when grains start, from a regular pulse to random, as many per second |
 | S30 | Position: where the loop starts, anywhere in the recording. The playhead keeps its place in the loop, so it moves with it, playing or frozen | |
 | S35 | Length: a share of what is left after Position, at the top to the recording's end | Reverb: none to most, decay 0.5 to 16 s |
 | S31 | Size: 5 ms to 2 s, 100 ms at the centre, at most half the recording | Random size, up to about two octaves either way |
@@ -39,7 +39,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 
 | To play | Set |
 |---|---|
-| Rhythm | Density low, Random density (P11 + S37) down, Shape up, Size short. Size sets how long each hit lasts |
+| Rhythm | Density low, Jitter (P11 + S37) down, Shape up, Size short. Size sets how long each hit lasts |
 | Drops | Density near the bottom, Size short: single grains, now and then |
 | Drums by hand | Density at the bottom, Shape up: tap the slices, several at once |
 | Cloud | Density at the top, Spray up, Size long, Reverb (P11 + S35) up |
