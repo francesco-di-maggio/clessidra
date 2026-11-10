@@ -2,20 +2,19 @@
 // the loop still ahead of the playhead, the other what has played. It stands
 // as the playhead moves: upright at full speed, leaning as it slows, on its
 // side when frozen or stopped, turned over in reverse and when Turn turns it.
-// The sand lies level in each bulb and falls in a thread while it runs, in
-// dots on a grid as the recording is drawn. Nothing recorded: the glass
-// alone, standing the same way.
+// The sand lies level in each bulb, in dots on a grid as the recording is
+// drawn, and falls in a thread while it runs: faster with Speed, and thicker
+// above 1×. Nothing recorded: the glass alone, standing the same way.
 
 import { PARAM } from "./engine";
 
 type Point = [number, number];
 
 // A dial beside it, px, as measured on the page: its arc below its top and
-// across, what lies under it (the gap and its value's line), and the foot of
-// the value's figures above the foot of their line, less half a stroke
+// across, and the foot of the value's figures above the foot of their line,
+// less half a stroke
 const ARC_TOP = 5;
 const ARC = 38;
-const BELOW = 22;
 const FOOT = 4.75;
 const CAP = 3; // px, a cap past the glass at each side
 const NECK = 0.07; // half its width, of the bulb's
@@ -25,6 +24,8 @@ const DOT = 3; // the grid, px, as the input's
 const SIZE = 1.5; // a dot, px
 const EASE = 0.25; // of the way to its angle, per frame
 const SETTLED = 0.005; // rad
+const FALL = 12; // px a second, the thread at 1×: at 4× still under half a grid step a frame
+const FRESH_MS = 200; // without news for this long: the thread still
 
 export class Hourglass {
   private ctx: CanvasRenderingContext2D;
@@ -32,6 +33,9 @@ export class Hourglass {
   private sound = false; // something recorded
   private angle = 0; // rad, clockwise from upright
   private frame = 0;
+  private stamp = 0; // when the parameters last came, ms
+  private fallen = 0; // px the thread has moved, within a step of the grid
+  private last = 0; // the frame before, ms
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
@@ -46,26 +50,37 @@ export class Hourglass {
     const same = this.sound === sound && this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
     this.params = params.slice();
     this.sound = sound;
-    if (!same && !this.frame) this.frame = requestAnimationFrame(this.tick);
+    this.stamp = performance.now();
+    if ((!same || this.flowing()) && !this.frame) this.frame = requestAnimationFrame(this.tick);
   }
 
-  // Which way the playhead moves through the loop, and how fast, up to 1
+  // Which way the playhead moves through the loop, how fast, and how fast up
+  // to 1: the glass is no more than upright
   private motion() {
     const p = this.params;
     const still = p[PARAM.freeze] || p[PARAM.stop];
     const way = (p[PARAM.speed] < 0 ? -1 : 1) * (p[PARAM.heading] < 0 ? -1 : 1);
-    return { way, pace: still ? 0 : Math.min(Math.abs(p[PARAM.speed]), 1) };
+    const speed = still ? 0 : Math.abs(p[PARAM.speed]);
+    return { way, speed, pace: Math.min(speed, 1) };
   }
 
-  // Turns towards where it should stand, a frame at a time
-  private tick = () => {
-    const { way, pace } = this.motion();
+  // Sand falling: a recording, the playhead moving, some of the loop ahead
+  private flowing() {
+    return this.sound && this.motion().speed > 0 && this.params[PARAM.sandLeft] > 0;
+  }
+
+  // A frame: the glass turns towards where it should stand, the thread falls
+  private tick = (now: number) => {
+    const { way, speed, pace } = this.motion();
     const to = (Math.PI / 2) * (1 - way * pace);
     this.angle += (to - this.angle) * EASE;
     const settled = Math.abs(to - this.angle) < SETTLED;
     if (settled) this.angle = to;
+    const running = this.flowing() && now - this.stamp < FRESH_MS;
+    if (running) this.fallen = (this.fallen + (FALL * speed * Math.min(now - this.last, 50)) / 1000) % DOT;
+    this.last = now;
     this.draw();
-    this.frame = settled ? 0 : requestAnimationFrame(this.tick);
+    this.frame = settled && !running ? 0 : requestAnimationFrame(this.tick);
   };
 
   draw() {
@@ -82,14 +97,12 @@ export class Hourglass {
     const accent = css.getPropertyValue("--accent");
 
     // Upright, from the top of a dial's arc to the foot of its value's
-    // figures. On its side, as tall as the arc and beside it: its neck moves
-    // up as it turns.
+    // figures, as wide as the arc. It turns about its neck, which stays put.
     const tall = H - ARC_TOP - FOOT;
     const bulb = tall / 2 - 2;
     const wide = ARC / 2 - CAP;
     const cx = W / 2;
-    const beside = (H - BELOW) / 2;
-    const cy = beside + (ARC_TOP + tall / 2 - beside) * Math.abs(Math.cos(this.angle));
+    const cy = ARC_TOP + tall / 2;
     // Half its width at t of a bulb, 0 at the neck, 1 at its cap
     const half = (t: number, inset: number) => Math.max(wide * (NECK + (1 - NECK) * (1 - (1 - t) ** 2)) - inset, 0);
     const cos = Math.cos(this.angle);
@@ -161,7 +174,7 @@ export class Hourglass {
     if (this.sound) {
       // The loop ahead in the bulb above while it runs forward, the other in
       // reverse: the one that empties is the one on top
-      const { way, pace } = this.motion();
+      const { way, speed } = this.motion();
       const left = Math.min(Math.max(p[PARAM.sandLeft], 0), 1);
       const ahead = way > 0 ? -1 : 1;
       const from = settle(inside(ahead), left);
@@ -170,10 +183,16 @@ export class Hourglass {
       ctx.beginPath();
       dots(from.sand);
       dots(into.sand);
-      // The thread: down the grid from the neck to the sand below
+      // The thread, from the neck down to the sand below: its dots moving
+      // down, one abreast up to 1×, two at 2×, three at 4×
       const lower = inside(-ahead);
-      for (let y = cy; pace > 0 && left > 0 && y < into.level; y += DOT) {
-        if (y === cy || within(lower, cx, y)) ctx.rect(cx - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
+      const abreast = 1 + Math.round(Math.log2(Math.max(speed, 1)));
+      for (let y = cy + this.fallen; speed > 0 && left > 0 && y < into.level; y += DOT) {
+        for (let k = 0; k < abreast; k++) {
+          const x = cx + (k - (abreast - 1) / 2) * DOT;
+          // Through the neck, then wherever the bulb has room
+          if ((x === cx && y - cy < 2 * DOT) || within(lower, x, y)) ctx.rect(x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
+        }
       }
       ctx.fill();
     }
