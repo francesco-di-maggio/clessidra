@@ -10,7 +10,8 @@ import { PARAM } from "./engine";
 
 type Point = [number, number];
 
-const WIDTH = 0.78; // of the height
+const BELOW = 22; // px, under a dial: the gap and its value's line
+const CAP = 3; // px, a cap past the glass at each side
 const NECK = 0.07; // half its width, of the bulb's
 const STEPS = 24; // along each side of a bulb
 const INSET = 2; // px, the sand from the glass
@@ -74,14 +75,18 @@ export class Hourglass {
     const css = getComputedStyle(document.documentElement);
     const accent = css.getPropertyValue("--accent");
 
-    // The glass about its neck: a bulb's height, half its width at t of it,
-    // 0 at the neck, 1 at its cap
+    // Upright it fills the height, a dial and its value. On its side it is
+    // as tall as the dial, and level with it: its neck moves up as it turns.
+    const dial = H - BELOW;
     const bulb = H / 2 - 3;
-    const wide = WIDTH * bulb;
+    const wide = dial / 2 - CAP;
+    const cx = W / 2;
+    const cy = dial / 2 + (H / 2 - dial / 2) * Math.abs(Math.cos(this.angle));
+    // Half its width at t of a bulb, 0 at the neck, 1 at its cap
     const half = (t: number, inset: number) => Math.max(wide * (NECK + (1 - NECK) * (1 - (1 - t) ** 2)) - inset, 0);
     const cos = Math.cos(this.angle);
     const sin = Math.sin(this.angle);
-    const turned = ([x, y]: Point): Point => [W / 2 + x * cos - y * sin, H / 2 + x * sin + y * cos];
+    const turned = ([x, y]: Point): Point => [cx + x * cos - y * sin, cy + x * sin + y * cos];
     // The inside of a bulb, -1 the one above when upright, as the page sees it
     const inside = (side: number) => {
       const points: Point[] = [];
@@ -138,8 +143,8 @@ export class Hourglass {
       if (points.length < 3) return;
       for (let i = -reach; i <= reach; i++) {
         for (let j = -reach; j <= reach; j++) {
-          const x = W / 2 + i * DOT;
-          const y = H / 2 + j * DOT;
+          const x = cx + i * DOT;
+          const y = cy + j * DOT;
           if (within(points, x, y)) ctx.rect(x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
         }
       }
@@ -159,15 +164,15 @@ export class Hourglass {
       dots(into.sand);
       // The thread: down the grid from the neck to the sand below
       const lower = inside(-ahead);
-      for (let y = H / 2; pace > 0 && left > 0 && y < into.level; y += DOT) {
-        if (y === H / 2 || within(lower, W / 2, y)) ctx.rect(W / 2 - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
+      for (let y = cy; pace > 0 && left > 0 && y < into.level; y += DOT) {
+        if (y === cy || within(lower, cx, y)) ctx.rect(cx - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
       }
       ctx.fill();
     }
 
     // The glass: its sides and its caps
     ctx.save();
-    ctx.translate(W / 2, H / 2);
+    ctx.translate(cx, cy);
     ctx.rotate(this.angle);
     ctx.strokeStyle = css.getPropertyValue("--ink");
     ctx.lineWidth = 1.5;
@@ -179,8 +184,8 @@ export class Hourglass {
         if (k === -STEPS) ctx.moveTo(x, -bulb);
         else ctx.lineTo(x, (k * bulb) / STEPS);
       }
-      ctx.moveTo(-wide - 3, side * (bulb + 2));
-      ctx.lineTo(wide + 3, side * (bulb + 2));
+      ctx.moveTo(-wide - CAP, side * (bulb + 2));
+      ctx.lineTo(wide + CAP, side * (bulb + 2));
     }
     ctx.stroke();
     ctx.restore();
