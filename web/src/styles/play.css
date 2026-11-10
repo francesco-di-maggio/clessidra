@@ -6,8 +6,8 @@
    line. Orange only for what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
 body.app main { flex: 1; min-height: 0; }
-/* An instrument: the arrow over what is pressed, as on a desktop app, the
-   drag cursor over what is dragged */
+/* An instrument: the arrow over every control, as on a desktop app; dragging,
+   the drag cursor */
 .instrument button, .instrument .pad { cursor: default; }
 /* Nothing selected by a drag: every control is played, none read as text */
 .instrument { user-select: none; -webkit-user-select: none; }
@@ -39,7 +39,7 @@ body.app main { flex: 1; min-height: 0; }
 .levels .gain { align-self: stretch; }
 /* Out: its name a button as Start is, a fader on its side, the value */
 .gain { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; outline: none; touch-action: none; }
-.gain { cursor: ew-resize; }
+.gain.dragging { cursor: ew-resize; }
 /* The board's LED, last on the line: lit by --light, 0..1 */
 .led { position: relative; flex: none; width: 10px; height: 10px; margin: 0 2px; border-radius: 50%; background: var(--well); }
 .led::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--accent); opacity: var(--light, 0); }
@@ -83,7 +83,7 @@ body.app main { flex: 1; min-height: 0; }
 .knob .tick { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
 .knob line.track, .knob line.fill { stroke-width: 2; }
 .knob .cap { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
-.knob { cursor: ns-resize; }
+.knob.dragging { cursor: ns-resize; }
 .knob.focus .label, .knob:focus-visible .label { color: var(--ink); }
 .knob:focus-visible, .gain:focus-visible, .pad:focus-visible { outline: none; }
 /* P11 held: the twin's name and value in place, in orange */
@@ -102,7 +102,7 @@ body.app main { flex: 1; min-height: 0; }
 /* A three-way switch: its positions stacked in the band and the value line */
 /* Between Position and Length, the hourglass: upright, from a dial's top to
    the foot of its value. On its side, as tall as a dial and level with it. */
-.knobs .glass { grid-column: span 2; cursor: default; }
+.knobs .glass { grid-column: span 2; }
 .knobs .glass canvas { width: calc(100% - 16px); height: calc(var(--band) + 6px + var(--name)); margin-top: calc(var(--name) + 6px); }
 
 /* The pads as an octave: the slices white keys, the others black keys on
