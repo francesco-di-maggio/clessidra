@@ -99,12 +99,6 @@ ol.rows { gap: 6px; padding: 14px; }
 /* As tall as the window allows, up to where the column beside it is still
    wide enough to read */
 .mapping svg.touch { width: auto; height: clamp(360px, calc(100dvh - 310px), 600px); max-height: none; }
-/* Under the two help tiles: three short notes, equal */
-.mapping .notes { display: grid; grid-auto-rows: 1fr; gap: 10px; }
-.note[hidden] { display: none; }
-/* A key and its line, on one baseline as in the facts tile */
-.note { display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 10px; align-items: baseline; padding: 8px 14px; font-size: 13px; line-height: 18px; }
-.note .label { line-height: 14px; }
 .segmented.vertical { height: auto; grid-auto-flow: row; }
 .segmented.vertical button { height: 36px; justify-content: flex-start; padding: 0 12px; }
 .segmented.vertical button + button { border-left: 0; border-top: 1px solid var(--line); }
