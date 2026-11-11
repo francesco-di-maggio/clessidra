@@ -103,7 +103,10 @@ ol.rows { gap: 6px; padding: 14px; }
 /* Under the two help tiles: three short notes, equal */
 .mapping .notes { display: grid; grid-auto-rows: 1fr; gap: 10px; }
 .note[hidden] { display: none; }
-.note { display: grid; align-content: start; gap: 2px; padding: 10px 14px; font-size: 13px; line-height: 18px; }
+.note { display: grid; align-content: start; gap: 0; padding: 10px 14px; font-size: 13px; line-height: 18px; }
+.note .label { margin-bottom: 2px; }
+/* What you do, then in grey what happens */
+.note .sub { color: var(--dim); }
 .segmented.vertical { height: auto; grid-auto-flow: row; }
 .segmented.vertical button { height: 36px; justify-content: flex-start; padding: 0 12px; }
 .segmented.vertical button + button { border-left: 0; border-top: 1px solid var(--line); }
