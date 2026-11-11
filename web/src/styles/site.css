@@ -153,6 +153,9 @@ ol.rows { gap: 6px; padding: 14px; }
 /* Orange for what is on: the page you are on, a work in progress, the control
    pointed at */
 nav a[aria-current="page"]::before, .live::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
+/* In the nav, the dot in the gap before the name: the names never move */
+nav a[aria-current="page"] { position: relative; }
+nav a[aria-current="page"]::before { position: absolute; left: -12px; top: 50%; margin: -3px 0 0; }
 .touch .ctl.active .ring, .touch .ctl.active circle.pad, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke: var(--accent); }
 .prose p { text-wrap: pretty; }
 .touch .free .ring, .touch .free circle.pad, .touch .free .slot { stroke: var(--line); }
