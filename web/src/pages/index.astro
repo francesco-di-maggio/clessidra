@@ -24,6 +24,7 @@ import { url } from "../lib/url";
     <clipPath id="clock-below"><path d="M-4 7.5C-4 2.5-1 1.5-1 0H1C1 1.5 4 2.5 4 7.5Z" /></clipPath>
     <rect id="clock-left" class="sand" x="-5" width="10" clip-path="url(#clock-above)" />
     <rect id="clock-gone" class="sand" x="-5" width="10" clip-path="url(#clock-below)" />
+    <circle id="clock-grain" class="sand grain" r="0.75" />
     <path class="glass" d="M-5.5-7.5h11M-5.5 7.5h11M-4-7.5C-4-2.5-1-1.5-1 0S-4 2.5-4 7.5M4-7.5C4-2.5 1-1.5 1 0S4 2.5 4 7.5" />
   </svg>
   <time id="clock-time" class="label"></time>
@@ -44,11 +45,14 @@ import { url } from "../lib/url";
 
 <script>
   // The clock: the hour as sand. The bulb above holds what is left of it, the
-  // one below what has passed, the time under the glass.
+  // one below what has passed, the time under the glass. Each second, a
+  // grain falls from the neck.
   const BULB = 7.5; // a bulb's height in the drawing
   const left = document.getElementById("clock-left")!;
   const gone = document.getElementById("clock-gone")!;
   const now = document.getElementById("clock-time") as HTMLTimeElement;
+  const grain = document.getElementById("clock-grain")!;
+  const still = matchMedia("(prefers-reduced-motion: reduce)");
   function tick() {
     const d = new Date();
     const passed = (d.getMinutes() * 60 + d.getSeconds()) / 3600;
@@ -60,9 +64,13 @@ import { url } from "../lib/url";
     const text = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     now.textContent = text;
     now.dateTime = text;
+    // Down to the sand below, faster as it goes
+    const fall = Math.max(BULB * (1 - passed) - 0.75, 0);
+    if (!still.matches) grain.animate([{ opacity: 1, transform: "translateY(0)" }, { opacity: 1, transform: `translateY(${fall}px)` }], { duration: 700, easing: "ease-in" });
   }
+  // On the second, as a clock ticks
   tick();
-  setInterval(tick, 1000);
+  setTimeout(() => (tick(), setInterval(tick, 1000)), 1000 - new Date().getMilliseconds());
 </script>
 
 <script>
