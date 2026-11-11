@@ -7,9 +7,10 @@
 .mark svg path { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
 nav a[aria-current] { color: var(--ink); }
 h2.label { scroll-margin-top: 16px; }
-/* A panel's name inside it, over its rows */
+/* A page's first part starts where the others' first panel does */
+.lead + h2.label { margin-top: 0; }
+/* A panel's name inside it */
 .panel > h2.label { margin: 0 0 8px; color: var(--dim); }
-.panel > ol.rows { padding: 0; margin: 0; }
 /* Text in a panel at the size of its rows */
 .panel > .prose p { margin: 0; font-size: 15px; line-height: 22px; }
 .lead { text-wrap: pretty; }
@@ -60,10 +61,10 @@ ol.rows { gap: 6px; padding: 14px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
 /* Links as tiles, one under the other: a name, a line about it, where it
    leads */
-/* As tall together as the window lets the feedback form be: both pages end
-   on one line */
-.tiles { display: grid; gap: 10px; grid-auto-rows: 1fr; min-height: min(406px, calc(100dvh - 494px)); }
-.tiles .panel { color: var(--ink); }
+/* As tall together as the window allows: the page ends on the line the
+   others end on */
+.tiles { display: grid; gap: 10px; grid-auto-rows: 1fr; min-height: calc(100dvh - 506px); }
+.tiles .panel { padding: 8px 14px; color: var(--ink); }
 .tiles .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .tiles b { font-size: 15px; line-height: 20px; font-weight: 600; }
 .tiles .sub { font-size: 14px; line-height: 18px; color: var(--dim); }
@@ -108,7 +109,7 @@ ol.rows { gap: 6px; padding: 14px; }
 .form { display: grid; gap: 16px; }
 .field { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
 /* The box takes the height the window has to spare */
-.field textarea { min-height: clamp(140px, calc(100dvh - 540px), 360px); width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); resize: vertical; }
+.field textarea { min-height: max(140px, calc(100dvh - 504px)); width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); resize: vertical; }
 .field textarea:focus { outline: 1.5px solid var(--accent); outline-offset: -1px; }
 .field .segmented { height: 44px; }
 .field .segmented label { display: flex; }
