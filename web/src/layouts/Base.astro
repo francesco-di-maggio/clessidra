@@ -3,7 +3,7 @@ import "../styles/site.css";
 import { url } from "../lib/url";
 
 // Play is a part with its own structure: the header reads CLESSIDRA / PLAY,
-// with no nav row, and the page fills the screen.
+// with no nav row and no footer, and the page fills the screen.
 interface Props {
   title?: string;
   description?: string;
@@ -79,7 +79,7 @@ const mark = `<svg viewBox="-9 -9 18 18" aria-hidden="true"><path d="M-5.5-7.5h1
 <main>
   <slot />
 </main>
-{(
+{!app && (
   <footer class="label">
     <span>© {new Date().getFullYear()} <a href="https://francescodimaggio.nl/">Francesco Di Maggio</a></span>
     <span class="links">
