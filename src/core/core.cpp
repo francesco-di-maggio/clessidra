@@ -277,13 +277,18 @@ void Core::UpdateCapture(size_t size)
             capture_back_ += size;
             return;
         }
-        for(const auto& grain : grains_)
+        for(auto& grain : grains_)
         {
-            if(grain.IsActive() && grain.Source() == &target)
+            if(!grain.IsActive() || grain.Source() != &target)
+                continue;
+            // Stopped, it would never end: silent, so ended here
+            if(tape_ == 0.0f)
             {
-                capture_back_ += size;
-                return;
+                grain.End();
+                continue;
             }
+            capture_back_ += size;
+            return;
         }
         // Waited long: the oldest part is lost to the writing on
         const size_t margin = size_t(kCopyMarginSeconds * sample_rate_);

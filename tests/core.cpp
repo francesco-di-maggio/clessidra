@@ -985,6 +985,29 @@ void Pour()
           before[4]);
 }
 
+// Stopped while grains still read the recording before: they never end, a
+// new recording lands all the same
+void StoppedRecord()
+{
+    Rig r(2.0);
+    r.Fill(Sine);
+    Core::Params p;
+    p.density  = 100.0f;
+    p.grain_ms = 500.0f;
+    r.core.SetParams(p);
+    r.Run(0.5, Sine);
+    r.Record(1.0, Sine);
+    r.Run(0.2, Silence);
+    p.stop = true;
+    r.core.SetParams(p);
+    r.Run(Core::kStopSeconds + 0.1, Silence);
+    const uint32_t before = r.core.Recordings();
+    r.Record(0.5, Sine);
+    Check(r.core.Recordings() == before + 1,
+          "stopped, grains on the recording before: a new one lands",
+          double(r.core.Recordings() - before));
+}
+
 // Frozen at the start: each grain moved by the amount, evenly
 void Randomness()
 {
@@ -1787,6 +1810,7 @@ int main()
     Mirrored();
     Selection();
     Pour();
+    StoppedRecord();
     Randomness();
     Starts();
     Pan();

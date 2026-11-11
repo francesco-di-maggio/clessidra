@@ -11,8 +11,9 @@ void Pads::Init()
     Mpr121I2C::Config cfg;
     cfg.touch_threshold   = kTouchThreshold;
     cfg.release_threshold = kReleaseThreshold;
-    mpr_.Init(cfg);
-    Configure();
+    ok_                   = mpr_.Init(cfg) == Mpr121I2C::OK;
+    if(ok_)
+        Configure();
 }
 
 // Registers: NXP AN3889 (auto-configuration), AN3890 (analog front end), AN3891
@@ -66,6 +67,8 @@ void Pads::Configure()
 
 void Pads::Process()
 {
+    if(!ok_)
+        return;
     const uint16_t touched = mpr_.Touched();
     touched_               = 0;
     for(size_t p = 0; p < Controls::kNumPads; p++)

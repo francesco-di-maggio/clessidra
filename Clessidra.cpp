@@ -24,19 +24,25 @@ namespace
     float DSY_SDRAM_BSS ring[kRingSamples];
     float DSY_SDRAM_BSS sound[Core::kNumBuffers][kBufferSamples];
 
-    Touch               touch;
-    Core                core;
-    CoreUI              ui;
+    Touch  touch;
+    Core   core;
+    CoreUI ui;
+#if DEBUG
     daisy::CpuLoadMeter cpu;
+#endif
 
     void AudioCallback(daisy::AudioHandle::InputBuffer  in,
                        daisy::AudioHandle::OutputBuffer out,
                        size_t                           size)
     {
+#if DEBUG
         cpu.OnBlockStart();
+#endif
         touch.ProcessControls();
         core.Process(in, out, size);
+#if DEBUG
         cpu.OnBlockEnd();
+#endif
     }
 
 #if DEBUG
@@ -76,8 +82,8 @@ namespace
                   kRingSamples,
                   buffers,
                   kBufferSamples);
-        cpu.Init(seed.AudioSampleRate(), seed.AudioBlockSize());
 #if DEBUG
+        cpu.Init(seed.AudioSampleRate(), seed.AudioBlockSize());
         seed.StartLog(false);
 #endif
         seed.StartAudio(AudioCallback);

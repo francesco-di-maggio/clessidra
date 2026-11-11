@@ -265,9 +265,9 @@ void CoreUI::Slices(const Controls& c, const Core& core, Core::Params& p)
     const bool fresh = core.Recordings() != analysed_;
     if(fresh)
     {
-        analysed_ = core.Recordings();
-        onsets_.Begin(
-            core.Sound().Samples(), core.SoundSamples(), float(kSampleRateHz));
+        analysed_           = core.Recordings();
+        const Buffer& sound = core.Sound();
+        onsets_.Begin(sound.Samples(), sound.Length(), float(kSampleRateHz));
     }
     onsets_.Step(kOnsetFrames);
     slice_starts_ = onsets_.Slices(p.start, p.length);

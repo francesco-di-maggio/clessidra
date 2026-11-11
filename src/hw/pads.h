@@ -34,6 +34,7 @@ class Pads
     void Configure();
 
     daisy::Mpr121I2C                      mpr_;
+    bool                                  ok_ = false; // the MPR121 answered
     uint16_t                              touched_ = 0;
     std::array<float, Controls::kNumPads> pressure_{};
 };

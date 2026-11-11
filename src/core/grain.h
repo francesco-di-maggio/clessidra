@@ -26,6 +26,7 @@ class Grain
     const Buffer* Source() const { return latch_.buffer; }
     // offset: first sample of the grain in the next Render()
     void   Start(const Latch& latch, size_t offset);
+    void   End() { active_ = false; }
     double Progress() const { return phase_; } // through the window, 0..1
     // For displays, between blocks: as started, and where it reads now
     const Latch& Settings() const { return latch_; }
