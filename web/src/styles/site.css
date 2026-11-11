@@ -10,6 +10,8 @@ h2.label { scroll-margin-top: 16px; }
 /* A panel's name inside it, over its rows */
 .panel > h2.label { margin: 0 0 8px; color: var(--dim); }
 .panel > ol.rows { padding: 0; margin: 0; }
+/* Text in a panel at the size of its rows */
+.panel > .prose p { margin: 0; font-size: 15px; line-height: 22px; }
 .lead { text-wrap: pretty; }
 
 /* Facts: a key column and its value, as in the family's facts panel */
@@ -60,8 +62,8 @@ ol.rows { gap: 6px; padding: 14px; }
    leads */
 /* As tall together as the window lets the feedback form be: both pages end
    on one line */
-.tiles { display: grid; gap: 8px; grid-auto-rows: 1fr; min-height: min(406px, calc(100dvh - 494px)); }
-.tiles .panel { padding: 10px 14px; color: var(--ink); }
+.tiles { display: grid; gap: 10px; grid-auto-rows: 1fr; min-height: min(406px, calc(100dvh - 494px)); }
+.tiles .panel { color: var(--ink); }
 .tiles .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .tiles b { font-size: 15px; line-height: 20px; font-weight: 600; }
 .tiles .sub { font-size: 14px; line-height: 18px; color: var(--dim); }
