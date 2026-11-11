@@ -114,7 +114,8 @@ ol.rows { gap: 6px; padding: 14px; }
 .help .layer { display: grid; gap: 2px; align-content: start; }
 .help b { font-size: 17px; font-weight: 600; }
 /* Justified, with words broken where that keeps the gaps even */
-.help p { margin: 0; color: var(--dim); font-size: 14px; line-height: 20px; white-space: pre-line; text-wrap: pretty; text-align: justify; hyphens: auto; hyphenate-limit-chars: 5 2 2; }
+.help p { margin: 0; color: var(--dim); font-size: 14px; line-height: 20px; text-wrap: pretty; text-align: justify; hyphens: auto; -webkit-hyphens: auto;
+          hyphenate-limit-chars: 5 2 2; -webkit-hyphenate-limit-before: 2; -webkit-hyphenate-limit-after: 2; }
 /* The second function under a hairline, its name in orange as on the Play
    page */
 .help hr { width: 100%; margin: 14px 0; border: 0; border-top: 1px solid var(--line); }

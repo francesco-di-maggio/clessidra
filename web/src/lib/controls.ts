@@ -35,7 +35,7 @@ export interface Control {
   detent?: boolean; // stops at its centre
   scale?: { at: number; label: string }[]; // a fader's marks, 0..1 of its travel
   free?: boolean; // not assigned yet
-  does?: string; // a line break: kept on the Controls page
+  does?: string;
   value?: (p: Float32Array, v: State) => string;
   twin?: Twin;
 }
@@ -75,7 +75,7 @@ export const CONTROLS: Control[] = [
     id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3), scale: SPEED_SCALE,
     does: "0 to 4×, with stops at ¼, ½, 1, 2 and 4×. The pitch stays. Frozen: scrubs the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
-    twin: { name: "Volume", does: "Output level, off to 0 dB.", value: (p) => db(p[PARAM.volume]) },
+    twin: { name: "Volume", does: "Output level, off to 0\u00a0dB.", value: (p) => db(p[PARAM.volume]) },
   },
   {
     id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: densityAt(20), scale: DENSITY_SCALE,
@@ -106,7 +106,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
-    does: "Grain length.\n5 ms to 2 s, 100 ms at the centre.",
+    does: "Grain length. 5\u00a0ms to 2\u00a0s, 100\u00a0ms at the centre.",
     value: (p) => ms(p[PARAM.grainMs]),
     twin: { name: "Random size", short: "Rnd size", does: "Each grain a different length, up to about an octave either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
   },
@@ -151,8 +151,8 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
-    does: "Tap: keeps the last 8 s.\nHold: records up to 30 s.",
-    twin: { name: "Listen", does: "Hear the input with the grains.\nNothing is recorded.", value: () => "Listen" },
+    does: "Tap: keeps the last 8\u00a0s. Hold: records up to 30\u00a0s.",
+    twin: { name: "Listen", does: "Hear the input with the grains. Nothing is recorded.", value: () => "Listen" },
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
@@ -210,7 +210,7 @@ export interface Level extends Control {
 export const LEVELS: Level[] = [
   {
     id: "OUT", type: "knob", index: -1, x: 0, y: 0, name: "Out", initial: 1,
-    does: "Output level, off to 0 dB. In the browser only.",
+    does: "Output level, off to 0\u00a0dB. In the browser only.",
     gain: (x) => (x <= 0 ? 0 : 10 ** ((60 * (x - 1)) / 20)),
   },
 ];
