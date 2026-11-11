@@ -53,15 +53,16 @@ ol.rows { gap: 6px; padding: 14px; }
 .row { display: grid; grid-template-columns: 112px 1fr; gap: 12px; font-size: 15px; line-height: 20px; }
 .row .label { line-height: 20px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
-.rows.steps ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; }
-/* A window too low for them one under the other: the three as one point */
-@media (max-height: 790px) {
+.rows.steps ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 2px; }
+/* A window too low for them one under the other: the three in a row, as
+   the buttons are pressed */
+@media (max-height: 752px) {
   .rows.steps ul { display: list-item; list-style: circle; margin-left: 18px; padding-left: 0; }
   .rows.steps ul li { display: inline; }
-  .rows.steps ul li + li::before { content: ", "; }
+  .rows.steps ul li + li::before { content: " → "; color: var(--dim); }
 }
 /* Rows of a list a little closer: the page on one screen */
-.lists.list a { min-height: 52px; padding: 9px 0; }
+.lists.list a { min-height: 48px; padding: 6px 0; }
 
 
 /* A file to download: its type on a page */
