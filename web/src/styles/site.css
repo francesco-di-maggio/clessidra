@@ -12,7 +12,7 @@ h2.label { scroll-margin-top: 16px; }
 /* A panel's name inside it */
 .panel > h2.label { margin: 0 0 8px; color: var(--dim); }
 /* Text in a panel at the size of its rows */
-.panel > .prose p { margin: 0; font-size: 15px; line-height: 22px; }
+.panel > .prose p { margin: 0; font-size: 15px; line-height: 20px; }
 .lead { text-wrap: pretty; }
 
 /* Facts: a key column and its value, as in the family's facts panel */
@@ -63,11 +63,15 @@ ol.rows { gap: 6px; padding: 14px; }
    leads */
 /* As tall together as the window allows: the page ends on the line the
    others end on */
-.tiles { display: grid; gap: 10px; grid-auto-rows: 1fr; min-height: calc(100dvh - 506px); }
+.tiles { display: grid; gap: 10px; grid-auto-rows: 1fr; min-height: calc(100dvh - var(--above, 506px)); }
 .tiles .panel { padding: 8px 14px; color: var(--ink); }
 .tiles .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .tiles b { font-size: 15px; line-height: 20px; font-weight: 600; }
 .tiles .sub { font-size: 14px; line-height: 18px; color: var(--dim); }
+.tiles .primary b { color: var(--bg); }
+.tiles .primary .sub { color: var(--bg); opacity: 0.7; }
+/* Playing: the orange dot before its name, as what is on */
+.tiles .on b::before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 8px 1px 0; border-radius: 50%; background: var(--accent); }
 
 
 /* A file to download: its type on a page */
@@ -83,12 +87,13 @@ ol.rows { gap: 6px; padding: 14px; }
 .segmented.vertical { height: auto; grid-auto-flow: row; }
 .segmented.vertical button { height: 36px; justify-content: flex-start; padding: 0 12px; }
 .segmented.vertical button + button { border-left: 0; border-top: 1px solid var(--line); }
-.notes { list-style: none; margin: 0; display: grid; gap: 10px; }
-.notes li { display: grid; gap: 2px; font-size: 13px; line-height: 18px; text-align: justify; hyphens: auto; hyphenate-limit-chars: 5 2 2; }
-.notes .label { color: var(--dim); }
+.note { display: grid; gap: 2px; font-size: 13px; line-height: 18px; text-align: justify; hyphens: auto; hyphenate-limit-chars: 5 2 2; }
+.note .label { color: var(--dim); }
+/* A low window: the first note only, the help keeps its room */
+@media (max-height: 775px) { .mapping .note + .note { display: none; } }
 /* Beside the board and as tall: the help takes what the notes leave, so
    pointing at a control never moves the page */
-.mapping .stack { align-self: stretch; grid-template-rows: minmax(0, 1fr) auto; }
+.mapping .stack { align-self: stretch; grid-template-rows: minmax(0, 1fr); grid-auto-rows: auto; }
 .help { display: grid; gap: 4px; min-height: 0; align-content: start; overflow: hidden; }
 .help b { font-size: 17px; font-weight: 600; }
 /* Justified, with words broken where that keeps the gaps even */

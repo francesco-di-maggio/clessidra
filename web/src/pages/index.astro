@@ -1,9 +1,15 @@
 ---
 import Base from "../layouts/Base.astro";
+import { url } from "../lib/url";
 ---
 <Base>
 <h1>Clessidra</h1>
 <p class="lead">It's the instrument where you pour grains of sound from single drops into a dense cloud.</p>
+
+<h2 class="label">About</h2>
+<section class="panel">
+  <div class="prose"><p>A granular instrument inspired by the hourglass. It explores the slow emptying of the glass and the fast trickle of single grains. It lets you capture and bend time through sound, slowing it down, speeding it up, reversing it or freezing it. Broken grains, like sand, are gathered and pieced back together, never quite the same and never fully still.</p></div>
+</section>
 
 <dl class="panel meta">
   <dt>Status</dt><dd class="live">In progress</dd>
@@ -12,13 +18,40 @@ import Base from "../layouts/Base.astro";
   <dt>Licence</dt><dd>MIT</dd>
 </dl>
 
-<h2 class="label">About</h2>
-<section class="panel">
-  <div class="prose"><p>A granular instrument inspired by the hourglass. It explores the slow emptying of the glass and the fast trickle of single grains. It lets you capture and bend time through sound, slowing it down, speeding it up, reversing it or freezing it. Broken grains, like sand, are gathered and pieced back together, never quite the same and never fully still.</p></div>
-</section>
-
-<a class="panel primary" href="play/">
-  <span><span class="label">Browser</span><span class="title">Play</span><span class="caption">The same firmware in your browser. No board needed.</span></span>
-  <span class="arrow" aria-hidden="true">→</span>
-</a>
+<div class="tiles" style="--above: 580px">
+  <a id="listen" class="panel" href={url("clessidra-target.m4a")}>
+    <span class="text"><b>Listen</b><span class="sub" id="listen-time">0:30</span></span>
+    <span class="arrow" aria-hidden="true">▶</span>
+  </a>
+  <a class="panel primary" href="play/">
+    <span class="text"><b>Play</b><span class="sub">The same firmware in your browser. No board needed.</span></span>
+    <span class="arrow" aria-hidden="true">→</span>
+  </a>
+</div>
 </Base>
+
+<script>
+  // The target sound, played in the page: a press starts it, another stops it
+  const link = document.getElementById("listen") as HTMLAnchorElement;
+  const time = document.getElementById("listen-time")!;
+  const arrow = link.querySelector(".arrow")!;
+  const audio = new Audio();
+  audio.preload = "none";
+  const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  const total = time.textContent!;
+  const show = () => {
+    const playing = !audio.paused && !audio.ended;
+    arrow.textContent = playing ? "■" : "▶";
+    link.classList.toggle("on", playing);
+    time.textContent = playing ? `${clock(audio.currentTime)} of ${total}` : total;
+  };
+  link.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!audio.src) audio.src = link.href;
+    if (audio.paused) {
+      audio.currentTime = 0;
+      audio.play();
+    } else audio.pause();
+  });
+  for (const event of ["play", "pause", "ended", "timeupdate"]) audio.addEventListener(event, show);
+</script>

@@ -18,11 +18,9 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
       <p id="help-does">Its function shows here. A second function, with Shift held, shows in orange.</p>
       <p id="help-twin" class="twin"></p>
     </div>
-    <ul class="panel notes">
-      <li><span class="label">Record</span>Tap or hold Rec. The sound becomes the loop.</li>
-      <li><span class="label">Play</span>Speed, Position and Length move through it. Density and Size pour it as grains.</li>
-      <li><span class="label">End</span>S07 decides what the loop does at its end: stop, turn over or go round.</li>
-    </ul>
+    <div class="panel note"><span class="label">Record</span>Tap or hold Rec. The sound becomes the loop.</div>
+    <div class="panel note"><span class="label">Play</span>Speed, Position and Length move through it. Density and Size pour it as grains.</div>
+    <div class="panel note"><span class="label">End</span>S07 decides what the loop does at its end: stop, turn over or go round.</div>
   </div>
 </div>
 <script type="application/json" id="help-data" set:html={JSON.stringify(help)} />
