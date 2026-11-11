@@ -25,13 +25,12 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
         <p id="help-twin-does">With P11 held, each knob does something else.</p>
       </div>
     </div>
-    <h2 class="label">Quick start</h2>
-    <ol class="panel rows steps quick">
-      <li class="row"><span class="label">Record</span><span>Tap or hold Rec to start the loop.</span></li>
-      <li class="row"><span class="label">Set</span><span>Turn Density and Size to pour it.</span></li>
-      <li class="row"><span class="label">Play</span><span>Hold the slices to play their parts.</span></li>
-      <li class="row"><span class="label">Repeat</span><span>Set Direction and End to repeat it.</span></li>
-    </ol>
+    <div class="notes">
+      <div class="panel note"><span class="label">Record</span><span>Tap or hold Rec to start the loop.</span></div>
+      <div class="panel note"><span class="label">Set</span><span>Turn Density and Size to pour it.</span></div>
+      <div class="panel note"><span class="label">Play</span><span>Hold the slices to play their parts.</span></div>
+      <div class="panel note"><span class="label">Repeat</span><span>Set Direction and End to repeat it.</span></div>
+    </div>
   </div>
 </div>
 <script type="application/json" id="help-data" set:html={JSON.stringify(help)} />
@@ -74,6 +73,15 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
     show(resting);
     tiles.forEach((t, i) => (t.style.minHeight = `${tallest[i]}px`));
     mapping.classList.remove("measuring");
+    // Beside the board, as many notes as end with it
+    const notes = [...document.querySelectorAll<HTMLElement>(".note")];
+    for (const n of notes) n.hidden = false;
+    const board = document.querySelector(".touch-panel")!.getBoundingClientRect();
+    const beside = notes[0].getBoundingClientRect().top < board.bottom;
+    for (const n of notes.reverse()) {
+      if (!beside || n.getBoundingClientRect().bottom <= board.bottom) break;
+      n.hidden = true;
+    }
   }
   fit();
   addEventListener("resize", () => requestAnimationFrame(fit));

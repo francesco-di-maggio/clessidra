@@ -74,7 +74,6 @@ ol.rows { gap: 6px; padding: 14px; }
 .row { align-items: baseline; }
 .row .label { line-height: 14px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
-.rows.quick .row { grid-template-columns: 52px 1fr; }
 /* Links as tiles, one under the other: a name, a line about it, where it
    leads */
 .tiles { display: grid; gap: 10px; }
@@ -105,9 +104,11 @@ ol.rows { gap: 6px; padding: 14px; }
 .segmented.vertical button + button { border-left: 0; border-top: 1px solid var(--line); }
 /* Beside the board and as tall: one tile, the control and under a hairline
    its second function, each layer as tall as its longest text */
-.mapping .stack { align-self: stretch; grid-template-rows: 1fr auto auto; }
-/* Under the help: the steps as on Download, their header above them */
-.mapping .stack h2.label { margin: min(16px, 2vh) 0 0; padding-left: 14px; }
+.mapping .stack { align-self: stretch; grid-template-rows: 1fr auto; }
+/* Under the help: four notes, each its name over one line */
+.mapping .notes { display: grid; gap: 10px; }
+.note { display: grid; gap: 2px; padding: 8px 14px; font-size: 13px; line-height: 18px; }
+.note .label { line-height: 14px; }
 .mapping.measuring .stack { align-self: start; grid-template-rows: none; }
 .help { display: grid; align-content: start; padding: 8px 14px; }
 .help .layer { display: grid; gap: 2px; align-content: start; }
@@ -116,7 +117,7 @@ ol.rows { gap: 6px; padding: 14px; }
 .help p { margin: 0; color: var(--dim); font-size: 14px; line-height: 20px; text-align: justify; hyphens: auto; hyphenate-limit-chars: 5 2 2; }
 /* The second function under a hairline, its name in orange as on the Play
    page */
-.help hr { width: 100%; margin: 8px 0; border: 0; border-top: 1px solid var(--line); }
+.help hr { width: 100%; margin: 14px 0; border: 0; border-top: 1px solid var(--line); }
 .help .twin { color: var(--accent); }
 
 
