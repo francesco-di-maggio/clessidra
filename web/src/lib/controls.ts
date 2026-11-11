@@ -151,7 +151,8 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
-    does: "Tap: keeps the last 8 s. Hold: records up to 30 s. With Shift: hear the input.",
+    does: "Tap: keeps the last 8 s. Hold: records up to 30 s.",
+    twin: { name: "Listen", does: "Hear the input with the grains. Nothing is recorded.", value: () => "Listen" },
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
