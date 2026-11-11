@@ -22,7 +22,7 @@ class Playhead
     // To a point of the span, sand in the glass again
     void Jump(double phase);
     // One sample. Once it has run out, it waits at the edge until a step the
-    // other way.
+    // other way, or another end.
     void Advance(double step, End end);
 
     double Phase() const { return phase_; }

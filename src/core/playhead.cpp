@@ -32,7 +32,7 @@ void Playhead::Advance(double step, End end)
     const double move = step * heading_;
     if(move != 0.0)
     {
-        if(ended_ && (move > 0.0) == forward_)
+        if(ended_ && end == End::Once && (move > 0.0) == forward_)
             return;
         forward_ = move > 0.0;
         ended_   = false;

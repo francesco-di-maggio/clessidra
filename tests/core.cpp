@@ -636,6 +636,25 @@ void Ends()
           r.core.PlayheadPhase());
 
     p.speed = 4.0f;
+    r.core.SetParams(p);
+    r.Run(0.5, Silence);
+    p.end = End::Turn;
+    r.core.SetParams(p);
+    r.Run(0.1, Silence);
+    Check(r.core.PlayheadPhase() < 0.7 && r.core.SandLeft() > 0.0f,
+          "once, run out, End to turn: turned over, runs back",
+          r.core.PlayheadPhase());
+    p.end = End::Once;
+    r.core.SetParams(p);
+    r.Run(0.5, Silence);
+    p.end = End::Loop;
+    r.core.SetParams(p);
+    const size_t round = Starts(r, 0.1);
+    Check(round > 1 && r.core.PlayheadPhase() < 0.5,
+          "once, run out, End to loop: round again (starts)",
+          double(round));
+
+    p.speed = 4.0f;
     p.end   = End::Turn;
     r.core.SetParams(p);
     r.core.Jump(0.0f);
