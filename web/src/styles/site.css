@@ -105,9 +105,8 @@ ol.rows { gap: 6px; padding: 14px; }
 /* Beside the board and as tall: two equal tiles, the control and its second
    function, each at least as tall as the longest text either holds */
 .mapping .stack { align-self: stretch; grid-template-rows: 1fr 1fr auto auto; }
-/* A header in the column: the column's gap above it, its own below */
-.mapping .stack h2.label { margin: 0 0 -2px; }
-.mapping .stack .steps { padding: 10px 14px; }
+/* A header in the column: the family's space above it, as between sections */
+.mapping .stack h2.label { margin: min(16px, 2vh) 0 0; }
 .mapping.measuring .stack { align-self: start; grid-template-rows: none; }
 .help { display: grid; gap: 2px; align-content: start; padding: 8px 14px; }
 .help b { font-size: 17px; font-weight: 600; }
