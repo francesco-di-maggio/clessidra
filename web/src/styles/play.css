@@ -110,7 +110,7 @@ body.app main { flex: 1; min-height: 0; }
    In the switches' colours: white keys as the chosen position, black keys as
    the others. */
 .pads { grid-area: pads; display: grid; }
-/* Mode and End side by side over the keys, as the sources are: the
+/* Direction and End side by side over the keys, as the sources are: the
    board's down to up, left to right */
 .switches { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 0 12px; border-bottom: 1px solid var(--line); }
 .switches > div { padding: 8px 0; }

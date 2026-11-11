@@ -140,7 +140,7 @@ export const CONTROLS: Control[] = [
     twin: { name: "Random shape", short: "Rnd shape", does: "Each grain a different envelope.", value: (p) => (p[PARAM.randShape] === 0 ? "Off" : percent(p[PARAM.randShape])) },
   },
   {
-    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Mode", initial: POSITION.up,
+    id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Direction", initial: POSITION.up,
     does: "Forward, freeze or reverse. Frozen, Speed scrubs through the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },

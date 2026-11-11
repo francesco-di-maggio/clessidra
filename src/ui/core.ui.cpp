@@ -72,7 +72,7 @@ CoreUI::CoreUI()
 
 void CoreUI::Process(const Controls& c, Core& core)
 {
-    // S09, Mode: forward up, frozen at the centre, reverse down
+    // S09, Direction: forward up, frozen at the centre, reverse down
     const Controls::Position mode   = c.switches[Controls::S09];
     const bool               frozen = mode == Controls::Centre;
     Knobs(c, frozen);
