@@ -25,11 +25,13 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
         <p id="help-twin-does">With P11 held, each knob does something else.</p>
       </div>
     </div>
-    <div class="notes">
-      <div class="panel note"><span class="label">Record</span><span>Tap or hold Rec to start the loop.</span></div>
-      <div class="panel note"><span class="label">Play</span><span>Turn Density and Size to pour it.</span></div>
-      <div class="panel note"><span class="label">Repeat</span><span>Set Direction and End to repeat it.</span></div>
-    </div>
+    <h2 class="label">Quick start</h2>
+    <ol class="panel rows steps quick">
+      <li class="row"><span class="label">01</span><span>Tap or hold Rec to start the loop.</span></li>
+      <li class="row"><span class="label">02</span><span>Turn Density and Size to pour it.</span></li>
+      <li class="row"><span class="label">03</span><span>Hold the slices to play their parts.</span></li>
+      <li class="row"><span class="label">04</span><span>Set Direction and End to repeat it.</span></li>
+    </ol>
   </div>
 </div>
 <script type="application/json" id="help-data" set:html={JSON.stringify(help)} />

@@ -104,11 +104,9 @@ ol.rows { gap: 6px; padding: 14px; }
 .segmented.vertical button + button { border-left: 0; border-top: 1px solid var(--line); }
 /* Beside the board and as tall: one tile, the control and under a hairline
    its second function, each layer as tall as its longest text */
-.mapping .stack { align-self: stretch; grid-template-rows: 1fr auto; }
-/* Under the help: three notes, each its name over one line */
-.mapping .notes { display: grid; gap: 10px; }
-.note { display: grid; gap: 2px; padding: 8px 14px; font-size: 13px; line-height: 18px; }
-.note .label { line-height: 14px; }
+.mapping .stack { align-self: stretch; grid-template-rows: 1fr auto auto; }
+/* Under the help: the steps as on Download, their header above them */
+.mapping .stack h2.label { margin: min(16px, 2vh) 0 0; }
 .mapping.measuring .stack { align-self: start; grid-template-rows: none; }
 .help { display: grid; align-content: start; padding: 8px 14px; }
 .help .layer { display: grid; gap: 2px; align-content: start; }
