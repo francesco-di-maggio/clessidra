@@ -73,13 +73,13 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 export const CONTROLS: Control[] = [
   {
     id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3), scale: SPEED_SCALE,
-    does: "Playback speed, 0 to 4×, with stops at ¼, ½, 1, 2 and 4×. The pitch stays. Frozen: scrubs through the loop.",
+    does: "0 to 4×, with stops at ¼, ½, 1, 2 and 4×. The pitch stays. Frozen: scrubs the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
     twin: { name: "Volume", does: "Output level, off to 0 dB.", value: (p) => db(p[PARAM.volume]) },
   },
   {
     id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: densityAt(20), scale: DENSITY_SCALE,
-    does: "Grains per second, 0 to 320, whatever their size. At the top with Size at its centre, all 32 voices sound.",
+    does: "Grains per second, 0 to 320. At the top with Size at its centre, all 32 voices sound.",
     value: (p) => {
       const d = p[PARAM.density];
       return d === 0 ? "None" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
@@ -112,7 +112,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
-    does: "How far grains stray from the playhead, up to the whole loop, and how wide across the stereo field.",
+    does: "How far grains stray from the playhead, up to the whole loop, and across the stereo field.",
     value: (p) => (p[PARAM.spread] === 0 ? "Off" : percent(p[PARAM.spread])),
     twin: { name: "Reverse", does: "How many grains play backwards: none, some, all.", value: (p) => (p[PARAM.reverse] === 0 ? "Off" : percent(p[PARAM.reverse])) },
   },
@@ -173,7 +173,7 @@ export const CONTROLS: Control[] = [
   },
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
-    does: "Hold to play a slice of the loop, cut at the recording's attacks. Several at once. The loop waits.",
+    does: "Hold to play a slice, cut at the recording's attacks. Several at once.",
   })),
 ];
 

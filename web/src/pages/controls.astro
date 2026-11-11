@@ -13,21 +13,24 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
   <div class="panel touch-panel"><TouchPanel /></div>
   <div class="stack">
     <div class="panel help" aria-live="polite">
-      <span id="help-board" class="label">Control</span>
-      <b id="help-name">Point at a control</b>
-      <p id="help-does">What it does shows here.</p>
-    </div>
-    <div class="panel help twin" aria-live="polite">
-      <span id="help-shift" class="label">With Shift</span>
-      <b id="help-twin">Second function</b>
-      <p id="help-twin-does">With P11 held, each knob does something else.</p>
+      <div class="layer">
+        <span id="help-board" class="label">Control</span>
+        <b id="help-name">Point at a control</b>
+        <p id="help-does">What it does shows here.</p>
+      </div>
+      <hr />
+      <div class="layer">
+        <span id="help-shift" class="label">With Shift</span>
+        <b id="help-twin" class="twin">Second function</b>
+        <p id="help-twin-does">With P11 held, each knob does something else.</p>
+      </div>
     </div>
     <h2 class="label">Quick start</h2>
     <ol class="panel rows steps">
-      <li class="row"><span class="label">01</span><span>Tap or hold Rec.</span></li>
-      <li class="row"><span class="label">02</span><span>Turn Density and Size.</span></li>
-      <li class="row"><span class="label">03</span><span>Hold the slices.</span></li>
-      <li class="row"><span class="label">04</span><span>Set Direction and End.</span></li>
+      <li class="row"><span class="label">01</span><span>Tap or hold Rec.<span class="sub">It becomes the loop.</span></span></li>
+      <li class="row"><span class="label">02</span><span>Turn Density and Size.<span class="sub">From drops to a cloud.</span></span></li>
+      <li class="row"><span class="label">03</span><span>Hold the slices.<span class="sub">Each its part of the loop.</span></span></li>
+      <li class="row"><span class="label">04</span><span>Set Direction and End.<span class="sub">How the loop runs.</span></span></li>
     </ol>
   </div>
 </div>
@@ -41,7 +44,7 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
   const panel = document.querySelector<SVGSVGElement>(".touch")!;
   const $ = (id: string) => document.getElementById(id)!;
   const out = { board: $("help-board"), name: $("help-name"), does: $("help-does"), shift: $("help-shift"), twin: $("help-twin"), twinDoes: $("help-twin-does") };
-  const tiles = [...document.querySelectorAll<HTMLElement>(".help")];
+  const tiles = [...document.querySelectorAll<HTMLElement>(".help .layer")];
   // What the tiles say before a control is pointed at
   const resting = Object.fromEntries(Object.entries(out).map(([k, e]) => [k, e.textContent!])) as Record<keyof typeof out, string>;
 
@@ -55,8 +58,8 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
     show({ board: id, name: h?.name ?? "Free", does: h?.does ?? "No function yet.", shift: `Shift + ${id}`, twin: h?.twin || "None", twinDoes: h?.twinDoes || "No second function." });
   }
 
-  // Both tiles as tall as the longest text either holds, so pointing never
-  // moves the page
+  // Each layer as tall as its longest text, so pointing never moves the page
+  // or the line between them
   function fit() {
     // Measured unstretched: their text alone
     const mapping = document.querySelector(".mapping")!;
@@ -69,8 +72,14 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
     }
     for (const g of panel.querySelectorAll(".ctl")) g.classList.remove("active");
     show(resting);
-    for (const t of tiles) t.style.minHeight = `${Math.max(...tallest)}px`;
+    tiles.forEach((t, i) => (t.style.minHeight = `${tallest[i]}px`));
     mapping.classList.remove("measuring");
+    // The steps' second lines where the column has room for them beside the
+    // board
+    const steps = document.querySelector<HTMLElement>(".stack .steps")!;
+    const board = document.querySelector(".touch-panel")!.getBoundingClientRect().bottom;
+    steps.classList.remove("short");
+    if (steps.getBoundingClientRect().bottom > board + 0.5) steps.classList.add("short");
   }
   fit();
   addEventListener("resize", () => requestAnimationFrame(fit));
