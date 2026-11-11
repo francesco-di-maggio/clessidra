@@ -77,10 +77,8 @@ ol.rows { gap: 6px; padding: 14px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
 /* Links as tiles, one under the other: a name, a line about it, where it
    leads */
-/* As tall together as the window allows: the page ends on the line the
-   others end on */
-.tiles { display: grid; gap: 10px; grid-auto-rows: 1fr; min-height: calc(100dvh - var(--above, 506px)); }
-.tiles .panel { padding: 8px 14px; color: var(--ink); }
+.tiles { display: grid; gap: 10px; }
+.tiles .panel { padding: 10px 14px; color: var(--ink); }
 .tiles .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .tiles b { font-size: 15px; line-height: 20px; font-weight: 600; }
 .tiles .sub { font-size: 14px; line-height: 18px; color: var(--dim); }
