@@ -102,10 +102,9 @@ ol.rows { gap: 6px; padding: 14px; }
 /* Under the two help tiles: three short notes, equal */
 .mapping .notes { display: grid; grid-auto-rows: 1fr; gap: 10px; }
 .note[hidden] { display: none; }
-.note { display: grid; align-content: start; gap: 0; padding: 10px 14px; font-size: 13px; line-height: 18px; }
-.note .label { margin-bottom: 2px; }
-/* What you do, then in grey what happens */
-.note .sub { color: var(--dim); }
+/* A key and its line, on one baseline as in the facts tile */
+.note { display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 10px; align-items: baseline; padding: 8px 14px; font-size: 13px; line-height: 18px; }
+.note .label { line-height: 14px; }
 .segmented.vertical { height: auto; grid-auto-flow: row; }
 .segmented.vertical button { height: 36px; justify-content: flex-start; padding: 0 12px; }
 .segmented.vertical button + button { border-left: 0; border-top: 1px solid var(--line); }
@@ -113,7 +112,7 @@ ol.rows { gap: 6px; padding: 14px; }
    function, each at least as tall as the longest text either holds */
 .mapping .stack { align-self: stretch; grid-template-rows: 1fr 1fr auto; }
 .mapping.measuring .stack { align-self: start; grid-template-rows: none; }
-.help { display: grid; gap: 4px; align-content: start; }
+.help { display: grid; gap: 2px; align-content: start; padding: 10px 14px; }
 .help b { font-size: 17px; font-weight: 600; }
 /* Justified, with words broken where that keeps the gaps even */
 .help p { margin: 0; color: var(--dim); font-size: 14px; line-height: 20px; text-align: justify; hyphens: auto; hyphenate-limit-chars: 5 2 2; }
