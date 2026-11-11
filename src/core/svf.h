@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstdlib> // RAND_MAX, for DaisySP dsp.h
 #include <Utility/dsp.h>
 
 namespace clessidra
