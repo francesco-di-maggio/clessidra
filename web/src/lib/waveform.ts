@@ -1,5 +1,5 @@
 // The recording view: the recording playing, the loop the playhead moves through,
-// its slices, a press on one playing it, and every grain at the point it reads,
+// its slices, and every grain at the point it reads,
 // as high as its pitch and as big as its size. Laid out to the canvas's size.
 
 import { GRAIN_FIELDS, PARAM, RATE, VIEW, type Frame } from "./engine";
@@ -212,7 +212,6 @@ export class Waveform {
     }
   }
 
-  // Columns of dots on a DOT grid, each up to its peak, mirrored about mid
   // The seconds of the recording below, dim, a tick and a figure each step
   private axis(seconds: number, W: number, pad: number, width: number, axis: number) {
     const { ctx, c } = this;
@@ -236,6 +235,7 @@ export class Waveform {
     ctx.textAlign = "center";
   }
 
+  // Columns of dots on a DOT grid, each up to its peak, mirrored about mid
   private drawDots(peaks: Float32Array, W: number, H: number, pad: number, width: number, mid: number, half: number, a: number, b: number, dpr: number) {
     let sum = 0;
     for (let i = 0; i < peaks.length; i += 7) sum += peaks[i];
