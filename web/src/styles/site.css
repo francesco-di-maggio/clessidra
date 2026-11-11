@@ -53,14 +53,6 @@ ol.rows { gap: 6px; padding: 14px; }
 .row { display: grid; grid-template-columns: 112px 1fr; gap: 12px; font-size: 15px; line-height: 20px; }
 .row .label { line-height: 20px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
-.rows.steps ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 2px; }
-/* The programmer's three, one under the other, or in one point where the
-   window is too low for that */
-.rows.steps .low { display: none; }
-@media (max-height: 774px) {
-  .rows.steps .tall { display: none; }
-  .rows.steps .low { display: grid; }
-}
 /* Links as tiles, one under the other: a name, a line about it, where it
    leads */
 .tiles { display: grid; gap: 6px; }

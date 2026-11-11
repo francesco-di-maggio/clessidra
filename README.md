@@ -55,7 +55,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 
 ## Install
 
-Download the [binary](https://github.com/francesco-di-maggio/clessidra/releases/latest/download/Clessidra.bin) and flash it with the [Daisy Seed web programmer](https://electro-smith.github.io/Programmer/).
+Download the [binary](https://github.com/francesco-di-maggio/clessidra/releases/latest/download/Clessidra.bin) and flash it with the [Daisy Seed web programmer](https://flash.daisy.audio/).
 
 ## Build
 
