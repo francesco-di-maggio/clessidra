@@ -1,8 +1,10 @@
 ---
 import Base from "../layouts/Base.astro";
+import { url } from "../lib/url";
 import "../styles/play.css";
 ---
 <Base title="Play" app description="Clessidra in your browser: the same firmware as the board, no board needed.">
+  <link slot="head" rel="preload" href={url("clessidra.wasm")} as="fetch" type="application/wasm" crossorigin />
   <div class="instrument">
     <section class="tile transport" aria-label="Source and output level">
       <button id="start" class="control primary" type="button">Start</button>
