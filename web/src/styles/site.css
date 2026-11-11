@@ -54,6 +54,15 @@ ol.rows { gap: 6px; padding: 14px; }
 .row .label { line-height: 20px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
 .rows.steps ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+/* A window too low for them one under the other: the three as one point */
+@media (max-height: 790px) {
+  .rows.steps ul { display: list-item; list-style: circle; margin-left: 18px; padding-left: 0; }
+  .rows.steps ul li { display: inline; }
+  .rows.steps ul li + li::before { content: ", "; }
+}
+/* Rows of a list a little closer: the page on one screen */
+.lists.list a { min-height: 52px; padding: 9px 0; }
+
 
 /* A file to download: its type on a page */
 .file { width: 28px; height: 28px; flex: none; }
@@ -64,7 +73,7 @@ ol.rows { gap: 6px; padding: 14px; }
 .mapping { display: grid; gap: 16px; align-items: start; }
 @media (min-width: 640px) { .mapping { grid-template-columns: auto minmax(0, 1fr); } }
 .mapping .touch-panel { padding: 8px; }
-.mapping svg.touch { width: auto; height: max(400px, calc(100dvh - 310px)); max-height: none; }
+.mapping svg.touch { width: auto; height: max(360px, calc(100dvh - 310px)); max-height: none; }
 .segmented.vertical { height: auto; grid-auto-flow: row; }
 .segmented.vertical button { height: 36px; justify-content: flex-start; padding: 0 12px; }
 .segmented.vertical button + button { border-left: 0; border-top: 1px solid var(--line); }

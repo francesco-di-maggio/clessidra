@@ -3,7 +3,7 @@ import Base from "../layouts/Base.astro";
 ---
 <Base title="Feedback" description="Tell what you played, what you heard and what you would change.">
 <h1>Feedback</h1>
-<p class="lead">Your feedback shapes what changes next.</p>
+<p class="lead">What you report shapes what changes next.</p>
 
 <form id="feedback" class="panel form">
   <fieldset class="field">
@@ -13,12 +13,12 @@ import Base from "../layouts/Base.astro";
       <label><input type="radio" name="where" value="Simple Touch"><span>Simple Touch</span></label>
     </div>
   </fieldset>
-  <label class="field"><span class="label">Feedback</span><textarea name="feedback" rows="7" required placeholder="What you played, what you heard, what you would change."></textarea></label>
+  <label class="field"><textarea name="feedback" rows="7" required aria-label="Feedback" placeholder="What you played, what you heard, what you would change."></textarea></label>
   <div class="actions">
     <button class="control primary" type="submit">Send on GitHub</button>
     <button id="email" class="control" type="button">Send by Email</button>
   </div>
-  <p class="caption">Opens a GitHub issue or an email with your feedback.</p>
+  <p class="caption">Opens a GitHub issue or an email with your text.</p>
 </form>
 </Base>
 

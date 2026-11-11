@@ -8,20 +8,20 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
 ---
 <Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch.">
 <h1>Mapping</h1>
-<p class="lead">What each control does. Point at one to read it.</p>
+<p class="lead">What each control of the Simple Touch does.</p>
 <div class="mapping">
   <div class="panel touch-panel"><TouchPanel /></div>
   <div class="stack">
     <div class="panel help" aria-live="polite">
-      <span id="help-board" class="label">Help</span>
+      <span id="help-board" class="label">Control</span>
       <b id="help-name">Point at a control</b>
-      <p id="help-does">Its name and what it does show here.</p>
+      <p id="help-does">Its function shows here. A second function, with Shift held, shows in orange.</p>
       <p id="help-twin" class="twin"></p>
     </div>
     <ul class="panel notes">
       <li><span class="label">Record</span>Tap or hold Rec. The sound becomes the loop.</li>
       <li><span class="label">Play</span>Speed, Position and Length move through it. Density and Size pour it as grains.</li>
-      <li><span class="label">Shift</span>Hold P11: each knob's second function.</li>
+      <li><span class="label">End</span>S07 decides what the loop does at its end: stop, turn over or go round.</li>
     </ul>
   </div>
 </div>
