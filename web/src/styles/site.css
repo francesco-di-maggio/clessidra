@@ -105,13 +105,10 @@ ol.rows { gap: 6px; padding: 14px; }
 /* Beside the board and as tall: one tile, the control and under a hairline
    its second function, each layer as tall as its longest text */
 .mapping .stack { align-self: stretch; grid-template-rows: 1fr auto; }
-/* Under the help: four notes, each a key and its line on one baseline as in
-   the facts tile, then in grey what it does where there is room */
+/* Under the help: three notes, each its name over one line */
 .mapping .notes { display: grid; gap: 10px; }
-.note { display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 10px; align-items: baseline; padding: 8px 14px; font-size: 13px; line-height: 18px; }
+.note { display: grid; gap: 2px; padding: 8px 14px; font-size: 13px; line-height: 18px; }
 .note .label { line-height: 14px; }
-.note .sub { display: block; color: var(--dim); }
-.notes.short .sub { display: none; }
 .mapping.measuring .stack { align-self: start; grid-template-rows: none; }
 .help { display: grid; align-content: start; padding: 8px 14px; }
 .help .layer { display: grid; gap: 2px; align-content: start; }
