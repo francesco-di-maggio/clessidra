@@ -7,6 +7,8 @@
 .mark svg path { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
 nav a[aria-current] { color: var(--ink); }
 h2.label { scroll-margin-top: 16px; }
+/* A page's first part starts where the others' first panel does */
+.lead + h2.label { margin-top: 0; }
 .lead { text-wrap: pretty; }
 
 /* Facts: a key column and its value, as in the family's facts panel */
@@ -55,8 +57,8 @@ ol.rows { gap: 6px; padding: 14px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
 /* Links as tiles, one under the other: a name, a line about it, where it
    leads */
-.tiles { display: grid; gap: 6px; }
-.tiles .panel { padding: 8px 14px; color: var(--ink); }
+.tiles { display: grid; gap: 8px; }
+.tiles .panel { padding: 10px 14px; color: var(--ink); }
 .tiles .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .tiles b { font-size: 15px; line-height: 20px; font-weight: 600; }
 .tiles .sub { font-size: 14px; line-height: 18px; color: var(--dim); }
@@ -68,7 +70,7 @@ ol.rows { gap: 6px; padding: 14px; }
 .file text { font: 600 5.5px var(--mono); fill: currentColor; text-anchor: middle; }
 
 /* Mapping: the panel beside its help, one screen on a laptop */
-.mapping { display: grid; gap: 16px; align-items: start; }
+.mapping { display: grid; gap: 10px; align-items: start; }
 @media (min-width: 640px) { .mapping { grid-template-columns: auto minmax(0, 1fr); } }
 .mapping .touch-panel { padding: 8px; }
 .mapping svg.touch { width: auto; height: max(360px, calc(100dvh - 310px)); max-height: none; }
@@ -100,9 +102,10 @@ ol.rows { gap: 6px; padding: 14px; }
 /* Feedback: a form whose answers go to a GitHub issue or an email */
 .form { display: grid; gap: 16px; }
 .field { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
-.field textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); resize: vertical; }
+/* The box takes the height the window has to spare */
+.field textarea { min-height: clamp(140px, calc(100dvh - 540px), 360px); width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); resize: vertical; }
 .field textarea:focus { outline: 1.5px solid var(--accent); outline-offset: -1px; }
-.field .segmented { height: 40px; }
+.field .segmented { height: 44px; }
 .field .segmented label { display: flex; }
 .field .segmented label + label { border-left: 1px solid var(--line); }
 .field .segmented input { position: absolute; opacity: 0; pointer-events: none; }
