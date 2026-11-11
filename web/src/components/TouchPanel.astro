@@ -33,7 +33,7 @@ const leverY = (p: number) => (p === POSITION.up ? -26 : p === POSITION.down ? 8
     <text x="252" y="196">SYNTHUX</text>
     <text x="252" y="216">ACADEMY</text>
   </g>
-  {[[123, "IN"], [241, "OUT"]].map(([y, label]) => (
+  {[[123, "IN"], [196, "OUT"]].map(([y, label]) => (
     <g><circle class="jack" cx="39" cy={y} r="16" /><circle class="jack" cx="39" cy={y} r="8" /><text class="code side" x="64" y={Number(y) + 5}>{label}</text></g>
   ))}
   {CONTROLS.map((c) => {
