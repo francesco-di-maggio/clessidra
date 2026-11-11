@@ -23,8 +23,9 @@ CPP_STANDARD = -std=gnu++17
 # No OS loader on the Seed enforces segment permissions, so this binutils warning doesn't apply.
 LDFLAGS += -Wl,--no-warn-rwx-segments
 
+# libDaisy for size: 20 KB less flash than its default -O3
 libs:
-	$(MAKE) -C $(LIBDAISY_DIR)
+	$(MAKE) -C $(LIBDAISY_DIR) OPT=-Os
 	$(MAKE) -C $(DAISYSP_DIR)
 
 .PHONY: libs
