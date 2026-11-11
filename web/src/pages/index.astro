@@ -18,8 +18,8 @@ import { url } from "../lib/url";
   <dt>Hardware</dt><dd><a href="https://www.synthux.academy/">Synthux Simple Touch</a>, <a href="https://daisy.audio/">Electrosmith Daisy Seed</a></dd>
   <dt>Licence</dt><dd>MIT</dd>
 </dl>
-<div class="clock" role="img" aria-label="The time now, as sand through an hour">
-  <svg viewBox="-9 -9 18 18" aria-hidden="true">
+<div class="clock" role="img" aria-label="The time now, as sand through a minute">
+  <svg viewBox="-6.5 -8.1 13 16.2" aria-hidden="true">
     <clipPath id="clock-above"><path d="M-4-7.5C-4-2.5-1-1.5-1 0H1C1-1.5 4-2.5 4-7.5Z" /></clipPath>
     <clipPath id="clock-below"><path d="M-4 7.5C-4 2.5-1 1.5-1 0H1C1 1.5 4 2.5 4 7.5Z" /></clipPath>
     <rect id="clock-left" class="sand" x="-5" width="10" clip-path="url(#clock-above)" />
@@ -44,9 +44,10 @@ import { url } from "../lib/url";
 </Base>
 
 <script>
-  // The clock: the hour as sand. The bulb above holds what is left of it, the
-  // one below what has passed, the time under the glass. Each second, a
-  // grain falls from the neck.
+  // The clock: the minute as sand. Each second a grain falls from the neck,
+  // so the bulb above holds what is left of the minute and the one below
+  // fills with what has passed. On the minute it starts over. The time under
+  // the glass.
   const BULB = 7.5; // a bulb's height in the drawing
   const left = document.getElementById("clock-left")!;
   const gone = document.getElementById("clock-gone")!;
@@ -55,7 +56,7 @@ import { url } from "../lib/url";
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   function tick() {
     const d = new Date();
-    const passed = (d.getMinutes() * 60 + d.getSeconds()) / 3600;
+    const passed = d.getSeconds() / 60;
     // Above, the sand rests on the neck. Below, on the base.
     left.setAttribute("y", String(-BULB * (1 - passed)));
     left.setAttribute("height", String(BULB * (1 - passed)));
