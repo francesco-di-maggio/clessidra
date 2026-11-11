@@ -15,8 +15,10 @@ h2.label { scroll-margin-top: 16px; }
 .panel > .prose p { margin: 0; font-size: 15px; line-height: 20px; }
 .lead { text-wrap: pretty; }
 
-/* Facts: a key column and its value, as in the family's facts panel */
-.meta dt { color: var(--dim); font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+/* Facts: a key column and its value, as in the family's facts panel. The
+   small key stands on its value's baseline. */
+.meta { align-items: baseline; }
+.meta dt { color: var(--dim); font: 500 11px/14px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* The status tile with a clock at its right end: an hourglass for the minute,
    the time under it. Where the tile is too narrow for both, no clock. */
@@ -70,7 +72,8 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 /* Rows: a key and a short line, as on the mqtt-max landing page */
 ol.rows { gap: 6px; padding: 14px; }
 .row { display: grid; grid-template-columns: 112px 1fr; gap: 12px; font-size: 15px; line-height: 20px; }
-.row .label { line-height: 20px; }
+.row { align-items: baseline; }
+.row .label { line-height: 14px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
 /* Links as tiles, one under the other: a name, a line about it, where it
    leads */
