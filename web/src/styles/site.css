@@ -5,7 +5,6 @@
 @view-transition { navigation: auto; }
 @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
 .mark svg path { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
-nav a[aria-current] { color: var(--ink); }
 h2.label { scroll-margin-top: 16px; }
 /* A page's first part starts where the others' first panel does */
 .lead + h2.label { margin-top: 0; }
@@ -153,12 +152,9 @@ ol.rows { gap: 6px; padding: 14px; }
 .control.primary.on { background: var(--bg); border-color: var(--line); color: var(--ink); }
 .field legend { padding: 0; margin-bottom: 6px; }
 
-/* Orange for what is on: the page you are on, a work in progress, the control
+/* Orange for what is on: a work in progress, the control
    pointed at */
-nav a[aria-current="page"]::before, .live::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
-/* In the nav, the dot sits in the gap before the name and takes no room:
-   the names never move */
-nav a[aria-current="page"]::before { margin: 0 6px 0 -12px; }
+.live::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 .touch .ctl.active .ring, .touch .ctl.active circle.pad, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke: var(--accent); }
 .prose p { text-wrap: pretty; }
 .touch .free .ring, .touch .free circle.pad, .touch .free .slot { stroke: var(--line); }
