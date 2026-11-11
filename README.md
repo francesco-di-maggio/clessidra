@@ -14,7 +14,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | S37 | Density: grains per second, 0.25 to 320, whatever their size. None at the bottom. 32 voices: all sound at the top with Size at its centre, and a new grain is dropped while they do | Random timing: when grains start, from a regular pulse to random, as many per second |
 | S30 | Position: where the loop starts, anywhere in the recording. The playhead keeps its place in the loop, so it moves with it, playing or frozen | Filter: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz |
 | S35 | Length: a share of what is left after Position, at the top to the recording's end | Reverb: none to most, decay 0.5 to 16 s |
-| S31 | Size: 5 ms to 2 s, 100 ms at the centre, at most half the recording | Random size, up to about two octaves either way |
+| S31 | Size: 5 ms to 2 s, 100 ms at the centre, at most half the recording | Random size: each grain part of the way to a random size, up to about an octave either way at the centre |
 | S32 | Spray: grains stray from the playhead, evenly, up to the whole loop, across the stereo field with it | Reverse: how many grains read the other way, none to all. The phrase keeps its direction, each grain turns |
 | S33 | Pitch: ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24 | Random pitch: off at the centre. Up: free, to ±12 semitones. Down: in octaves, up to two grains in three an octave up or down |
 | S34 | Shape: the grain's window, square, decay, bell, reverse at even steps along the knob, and everything between. Square: at full level its whole length. Decay: at once up, then falling. Bell: smooth both ways. Reverse: rising to its end | Random shape: each grain a different window, anywhere from square to reverse |

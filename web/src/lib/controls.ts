@@ -108,7 +108,7 @@ export const CONTROLS: Control[] = [
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
     does: "Grain length, 5 ms to 2 s, 100 ms at the centre.",
     value: (p) => ms(p[PARAM.grainMs]),
-    twin: { name: "Random size", short: "Rnd size", does: "Each grain a different length, up to two octaves either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
+    twin: { name: "Random size", short: "Rnd size", does: "Each grain a different length, up to about an octave either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
   },
   {
     id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
