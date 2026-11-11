@@ -57,15 +57,17 @@ ol.rows { gap: 6px; padding: 14px; }
 /* The programmer's three, one under the other, or in one point where the
    window is too low for that */
 .rows.steps .low { display: none; }
-@media (max-height: 665px) {
+@media (max-height: 774px) {
   .rows.steps .tall { display: none; }
   .rows.steps .low { display: grid; }
 }
-/* A short list as tiles side by side where there is room */
-@media (min-width: 640px) {
-  .list.across { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 14px; }
-  .list.across li + li { border-top: 0; border-left: 1px solid var(--line); padding-left: 14px; }
-}
+/* Links as tiles, one under the other: a name, a line about it, where it
+   leads */
+.tiles { display: grid; gap: 6px; }
+.tiles .panel { padding: 8px 14px; color: var(--ink); }
+.tiles .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tiles b { font-size: 15px; line-height: 20px; font-weight: 600; }
+.tiles .sub { font-size: 14px; line-height: 18px; color: var(--dim); }
 
 
 /* A file to download: its type on a page */
