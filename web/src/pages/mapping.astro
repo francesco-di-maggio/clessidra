@@ -53,6 +53,9 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
 
   // Each tile as tall as its longest text, so pointing never moves the page
   function fit() {
+    // Measured unstretched: their text alone
+    const mapping = document.querySelector(".mapping")!;
+    mapping.classList.add("measuring");
     for (const t of tiles) t.style.minHeight = "";
     const tallest = tiles.map(() => 0);
     for (const id of Object.keys(help)) {
@@ -62,6 +65,7 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
     for (const g of panel.querySelectorAll(".ctl")) g.classList.remove("active");
     show(resting);
     tiles.forEach((t, i) => (t.style.minHeight = `${tallest[i]}px`));
+    mapping.classList.remove("measuring");
     // The notes that fit beside the board, from the first
     const board = document.querySelector(".touch-panel")!.getBoundingClientRect().bottom;
     const notes = [...document.querySelectorAll<HTMLElement>(".mapping .note")];
