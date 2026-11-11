@@ -25,13 +25,12 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
         <p id="help-twin-does">With P11 held, each knob does something else.</p>
       </div>
     </div>
-    <h2 class="label">Quick start</h2>
-    <ol class="panel rows steps">
-      <li class="row"><span class="label">01</span><span>Tap or hold Rec.<span class="sub">It becomes the loop.</span></span></li>
-      <li class="row"><span class="label">02</span><span>Turn Density and Size.<span class="sub">From drops to a cloud.</span></span></li>
-      <li class="row"><span class="label">03</span><span>Hold the slices.<span class="sub">Each its part of the loop.</span></span></li>
-      <li class="row"><span class="label">04</span><span>Set Direction and End.<span class="sub">How the loop runs.</span></span></li>
-    </ol>
+    <div class="notes">
+      <div class="panel note"><span class="label">Record</span><span>Tap or hold Rec.<span class="sub">It becomes the loop.</span></span></div>
+      <div class="panel note"><span class="label">Set</span><span>Turn Density and Size.<span class="sub">From drops to a cloud.</span></span></div>
+      <div class="panel note"><span class="label">Play</span><span>Hold the slices.<span class="sub">Each its part of the loop.</span></span></div>
+      <div class="panel note"><span class="label">Repeat</span><span>Set Direction and End.<span class="sub">How the loop runs.</span></span></div>
+    </div>
   </div>
 </div>
 <script type="application/json" id="help-data" set:html={JSON.stringify(help)} />
@@ -74,9 +73,9 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
     show(resting);
     tiles.forEach((t, i) => (t.style.minHeight = `${tallest[i]}px`));
     mapping.classList.remove("measuring");
-    // The steps' second lines where the column has room for them beside the
+    // The notes' second lines where the column has room for them beside the
     // board
-    const steps = document.querySelector<HTMLElement>(".stack .steps")!;
+    const steps = document.querySelector<HTMLElement>(".stack .notes")!;
     const board = document.querySelector(".touch-panel")!.getBoundingClientRect().bottom;
     steps.classList.remove("short");
     if (steps.getBoundingClientRect().bottom > board + 0.5) steps.classList.add("short");

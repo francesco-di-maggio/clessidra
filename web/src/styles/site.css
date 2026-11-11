@@ -104,12 +104,14 @@ ol.rows { gap: 6px; padding: 14px; }
 .segmented.vertical button + button { border-left: 0; border-top: 1px solid var(--line); }
 /* Beside the board and as tall: one tile, the control and under a hairline
    its second function, each layer as tall as its longest text */
-.mapping .stack { align-self: stretch; grid-template-rows: 1fr auto auto; }
-/* A header in the column: the family's space above it, as between sections */
-.mapping .stack h2.label { margin: min(16px, 2vh) 0 0; }
-/* Each step, then in grey what it does, where there is room */
-.mapping .steps .sub { display: block; font-size: 13px; line-height: 18px; color: var(--dim); }
-.mapping .steps.short .sub { display: none; }
+.mapping .stack { align-self: stretch; grid-template-rows: 1fr auto; }
+/* Under the help: four notes, each a key and its line on one baseline as in
+   the facts tile, then in grey what it does where there is room */
+.mapping .notes { display: grid; gap: 10px; }
+.note { display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 10px; align-items: baseline; padding: 8px 14px; font-size: 13px; line-height: 18px; }
+.note .label { line-height: 14px; }
+.note .sub { display: block; color: var(--dim); }
+.notes.short .sub { display: none; }
 .mapping.measuring .stack { align-self: start; grid-template-rows: none; }
 .help { display: grid; align-content: start; padding: 8px 14px; }
 .help .layer { display: grid; gap: 2px; align-content: start; }
