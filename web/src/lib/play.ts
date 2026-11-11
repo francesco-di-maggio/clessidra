@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type State } from "./controls";
-import { MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, PARAM, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { Hourglass } from "./hourglass";
@@ -243,11 +243,6 @@ function show() {
       w.centred?.(twin ? !!twin.bipolar : !!w.c.bipolar);
     }
   }
-  // Stopped, the Stop key offers the start
-  const stopped = last.params[PARAM.stop] === 1;
-  const stop = parts.get("P00")!.root;
-  stop.classList.toggle("latched", stopped);
-  stop.querySelector(".num")!.textContent = stopped ? "Start" : "Stop";
   // Its length is on its scale. Named with it for screen readers and tests.
   $("buffer").setAttribute("aria-label", v.sound ? `Recording, ${(v.sound / RATE).toFixed(1)} s` : "Recording, empty");
 }

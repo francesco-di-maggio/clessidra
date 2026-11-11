@@ -415,14 +415,7 @@ void Fuzz()
     panel.c.touched.fill(false);
     panel.c.switches = {Controls::Up, Controls::Up};
     panel.Run(0.01, Silence);
-    // Stopped by the fuzz: started again
-    if(panel.rig.core.CurrentParams().stop)
-    {
-        panel.c.touched[CoreUI::kStopPad] = true;
-        panel.Run(0.01, Silence);
-        panel.c.touched[CoreUI::kStopPad] = false;
-        panel.Run(Core::kStopSeconds, Silence);
-    }
+    panel.Run(Core::kStopSeconds, Silence);
     for(float end : {0.0f, 1.0f})
     {
         panel.c.knobs.fill(end);
@@ -1688,8 +1681,8 @@ void Mapping()
           "slices released: the loop runs on",
           r.core.PlayheadPhase());
 
-    // P00: stop as a tape machine, slowing to a halt, then back. P02: from
-    // the loop's start.
+    // P00 held: stopped as a tape machine, slowing to a halt, back to speed
+    // on release. P02: from the loop's start.
     // The reverb off (P11 + S35 down), so only the grains are measured
     press(CoreUI::kShiftPad, true);
     c.knobs[Controls::S35] = 0.0f;
@@ -1700,15 +1693,15 @@ void Mapping()
     r.Run(2.0, Silence);
     const double playing = Rms(r, 0.2);
     press(CoreUI::kStopPad, true);
-    press(CoreUI::kStopPad, false);
     r.Run(Core::kStopSeconds, Silence);
     const double stopped = Rms(r, 0.2);
-    press(CoreUI::kStopPad, true);
+    const bool   held    = p.stop;
     press(CoreUI::kStopPad, false);
     r.Run(Core::kStopSeconds + 0.2, Silence);
     const double again = Rms(r, 0.3);
-    Check(p.stop == false && stopped < 0.2 * playing && again > 0.5 * playing,
-          "P00: stopped as a tape machine, then started again (rms)",
+    Check(held && p.stop == false && stopped < 0.2 * playing
+              && again > 0.5 * playing,
+          "P00 held: stopped as a tape machine, released: back to speed (rms)",
           stopped / playing);
     r.Run(0.3, Silence);
     press(CoreUI::kTrigPad, true);
@@ -1717,19 +1710,6 @@ void Mapping()
           "P02 Trig: the playhead from the loop's start",
           r.core.PlayheadPhase());
     press(CoreUI::kTrigPad, false);
-    // Stopped, P02 starts it at once: no slow start
-    press(CoreUI::kStopPad, true);
-    press(CoreUI::kStopPad, false);
-    r.Run(Core::kStopSeconds + 0.1, Silence);
-    press(CoreUI::kTrigPad, true);
-    press(CoreUI::kTrigPad, false);
-    r.Run(0.02, Silence);
-    const double from    = r.core.PlayheadPhase();
-    const double at_once = Rms(r, 0.1);
-    Check(p.stop == false && from < 0.05 && at_once > 0.5 * playing,
-          "stopped, P02: started from the loop's start, at speed at once "
-          "(rms)",
-          at_once / playing);
     press(CoreUI::kShiftPad, true);
     press(CoreUI::kResetPad, true);
     press(CoreUI::kResetPad, false);

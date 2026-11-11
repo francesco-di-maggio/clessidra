@@ -134,7 +134,6 @@ body.app main { flex: 1; min-height: 0; }
    Recording, solid orange. */
 .pad.rec { color: var(--accent); }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
-.pad.latched { border-color: var(--accent); color: var(--accent); }
 .pad.free { pointer-events: none; color: var(--dim); background: none; border-style: dashed; }
 
 /* Little height: the page scrolls rather than squeezing */

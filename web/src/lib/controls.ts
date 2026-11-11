@@ -164,12 +164,12 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P00", type: "pad", index: STOP_PAD, ...padAt(STOP_PAD), name: "Stop",
-    does: "Stops as a tape machine, slowing to a halt. Touch again to start.",
+    does: "Held: stops as a tape machine, slowing to a halt. Released: back to speed.",
     value: (p) => (p[PARAM.stop] ? "Stopped" : ""),
   },
   {
     id: "P02", type: "pad", index: TRIG_PAD, ...padAt(TRIG_PAD), name: "Trig",
-    does: "Plays the loop from its start, at once. Starts it when stopped.",
+    does: "Plays the loop from its start, at once.",
   },
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,

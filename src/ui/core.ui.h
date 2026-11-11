@@ -20,11 +20,10 @@ class CoreUI
 {
   public:
     // Pads
-    static constexpr size_t kStopPad
-        = 0; // a touch: stop as a tape machine, or start
+    static constexpr size_t kStopPad  = 0; // held: stopped as a tape machine
     static constexpr size_t kResetPad = 1; // the twins back to their defaults
     static constexpr size_t kTrigPad
-        = 2; // playback from the loop's start, at once, stopped or not
+        = 2; // playback from the loop's start, at once
     static constexpr size_t kRecordPad = 10; // tap or hold. With Shift: listen
     static constexpr size_t kShiftPad  = 11; // held: the second layer
     static constexpr size_t kNumSlices = Onsets::kNumSlices;
@@ -123,8 +122,6 @@ class CoreUI
     bool listening_      = false;
     bool record_         = false;
     bool reset_touched_  = false;
-    bool stop_touched_   = false;
-    bool stop_           = false;
     bool trig_touched_   = false;
     // Touched through a new recording: silent until let go
     std::array<bool, kNumSlices>  slices_stale_{};

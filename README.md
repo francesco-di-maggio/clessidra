@@ -25,9 +25,9 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 |---|---|---|
 | P10 | Record. The input is always captured. Tap: the last 8 s. Hold: up to 30 s, the grains playing on. Silence at the ends is trimmed, the new recording pours in over 2 s, its slices are found | Listen: the input heard, nothing recorded |
 | P11 | Shift, held | |
-| P00 | Stop, as a tape machine: everything slows to a halt over 0.6 s, the pitch falling. Touch again to start | |
+| P00 | Stop, as a tape machine: held, everything slows to a halt over 0.6 s, the pitch falling. Released: back to speed over 0.6 s | |
 | P01 | Reset: the twins back to their defaults | |
-| P02 | Trig: playback again from the loop's start (its end in reverse), with a grain at once. After a loop played once, it pours again. Stopped: starts at once, no slow start | |
+| P02 | Trig: playback again from the loop's start (its end in reverse), with a grain at once. After a loop played once, it pours again | |
 | P03–P09 | Slices: the loop in seven, its start then the recording's strongest attacks inside it (even parts without attacks), left to right on the board (P03, P04, P08, P05, P09, P06, P07). Held: plays its slice from the start, round it, at Speed and Density, forward, frozen at its start or reverse as S09 sets, to its end as S07 sets (once and no more, turned over, or round it), a grain at once. Several at once. The loop waits while any is held, a new recording ends them. At Density's bottom: two grains at once, regular, the slice as it is | |
 
 | LED | |
