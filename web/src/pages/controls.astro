@@ -6,8 +6,8 @@ import { CONTROLS } from "../lib/controls";
 // What the help shows for each control, by id
 const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { name: c.name, does: c.does ?? "", twin: c.twin?.name ?? "", twinDoes: c.twin?.does ?? "" }]));
 ---
-<Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch.">
-<h1>Mapping</h1>
+<Base title="Controls" description="Clessidra's controls on the Synthux Simple Touch.">
+<h1>Controls</h1>
 <p class="lead">What each control of the Simple Touch does.</p>
 <div class="mapping">
   <div class="panel touch-panel"><TouchPanel /></div>
@@ -21,6 +21,11 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
       <span id="help-shift" class="label">With Shift</span>
       <b id="help-twin">Second function</b>
       <p id="help-twin-does">With P11 held, each knob does something else.</p>
+    </div>
+    <div class="notes">
+      <div class="panel note"><span class="label">Record</span>Tap or hold Rec. The sound becomes the loop.</div>
+      <div class="panel note"><span class="label">Play</span>Density and Size pour the loop as grains.</div>
+      <div class="panel note"><span class="label">Loop</span>S07 at its end: once, turn over, or round.</div>
     </div>
   </div>
 </div>
@@ -64,6 +69,11 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
     show(resting);
     for (const t of tiles) t.style.minHeight = `${Math.max(...tallest)}px`;
     mapping.classList.remove("measuring");
+    // The notes that fit under them beside the board, from the first
+    const board = document.querySelector(".touch-panel")!.getBoundingClientRect().bottom;
+    const notes = [...document.querySelectorAll<HTMLElement>(".mapping .note")];
+    for (const n of notes) n.hidden = false;
+    for (const n of notes.reverse()) if (n.getBoundingClientRect().bottom > board + 0.5) n.hidden = true;
   }
   fit();
   addEventListener("resize", () => requestAnimationFrame(fit));
