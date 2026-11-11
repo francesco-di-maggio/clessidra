@@ -41,6 +41,7 @@ export interface Exports {
   cl_output(channel: number): number;
   cl_process(size: number, nowMs: number): void;
   cl_knob(knob: number, value: number): void;
+  cl_default(knob: number, value: number, twin: number): void;
   cl_switch(which: number, position: number): void;
   cl_pad(pad: number, touched: number, pressure: number): void;
   cl_led(nowMs: number): number;
@@ -75,7 +76,7 @@ export interface Frame {
 
 // What the page sends: Controls' knobs, switches and pads
 export type Control =
-  | { type: "knob"; index: number; value: number }
+  | { type: "knob"; index: number; value: number; reset?: "own" | "twin" } // reset: a double click, to the default
   | { type: "switch"; index: number; position: number }
   | { type: "load"; index: -1; samples: Float32Array } // a file into the recording, mono, RATE
   | { type: "pad"; index: number; touched: boolean; pressure: number };

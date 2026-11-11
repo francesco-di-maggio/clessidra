@@ -58,7 +58,7 @@ let last: Frame | null = null;
 const parts = new Map<string, Widget>();
 const positions = new Map<string, number>(); // each switch's, as set
 
-const on: Handlers = { onInput: set, onPad: press, onFocus: focus };
+const on: Handlers = { onInput: set, onDefault: toDefault, onPad: press, onFocus: focus };
 const add = (w: Widget) => (parts.set(w.c.id, w), w);
 // In and Out, the browser's own, beside the source: the gain a handle, the
 // signal the fill
@@ -133,6 +133,24 @@ function set(c: Control, value: number, show = true) {
   if (show) focus(c);
 }
 
+// A double click: the value back to its default, outright. Shift held: the
+// twin's, the knob where it is.
+function toDefault(c: Control) {
+  const value = c.initial ?? 0;
+  if (c.index < 0 || c.free) return set(c, value);
+  const twin = !!c.twin && shifted();
+  const m: Message = { type: "knob", index: c.index, value, reset: twin ? "twin" : "own" };
+  if (twin) {
+    audio.send(m);
+    preview?.apply(m);
+    refresh();
+  } else {
+    parts.get(c.id)?.draw(value);
+    send(m);
+  }
+  focus(c);
+}
+
 // Pads: a pen's pressure where there is one, else a touch that firms up while held
 interface Touch {
   since: number;
@@ -162,7 +180,7 @@ function press(c: Control, down: boolean, e: { pointerId?: number | string; poin
   if (c.index === SHIFT_PAD) layer();
   const off = () => {
     if (touches.has(c.index)) return;
-    audio.send({ type: "pad", index: c.index, touched: false, pressure: 0 });
+    send({ type: "pad", index: c.index, touched: false, pressure: 0 });
     parts.get(c.id)!.draw(0);
   };
   const late = MIN_TOUCH_MS - (performance.now() - t.since);
@@ -172,7 +190,7 @@ function press(c: Control, down: boolean, e: { pointerId?: number | string; poin
 
 function sendPad(t: Touch) {
   const p = t.pen ?? Math.min(1, LIGHT + ((performance.now() - t.since) / 1000 / FIRM_S) * (1 - LIGHT));
-  audio.send({ type: "pad", index: t.c.index, touched: true, pressure: p });
+  send({ type: "pad", index: t.c.index, touched: true, pressure: p });
   parts.get(t.c.id)!.draw(p);
 }
 

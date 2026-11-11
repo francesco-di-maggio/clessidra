@@ -1309,6 +1309,42 @@ void Takeovers()
           c.Value());
 }
 
+// The web's double click: a value to its default outright, whatever the
+// knob and the value were
+void Defaults()
+{
+    Rig      r(2.0);
+    CoreUI   ui;
+    Controls c;
+    r.Fill(Sine);
+    c.knobs.fill(0.5f);
+    c.switches = {Controls::Up, Controls::Up};
+    ui.Process(c, r.core);
+    const Core::Params& p = r.core.CurrentParams();
+    // Size's twin moved, the knob left away from Size's own value
+    c.touched[CoreUI::kShiftPad] = true;
+    ui.Process(c, r.core);
+    c.knobs[Controls::S31] = 0.9f;
+    ui.Process(c, r.core);
+    const float moved = p.rand_size;
+    ui.Default(Controls::S31, true, c.knobs[Controls::S31]);
+    ui.Process(c, r.core);
+    Check(moved > 0.0f && p.rand_size == CoreUI::kRandomSize,
+          "P11 held, double click: the twin at its default",
+          p.rand_size);
+    c.touched[CoreUI::kShiftPad] = false;
+    ui.Process(c, r.core);
+    c.knobs[Controls::S31] = 0.7f;
+    ui.Process(c, r.core);
+    const float turned     = p.grain_ms;
+    c.knobs[Controls::S31] = 0.5f;
+    ui.Default(Controls::S31, false, c.knobs[Controls::S31]);
+    ui.Process(c, r.core);
+    Check(turned != 100.0f && Near(p.grain_ms, 100.0, 1e-3),
+          "double click: the knob and its own value at the default (ms)",
+          p.grain_ms);
+}
+
 void Mapping()
 {
     Rig      r(2.0);
@@ -1758,6 +1794,7 @@ int main()
     Cloud();
     Takeovers();
     Slicing();
+    Defaults();
     Mapping();
     std::printf("%s\n",
                 failures ? "Some checks failed." : "All checks passed.");

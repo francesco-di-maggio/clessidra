@@ -137,6 +137,15 @@ EXPORT void cl_knob(int knob, float value)
 {
     controls.knobs[size_t(knob) % Controls::kNumKnobs] = value;
 }
+// A double click. Own: the value to value outright, the knob there. Twin: to
+// its default, the knob where it is.
+EXPORT void cl_default(int knob, float value, int twin)
+{
+    const size_t k = size_t(knob) % Controls::kNumKnobs;
+    if(!twin)
+        controls.knobs[k] = value;
+    ui.Default(Controls::Knob(k), twin != 0, controls.knobs[k]);
+}
 EXPORT void cl_switch(int which, int position)
 {
     controls.switches[size_t(which) % Controls::kNumSwitches]

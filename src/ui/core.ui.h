@@ -56,6 +56,16 @@ class CoreUI
     static constexpr float kFilter      = 0.5f;
     static constexpr float kReverb      = 0.35f;
     static constexpr float kVolume      = 1.0f;
+    // S30 to S37
+    static constexpr std::array<float, Controls::kNumKnobs> kTwinDefaults
+        = {kFilter,
+           kRandomSize,
+           kReverse,
+           kRandomPitch,
+           kRandomShape,
+           kReverb,
+           kVolume,
+           kRandomTime};
     // P11 + S36, Volume: off at the bottom, then this range up to 0 dB
     static constexpr float kVolumeDb = 60.0f;
 
@@ -84,6 +94,9 @@ class CoreUI
 
     // Every control pass. Sets the core's parameters and recording.
     void Process(const Controls& c, Core& core);
+    // The web's double click: a knob's twin to its default, or its own value
+    // to where the knob is, outright
+    void Default(Controls::Knob k, bool twin, float knob);
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
     float Led(uint32_t now_ms, const Core& core) const;
     // Where each slice starts in the loop, 0..1, at the last pass

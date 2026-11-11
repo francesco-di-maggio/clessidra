@@ -230,16 +230,18 @@ void CoreUI::Reset(const Controls& c)
     const bool touched = c.touched[kResetPad];
     if(touched && !reset_touched_)
     {
-        twin_[Controls::S30].Set(kFilter, c.knobs[Controls::S30]);
-        twin_[Controls::S31].Set(kRandomSize, c.knobs[Controls::S31]);
-        twin_[Controls::S32].Set(kReverse, c.knobs[Controls::S32]);
-        twin_[Controls::S33].Set(kRandomPitch, c.knobs[Controls::S33]);
-        twin_[Controls::S34].Set(kRandomShape, c.knobs[Controls::S34]);
-        twin_[Controls::S35].Set(kReverb, c.knobs[Controls::S35]);
-        twin_[Controls::S36].Set(kVolume, c.knobs[Controls::S36]);
-        twin_[Controls::S37].Set(kRandomTime, c.knobs[Controls::S37]);
+        for(size_t k = 0; k < Controls::kNumKnobs; k++)
+            twin_[k].Set(kTwinDefaults[k], c.knobs[k]);
     }
     reset_touched_ = touched;
+}
+
+void CoreUI::Default(Controls::Knob k, bool twin, float knob)
+{
+    if(twin)
+        twin_[k].Set(kTwinDefaults[k], knob);
+    else
+        own_[k].Set(knob, knob);
 }
 
 // P10: record while held, the grains playing on. A tap keeps the seconds

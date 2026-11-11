@@ -61,7 +61,7 @@ const NONE = 0.04;
 const MIN_DENSITY = 0.25;
 const MAX_DENSITY = 320;
 const densityAt = (rate: number) => NONE + (1 - NONE) * (Math.log(rate / MIN_DENSITY) / Math.log(MAX_DENSITY / MIN_DENSITY));
-const DENSITY_SCALE = [100, 10, 1].map((r) => ({ at: densityAt(r), label: `${r}` })).concat([{ at: 0, label: "0" }]);
+const DENSITY_SCALE = [MAX_DENSITY, 100, 10, 1].map((r) => ({ at: densityAt(r), label: `${r}` })).concat([{ at: 0, label: "0" }]);
 const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.log10(gain), 0)} dB`);
 
 const PAD_AT: Record<number, [number, number]> = {

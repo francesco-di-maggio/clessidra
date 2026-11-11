@@ -5,6 +5,7 @@ import type { Control } from "./controls";
 
 export interface Handlers {
   onInput: (c: Control, value: number) => void;
+  onDefault: (c: Control) => void;
   onPad: (c: Control, down: boolean, e: { pointerId?: number | string; pointerType?: string; pressure?: number }) => void;
   onFocus: (c: Control) => void;
 }
@@ -63,7 +64,7 @@ function arc(from: number, to: number) {
 }
 
 // A knob: label, dial, value. Drag up and down (Option: fine), arrows, double
-// click for the starting value. Bipolar knobs fill from their centre. A fader
+// click for the default. Bipolar knobs fill from their centre. A fader
 // on the board is drawn as one.
 export function knob(c: Control, parent: Element, h: Handlers): Widget {
   const root = html("div", { class: c.type === "fader" ? "knob fader" : "knob", tabindex: 0, role: "slider", "aria-label": c.name, "aria-valuemin": 0, "aria-valuemax": 100 }, parent);
@@ -107,7 +108,7 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
   root.addEventListener("pointerup", release);
   root.addEventListener("pointercancel", release);
   document.addEventListener("pointerlockchange", () => drag && !held(root) && release());
-  root.addEventListener("dblclick", () => h.onInput(c, c.initial ?? 0));
+  root.addEventListener("dblclick", () => h.onDefault(c));
   root.addEventListener("keydown", (e) => {
     const step = ({ ArrowUp: 0.01, ArrowRight: 0.01, ArrowDown: -0.01, ArrowLeft: -0.01, PageUp: 0.1, PageDown: -0.1, Home: -1, End: 1 } as Record<string, number>)[e.key];
     if (step === undefined) return;

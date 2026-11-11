@@ -18,7 +18,8 @@ export class Preview {
 
   apply(m: Control) {
     const w = this.w;
-    if (m.type === "knob") w.cl_knob(m.index, m.value);
+    if (m.type === "knob" && m.reset) w.cl_default(m.index, m.value, m.reset === "twin" ? 1 : 0);
+    else if (m.type === "knob") w.cl_knob(m.index, m.value);
     else if (m.type === "switch") w.cl_switch(m.index, m.position);
     else if (m.type === "load") return;
     else w.cl_pad(m.index, m.touched ? 1 : 0, m.pressure);
