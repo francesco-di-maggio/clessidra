@@ -4,7 +4,7 @@ import TouchPanel from "../components/TouchPanel.astro";
 import { CONTROLS } from "../lib/controls";
 
 // What the help shows for each control, by id
-const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { name: c.name, does: c.does ?? "", twin: c.twin ? `${c.twin.name}. ${c.twin.does}` : "" }]));
+const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { name: c.name, does: c.does ?? "", twin: c.twin?.name ?? "", twinDoes: c.twin?.does ?? "" }]));
 ---
 <Base title="Mapping" description="Clessidra's controls on the Synthux Simple Touch.">
 <h1>Mapping</h1>
@@ -15,8 +15,12 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
     <div class="panel help" aria-live="polite">
       <span id="help-board" class="label">Control</span>
       <b id="help-name">Point at a control</b>
-      <p id="help-does">Its function shows here. A second function, with Shift held, shows in orange.</p>
-      <p id="help-twin" class="twin"></p>
+      <p id="help-does">What it does shows here.</p>
+    </div>
+    <div class="panel help twin" aria-live="polite">
+      <span id="help-shift" class="label">With Shift</span>
+      <b id="help-twin">Second function</b>
+      <p id="help-twin-does">With P11 held, each knob does something else.</p>
     </div>
     <div class="panel note"><span class="label">Record</span>Tap or hold Rec. The sound becomes the loop.</div>
     <div class="panel note"><span class="label">Play</span>Speed, Position and Length move through it. Density and Size pour it as grains.</div>
@@ -28,19 +32,44 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
 
 <script>
   // The help for the control pointed at
-  interface Help { name: string; does: string; twin: string }
+  interface Help { name: string; does: string; twin: string; twinDoes: string }
   const help: Record<string, Help> = JSON.parse(document.getElementById("help-data")!.textContent!);
   const panel = document.querySelector<SVGSVGElement>(".touch")!;
-  const out = { board: document.getElementById("help-board")!, name: document.getElementById("help-name")!, does: document.getElementById("help-does")!, twin: document.getElementById("help-twin")! };
+  const $ = (id: string) => document.getElementById(id)!;
+  const out = { board: $("help-board"), name: $("help-name"), does: $("help-does"), shift: $("help-shift"), twin: $("help-twin"), twinDoes: $("help-twin-does") };
+  const tiles = [...document.querySelectorAll<HTMLElement>(".help")];
+  // What the tiles say before a control is pointed at
+  const resting = Object.fromEntries(Object.entries(out).map(([k, e]) => [k, e.textContent!])) as Record<keyof typeof out, string>;
+
+  function show(text: Record<keyof typeof out, string>) {
+    for (const k of Object.keys(out) as (keyof typeof out)[]) out[k].textContent = text[k];
+  }
 
   function describe(id: string) {
     for (const g of panel.querySelectorAll(".ctl")) g.classList.toggle("active", (g as SVGGElement).dataset.id === id);
     const h = help[id];
-    out.board.textContent = id;
-    out.name.textContent = h?.name ?? "Free";
-    out.does.textContent = h?.does ?? "No function yet.";
-    out.twin.textContent = h?.twin ? `Shift: ${h.twin}` : "";
+    show({ board: id, name: h?.name ?? "Free", does: h?.does ?? "No function yet.", shift: `Shift + ${id}`, twin: h?.twin || "None", twinDoes: h?.twinDoes || "No second function." });
   }
+
+  // Each tile as tall as its longest text, so pointing never moves the page
+  function fit() {
+    for (const t of tiles) t.style.minHeight = "";
+    const tallest = tiles.map(() => 0);
+    for (const id of Object.keys(help)) {
+      describe(id);
+      tiles.forEach((t, i) => (tallest[i] = Math.max(tallest[i], t.offsetHeight)));
+    }
+    for (const g of panel.querySelectorAll(".ctl")) g.classList.remove("active");
+    show(resting);
+    tiles.forEach((t, i) => (t.style.minHeight = `${tallest[i]}px`));
+    // The notes that fit beside the board, from the first
+    const board = document.querySelector(".touch-panel")!.getBoundingClientRect().bottom;
+    const notes = [...document.querySelectorAll<HTMLElement>(".mapping .note")];
+    for (const n of notes) n.hidden = false;
+    for (const n of notes.reverse()) if (n.getBoundingClientRect().bottom > board + 0.5) n.hidden = true;
+  }
+  fit();
+  addEventListener("resize", () => requestAnimationFrame(fit));
 
   for (const g of panel.querySelectorAll<SVGGElement>(".ctl")) {
     const id = g.dataset.id!;
