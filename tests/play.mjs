@@ -116,6 +116,48 @@ try {
   // Up to 8 s: only as much input has passed, its silence trimmed
   check(/^\d\.\d s$/.test(tapped) && parseFloat(tapped) <= 8 && tapped !== held, "Rec tapped: up to the last 8 s, a new recording", tapped);
   check(errors.length === 0, "no errors", errors.join(" | "));
+
+  // The Controls page's help, every text at every tile width: no word space
+  // stretched, no last line of one word
+  await send("Page.navigate", { url: page.replace(/play\/$/, "controls/") });
+  await sleep(1500);
+  const help = await run(`(() => {
+    const help = JSON.parse(document.getElementById("help-data").textContent);
+    const texts = [...new Set(Object.values(help).flatMap((h) => [h.does, h.twinDoes]).filter(Boolean))];
+    const p = document.getElementById("help-does");
+    const r = document.createRange();
+    const box = (i) => (r.setStart(p.firstChild, i), r.setEnd(p.firstChild, i + 1), r.getBoundingClientRect());
+    p.style.width = "400px";
+    p.textContent = "a a";
+    const space = box(1).width;
+    let cases = 0, widest = 1, lone = 0;
+    for (let w = 200; w <= 400; w += 10) {
+      p.style.width = w + "px";
+      for (const text of texts) {
+        p.textContent = text;
+        const words = new Map(); // per line
+        let between = true;
+        for (let i = 0; i < text.length; i++) {
+          const b = box(i);
+          if (!b.width) continue;
+          const top = Math.round(b.top);
+          if (/\\s/.test(text[i])) {
+            widest = Math.max(widest, b.width / space);
+            between = true;
+          } else {
+            // A word's second part, hyphenated onto the next line, counts
+            if (between || !words.has(top)) words.set(top, (words.get(top) ?? 0) + 1);
+            between = false;
+          }
+        }
+        if (words.size < 2) continue;
+        cases++;
+        if (words.get(Math.max(...words.keys())) === 1) lone++;
+      }
+    }
+    return { cases, widest: widest.toFixed(2), lone };
+  })()`);
+  check(help?.cases > 100 && Number(help.widest) < 1.1 && help.lone === 0, "Controls help, 200 to 400 px: no stretched spaces, no lone last word", JSON.stringify(help));
   ws.close();
 } catch (err) {
   check(false, "the page runs", err.message);
