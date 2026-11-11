@@ -73,25 +73,25 @@ const padAt = (index: number) => ({ x: PAD_AT[index][0], y: PAD_AT[index][1] });
 export const CONTROLS: Control[] = [
   {
     id: "S36", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3), scale: SPEED_SCALE,
-    does: "Playback speed, 0 to 4×. The pitch stays. Frozen: scrubs the loop.",
+    does: "Playback speed, 0 to 4×, with stops at ¼, ½, 1, 2 and 4×. The pitch stays. Frozen: scrubs through the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
-    twin: { name: "Volume", does: "Output level.", value: (p) => db(p[PARAM.volume]) },
+    twin: { name: "Volume", does: "Output level, off to 0 dB.", value: (p) => db(p[PARAM.volume]) },
   },
   {
     id: "S37", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: densityAt(20), scale: DENSITY_SCALE,
-    does: "Grains per second, 0 to 320.",
+    does: "Grains per second, 0 to 320, whatever their size. At the top with Size at its centre, all 32 voices sound.",
     value: (p) => {
       const d = p[PARAM.density];
       return d === 0 ? "None" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
     },
-    twin: { name: "Random timing", short: "Rnd time", does: "From a regular pulse to random.", value: (p) => (p[PARAM.randTime] === 0 ? "Regular" : percent(p[PARAM.randTime])) },
+    twin: { name: "Random timing", short: "Rnd time", does: "When grains start, from a regular pulse to random.", value: (p) => (p[PARAM.randTime] === 0 ? "Regular" : percent(p[PARAM.randTime])) },
   },
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
-    does: "Loop start.",
+    does: "Where the loop starts. The playhead moves with it.",
     value: (p, v) => seconds(p[PARAM.start] * v.sound),
     twin: {
-      name: "Filter", bipolar: true, does: "Low-pass below the centre, high-pass above.",
+      name: "Filter", bipolar: true, does: "Low-pass below the centre, off at the centre, high-pass above.",
       value: (p) => {
         const f = p[PARAM.filter];
         return f === 0 ? "Off" : f < 0 ? `LP ${percent(-f)}` : `HP ${percent(f)}`;
@@ -100,28 +100,28 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
-    does: "Loop length.",
+    does: "How much of the recording after Position the loop takes.",
     value: (p, v) => seconds(p[PARAM.length] * v.sound),
-    twin: { name: "Reverb", does: "None to long.", value: (p) => percent(p[PARAM.reverb]) },
+    twin: { name: "Reverb", does: "Reverb on the grains, from none to long tails.", value: (p) => percent(p[PARAM.reverb]) },
   },
   {
     id: "S31", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
-    does: "Grain length, 5 ms to 2 s.",
+    does: "Grain length, 5 ms to 2 s, 100 ms at the centre.",
     value: (p) => ms(p[PARAM.grainMs]),
-    twin: { name: "Random size", short: "Rnd size", does: "Each grain a different length.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
+    twin: { name: "Random size", short: "Rnd size", does: "Each grain a different length, up to two octaves either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
   },
   {
     id: "S32", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
-    does: "Grains scatter around the playhead and across the stereo field.",
+    does: "How far grains stray from the playhead, up to the whole loop, and how wide across the stereo field.",
     value: (p) => (p[PARAM.spread] === 0 ? "Off" : percent(p[PARAM.spread])),
-    twin: { name: "Reverse", does: "How many grains play backwards.", value: (p) => (p[PARAM.reverse] === 0 ? "Off" : percent(p[PARAM.reverse])) },
+    twin: { name: "Reverse", does: "How many grains play backwards: none, some, all.", value: (p) => (p[PARAM.reverse] === 0 ? "Off" : percent(p[PARAM.reverse])) },
   },
   {
     id: "S33", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,
-    does: "Two octaves either way, with stops at intervals.",
+    does: "Transpose up to two octaves either way, with stops at musical intervals.",
     value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
     twin: {
-      name: "Random pitch", short: "Rnd pitch", bipolar: true, does: "Octaves below the centre, free above.",
+      name: "Random pitch", short: "Rnd pitch", bipolar: true, does: "Off at the centre. Above: any pitch up to an octave either way. Below: octaves only.",
       value: (p) => {
         const r = p[PARAM.randPitch];
         return r === 0 ? "Off" : r < 0 ? `Oct ${percent(-r)}` : `±${(r * RAND_PITCH).toFixed(1)} st`;
@@ -130,7 +130,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S34", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 2 / 3,
-    does: "Grain envelope: square, decay, bell, reverse.",
+    does: "Grain envelope: square, decay, bell, reverse, and everything between.",
     value: (p) => {
       // At a shape, its name. Between two, both.
       const at = p[PARAM.shape] * (SHAPES.length - 1);
@@ -141,17 +141,17 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S09", type: "switch", index: 0, x: 222, y: 638, name: "Mode", initial: POSITION.up,
-    does: "Forward, freeze, reverse.",
+    does: "Forward, freeze or reverse. Frozen, Speed scrubs through the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : p[PARAM.speed] < 0 ? "Reverse" : "Forward"),
   },
   {
     id: "S07", type: "switch", index: 1, x: 330, y: 690, name: "End", initial: POSITION.up,
-    does: "At the loop's end: once, turn or loop.",
+    does: "At the loop's end: play once, turn over and run back, or loop. Slices follow it.",
     value: (p) => END[p[PARAM.end]] ?? "",
   },
   {
     id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
-    does: "Tap: keeps the last 8 s. Hold: records up to 30 s. With Shift: listen.",
+    does: "Tap: keeps the last 8 s. Hold: records up to 30 s. With Shift: hear the input.",
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
@@ -160,20 +160,20 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P01", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
-    does: "Second functions back to default.",
+    does: "Second functions back to their defaults.",
   },
   {
     id: "P00", type: "pad", index: STOP_PAD, ...padAt(STOP_PAD), name: "Stop",
-    does: "Tape stop. Touch again to start.",
+    does: "Stops as a tape machine, slowing to a halt. Touch again to start.",
     value: (p) => (p[PARAM.stop] ? "Stopped" : ""),
   },
   {
     id: "P02", type: "pad", index: TRIG_PAD, ...padAt(TRIG_PAD), name: "Trig",
-    does: "The loop from its start, now. Starts it when stopped.",
+    does: "Plays the loop from its start, at once. Starts it when stopped.",
   },
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
-    does: "Hold to play a slice. Several at once.",
+    does: "Hold to play a slice of the loop, cut at the recording's attacks. Several at once. The loop waits.",
   })),
 ];
 
