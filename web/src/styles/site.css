@@ -74,6 +74,7 @@ ol.rows { gap: 6px; padding: 14px; }
 .row { align-items: baseline; }
 .row .label { line-height: 14px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
+.rows.quick .row { grid-template-columns: 52px 1fr; }
 /* Links as tiles, one under the other: a name, a line about it, where it
    leads */
 .tiles { display: grid; gap: 10px; }
@@ -106,7 +107,7 @@ ol.rows { gap: 6px; padding: 14px; }
    its second function, each layer as tall as its longest text */
 .mapping .stack { align-self: stretch; grid-template-rows: 1fr auto auto; }
 /* Under the help: the steps as on Download, their header above them */
-.mapping .stack h2.label { margin: min(16px, 2vh) 0 0; }
+.mapping .stack h2.label { margin: min(16px, 2vh) 0 0; padding-left: 14px; }
 .mapping.measuring .stack { align-self: start; grid-template-rows: none; }
 .help { display: grid; align-content: start; padding: 8px 14px; }
 .help .layer { display: grid; gap: 2px; align-content: start; }
@@ -131,7 +132,8 @@ ol.rows { gap: 6px; padding: 14px; }
 /* Feedback: a form whose answers go to a GitHub issue or an email */
 .form { display: grid; gap: 16px; }
 .field { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
-.field textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); resize: vertical; }
+/* Puts the caption on the baseline of Download's last tile text */
+.field textarea { height: 213px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); resize: vertical; }
 .field textarea:focus { outline: 1.5px solid var(--accent); outline-offset: -1px; }
 .field .segmented { height: 44px; }
 .field .segmented label { display: flex; }
