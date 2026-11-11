@@ -7,8 +7,9 @@
 .mark svg path { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
 nav a[aria-current] { color: var(--ink); }
 h2.label { scroll-margin-top: 16px; }
-/* A page's first part starts where the others' first panel does */
-.lead + h2.label { margin-top: 0; }
+/* A panel's name inside it, over its rows */
+.panel > h2.label { margin: 0 0 8px; color: var(--dim); }
+.panel > ol.rows { padding: 0; margin: 0; }
 .lead { text-wrap: pretty; }
 
 /* Facts: a key column and its value, as in the family's facts panel */
@@ -57,7 +58,9 @@ ol.rows { gap: 6px; padding: 14px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
 /* Links as tiles, one under the other: a name, a line about it, where it
    leads */
-.tiles { display: grid; gap: 8px; }
+/* As tall together as the window lets the feedback form be: both pages end
+   on one line */
+.tiles { display: grid; gap: 8px; grid-auto-rows: 1fr; min-height: min(406px, calc(100dvh - 494px)); }
 .tiles .panel { padding: 10px 14px; color: var(--ink); }
 .tiles .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .tiles b { font-size: 15px; line-height: 20px; font-weight: 600; }
