@@ -18,6 +18,16 @@ h2.label { scroll-margin-top: 16px; }
 /* Facts: a key column and its value, as in the family's facts panel */
 .meta dt { color: var(--dim); font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
 
+/* The status tile with a clock at its right end: an hourglass for the hour,
+   the time under it. Where the tile is too narrow for both, no clock. */
+.status { position: relative; }
+.clock { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); display: grid; justify-items: center; gap: 4px; }
+.clock svg { width: 40px; height: 40px; }
+.clock .glass { fill: none; stroke: var(--ink); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
+.clock .sand { fill: var(--accent); }
+.clock .label { line-height: 14px; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .clock { display: none; } }
+
 .stack { display: grid; gap: 10px; min-width: 0; }
 
 /* The panel: the Simple Touch as a drawing, every control where it sits on the board */

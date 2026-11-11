@@ -11,12 +11,24 @@ import { url } from "../lib/url";
   <div class="prose"><p>A granular instrument inspired by the hourglass. It explores the slow emptying of the glass and the fast trickle of single grains. It lets you capture and bend time through sound, slowing it down, speeding it up, reversing it or freezing it. Broken grains, like sand, are gathered and pieced back together, never quite the same and never fully still.</p></div>
 </section>
 
+<div class="status">
 <dl class="panel meta">
   <dt>Status</dt><dd class="live">In progress</dd>
   <dt>Made at</dt><dd><a href="https://www.synthux.academy/residency">Synthux Design Residency 2026</a></dd>
   <dt>Hardware</dt><dd><a href="https://www.synthux.academy/">Synthux Simple Touch</a>, <a href="https://daisy.audio/">Electrosmith Daisy Seed</a></dd>
   <dt>Licence</dt><dd>MIT</dd>
 </dl>
+<div class="clock" role="img" aria-label="The time now, as sand through an hour">
+  <svg viewBox="-9 -9 18 18" aria-hidden="true">
+    <clipPath id="clock-above"><path d="M-4-7.5C-4-2.5-1-1.5-1 0H1C1-1.5 4-2.5 4-7.5Z" /></clipPath>
+    <clipPath id="clock-below"><path d="M-4 7.5C-4 2.5-1 1.5-1 0H1C1 1.5 4 2.5 4 7.5Z" /></clipPath>
+    <rect id="clock-left" class="sand" x="-5" width="10" clip-path="url(#clock-above)" />
+    <rect id="clock-gone" class="sand" x="-5" width="10" clip-path="url(#clock-below)" />
+    <path class="glass" d="M-5.5-7.5h11M-5.5 7.5h11M-4-7.5C-4-2.5-1-1.5-1 0S-4 2.5-4 7.5M4-7.5C4-2.5 1-1.5 1 0S4 2.5 4 7.5" />
+  </svg>
+  <time id="clock-time" class="label"></time>
+</div>
+</div>
 
 <div class="tiles" style="--above: 580px">
   <a id="listen" class="panel" href={url("clessidra-target.m4a")}>
@@ -29,6 +41,29 @@ import { url } from "../lib/url";
   </a>
 </div>
 </Base>
+
+<script>
+  // The clock: the hour as sand. The bulb above holds what is left of it, the
+  // one below what has passed, the time under the glass.
+  const BULB = 7.5; // a bulb's height in the drawing
+  const left = document.getElementById("clock-left")!;
+  const gone = document.getElementById("clock-gone")!;
+  const now = document.getElementById("clock-time") as HTMLTimeElement;
+  function tick() {
+    const d = new Date();
+    const passed = (d.getMinutes() * 60 + d.getSeconds()) / 3600;
+    // Above, the sand rests on the neck. Below, on the base.
+    left.setAttribute("y", String(-BULB * (1 - passed)));
+    left.setAttribute("height", String(BULB * (1 - passed)));
+    gone.setAttribute("y", String(BULB * (1 - passed)));
+    gone.setAttribute("height", String(BULB * passed));
+    const text = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    now.textContent = text;
+    now.dateTime = text;
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
 
 <script>
   // The target sound, played in the page: a press starts it, another stops it
