@@ -115,6 +115,13 @@ ol.rows { gap: 6px; padding: 14px; }
    page */
 .help hr { width: 100%; margin: 14px 0; border: 0; border-top: 1px solid var(--line); }
 .help .twin { color: var(--accent); }
+/* One column: the help held at the foot of the screen over the board, so a
+   control tapped shows what it does without a scroll */
+@media (max-width: 639px) {
+  .mapping .stack { display: contents; }
+  .mapping .help { position: sticky; bottom: 8px; z-index: 1; }
+  .mapping .notes { order: 1; }
+}
 
 
 /* A segmented control: one of a few, the chosen one lit */
