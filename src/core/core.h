@@ -68,13 +68,18 @@ class Core
     static constexpr float kFilterQMin    = 0.707f;
     static constexpr float kFilterQMax    = 1.5f;
     static constexpr float kFilterFade    = 0.1f;
+    // Grain starts aligned to the grain before (Aligner): at most this many
+    // a second, kAlignBurst in a row; the others start where they fall
+    static constexpr float kAlignsPerSecond = 1000.0f;
+    static constexpr float kAlignBurst      = 2.0f;
     static constexpr float kFilterSeconds = 0.01f; // smoothing of Params.filter
     // Recording. The input goes to the ring all the time. On release, a touch
     // shorter than kTapSeconds keeps the kTapCaptureSeconds before it, a longer
     // one the touch from kPreRollSeconds before it, up to the buffers'
     // capacity. Copied to the buffer not playing, which then plays: over
     // kPourSeconds, each new grain reads it with odds rising from 0 to 1, the
-    // others the recording before.
+    // others the recording before. With none before, its grains per second
+    // rise from 0 instead.
     static constexpr size_t kNumBuffers        = 2;
     static constexpr float  kTapSeconds        = 0.3f;
     static constexpr float  kTapCaptureSeconds = 8.0f;
@@ -240,11 +245,13 @@ class Core
     };
 
     // Starts a grain on a free voice at sample offset of the block, or drops
-    // it. While a new recording pours in, it may read the one before.
+    // it. While a new recording pours in, it may read the one before. last:
+    // the stream's grain before, which it continues in phase; then this one.
     void StartGrain(const Params& p,
                     const Source& source,
                     const Buffer* sound,
-                    size_t        offset);
+                    size_t        offset,
+                    const Grain*& last);
     // End of Process(), after the ring is written: on release, copies the
     // recording to the buffer not playing once its grains have ended, then
     // plays it
@@ -278,7 +285,8 @@ class Core
     std::atomic<uint32_t> recordings_{0};
     std::atomic<bool>     record_{false};
     bool                  was_record_ = false;
-    // While a new recording pours in: the one before, and how far, 0..1
+    // While a new recording pours in: the one before, if any, and how far,
+    // 0..1
     const Buffer* poured_from_ = nullptr;
     float         pour_        = 1.0f;
     Capture       capture_     = Capture::Idle;
@@ -294,6 +302,10 @@ class Core
     std::array<Playhead, kNumSlices> slice_heads_;
     std::array<Schedule, kNumSlices> slice_schedules_;
     uint32_t                         slices_held_ = 0; // at the last block
+    // Each stream's grain started last: the loop's, each slice's
+    const Grain*                         last_ = nullptr;
+    std::array<const Grain*, kNumSlices> slice_last_{};
+    float aligns_ = kAlignBurst; // aligned starts to spend
 
     bool               restart_ = false; // a new recording: from the top
     std::atomic<float> scrub_{0.0f};

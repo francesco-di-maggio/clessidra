@@ -24,7 +24,8 @@ class Buffer
     size_t       Capacity() const { return capacity_; }
     size_t       Length() const { return length_; }
 
-    // Linear interpolation. pos wraps within Length().
+    // Four-point Hermite interpolation, as DaisySP's DelayLine::ReadHermite.
+    // pos wraps within Length().
     float Read(double pos) const;
 
   private:
@@ -44,10 +45,29 @@ inline float Buffer::Read(double pos) const
         pos -= len * std::floor(pos / len);
 
     // pos can round up to len
-    const size_t i0   = std::min(static_cast<size_t>(pos), length_ - 1);
-    const size_t i1   = (i0 + 1 < length_) ? i0 + 1 : 0;
-    const float  frac = float(pos - double(i0));
-    return mem_[i0] + frac * (mem_[i1] - mem_[i0]);
+    const size_t i0 = std::min(static_cast<size_t>(pos), length_ - 1);
+    const float  f  = float(pos - double(i0));
+    float        xm1, x0, x1, x2;
+    if(i0 >= 1 && i0 + 2 < length_)
+    {
+        xm1 = mem_[i0 - 1];
+        x0  = mem_[i0];
+        x1  = mem_[i0 + 1];
+        x2  = mem_[i0 + 2];
+    }
+    else
+    {
+        xm1 = mem_[(i0 + length_ - 1) % length_];
+        x0  = mem_[i0];
+        x1  = mem_[(i0 + 1) % length_];
+        x2  = mem_[(i0 + 2) % length_];
+    }
+    const float c     = (x1 - xm1) * 0.5f;
+    const float v     = x0 - x1;
+    const float w     = c + v;
+    const float a     = w + v + (x2 - x0) * 0.5f;
+    const float b_neg = w + a;
+    return (((a * f) - b_neg) * f + c) * f + x0;
 }
 
 } // namespace clessidra

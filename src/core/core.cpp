@@ -1,5 +1,7 @@
 #include "core.h"
 
+#include "aligner.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdlib> // RAND_MAX, for DaisySP dsp.h
@@ -45,8 +47,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
     {
         restart_ = false;
         playhead_.Restart(p.speed < 0.0f);
-        // With a grain at once
-        schedule_.phase = schedule_.next;
+        // With a grain at once, unless rising from silence
+        schedule_.phase = poured_from_ ? schedule_.next : 0.0;
     }
     // A grain at once, the starts counted from it
     const float jump = jump_.exchange(-1.0f, std::memory_order_relaxed);
@@ -72,6 +74,12 @@ void Core::Process(const float* const* in, float** out, size_t size)
                    : std::min(1.0f, tape_ + tape_step);
     const double play_inc
         = p.freeze ? 0.0 : p.speed * double(tape_) / sel_len; // per sample
+
+    aligns_ = std::min(kAlignBurst,
+                       aligns_ + kAlignsPerSecond * float(size) / sample_rate_);
+
+    // The first recording rises from silence: its grains per second from 0
+    const float rise = poured_from_ ? 1.0f : pour_;
 
     // Slices: each newly held one from its start, a grain at once. At no
     // density, two grains at once, regular: the slice as it is.
@@ -101,7 +109,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
             playhead_.Advance(play_inc, p.end);
             const bool due = !playhead_.Ended()
                              && Due(schedule_,
-                                    density * tape_ / sample_rate_,
+                                    density * tape_ * rise / sample_rate_,
                                     p.rand_time);
             if(due || (now && i == 0))
                 StartGrain(p,
@@ -111,7 +119,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
                             (p.speed < 0.0f) != (playhead_.Heading() < 0),
                             grain_samples},
                            &sound,
-                           i);
+                           i,
+                           last_);
         }
         for(size_t s = 0; s < kNumSlices && slicing; s++)
         {
@@ -132,11 +141,12 @@ void Core::Process(const float* const* in, float** out, size_t size)
                             (p.speed < 0.0f) != (head.Heading() < 0),
                             grain_samples},
                            &sound,
-                           i);
+                           i,
+                           slice_last_[s]);
         }
     }
 
-    if(poured_from_)
+    if(pour_ < 1.0f)
     {
         pour_ += float(size) / (kPourSeconds * sample_rate_);
         if(pour_ >= 1.0f)
@@ -310,7 +320,7 @@ void Core::UpdateCapture(size_t size)
     // Pours in over the one before, if there is one
     poured_from_
         = buffers_[playing].Length() > 0 ? &buffers_[playing] : nullptr;
-    pour_ = poured_from_ ? 0.0f : 1.0f;
+    pour_ = 0.0f;
     playing_.store(next, std::memory_order_release);
     restart_ = true;
     recordings_.fetch_add(1, std::memory_order_release);
@@ -360,7 +370,8 @@ void Core::Normalise(float  power_grains,
 void Core::StartGrain(const Params& p,
                       const Source& source,
                       const Buffer* sound,
-                      size_t        offset)
+                      size_t        offset,
+                      const Grain*& last)
 {
     Grain* grain  = nullptr;
     size_t active = 0;
@@ -424,7 +435,21 @@ void Core::StartGrain(const Params& p,
     const float width = 0.5f * float(active + 1) * p.spread;
     const float scale = 0.5f - 0.5f * Random();
     latch.pan         = 0.5f + 0.5f * Random() * std::min(width * scale, 1.0f);
+    // In phase with the grain before, moved at most a quarter of its length.
+    // Not scattered by Spray: those are meant to differ.
+    if(p.rand_pos <= 0.0f && last && last->IsActive()
+       && last->Source() == latch.buffer && aligns_ >= 1.0f)
+    {
+        aligns_ -= 1.0f;
+        latch.position = Aligner::Align(*latch.buffer,
+                                        last->PositionAt(offset),
+                                        last->Settings().rate,
+                                        latch.position,
+                                        latch.rate,
+                                        size_t(0.25 / latch.inc));
+    }
     grain->Start(latch, offset);
+    last = grain;
 }
 
 bool Core::Due(Schedule& s, double sched_inc, float random)

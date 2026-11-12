@@ -31,6 +31,11 @@ class Grain
     // For displays, between blocks: as started, and where it reads now
     const Latch& Settings() const { return latch_; }
     double       Position() const { return latch_.position + read_; }
+    // Where it reads at sample n of the next Render(), at its rate
+    double PositionAt(size_t n) const
+    {
+        return Position() + double(latch_.rate) * (double(n) - double(offset_));
+    }
 
     // Sums over all grains and samples of a block
     struct Sums

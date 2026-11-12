@@ -23,7 +23,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 
 | Pad | Alone | P11 held |
 |---|---|---|
-| P10 | Record. The input is always captured. Tap: the last 8 s. Hold: up to 30 s, the grains playing on. Silence at the ends is trimmed, the new recording pours in over 2 s, its slices are found | Listen: the input heard, nothing recorded |
+| P10 | Record. The input is always captured. Tap: the last 8 s. Hold: up to 30 s, the grains playing on. Silence at the ends is trimmed, the new recording pours in over 2 s (the first rises from silence), its slices are found | Listen: the input heard, nothing recorded |
 | P11 | Shift, held | |
 | P00 | Stop, as a tape machine: held, everything slows to a halt over 0.6 s, the pitch falling. Released: back to speed over 0.6 s | |
 | P01 | Reset: the twins back to their defaults | |

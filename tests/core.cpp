@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <functional>
 #include <vector>
+#include "core/aligner.h"
 #include "core/svf.h"
 #include "ui/core.ui.h"
 
@@ -90,10 +91,18 @@ struct Rig
             Run(0.01, input);
     }
 
-    // The whole buffer recorded from the input
+    // The whole buffer recorded from the input, risen in without grains,
+    // then from the top
     void Fill(const std::function<float(double)>& input)
     {
         Record(double(sound[0].size()) / kRate, input);
+        const Core::Params kept  = core.CurrentParams();
+        Core::Params       quiet = kept;
+        quiet.density            = 0.0f;
+        core.SetParams(quiet);
+        Run(Core::kPourSeconds, [](double) { return 0.0f; });
+        core.SetParams(kept);
+        core.Jump(0.0f);
     }
 };
 
@@ -985,6 +994,145 @@ void Pour()
           before[4]);
 }
 
+// The first recording rises in: its grains per second from 0 over the pour,
+// no grain at once
+void Rise()
+{
+    Rig          r(2.0);
+    Core::Params p;
+    p.density  = 80.0f;
+    p.grain_ms = 50.0f;
+    r.core.SetParams(p);
+    r.Record(1.0, Sine);
+    std::array<double, 4> rms{};
+    for(double& x : rms)
+        x = Rms(r, 0.5);
+    Check(rms[0] < 0.5 * rms[3] && rms[1] < rms[3],
+          "first recording: rises in over 2 s (rms, first half second of last)",
+          rms[0] / rms[3]);
+    const size_t at_once = [&] {
+        Rig fresh(2.0);
+        fresh.core.SetParams(p);
+        fresh.Record(1.0, Sine);
+        return Starts(fresh, 0.02);
+    }();
+    Check(at_once == 0, "first recording: no grain at once", double(at_once));
+}
+
+// Between samples: a 10 kHz sine read half a sample off keeps its level, as
+// read on them, within 1 dB. Linear interpolation loses 2 dB there.
+void Interpolation()
+{
+    std::vector<float> mem(4800);
+    Buffer             b;
+    b.Init(mem.data(), mem.size(), float(kRate));
+    for(size_t i = 0; i < mem.size(); i++)
+        b.Data()[i] = float(std::sin(2.0 * M_PI * 10000.0 * double(i) / kRate));
+    b.Finish(mem.size());
+    double on = 0.0, off = 0.0;
+    for(size_t i = 1000; i < 3000; i++)
+    {
+        on += double(b.Read(double(i))) * b.Read(double(i));
+        off += double(b.Read(i + 0.5)) * b.Read(i + 0.5);
+    }
+    const double db = 10.0 * std::log10(off / on);
+    Check(db > -1.0, "10 kHz half a sample off: within 1 dB (dB)", db);
+}
+
+// Aligned: a grain starts where it continues the one before in phase
+void Alignment()
+{
+    std::vector<float> mem(48000);
+    Buffer             b;
+    b.Init(mem.data(), mem.size(), float(kRate));
+    const double period = double(kRate) / 220.0;
+    for(size_t i = 0; i < mem.size(); i++)
+        b.Data()[i] = float(std::sin(2.0 * M_PI * double(i) / period));
+    b.Finish(mem.size());
+    const auto off = [&](double at) {
+        const double x = std::fmod(at - 10000.0, period);
+        return std::min(std::fabs(x), period - std::fabs(x));
+    };
+    const double moved
+        = Aligner::Align(b, 10000.0, 1.0f, 10000.0 + 0.4 * period, 1.0f, 256);
+    Check(off(moved) < 2.0,
+          "aligned: a start a part of a period off moves into phase (samples)",
+          off(moved));
+    const double kept = Aligner::Align(b, 10000.0, 1.0f, 10000.0, 1.0f, 256);
+    Check(kept == 10000.0, "aligned: a start in phase stays", kept - 10000.0);
+
+    // Slowed: a sawtooth's harmonics keep their level from one 20 ms frame
+    // to the next. Combing grains make them come and go, as a flanger.
+    const auto combing = [](float speed, float density, float random) {
+        Rig r(2.0);
+        r.Fill([](double t) {
+            const double x = t * 110.0;
+            return 0.5f * float(2.0 * (x - std::floor(x)) - 1.0);
+        });
+        Core::Params p;
+        p.speed     = speed;
+        p.density   = density;
+        p.rand_time = random;
+        p.grain_ms  = 100.0f;
+        r.core.SetParams(p);
+        r.Run(0.5, Silence);
+        constexpr size_t kFrame = 960, kFrames = 50, kHarmonics = 30;
+        std::vector<std::array<double, kHarmonics>> db(kFrames);
+        float              in[kBlock] = {}, l[kBlock], o[kBlock];
+        const float*       inputs[2]  = {in, in};
+        float*             outputs[2] = {l, o};
+        std::vector<float> frame;
+        for(auto& f : db)
+        {
+            frame.clear();
+            while(frame.size() < kFrame)
+            {
+                r.core.Process(inputs, outputs, kBlock);
+                frame.insert(frame.end(), l, l + kBlock);
+            }
+            for(size_t h = 0; h < kHarmonics; h++)
+            {
+                const double w  = 2.0 * M_PI * 110.0 * double(h + 1) / kRate;
+                double       re = 0.0, im = 0.0;
+                for(size_t i = 0; i < kFrame; i++)
+                {
+                    const double hann
+                        = 0.5 - 0.5 * std::cos(2.0 * M_PI * double(i) / kFrame);
+                    re += hann * frame[i] * std::cos(w * double(i));
+                    im += hann * frame[i] * std::sin(w * double(i));
+                }
+                f[h] = 10.0 * std::log10(re * re + im * im + 1e-12);
+            }
+        }
+        double spread = 0.0;
+        for(size_t h = 0; h < kHarmonics; h++)
+        {
+            double mean = 0.0, var = 0.0;
+            for(const auto& f : db)
+                mean += f[h] / double(kFrames);
+            for(const auto& f : db)
+                var += (f[h] - mean) * (f[h] - mean) / double(kFrames);
+            spread += std::sqrt(var) / double(kHarmonics);
+        }
+        return spread;
+    };
+    const double real  = combing(1.0f, 40.0f, 0.0f);
+    const double half  = combing(0.5f, 40.0f, 0.0f);
+    const double dense = combing(0.5f, 320.0f, 1.0f);
+    std::printf(
+        "      harmonics' spread over 20 ms frames, dB: 1x %.2f, 0.5x %.2f, "
+        "0.5x 320/s random %.2f\n",
+        real,
+        half,
+        dense);
+    Check(half < 2.0 * real,
+          "speed 1/2: harmonics as steady as at 1x, within twice (dB)",
+          half);
+    Check(dense < 2.0 * real,
+          "speed 1/2, 320/s, random: as steady, within twice (dB)",
+          dense);
+}
+
 // Stopped while grains still read the recording before: they never end, a
 // new recording lands all the same
 void StoppedRecord()
@@ -1810,6 +1958,9 @@ int main()
     Mirrored();
     Selection();
     Pour();
+    Rise();
+    Interpolation();
+    Alignment();
     StoppedRecord();
     Randomness();
     Starts();
