@@ -181,7 +181,7 @@ try {
     await sleep(300);
     return run(`[document.documentElement.scrollHeight, innerHeight, Math.round(document.getElementById("buffer").getBoundingClientRect().height)].join(" ")`);
   };
-  for (const [w, h] of [[402, 760], [375, 690]]) {
+  for (const [w, h] of [[402, 760], [402, 716], [375, 690]]) {
     const [scroll, inner, buffer] = (await phone(w, h)).split(" ").map(Number);
     check(scroll === inner && buffer >= 70, `${w}×${h}: on one screen, the recording 70 px or more`, `${scroll} ${inner} ${buffer}`);
   }
