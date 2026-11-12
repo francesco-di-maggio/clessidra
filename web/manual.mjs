@@ -45,6 +45,10 @@ try {
   manual.setTitle("Clessidra · Manual");
   writeFileSync(out, await manual.save());
   console.log(out);
+  // The engine page as it prints
+  const engine = new URL("public/clessidra-engine.pdf", import.meta.url).pathname;
+  await promisify(execFile)(chrome, ["--headless=new", `--user-data-dir=${profile}`, "--no-pdf-header-footer", "--virtual-time-budget=5000", `--print-to-pdf=${engine}`, `http://localhost:${PORT}/clessidra/engine/`]);
+  console.log(engine);
 } finally {
   server.close();
 }

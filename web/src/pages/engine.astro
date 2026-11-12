@@ -1,0 +1,279 @@
+---
+// How the engine works: the signal path, a recording, a grain, how grains
+// start, their level, the transport, the effects, the runtime. Facts from
+// src/core and src/ui, each with its constant. Printed to
+// clessidra-engine.pdf by web/manual.mjs.
+import Base from "../layouts/Base.astro";
+
+// A deterministic wobble for the drawings
+function* noise(seed: number) {
+  let s = seed;
+  for (;;) {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    yield s / 0x7fffffff;
+  }
+}
+const f = (x: number) => x.toFixed(1);
+
+// A box with a name and a line under it
+function box(x: number, y: number, w: number, h: number, name: string, sub = "", on = false) {
+  const ty = y + h / 2 + (sub ? -1.6 : 2.4);
+  return `<rect class="box${on ? " on" : ""}" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>` +
+    `<text class="name${on ? " inv" : ""}" x="${x + w / 2}" y="${ty}">${name}</text>` +
+    (sub ? `<text class="sub${on ? " inv" : ""}" x="${x + w / 2}" y="${ty + 8}">${sub}</text>` : "");
+}
+function arrow(x1: number, y1: number, x2: number, y2: number, cls = "ln") {
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  const s = 3;
+  const p = (d: number) => `${f(x2 - s * Math.cos(a + d))},${f(y2 - s * Math.sin(a + d))}`;
+  return `<path class="${cls}" d="M${f(x1)},${f(y1)}L${f(x2)},${f(y2)}"/><path class="${cls} head" d="M${p(-0.45)}L${f(x2)},${f(y2)}L${p(0.45)}"/>`;
+}
+
+// 1. Signal path, in two rows
+function signal() {
+  const rows = [
+    [["Input", "mono, DC block"], ["Ring", "31 s"], ["Buffers", "2 × 30 s"], ["Grains", "32 voices"], ["Level", "normaliser"]],
+    [["Filter", "SVF"], ["Reverb", "ReverbSc"], ["Limiter", "−0.5 dBFS"], ["Volume", "−60 to 0 dB"], ["Output", "stereo"]],
+  ];
+  const w = 52, h = 28, gap = 9, y0 = 14, y1 = 70;
+  const x = (i: number) => i * (w + gap);
+  const o: string[] = [];
+  rows.forEach((row, r) => {
+    const y = r ? y1 : y0;
+    row.forEach(([name, sub], i) => {
+      o.push(box(x(i), y, w, h, name, sub, name === "Grains"));
+      if (i) o.push(arrow(x(i) - gap, y + h / 2, x(i) - 0.6, y + h / 2));
+    });
+  });
+  // Level down to Filter, round the right
+  const xe = x(4) + w / 2;
+  o.push(`<path class="ln" d="M${xe},${y0 + h}V${y0 + h + 14}H${x(0) + w / 2}"/>`);
+  o.push(arrow(x(0) + w / 2, y0 + h + 14, x(0) + w / 2, y1 - 0.6));
+  o.push(`<text class="code" x="${x(2) - gap / 2}" y="${y0 - 4}">P10</text>`);
+  // Listen: the input to the limiter
+  const xl = x(2) + w / 2;
+  o.push(`<path class="ln dash" d="M${x(0)},${y0 + h / 2}H-5V${y1 + h + 12}H${xl}"/>`);
+  o.push(arrow(xl, y1 + h + 12, xl, y1 + h + 0.6, "ln dash"));
+  o.push(`<text class="sub l" x="${xl + 6}" y="${y1 + h + 14}">Listen, P11 + P10: the input with the grains</text>`);
+  return `<svg class="dia" viewBox="-7 0 305 116" role="img" aria-label="Signal path">${o.join("")}</svg>`;
+}
+
+// A recording: a wave, deterministic
+function wave(x0: number, x1: number, cy: number, amp: number, seed = 3) {
+  const r = noise(seed);
+  const pts: string[] = [];
+  let phase = 0;
+  for (let x = x0; x <= x1; x += 0.8) {
+    const u = (x - x0) / (x1 - x0);
+    const env = 0.3 + 0.7 * Math.abs(Math.sin(u * Math.PI * 3.1 + 0.4)) * (0.6 + 0.4 * Math.sin(u * 17));
+    phase += 0.9 + 0.5 * (r.next().value as number);
+    pts.push(`${f(x)},${f(cy - amp * env * Math.sin(phase) * (0.55 + 0.45 * (r.next().value as number)))}`);
+  }
+  return "M" + pts.join("L");
+}
+
+// 2. A recording: the loop, the playhead, Spray, the slices
+function recording() {
+  const x0 = 4, x1 = 296, cy = 40, s0 = 70, s1 = 270, ph = 150;
+  const o: string[] = [];
+  o.push(`<defs><clipPath id="loop"><rect x="${s0}" y="0" width="${s1 - s0}" height="90"/></clipPath></defs>`);
+  o.push(`<rect class="sel" x="${s0}" y="${cy - 24}" width="${s1 - s0}" height="48"/>`);
+  o.push(`<path class="wave dim" d="${wave(x0, x1, cy, 18)}"/>`);
+  o.push(`<path class="wave" d="${wave(x0, x1, cy, 18)}" clip-path="url(#loop)"/>`);
+  o.push(`<path class="ln" d="M${s0},${cy - 28}V${cy + 28}M${s1},${cy - 28}V${cy + 28}"/>`);
+  o.push(`<text class="code" x="${s0}" y="${cy - 31}">S30</text><text class="code" x="${s1}" y="${cy - 31}">S35</text>`);
+  // Slices at the loop's start and its strongest attacks
+  const at = [0, 0.11, 0.24, 0.43, 0.58, 0.71, 0.86];
+  at.forEach((u, i) => {
+    const sx = s0 + u * (s1 - s0);
+    o.push(`<path class="ln" d="M${f(sx)},${cy + 24}V${cy + 31}"/><text class="sub" x="${f(sx + 7)}" y="${cy + 38}">${i + 1}</text>`);
+  });
+  o.push(`<path class="playhead" d="M${ph},${cy - 24}V${cy + 24}"/>`);
+  o.push(arrow(ph, cy - 19, ph + 22, cy - 19));
+  o.push(`<rect class="spray" x="${ph - 26}" y="${cy + 17}" width="52" height="3" rx="1.5"/>`);
+  o.push(`<text class="sub l" x="${ph + 26}" y="${cy - 16}">playhead, S36</text>`);
+  o.push(`<text class="sub l" x="${ph + 30}" y="${cy + 21}">Spray, S32</text>`);
+  o.push(`<text class="sub l" x="${x0}" y="${cy - 31}">recording</text>`);
+  o.push(`<text class="sub l" x="${x0}" y="${cy + 38}">slices, P03–P09</text>`);
+  return `<svg class="dia" viewBox="0 0 300 84" role="img" aria-label="A recording, its loop, playhead and slices">${o.join("")}</svg>`;
+}
+
+// 3. The window along Shape, as Grain::Start and Grain::Render shape it, a
+// 100 ms grain at 48 kHz
+function window(shape: number, x: number): number {
+  const inc = 1 / 4800;
+  const sustain = Math.max(1 - 3 * shape, 0);
+  let attack = Math.max((shape - 1 / 3) * 1.5, 0);
+  if (attack < 0.5) attack = attack ** 3 * 4;
+  const smooth = attack < 0.5 ? 2 * attack : 2 - 2 * attack;
+  let rise = Math.max(attack, 24 * (1 + 3 * sustain) * inc);
+  let fall = Math.max((1 - attack) * (1 - sustain), 480 * inc);
+  if (rise + fall > 1) [rise, fall] = [rise / (rise + fall), fall / (rise + fall)];
+  if (x >= rise && x < 1 - fall) return 1;
+  const rising = x < rise;
+  const t = rising ? x / rise : Math.max(1 - (x - (1 - fall)) / fall, 0);
+  const base = rising ? t : t ** 4;
+  return base + (t * t * (3 - 2 * t) - base) * smooth;
+}
+function shapes() {
+  const o: string[] = [];
+  [[0, "square"], [1 / 3, "decay"], [2 / 3, "bell"], [1, "reverse"]].forEach(([s, name], i) => {
+    const x = i * 75, w = 60, base = 30, h = 24;
+    const pts: string[] = [];
+    for (let k = 0; k <= 80; k++) pts.push(`${f(x + (k / 80) * w)},${f(base - window(s as number, k / 80) * h)}`);
+    o.push(`<path class="env" d="M${x},${base}L${pts.join("L")}L${x + w},${base}Z"/>`);
+    o.push(`<text class="sub" x="${x + w / 2}" y="${base + 9}">${name}</text>`);
+  });
+  return `<svg class="dia" viewBox="0 0 285 42" role="img" aria-label="The window: square, decay, bell, reverse">${o.join("")}</svg>`;
+}
+
+// 4. Grains a second, 100 ms each, over a second: one sounds, two, all 32
+function bump(x: number, w: number, base: number, h: number) {
+  const pts: string[] = [];
+  for (let k = 0; k <= 20; k++) pts.push(`${f(x + (k / 20) * w)},${f(base - Math.sin((Math.PI * k) / 20) ** 2 * h)}`);
+  return `M${pts.join("L")}Z`;
+}
+function starts() {
+  const o: string[] = [];
+  const x0 = 30, x1 = 296, span = x1 - x0;
+  const r = noise(11);
+  [[2, "2/s"], [20, "20/s"], [320, "320/s"]].forEach(([d, label], i) => {
+    const base = 18 + i * 22;
+    o.push(`<path class="ln faint" d="M${x0},${base}H${x1}"/><text class="code l" x="0" y="${base - 2}">${label}</text>`);
+    const w = span * 0.1;
+    const n = d as number;
+    for (let k = 0; k < n; k++) {
+      const gx = n > 20 ? x0 + (span - w) * (r.next().value as number) : x0 + ((span - w) * (k + 0.5)) / n;
+      o.push(`<path class="g${n > 20 ? " thin" : ""}" d="${bump(gx, w, base, 14)}"/>`);
+    }
+  });
+  return `<svg class="dia" viewBox="0 0 300 70" role="img" aria-label="Grains a second at 100 ms: 2, 20, 320">${o.join("")}</svg>`;
+}
+
+// 5. In phase, out of phase
+function level() {
+  const o: string[] = [];
+  const base = 44;
+  for (let k = 0; k < 6; k++) o.push(`<path class="g" d="${bump(20 + k * 4, 70, base, 34)}"/>`);
+  o.push(`<text class="name" x="64" y="${base + 10}">in phase</text><text class="sub" x="64" y="${base + 18}">amplitudes add</text>`);
+  const r = noise(5);
+  for (let k = 0; k < 14; k++) {
+    const w = 18 + 40 * (r.next().value as number);
+    o.push(`<path class="g" d="${bump(170 + 100 * (r.next().value as number), w, base, 10 + 26 * (r.next().value as number))}"/>`);
+  }
+  o.push(`<text class="name" x="225" y="${base + 10}">scattered</text><text class="sub" x="225" y="${base + 18}">powers add</text>`);
+  return `<svg class="dia" viewBox="0 0 300 66" role="img" aria-label="Grains in phase and scattered">${o.join("")}</svg>`;
+}
+
+const grain: [string, string][] = [
+  ["Position", "The playhead, and with Spray anywhere round it, evenly, up to the whole loop"],
+  ["Start", "Moved, at most 5.3 ms or a quarter of its length, to where it continues the grain before in phase: the signs of 512 samples compared, as Clouds' WSOLA player. Not with Spray up, whose grains are meant to differ"],
+  ["Read", "Four-point Hermite between samples, as Beads. Rate 2^(n/12): Pitch ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24"],
+  ["Random pitch", "Up: any pitch to ±12 semitones. Down: octaves, up to two grains in three"],
+  ["Size", "5 ms to 2 s, 100 ms at the centre. Random size: part of the way to any size, exponential"],
+  ["Window", "Beads' envelope along Shape: square, decay, bell, reverse. At least 0.5 ms up and 10 ms down"],
+  ["Pan", "Spray spreads them, wider as more sound at once. Equal power"],
+  ["Direction", "The playhead's. Reverse sets the share read the other way"],
+];
+const transport: [string, string][] = [
+  ["Speed", "0 to 4×, stops at ¼, ½, 1, 2, 4. The pitch stays. Frozen by S09, the fader scrubs: a full stroke the whole loop"],
+  ["End", "At the loop's end, S07: once and stop, turn over and run back, or round again"],
+  ["Stop", "P00 held: everything slows to a halt over 0.6 s, as a tape machine, faded over its slowest quarter. Released: back to speed"],
+  ["Trigger", "P02: the loop from its start (its end in reverse), a grain at once. After Once, it pours again"],
+  ["Slices", "P03–P09 held: each plays its slice with its own playhead, at Speed and Density, the loop waiting. Several at once"],
+];
+const effects: [string, string][] = [
+  ["Filter", "SVF on the grains. Low-pass 20 kHz to 200 Hz, off at the centre, high-pass 20 Hz to 2 kHz. Resonance 0.7 to 1.5"],
+  ["Reverb", "ReverbSc on the grains. Decay 0.5 to 16 s, damped at 10 kHz, up to equal parts with the dry grains"],
+  ["Limiter", "Look-ahead 5 ms, −0.5 dBFS. The grains +6 dB into it"],
+  ["Volume", "After the limiter: off, then −60 to 0 dB"],
+];
+const runtime: [string, string][] = [
+  ["Audio", "48 kHz, 48-sample blocks: 1 ms. Recordings in SDRAM, mono"],
+  ["CPU", "15 % with no grains. 83 % at the most: 32 voices, all slices held, Pitch +24, a recording landing"],
+  ["Browser", "The same C++ core in WebAssembly, in an AudioWorklet"],
+];
+---
+<Base title="Engine" description="How Clessidra turns a recording into grains: signal path, grains, starts, level, transport, effects.">
+<h1>Engine</h1>
+<p class="lead">How a recording becomes grains, and how they fall.</p>
+
+<h2 class="label">01 Signal path</h2>
+<section class="panel figure">
+  <Fragment set:html={signal()} />
+  <p>Both jacks are summed to mono, −3 dB each. The ring takes the input all the time. P10 copies from it into the buffer not playing, and the grains read the buffer playing.</p>
+</section>
+
+<h2 class="label">02 Recording</h2>
+<section class="panel figure">
+  <Fragment set:html={recording()} />
+  <ol class="rows">
+    <li class="row"><span class="label">Tap</span><span>Under 0.3 s: the 8 s before it</span></li>
+    <li class="row"><span class="label">Hold</span><span>From 50 ms before the touch to the release, up to 30 s</span></li>
+    <li class="row"><span class="label">Trim</span><span>Silence under −60 dBFS cut from both ends</span></li>
+    <li class="row"><span class="label">Land</span><span>Copied at 8× real time. Over 2 s each new grain reads it with rising odds, the rest the recording before. The first rises from silence</span></li>
+    <li class="row"><span class="label">Slices</span><span>Its attacks found once, in 5 ms frames, the strongest 64 kept. A loop's seven slices: its start, then its strongest attacks. Too few, as a held note: even parts</span></li>
+  </ol>
+</section>
+
+<h2 class="label">03 A grain</h2>
+<section class="panel figure">
+  <ol class="rows">{grain.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+  <Fragment set:html={shapes()} />
+</section>
+
+<h2 class="label">04 Starts</h2>
+<section class="panel figure">
+  <Fragment set:html={starts()} />
+  <p>Density is grains a second, 0.25 to 320, none at the bottom, whatever their size: grains sounding at once are Density × Size. Random timing takes the starts from a regular pulse to nearly Poisson, the same mean. 32 voices: when all sound, a new grain is dropped.</p>
+</section>
+
+<h2 class="label">05 Level</h2>
+<section class="panel figure">
+  <Fragment set:html={level()} />
+  <p>Grains in phase add in amplitude, scattered ones in power. A normaliser measures both every block, 5 ms smoothed, and brings the sum to the input's level with 0.9 headroom, never boosting grains that cancel. Aligned starts keep slowed grains in phase: at ½× a sawtooth's harmonics vary 0.27 dB from one 20 ms frame to the next, as at 1×. Without, 1.0 dB, and 5.6 dB in a dense random cloud.</p>
+</section>
+
+<h2 class="label">06 Transport</h2>
+<ol class="panel rows">{transport.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+
+<h2 class="label">07 Effects</h2>
+<ol class="panel rows">{effects.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+
+<h2 class="label">08 Runtime</h2>
+<ol class="panel rows">{runtime.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+</Base>
+
+<style is:global>
+  .figure { display: grid; gap: 12px; }
+  .figure > p { margin: 0; font-size: 15px; line-height: 20px; }
+  .figure ol.rows { padding: 0; }
+  .dia { width: 100%; height: auto; display: block; overflow: visible; }
+  .dia text { font: 500 7px var(--sans); fill: var(--ink); text-anchor: middle; }
+  .dia .sub { font-size: 5.6px; fill: var(--dim); }
+  .dia .code { font: 600 5.6px var(--mono); fill: var(--dim); }
+  .dia .l { text-anchor: start; }
+  .dia .inv { fill: var(--bg); }
+  .dia .box { fill: var(--bg); stroke: var(--line); stroke-width: 0.8; }
+  .dia .box.on { fill: var(--ink); stroke: none; }
+  .dia .ln { stroke: var(--dim); stroke-width: 0.7; fill: none; }
+  .dia .ln.faint { stroke: var(--line); }
+  .dia .ln.dash { stroke-dasharray: 2.5 2; }
+  .dia .head { stroke-linejoin: round; }
+  .dia .wave { stroke: var(--ink); stroke-width: 0.5; fill: none; }
+  .dia .wave.dim { stroke: var(--line); }
+  .dia .sel { fill: var(--well); }
+  .dia .playhead { stroke: var(--ink); stroke-width: 1.4; }
+  .dia .spray { fill: var(--ink); opacity: 0.25; }
+  .dia .env { fill: var(--ink); }
+  .dia .g { fill: color-mix(in srgb, var(--ink) 8%, transparent); stroke: var(--ink); stroke-width: 0.5; }
+  .dia .g.thin { fill: color-mix(in srgb, var(--ink) 3%, transparent); stroke-width: 0.25; }
+  @media print {
+    @page { size: A4; margin: 14mm 15mm; }
+    h1 { font-size: 22pt; }
+    .lead { margin-bottom: 4mm; }
+    .row, .figure > p { font-size: 9pt; line-height: 12pt; }
+    .row { grid-template-columns: 26mm 1fr; }
+    ol.panel.rows { padding: 0; }
+  }
+</style>
