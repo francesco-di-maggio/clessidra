@@ -166,31 +166,31 @@ function level() {
 }
 
 const grain: [string, string][] = [
-  ["Position", "The playhead, and with Spray anywhere round it, evenly, up to the whole loop."],
+  ["Position", "The playhead. With Spray, evenly round it, up to the loop."],
   ["Start", "Moved, at most 5.3 ms or a quarter of its length, to where it continues the grain before in phase: the signs of 512 samples compared, as Clouds' WSOLA player. Not with Spray up, whose grains are meant to differ."],
-  ["Read", "Four-point Hermite between samples, as Beads. Rate 2^(n/12): Pitch ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24."],
-  ["Random pitch", "Up: any pitch to ±12 semitones. Down: octaves, up to two grains in three."],
-  ["Size", "5 ms to 2 s, 100 ms at the centre. Random size: part of the way to any size, exponential."],
-  ["Window", "Beads' envelope along Shape: square, decay, bell, reverse. At least 0.5 ms up and 10 ms down."],
+  ["Read", "Four-point Hermite, as Beads. Rate 2^(n/12), ±24 semitones."],
+  ["Random pitch", "Up: free, to ±12 semitones. Down: octaves, up to 2 grains in 3."],
+  ["Size", "5 ms to 2 s, 100 ms at the centre. Random: part way to any."],
+  ["Window", "Beads' envelope along Shape. At least 0.5 ms up, 10 ms down."],
   ["Pan", "Spray spreads them, wider as more sound at once. Equal power."],
   ["Direction", "The playhead's. Reverse sets the share read the other way."],
 ];
 const transport: [string, string][] = [
-  ["Speed", "0 to 4×, stops at ¼, ½, 1, 2, 4. The pitch stays. Frozen by S09, the fader scrubs: a full stroke the whole loop."],
-  ["End", "At the loop's end, S07: once and stop, turn over and run back, or round again."],
-  ["Stop", "P00 held: everything slows to a halt over 0.6 s, as a tape machine, faded over its slowest quarter. Released: back to speed."],
-  ["Trigger", "P02: the loop from its start (its end in reverse), a grain at once. After Once, it pours again."],
-  ["Slices", "P03–P09 held: each plays its slice with its own playhead, at Speed and Density, the loop waiting. Several at once."],
+  ["Speed", "0 to 4×, the pitch kept. Frozen, a full stroke scrubs the loop."],
+  ["End", "S07 at the loop's end: stop, turn back, or round again."],
+  ["Stop", "P00 held: a tape stop over 0.6 s. Released: back to speed."],
+  ["Trigger", "P02: from the loop's start (end in reverse), a grain at once."],
+  ["Slices", "P03–P09 held: each slice its own playhead, the loop waiting."],
 ];
 const effects: [string, string][] = [
-  ["Filter", "SVF on the grains. Low-pass 20 kHz to 200 Hz, off at the centre, high-pass 20 Hz to 2 kHz. Resonance 0.7 to 1.5."],
-  ["Reverb", "ReverbSc on the grains. Decay 0.5 to 16 s, damped at 10 kHz, up to equal parts with the dry grains."],
+  ["Filter", "SVF: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz."],
+  ["Reverb", "ReverbSc on the grains. Decay 0.5 to 16 s, up to half wet."],
   ["Limiter", "Look-ahead 5 ms, −0.5 dBFS. The grains +6 dB into it."],
   ["Volume", "After the limiter: off, then −60 to 0 dB."],
 ];
 const runtime: [string, string][] = [
   ["Audio", "48 kHz, 48-sample blocks: 1 ms. Recordings in SDRAM, mono."],
-  ["CPU", "15 % with no grains. 83 % at the most: 32 voices, all slices held, Pitch +24, a recording landing."],
+  ["CPU", "15 % with no grains. 83 % at most: 32 voices, Pitch +24."],
   ["Browser", "The same C++ core in WebAssembly, in an AudioWorklet."],
 ];
 ---
@@ -211,7 +211,7 @@ const runtime: [string, string][] = [
     <li class="row"><span class="label">Tap</span><span>Under 0.3 s: the 8 s before it.</span></li>
     <li class="row"><span class="label">Hold</span><span>From 50 ms before the touch to the release, up to 30 s.</span></li>
     <li class="row"><span class="label">Trim</span><span>Silence under −60 dBFS cut from both ends.</span></li>
-    <li class="row"><span class="label">Land</span><span>Copied at 8× real time. Over 2 s each new grain reads it with rising odds, the rest the recording before. The first rises from silence.</span></li>
+    <li class="row"><span class="label">Land</span><span>Copied at 8×. Over 2 s new grains read it with rising odds.</span></li>
     <li class="row"><span class="label">Slices</span><span>Its attacks found once, in 5 ms frames, the strongest 64 kept. A loop's seven slices: its start, then its strongest attacks. Too few, as a held note: even parts.</span></li>
   </ol>
 </section>
