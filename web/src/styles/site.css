@@ -17,9 +17,11 @@ h2.label { padding-left: 15px; }
 .lead { text-wrap: pretty; }
 
 /* Facts: a key column and its value, as in the family's facts panel. The
-   small key stands on its value's baseline. */
+   small key on its value's baseline, raised half the difference in capital
+   height (8.1 px against 11.0 px), so it sits centred on the first line. */
 .meta { align-items: baseline; }
 .meta dt { color: var(--dim); font: 500 11px/14px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.meta dt, .row .label { position: relative; top: -1.5px; }
 
 /* The status tile with a clock at its right end: an hourglass for the minute,
    as on the Play page. Where the tile is too narrow, no clock. */
