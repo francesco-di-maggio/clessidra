@@ -6,10 +6,12 @@
 @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
 .mark svg path { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
 h2.label { scroll-margin-top: 16px; }
+/* In from the tile's edge, as the tile's own text: its padding and border */
+h2.label { padding-left: 15px; }
 /* A page's first part starts where the others' first panel does */
 .lead + h2.label { margin-top: 0; }
 /* A panel's name inside it */
-.panel > h2.label { margin: 0 0 8px; color: var(--dim); }
+.panel > h2.label { margin: 0 0 8px; padding-left: 0; color: var(--dim); }
 /* Text in a panel at the size of its rows */
 .panel > .prose p { margin: 0; font-size: 15px; line-height: 20px; }
 .lead { text-wrap: pretty; }
@@ -72,7 +74,6 @@ ol.rows { gap: 6px; padding: 14px; }
 /* A row's text justified and hyphenated as the family's prose */
 .row > :last-child { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
                      hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
-.rows.steps .row { grid-template-columns: 32px 1fr; }
 /* Links as tiles, one under the other: a name, a line about it, where it
    leads */
 .tiles { display: grid; gap: 10px; }
