@@ -90,7 +90,8 @@ try {
   await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "r" }))`);
   await sleep(1500);
   const held = await run(`document.getElementById("buffer").getAttribute("aria-label").replace("Recording, ", "")`);
-  check(/^2\.\d s$/.test(held), "R held 2 s: recorded", held);
+  // Silence at its ends trimmed: up to what was held, the demo's pauses less
+  check(/^\d\.\d s$/.test(held) && parseFloat(held) >= 0.5 && parseFloat(held) <= 2.2, "R held 2 s: recorded, up to 2 s", held);
   const values = await run(`[...document.querySelectorAll(".knob .value")].map((v) => v.textContent)`);
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
   const times = await run(`["Position", "Length"].map((n) => [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === n).querySelector(".value").textContent).join(" ")`);
