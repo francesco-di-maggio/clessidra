@@ -128,9 +128,9 @@ body.app main { flex: 1; min-height: 0; }
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }
 .pad:hover { border-color: var(--dim); }
-.pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: var(--key); height: 56%; padding-bottom: 8px;
+.pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.86); height: 56%; padding-bottom: 8px;
              left: calc((var(--key) + var(--gap)) * var(--edge) - var(--gap) / 2); transform: translateX(-50%);
-             background: var(--bg); color: var(--ink); letter-spacing: 0.08em; }
+             background: var(--bg); color: var(--ink); letter-spacing: 0.04em; }
 /* Rec black as the others, its name orange: the one orange not "on".
    Recording, solid orange. */
 .pad.rec { color: var(--accent); }
@@ -163,6 +163,6 @@ body.app main { flex: 1; min-height: 0; }
   .switches > div + div { padding-top: 0; }
   .switches::after { display: none; }
   /* Retrigger, nine letters of 0.6 em, inside its key */
-  .pad.black { font-size: min(9px, calc(2.5cqi - 1px)); letter-spacing: 0; }
+  .pad.black { font-size: min(9px, calc(2.2cqi - 1.6px)); letter-spacing: 0; }
   .knob.fader { min-height: 240px; }
 }

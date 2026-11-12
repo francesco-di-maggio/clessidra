@@ -27,7 +27,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | P11 | Shift, held | |
 | P00 | Stop, as a tape machine: held, everything slows to a halt over 0.6 s, the pitch falling. Released: back to speed over 0.6 s | |
 | P01 | Reset: the twins back to their defaults | |
-| P02 | Trig: playback again from the loop's start (its end in reverse), with a grain at once. After a loop played once, it pours again | |
+| P02 | Retrigger: playback again from the loop's start (its end in reverse), with a grain at once. After a loop played once, it pours again | |
 | P03–P09 | Slices: the loop in seven, its start then the recording's strongest attacks inside it (even parts without attacks), left to right on the board (P03, P04, P08, P05, P09, P06, P07). Held: plays its slice from the start, round it, at Speed and Density, forward, frozen at its start or reverse as S09 sets, to its end as S07 sets (once and no more, turned over, or round it), a grain at once. Several at once. The loop waits while any is held, a new recording ends them. At Density's bottom: two grains at once, regular, the slice as it is | |
 
 | LED | |
@@ -45,7 +45,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | Cloud | Density at the top, Size 150 to 300 ms, Shape on bell, Spray up, Random timing (P11 + S37) full, Reverb (P11 + S35) up. |
 | Stretch | Speed at ¼ or ½, Density up. S09 down to hear it backwards. |
 | Drone | S09 at the centre, Density at the top, Size long, a little Spray, Reverb up. Speed scrubs the point. |
-| One pour | S07 down: the loop plays once and stops. Trig pours it again. |
+| One pour | S07 down: the loop plays once and stops. Retrigger pours it again. |
 | Shimmer | Random pitch (P11 + S33) below the centre: octaves. |
 | Backwards syllables | Reverse (P11 + S32) at the top: the phrase in order, each grain backwards. |
 

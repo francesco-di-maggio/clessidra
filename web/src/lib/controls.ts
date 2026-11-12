@@ -169,7 +169,7 @@ export const CONTROLS: Control[] = [
     value: (p) => (p[PARAM.stop] ? "Stopped" : ""),
   },
   {
-    id: "P02", type: "pad", index: TRIG_PAD, ...padAt(TRIG_PAD), name: "Trig",
+    id: "P02", type: "pad", index: TRIG_PAD, ...padAt(TRIG_PAD), name: "Retrigger",
     does: "Plays the loop from its start, at once.",
   },
   ...SLICE_PADS.map((index, i): Control => ({
@@ -189,7 +189,7 @@ export const PLAY: [string, string][] = [
   ["Cloud", "Density at the top, Size 150 to 300 ms, Shape on bell, Spray up, Random timing (P11\u00a0+\u00a0S37) full, Reverb (P11\u00a0+\u00a0S35) up."],
   ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards."],
   ["Drone", "S09 at the centre, Density at the top, Size long, a little Spray, Reverb up. Speed scrubs the point."],
-  ["One pour", "S07 down: the loop plays once and stops. Trig pours it again."],
+  ["One pour", "S07 down: the loop plays once and stops. Retrigger pours it again."],
   ["Shimmer", "Random pitch (P11\u00a0+\u00a0S33) below the centre: octaves."],
   ["Backwards syllables", "Reverse (P11\u00a0+\u00a0S32) at the top: the phrase in order, each grain backwards."],
 ];

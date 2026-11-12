@@ -1914,7 +1914,7 @@ void Mapping()
     press(CoreUI::kTrigPad, true);
     r.Run(0.001, Silence);
     Check(r.core.PlayheadPhase() < 0.01,
-          "P02 Trig: the playhead from the loop's start",
+          "P02 Retrigger: the playhead from the loop's start",
           r.core.PlayheadPhase());
     press(CoreUI::kTrigPad, false);
     press(CoreUI::kShiftPad, true);
