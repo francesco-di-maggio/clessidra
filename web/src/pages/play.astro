@@ -44,12 +44,15 @@ import "../styles/play.css";
       <div id="density" aria-label="Density"></div>
     </section>
 
-    <section class="tile pads" aria-label="The switches, then the pads as an octave: the slices white, Record, Shift, Stop, Reset and Trigger black">
+    <section class="tile pads" aria-label="The switches, then the pads in the board's order: Record, Shift, Stop, Reset and Trigger over the slices">
       <div class="switches">
         <div id="s09"></div>
         <div id="s07"></div>
       </div>
-      <div id="keys" class="keys"></div>
+      <div class="pad-rows">
+        <div id="functions" class="pad-row functions"></div>
+        <div id="slices" class="pad-row slices"></div>
+      </div>
     </section>
   </div>
 </Base>

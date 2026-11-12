@@ -84,21 +84,18 @@ for (const id of ["S30", "S31", "S32", "S33", "S34", "S35"]) add(knob(byId(id), 
 
 add(toggle(byId("S09"), $("s09"), [[POSITION.down, "REVERSE"], [POSITION.centre, "FREEZE"], [POSITION.up, "FORWARD"]], on));
 add(toggle(byId("S07"), $("s07"), [[POSITION.down, "ONCE"], [POSITION.centre, "TURN"], [POSITION.up, "LOOP"]], on));
-// The pads as an octave: the slices the white keys, the others the black,
-// Rec and Shift on C# and D#, Stop, Reset and Trigger on F#, G# and A#. A slice
-// held is tinted in the recording.
+// The pads in the board's order: Record and Shift, then Stop, Reset and
+// Trigger, over the slices. A slice held is tinted in the recording.
+const FUNCTIONS: [string, string][] = [["P10", "Record"], ["P11", "Shift"], ["P00", "Stop"], ["P01", "Reset"], ["P02", "Trigger"]];
+for (const [id, label] of FUNCTIONS) {
+  const w = add(pad(byId(id), $("functions"), label, on));
+  if (id === "P10") w.root.classList.add("rec");
+}
 SLICE_PADS.forEach((index, i) => {
-  const w = add(pad(padOf(index), $("keys"), `${i + 1}`, on));
+  const w = add(pad(padOf(index), $("slices"), `${i + 1}`, on));
   const draw = w.draw;
   w.draw = (p) => (draw(p), waveform.hold(i, p));
 });
-const BLACK: [string, string, number][] = [["P10", "Record", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Trigger", 6]];
-for (const [id, label, edge] of BLACK) {
-  const w = add(pad(byId(id), $("keys"), label, on));
-  w.root.classList.add("black");
-  w.root.style.setProperty("--edge", String(edge));
-  if (id === "P10") w.root.classList.add("rec");
-}
 
 // Every control at its starting value, sent to the firmware
 for (const w of parts.values()) {

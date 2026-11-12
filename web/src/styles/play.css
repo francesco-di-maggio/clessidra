@@ -106,10 +106,7 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 .knobs .glass { grid-column: span 2; }
 .knobs .glass canvas { width: calc(100% - 16px); height: calc(2 * var(--name) + 12px + var(--band)); }
 
-/* The pads as an octave: the slices white keys, the others black keys on
-   their edges, two then three as on a piano. Names at the foot of each key.
-   In the switches' colours: white keys as the chosen position, black keys as
-   the others. */
+/* The pads in the board's order: the five others over the seven slices */
 .pads { grid-area: pads; display: grid; }
 /* Direction and End side by side over the keys, as the sources are: the
    board's down to up, left to right */
@@ -123,16 +120,16 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 /* Over the middle key, a hairline as wide as it */
 .switches::after { content: ""; position: absolute; top: 50%; left: calc(12px + 3 * ((100% - 60px) / 7 + 6px)); width: calc((100% - 60px) / 7); height: 1px; background: var(--line); }
 .switches .segmented { height: 32px; }
-.keys { --gap: 6px; margin: 12px; position: relative; container-type: inline-size; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); height: 84px; }
-.pad { display: grid; place-content: end center; width: 100%; height: 100%; padding: 0 0 8px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); color: var(--ink);
+.pad-rows { display: grid; gap: 6px; padding: 12px; }
+.pad-row { display: grid; gap: 6px; }
+.functions { grid-template-columns: repeat(5, minmax(0, 1fr)); height: 32px; }
+.slices { grid-template-columns: repeat(7, minmax(0, 1fr)); height: 52px; }
+.pad { display: grid; place-content: center; width: 100%; height: 100%; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); color: var(--ink);
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }
 .pad:hover { border-color: var(--dim); }
-.pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.76); height: 56%; padding-bottom: 8px;
-             left: calc((var(--key) + var(--gap)) * var(--edge) - var(--gap) / 2); transform: translateX(-50%);
-             background: var(--bg); color: var(--ink); letter-spacing: 0.04em; }
-/* Rec black as the others, its name orange: the one orange not "on".
-   Recording, solid orange. */
+.functions .pad { background: var(--bg); }
+/* Record's name orange: the one orange not "on". Recording, solid orange. */
 .pad.rec { color: var(--accent); }
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: #fff; }
 .pad.free { pointer-events: none; color: var(--dim); background: none; border-style: dashed; }
@@ -143,26 +140,37 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
   .instrument { height: auto; grid-template-rows: 56px 296px auto auto; }
 }
 
-/* Narrow: the board's order, two columns */
+/* Narrow: on one screen, so a drag is always a control's, never the page's.
+   The board's order, the recording the rest. */
 @media (max-width: 600px) {
-  body.app { height: auto; min-height: 100dvh; overflow: visible; }
+  body.app { height: 100dvh; min-height: 0; overflow: hidden; }
+  .instrument { --in: 10px; --band: 40px; height: 100%; gap: 6px; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto;
+                grid-template-areas: "transport" "sound" "controls" "pads"; }
   /* Start and the sources, then Out under them */
-  .transport { flex-wrap: wrap; row-gap: 12px; padding: 12px var(--in); }
+  .transport { flex-wrap: wrap; row-gap: 8px; padding: 8px var(--in); }
   .transport .control.primary { width: 88px; }
   .transport .segmented { flex: 1; width: auto; }
   .transport .divider { display: none; }
   .levels { flex-basis: calc(100% - 26px); padding-left: 0; border-left: 0; }
-  .instrument { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 316px auto auto;
-                grid-template-areas: "transport transport" "sound sound" "controls controls" "pads pads"; }
-  .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "knobs knobs" "speed density"; }
-  .knobs { border: 0; border-bottom: 1px solid var(--line); }
-  #speed { border-right: 1px solid var(--line); }
-  /* The switches one over the other, the keys' names smaller */
-  .switches { grid-template-columns: 1fr; padding: 0 12px; }
+  .input { height: 40px; }
+  #speed, #density, .knobs { padding: 10px 0; }
+  .knobs { row-gap: 10px; padding-left: 2px; padding-right: 2px; }
+  .knob { gap: 4px; }
+  .knob .label { font-size: 9px; letter-spacing: 0.04em; }
+  .knob.fader .mark-at { display: none; }
+  .knob.fader svg { transform: none; }
+  /* The switches one over the other */
+  .switches { grid-template-columns: 1fr; padding: 0 10px; }
+  .switches > div { padding: 6px 0; }
   .switches > div:first-child, .switches > div:last-child { grid-column: auto; }
   .switches > div + div { padding-top: 0; }
   .switches::after { display: none; }
-  /* Trigger, seven letters of 0.6 em, inside its key */
-  .pad.black { font-size: min(9px, calc(2.5cqi - 1.9px)); letter-spacing: 0; }
-  .knob.fader { min-height: 240px; }
+  .pad-rows { padding: 10px; }
+  .slices { height: 48px; }
+  .pad { font-size: 9px; letter-spacing: 0.02em; }
+}
+/* Narrow and short, the recording under 70 px: the page scrolls */
+@media (max-width: 600px) and (max-height: 680px) {
+  body.app { height: auto; min-height: 100dvh; overflow: visible; }
+  .instrument { height: auto; grid-template-rows: auto 160px auto auto; }
 }

@@ -175,6 +175,18 @@ try {
   check(twinDragged !== "Off" && twinRestored === "Off", "P11 held, Random size: dragged, a double click: Off again", `${twinDragged} ${twinRestored}`);
   check(errors.length === 0, "no errors", errors.join(" | "));
 
+  // On a phone, on one screen: no drag is the page's
+  const phone = async (width, height) => {
+    await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: true });
+    await sleep(300);
+    return run(`[document.documentElement.scrollHeight, innerHeight, Math.round(document.getElementById("buffer").getBoundingClientRect().height)].join(" ")`);
+  };
+  for (const [w, h] of [[402, 760], [375, 690]]) {
+    const [scroll, inner, buffer] = (await phone(w, h)).split(" ").map(Number);
+    check(scroll === inner && buffer >= 70, `${w}×${h}: on one screen, the recording 70 px or more`, `${scroll} ${inner} ${buffer}`);
+  }
+  await send("Emulation.clearDeviceMetricsOverride");
+
   // The Controls page's help, every text at every tile width: no word space
   // stretched, no last line of one word
   await send("Page.navigate", { url: page.replace(/play\/$/, "controls/") });
