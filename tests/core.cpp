@@ -1750,32 +1750,32 @@ void Mapping()
     c.knobs[Controls::S34] = 1.0f;
     c.knobs[Controls::S31] = 1.0f;
     c.knobs[Controls::S35] = 0.0f;
-    c.knobs[Controls::S36] = 0.0f;
+    c.knobs[Controls::S36] = 1.0f;
     c.knobs[Controls::S30] = 1.0f;
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
     Check(p.pitch == 1.0f && Near(p.rand_pitch, 1.0, 1e-2)
-              && Near(p.rand_time, 0.0, 1e-2) && Near(p.rand_shape, 1.0, 1e-2)
+              && Near(p.rand_time, 1.0, 1e-2) && Near(p.rand_shape, 1.0, 1e-2)
               && Near(p.rand_size, 0.25, 1e-2) && Near(p.reverb, 0.0, 1e-2)
               && p.volume == 0.0f && Near(p.speed, 1.0, 1e-6)
               && p.density == density && p.length == 1.0f,
-          "P11 + S33, S37, S34, S31, S35, S36: random pitch, regular starts, "
+          "P11 + S33, S32, S34, S31, S35, S37: random pitch, random starts, "
           "random shape, random size, no reverb, no volume",
           p.rand_pitch);
     Check(Near(p.filter, 1.0, 1e-2) && Near(p.reverse, 1.0, 1e-2)
               && p.start == 0.0f && p.rand_pos == 0.0f
               && p.window_shape == 0.5f,
-          "P11 + S30, S32: high-pass, every grain reversed, Position, Spray "
+          "P11 + S30, S36: high-pass, every grain reversed, Position, Spray "
           "and Shape kept",
           p.filter);
     c.knobs[Controls::S33] = 0.0f;
-    c.knobs[Controls::S36] = 0.5f;
+    c.knobs[Controls::S37] = 0.5f;
     ui.Process(c, r.core);
     Check(p.rand_pitch == -1.0f && Near(p.volume, 0.0316, 1e-3),
-          "P11 + S33 down: in octaves. S36 halfway: -30 dB",
+          "P11 + S33 down: in octaves. S37 halfway: -30 dB",
           p.volume);
     c.knobs[Controls::S33] = 1.0f;
-    c.knobs[Controls::S36] = 0.0f;
+    c.knobs[Controls::S37] = 0.0f;
     ui.Process(c, r.core);
     press(CoreUI::kShiftPad, false);
     Check(p.pitch == 1.0f && Near(p.speed, 1.0, 1e-6)

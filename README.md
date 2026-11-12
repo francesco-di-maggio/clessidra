@@ -10,12 +10,12 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 
 | Control | Alone | P11 held |
 |---|---|---|
-| S36 | Speed: 0 to 4×, stops at ¼, ½, 1, 2 and 4×, the pitch kept. Frozen: scrubs through the loop, a full stroke the whole loop, the speed taken up again after | Volume: the output, off to 0 dB |
-| S37 | Density: grains per second, 0.25 to 320, whatever their size. None at the bottom. 32 voices: all sound at the top with Size at its centre, and a new grain is dropped while they do | Random timing: when grains start, from a regular pulse to random, as many per second |
+| S36 | Speed: 0 to 4×, stops at ¼, ½, 1, 2 and 4×, the pitch kept. Frozen: scrubs through the loop, a full stroke the whole loop, the speed taken up again after | Reverse: how many grains read the other way, none to all. The phrase keeps its direction, each grain turns |
+| S37 | Density: grains per second, 0.25 to 320, whatever their size. None at the bottom. 32 voices: all sound at the top with Size at its centre, and a new grain is dropped while they do | Volume: the output, off to 0 dB |
 | S30 | Position: where the loop starts, anywhere in the recording. The playhead keeps its place in the loop, so it moves with it, playing or frozen | Filter: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz |
 | S35 | Length: a share of what is left after Position, at the top to the recording's end | Reverb: none to most, decay 0.5 to 16 s |
 | S31 | Size: 5 ms to 2 s, 100 ms at the centre, at most half the recording | Random size: each grain part of the way to a random size, up to about an octave either way at the centre |
-| S32 | Spray: grains stray from the playhead, evenly, up to the whole loop, across the stereo field with it | Reverse: how many grains read the other way, none to all. The phrase keeps its direction, each grain turns |
+| S32 | Spray: grains stray from the playhead, evenly, up to the whole loop, across the stereo field with it | Random timing: when grains start, from a regular pulse to random, as many per second |
 | S33 | Pitch: ±24 semitones, stops at 0, 1, 3, 4, 7, 12, 24 | Random pitch: off at the centre. Up: free, to ±12 semitones. Down: in octaves, up to two grains in three an octave up or down |
 | S34 | Shape: the grain's window, square, decay, bell, reverse at even steps along the knob, and everything between. Square: at full level its whole length. Decay: at once up, then falling. Bell: smooth both ways. Reverse: rising to its end | Random shape: each grain a different window, anywhere from square to reverse |
 | S09 | Direction: up forward, centre freeze, down reverse | |
@@ -39,15 +39,15 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 
 | To play | Set |
 |---|---|
-| Rhythm | Density low, Random timing (P11 + S37) down, Shape on decay, Size short. Size sets how long each hit lasts. |
+| Rhythm | Density low, Random timing (P11 + S32) down, Shape on decay, Size short. Size sets how long each hit lasts. |
 | Drops | Density near the bottom, Size short: single grains, now and then. |
 | Drums by hand | Density at the bottom, Shape on square: tap the slices, several at once. |
-| Cloud | Density at the top, Size 150 to 300 ms, Shape on bell, Spray up, Random timing (P11 + S37) full, Reverb (P11 + S35) up. |
+| Cloud | Density at the top, Size 150 to 300 ms, Shape on bell, Spray up, Random timing (P11 + S32) full, Reverb (P11 + S35) up. |
 | Stretch | Speed at ¼ or ½, Density up. S09 down to hear it backwards. |
 | Frozen | S09 at the centre, Density at the top, Size long, a little Spray, Reverb up. Speed scrubs the point. |
 | One pour | S07 down: the loop plays once and stops. Trigger pours it again. |
 | Shimmer | Random pitch (P11 + S33) below the centre: octaves. |
-| Backwards syllables | Reverse (P11 + S32) at the top: the phrase in order, each grain backwards. |
+| Backwards syllables | Reverse (P11 + S36) at the top: the phrase in order, each grain backwards. |
 
 ## Play in the Browser
 

@@ -77,7 +77,7 @@ export const CONTROLS: Control[] = [
     id: "S36", brief: "Speed 0–4×, stops at ¼ ½ 1 2 4", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3), scale: SPEED_SCALE,
     does: "0 to 4×, with stops at ¼, ½, 1, 2 and 4×. The pitch stays. Frozen: scrubs the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
-    twin: { name: "Volume", brief: "Volume", does: "Output level, off to 0\u00a0dB.", value: (p) => db(p[PARAM.volume]) },
+    twin: { name: "Reverse", brief: "Reverse: grains read backwards", does: "How many grains play backwards: none, some, all.", value: (p) => (p[PARAM.reverse] === 0 ? "Off" : percent(p[PARAM.reverse])) },
   },
   {
     id: "S37", brief: "Density: none, then 0.25–320 a second", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: densityAt(20), scale: DENSITY_SCALE,
@@ -86,7 +86,7 @@ export const CONTROLS: Control[] = [
       const d = p[PARAM.density];
       return d === 0 ? "None" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
     },
-    twin: { name: "Random timing", brief: "Random timing: regular to random", short: "Rnd time", does: "When grains start, from a regular pulse to random.", value: (p) => (p[PARAM.randTime] === 0 ? "Regular" : percent(p[PARAM.randTime])) },
+    twin: { name: "Volume", brief: "Volume", does: "Output level, off to 0\u00a0dB.", value: (p) => db(p[PARAM.volume]) },
   },
   {
     id: "S30", brief: "Position: where the loop starts", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
@@ -116,7 +116,7 @@ export const CONTROLS: Control[] = [
     id: "S32", brief: "Spray: scattered round the playhead", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
     does: "How far grains stray from the playhead, up to the whole loop, and across the stereo field.",
     value: (p) => (p[PARAM.spread] === 0 ? "Off" : percent(p[PARAM.spread])),
-    twin: { name: "Reverse", brief: "Reverse: grains read backwards", does: "How many grains play backwards: none, some, all.", value: (p) => (p[PARAM.reverse] === 0 ? "Off" : percent(p[PARAM.reverse])) },
+    twin: { name: "Random timing", brief: "Random timing: regular to random", short: "Rnd time", does: "When grains start, from a regular pulse to random.", value: (p) => (p[PARAM.randTime] === 0 ? "Regular" : percent(p[PARAM.randTime])) },
   },
   {
     id: "S33", brief: "Pitch ±24 semitones, musical stops", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,
@@ -186,15 +186,15 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 
 // Starting points: a sound and how to set the panel for it
 export const PLAY: [string, string][] = [
-  ["Rhythm", "Density low, Random timing (P11\u00a0+\u00a0S37) down, Shape on decay, Size short. Size sets how long each hit lasts."],
+  ["Rhythm", "Density low, Random timing (P11\u00a0+\u00a0S32) down, Shape on decay, Size short. Size sets how long each hit lasts."],
   ["Drops", "Density near the bottom, Size short: single grains, now and then."],
   ["Drums by hand", "Density at the bottom, Shape on square: tap the slices, several at once."],
-  ["Cloud", "Density at the top, Size 150 to 300 ms, Shape on bell, Spray up, Random timing (P11\u00a0+\u00a0S37) full, Reverb (P11\u00a0+\u00a0S35) up."],
+  ["Cloud", "Density at the top, Size 150 to 300 ms, Shape on bell, Spray up, Random timing (P11\u00a0+\u00a0S32) full, Reverb (P11\u00a0+\u00a0S35) up."],
   ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards."],
   ["Frozen", "S09 at the centre, Density at the top, Size long, a little Spray, Reverb up. Speed scrubs the point."],
   ["One pour", "S07 down: the loop plays once and stops. Trigger pours it again."],
   ["Shimmer", "Random pitch (P11\u00a0+\u00a0S33) below the centre: octaves."],
-  ["Backwards syllables", "Reverse (P11\u00a0+\u00a0S32) at the top: the phrase in order, each grain backwards."],
+  ["Backwards syllables", "Reverse (P11\u00a0+\u00a0S36) at the top: the phrase in order, each grain backwards."],
 ];
 
 export const LED: [string, string][] = [

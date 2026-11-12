@@ -60,13 +60,13 @@ class CoreUI
     static constexpr std::array<float, Controls::kNumKnobs> kTwinDefaults
         = {kFilter,
            kRandomSize,
-           kReverse,
+           kRandomTime,
            kRandomPitch,
            kRandomShape,
            kReverb,
-           kVolume,
-           kRandomTime};
-    // P11 + S36, Volume: off at the bottom, then this range up to 0 dB
+           kReverse,
+           kVolume};
+    // P11 + S37, Volume: off at the bottom, then this range up to 0 dB
     static constexpr float kVolumeDb = 60.0f;
 
     // S36 frozen: moves under this are noise, not scrubbing

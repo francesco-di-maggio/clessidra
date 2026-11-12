@@ -117,7 +117,7 @@ try {
   await sleep(300);
   const ownFaces = await faces();
   const ownDial = await lengthDial();
-  check(shifted && /^true Rnd time \d+\s%$/.test(twin), "P11 held: Density shows Random timing in its place", twin);
+  check(shifted && /^true Volume (−∞|[+−-]?\d+) dB$/.test(twin), "P11 held: Density shows Volume in its place", twin);
   check(/^(hidden )+Listen$/.test(shiftedFaces), "P11 held: the faders' scales hidden, Record reads Listen", shiftedFaces);
   check(/^(visible )+Record$/.test(ownFaces), "P11 released: the scales back, Record again", ownFaces);
   const tickOf = (d) => d.split(" ").pop();
