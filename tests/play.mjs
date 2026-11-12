@@ -136,6 +136,42 @@ try {
   await run(`document.querySelector("button.mute").click()`);
   const playingOut = await outReads();
   check(mutedOut === "−∞ dB" && playingOut === "0 dB", "OUT muted: reads −∞ dB, then its level again", `${mutedOut} | ${playingOut}`);
+
+  // The mouse on Size, as a hand: a click holds nothing, a drag turns it, a
+  // double click brings back its default. With P11 held, its twin's.
+  const centre = await run(`(() => { const k = document.querySelector('.knob[aria-label="Size"] svg'); k.scrollIntoView({ block: "center" }); const r = k.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+  const mouse = (type, x, y, clickCount = 1) => send("Input.dispatchMouseEvent", { type, x, y, button: "left", buttons: type === "mouseReleased" ? 0 : 1, clickCount, pointerType: "mouse" });
+  const [mx, my] = centre;
+  const size = () => value("Size");
+  await mouse("mousePressed", mx, my);
+  await mouse("mouseReleased", mx, my);
+  const clickLock = await run(`document.pointerLockElement !== null`);
+  await mouse("mousePressed", mx, my);
+  for (let k = 1; k <= 10; k++) await mouse("mouseMoved", mx, my - 4 * k);
+  await mouse("mouseReleased", mx, my - 40);
+  await sleep(300);
+  const dragged = await size();
+  const doubleClick = async () => {
+    await mouse("mousePressed", mx, my, 1);
+    await mouse("mouseReleased", mx, my, 1);
+    await mouse("mousePressed", mx, my, 2);
+    await mouse("mouseReleased", mx, my, 2);
+    await sleep(300);
+  };
+  await doubleClick();
+  const restored = await size();
+  check(!clickLock && dragged !== "100 ms" && restored === "100 ms", "Size, a click holds nothing, a drag turns it, a double click: 100 ms again", `${clickLock} ${dragged} ${restored}`);
+  await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "Shift" }))`);
+  await sleep(200);
+  await mouse("mousePressed", mx, my);
+  for (let k = 1; k <= 10; k++) await mouse("mouseMoved", mx, my - 4 * k);
+  await mouse("mouseReleased", mx, my - 40);
+  await sleep(300);
+  const twinDragged = await size();
+  await doubleClick();
+  const twinRestored = await size();
+  await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "Shift" }))`);
+  check(twinDragged !== "Off" && twinRestored === "Off", "P11 held, Random size: dragged, a double click: Off again", `${twinDragged} ${twinRestored}`);
   check(errors.length === 0, "no errors", errors.join(" | "));
 
   // The Controls page's help, every text at every tile width: no word space

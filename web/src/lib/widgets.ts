@@ -25,18 +25,6 @@ export interface Widget {
 }
 
 const SVG = "http://www.w3.org/2000/svg";
-// A mouse dragging a control is held where it went down, hidden, as in a
-// desktop instrument: the control shows the move, and the pointer is back
-// where it was after. Where the browser refuses, the drag goes on unheld.
-function hold(root: HTMLElement, e: PointerEvent) {
-  if (e.pointerType !== "mouse" || !root.requestPointerLock) return;
-  Promise.resolve(root.requestPointerLock()).catch(() => {});
-}
-const held = (root: HTMLElement) => document.pointerLockElement === root;
-function letGo(root: HTMLElement) {
-  if (held(root)) document.exitPointerLock();
-}
-
 const SWEEP = 270; // degrees, from 7:30 to 4:30
 const R = 22;
 const clamp = (x: number) => Math.min(1, Math.max(0, x));
@@ -95,23 +83,19 @@ export function knob(c: Control, parent: Element, h: Handlers): Widget {
     root.focus({ preventScroll: true });
     root.classList.add("dragging");
     drag = { y: e.clientY, v };
-    hold(root, e);
   });
   root.addEventListener("pointermove", (e) => {
     if (!drag) return;
+    // How far from where it went down, up to turn up. Option: fine.
     const fine = e.altKey ? 0.2 : 1;
-    // Held: its moves as they come. Otherwise: how far from where it went down.
-    if (held(root)) h.onInput(c, clamp(v - (e.movementY / 180) * fine));
-    else h.onInput(c, clamp(drag.v + ((drag.y - e.clientY) / 180) * fine));
+    h.onInput(c, clamp(drag.v + ((drag.y - e.clientY) / 180) * fine));
   });
   const release = () => {
     drag = null;
     root.classList.remove("dragging");
-    letGo(root);
   };
   root.addEventListener("pointerup", release);
   root.addEventListener("pointercancel", release);
-  document.addEventListener("pointerlockchange", () => drag && !held(root) && release());
   root.addEventListener("dblclick", () => h.onDefault(c));
   root.addEventListener("keydown", (e) => {
     const step = ({ ArrowUp: 0.01, ArrowRight: 0.01, ArrowDown: -0.01, ArrowLeft: -0.01, PageUp: 0.1, PageDown: -0.1, Home: -1, End: 1 } as Record<string, number>)[e.key];
@@ -265,22 +249,17 @@ export function gain(c: Control, parent: Element, h: Handlers, mute: (c: Control
     root.classList.add("dragging");
     dragging = true;
     set(e);
-    hold(root, e);
   });
   root.addEventListener("pointermove", (e) => {
     if (!dragging) return;
-    // Held: its moves as they come, along the track. Otherwise: where it is.
-    if (held(root)) h.onInput(c, clamp(v + e.movementX / track.getBoundingClientRect().width));
-    else set(e);
+    set(e);
   });
   const release = () => {
     dragging = false;
     root.classList.remove("dragging");
-    letGo(root);
   };
   root.addEventListener("pointerup", release);
   root.addEventListener("pointercancel", release);
-  document.addEventListener("pointerlockchange", () => dragging && !held(root) && release());
   root.addEventListener("dblclick", () => h.onInput(c, c.initial ?? 0));
   root.addEventListener("keydown", (e) => {
     const step = ({ ArrowRight: 0.02, ArrowUp: 0.02, ArrowLeft: -0.02, ArrowDown: -0.02, Home: -1, End: 1 } as Record<string, number>)[e.key];
