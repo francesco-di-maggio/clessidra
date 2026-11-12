@@ -187,8 +187,8 @@ try {
   }
   await send("Emulation.clearDeviceMetricsOverride");
 
-  // The Controls page's help, every text at every tile width: no word space
-  // stretched, no last line of one word
+  // The Controls page's help, every text at every tile width: no last line
+  // of one word. Justified, the widest space shown
   await send("Page.navigate", { url: page.replace(/play\/$/, "controls/") });
   await sleep(1500);
   const help = await run(`(() => {
@@ -227,7 +227,7 @@ try {
     }
     return { cases, widest: widest.toFixed(2), lone };
   })()`);
-  check(help?.cases > 100 && Number(help.widest) < 1.1 && help.lone === 0, "Controls help, 200 to 400 px: no stretched spaces, no lone last word", JSON.stringify(help));
+  check(help?.cases > 100 && help.lone === 0, "Controls help, 200 to 400 px: no lone last word", JSON.stringify(help));
   ws.close();
 } catch (err) {
   check(false, "the page runs", err.message);

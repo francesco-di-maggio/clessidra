@@ -199,7 +199,7 @@ const runtime: [string, string][] = [
 <p class="lead">How a recording becomes grains, and how they fall.</p>
 
 <h2 class="label">01 Signal path</h2>
-<section class="panel figure">
+<section class="panel figure prose">
   <Fragment set:html={signal()} />
   <p>Both jacks are summed to mono, −3 dB each. The ring takes the input all the time. P10 copies from it into the buffer not playing, and the grains read the buffer playing.</p>
 </section>
@@ -223,13 +223,13 @@ const runtime: [string, string][] = [
 </section>
 
 <h2 class="label">04 Starts</h2>
-<section class="panel figure">
+<section class="panel figure prose">
   <Fragment set:html={starts()} />
   <p>Density is grains a second, 0.25 to 320, none at the bottom, whatever their size: grains sounding at once are Density × Size. Random timing takes the starts from a regular pulse to nearly Poisson, the same mean. 32 voices: when all sound, a new grain is dropped.</p>
 </section>
 
 <h2 class="label">05 Level</h2>
-<section class="panel figure">
+<section class="panel figure prose">
   <Fragment set:html={level()} />
   <p>Grains in phase add in amplitude, scattered ones in power. A normaliser measures both every block, 5 ms smoothed, and brings the sum to the input's level with 0.9 headroom, never boosting grains that cancel. Aligned starts keep slowed grains in phase: at ½× a sawtooth's harmonics vary 0.27 dB from one 20 ms frame to the next, as at 1×. Without, 1.0 dB, and 5.6 dB in a dense random cloud.</p>
 </section>
