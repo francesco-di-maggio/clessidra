@@ -83,6 +83,8 @@ try {
   check((await run(`document.getElementById("start").textContent`)) === "Pause", "Start: running");
   const demo = await run(`document.getElementById("buffer").getAttribute("aria-label")`);
   check(demo === "Recording, empty", "Start on Demo: the demo plays in, nothing recorded yet", demo);
+  const empty = await run(`["Position", "Length"].map((n) => [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === n).querySelector(".value").textContent).join(" ")`);
+  check(empty === "– –", "nothing recorded: Position and Length show no time", empty);
   await run(`dispatchEvent(new KeyboardEvent("keydown", { key: "r" }))`);
   await sleep(2000);
   await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "r" }))`);
@@ -91,6 +93,8 @@ try {
   check(/^2\.\d s$/.test(held), "R held 2 s: recorded", held);
   const values = await run(`[...document.querySelectorAll(".knob .value")].map((v) => v.textContent)`);
   check(values.length > 0 && values.every((v) => v && v !== "–"), "every knob shows the firmware's value", values.join(" "));
+  const times = await run(`["Position", "Length"].map((n) => [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === n).querySelector(".value").textContent).join(" ")`);
+  check(/^\d+\.\d\d s \d+\.\d\d s$/.test(times), "Position and Length: seconds, two decimals each", times);
 
   // Density: grains per second. A slice, then P11 held: the twins brought
   // forward, Density's randomness beneath it.
@@ -104,8 +108,14 @@ try {
   await sleep(300);
   const shifted = await run(`document.querySelector(".instrument").classList.contains("shifted")`);
   const twin = await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Density"); return k.classList.contains("twin") + " " + k.querySelector(".label").textContent + " " + k.querySelector(".value").textContent; })()`);
+  const faces = () => run(`[".knob.fader .mark-at", ".knob.fader .tick-at"].flatMap((s) => [...document.querySelectorAll(s)].map((m) => getComputedStyle(m).visibility)).join(" ") + " " + document.querySelector('.pad[aria-label="Record"] .num').textContent`);
+  const shiftedFaces = await faces();
   await pad("Shift", false);
+  await sleep(300);
+  const ownFaces = await faces();
   check(shifted && /^true Rnd time \d+\s%$/.test(twin), "P11 held: Density shows Random timing in its place", twin);
+  check(/^(hidden )+Listen$/.test(shiftedFaces), "P11 held: the faders' scales hidden, Rec reads Listen", shiftedFaces);
+  check(/^(visible )+Rec$/.test(ownFaces), "P11 released: the scales back, Rec again", ownFaces);
 
   // A tap keeps the last 8 s of the input
   await pad("Record", true);

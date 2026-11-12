@@ -173,7 +173,8 @@ function dialDrawing(dial: SVGSVGElement, mode: { centred: boolean }) {
 // A pad: held while pressed, by pointer, or by Space and Enter
 export function pad(c: Control, parent: Element, label: string, h: Handlers): Widget {
   const root = html("button", { class: "pad", type: "button", "aria-label": c.name }, parent);
-  html("span", { class: "num" }, root).textContent = label;
+  const num = html("span", { class: "num" }, root);
+  num.textContent = label;
   const sub = html("span", { class: "sub" }, root);
   root.addEventListener("pointerdown", (e) => {
     e.preventDefault();
@@ -200,6 +201,7 @@ export function pad(c: Control, parent: Element, label: string, h: Handlers): Wi
       root.style.setProperty("--pressure", String(pressure));
     },
     value: (text) => (sub.textContent = text),
+    label: (text) => (num.textContent = text),
   };
 }
 

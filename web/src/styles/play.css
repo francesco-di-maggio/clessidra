@@ -97,6 +97,7 @@ body.app main { flex: 1; min-height: 0; }
 .knob.fader svg * { vector-effect: non-scaling-stroke; }
 .knob .slot { stroke: var(--well); stroke-width: 8; stroke-linecap: round; }
 .knob .tick-at { stroke: var(--dim); stroke-width: 1; }
+.knob.twin .tick-at, .knob.twin .mark-at { visibility: hidden; }
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */

@@ -40,7 +40,7 @@ export interface Control {
   twin?: Twin;
 }
 
-const seconds = (samples: number) => `${(samples / RATE).toFixed(samples < RATE ? 2 : 1)} s`;
+const seconds = (samples: number) => `${(samples / RATE).toFixed(2)} s`;
 const percent = (x: number) => `${Math.round(x * 100)} %`;
 const ms = (x: number) => (x < 1000 ? `${Math.round(x)} ms` : `${(x / 1000).toFixed(2)} s`);
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
@@ -89,7 +89,7 @@ export const CONTROLS: Control[] = [
   {
     id: "S30", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
     does: "Where the loop starts. The playhead moves with it.",
-    value: (p, v) => seconds(p[PARAM.start] * v.sound),
+    value: (p, v) => (v.sound ? seconds(p[PARAM.start] * v.sound) : "–"),
     twin: {
       name: "Filter", bipolar: true, does: "Low-pass below the centre, off at the centre, high-pass above.",
       value: (p) => {
@@ -101,7 +101,7 @@ export const CONTROLS: Control[] = [
   {
     id: "S35", type: "knob", index: 5, x: 476, y: 478, name: "Length", initial: 1,
     does: "How much of the recording after Position the loop takes.",
-    value: (p, v) => seconds(p[PARAM.length] * v.sound),
+    value: (p, v) => (v.sound ? seconds(p[PARAM.length] * v.sound) : "–"),
     twin: { name: "Reverb", does: "Reverb on the grains, from none to long tails.", value: (p) => percent(p[PARAM.reverb]) },
   },
   {
@@ -150,7 +150,7 @@ export const CONTROLS: Control[] = [
     value: (p) => END[p[PARAM.end]] ?? "",
   },
   {
-    id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
+    id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record", short: "Rec",
     does: "Tap: keeps the last 8\u00a0s. Hold: records up to 30\u00a0s.",
     twin: { name: "Listen", does: "Hear the input with the grains. Nothing is recorded.", value: () => "Listen" },
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
