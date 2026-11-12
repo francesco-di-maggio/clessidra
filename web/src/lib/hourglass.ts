@@ -25,6 +25,8 @@ const EASE = 0.25; // of the way to its angle, per frame
 const SETTLED = 0.005; // rad
 const FALL = 12; // px a second, the thread at 1×: at 4× still under half a grid step a frame
 const FRESH_MS = 200; // without news for this long: the thread still
+const DROP_MS = 700; // one grain from the neck to the sand, falling faster
+const TALL = 0.85; // of the room upright, about its middle
 
 export class Hourglass {
   private ctx: CanvasRenderingContext2D;
@@ -35,8 +37,11 @@ export class Hourglass {
   private stamp = 0; // when the parameters last came, ms
   private fallen = 0; // px the thread has moved, within a step of the grid
   private last = 0; // the frame before, ms
+  private dropped = -Infinity; // when the sand last fell a step, ms
 
-  constructor(private canvas: HTMLCanvasElement) {
+  // single: one grain falls each time the sand falls a step, as a clock's
+  // seconds, instead of a thread
+  constructor(private canvas: HTMLCanvasElement, private single = false) {
     this.ctx = canvas.getContext("2d")!;
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => this.draw());
     new MutationObserver(() => this.draw()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
@@ -47,6 +52,7 @@ export class Hourglass {
     // Drawn again only when what it shows changes
     const shown = [PARAM.sandLeft, PARAM.speed, PARAM.freeze, PARAM.stop, PARAM.heading];
     const same = this.sound === sound && this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
+    if (this.single && this.params[PARAM.sandLeft] !== params[PARAM.sandLeft]) this.dropped = performance.now();
     this.params = params.slice();
     this.sound = sound;
     this.stamp = performance.now();
@@ -75,7 +81,7 @@ export class Hourglass {
     this.angle += (to - this.angle) * EASE;
     const settled = Math.abs(to - this.angle) < SETTLED;
     if (settled) this.angle = to;
-    const running = this.flowing() && now - this.stamp < FRESH_MS;
+    const running = this.single ? now - this.dropped < DROP_MS : this.flowing() && now - this.stamp < FRESH_MS;
     if (running) this.fallen = (this.fallen + (FALL * speed * Math.min(now - this.last, 50)) / 1000) % DOT;
     this.last = now;
     this.draw();
@@ -95,10 +101,10 @@ export class Hourglass {
     const css = getComputedStyle(document.documentElement);
     const accent = css.getPropertyValue("--accent");
 
-    // Upright, from the top of a knob's name to the foot of its value, as
-    // wide as a dial's arc. It turns about its neck, level with the dials: on
-    // its side, as tall as their arcs.
-    const tall = H - 2 * EDGE;
+    // Upright, most of the room from the top of a knob's name to the foot of
+    // its value, about its middle, as wide as a dial's arc. It turns about its
+    // neck, level with the dials: on its side, as tall as their arcs.
+    const tall = (H - 2 * EDGE) * TALL;
     const bulb = tall / 2 - 2;
     const wide = ARC / 2 - CAP;
     const cx = W / 2;
@@ -186,8 +192,14 @@ export class Hourglass {
       // The thread, from the neck down to the sand below, its dots moving
       // down
       const lower = inside(-ahead);
-      for (let y = cy + this.fallen; speed > 0 && left > 0 && y < into.level; y += DOT) {
-        if (y - cy < 2 * DOT || within(lower, cx, y)) ctx.rect(cx - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
+      if (this.single) {
+        // One grain, from the neck down to the sand, falling faster
+        const t = (performance.now() - this.dropped) / DROP_MS;
+        if (t < 1) ctx.rect(cx - SIZE / 2, cy + (into.level - cy) * t * t - SIZE / 2, SIZE, SIZE);
+      } else {
+        for (let y = cy + this.fallen; speed > 0 && left > 0 && y < into.level; y += DOT) {
+          if (y - cy < 2 * DOT || within(lower, cx, y)) ctx.rect(cx - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
+        }
       }
       ctx.fill();
     }

@@ -38,7 +38,7 @@ import { url } from "../lib/url";
   // a grain falls, the bulb above holds what is left of the minute.
   import { Hourglass } from "../lib/hourglass";
   import { PARAM, PARAM_SIZE } from "../lib/engine";
-  const glass = new Hourglass(document.getElementById("clock") as HTMLCanvasElement);
+  const glass = new Hourglass(document.getElementById("clock") as HTMLCanvasElement, true);
   const params = new Float32Array(PARAM_SIZE);
   params[PARAM.speed] = 1;
   params[PARAM.heading] = 1;

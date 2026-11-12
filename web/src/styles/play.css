@@ -101,8 +101,8 @@ body.app main { flex: 1; min-height: 0; }
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
-/* Between Position and Length, the hourglass: upright, from a knob's name to
-   the foot of its value. On its side, as tall as a dial and level with it. */
+/* Between Position and Length, the hourglass: upright, within a knob's name
+   and the foot of its value. On its side, as tall as a dial and level with it. */
 .knobs .glass { grid-column: span 2; }
 .knobs .glass canvas { width: calc(100% - 16px); height: calc(2 * var(--name) + 12px + var(--band)); }
 
