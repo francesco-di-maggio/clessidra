@@ -35,7 +35,7 @@ A granular sampler. Record a sound, then play it as grains: Speed moves through 
 | Glow | Grains falling |
 | Flash | Recording |
 | Pulse | At a stop: unison, speed 1×, 100 ms, filter off, random pitch off |
-| Steady | P11 held: the twin last turned |
+| Steady | P11 held: the last knob turned |
 
 | To play | Set |
 |---|---|

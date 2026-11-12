@@ -201,7 +201,7 @@ export const LED: [string, string][] = [
   ["Glow", "Grains falling"],
   ["Flash", "Recording"],
   ["Pulse", "At a stop: unison, speed 1×, 100 ms, filter off, random pitch off"],
-  ["Steady", "P11 held: the twin last turned"],
+  ["Steady", "P11 held: the last knob turned"],
 ];
 
 // Browser only: the level into the firmware and out of it. The board has its
