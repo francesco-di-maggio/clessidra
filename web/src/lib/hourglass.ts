@@ -14,6 +14,7 @@ type Point = [number, number];
 // the top of the name's letters below its line, as the foot of the value's
 // figures above theirs, less half a stroke. The knob is level about its dial.
 const ARC = 38;
+const BAND = 48; // px, the dial ARC was measured on
 const EDGE = 4.75;
 const CAP = 3; // px, a cap past the glass at each side
 const NECK = 0.07; // half its width, of the bulb's
@@ -27,7 +28,6 @@ const FALL = 12; // px a second, the thread at 1×: at 4× still under half a gr
 const FRESH_MS = 200; // without news for this long: the thread still
 const DROP_MS = 700; // one grain from the neck to the sand, falling faster
 const TALL = 0.85; // of the room upright, about its middle
-const WIDE = 0.21; // half its width, of its height, at most a dial's arc
 const REPOSE = 0.6; // the sand's slope upright: about 31°, as dry sand rests
 // The grains as sand. Size: a dot from MIN_DOT px at 5 ms to MAX_DOT at 2 s,
 // exponential. Density: the thread's dots one to THREAD_GAPS grid steps apart,
@@ -116,7 +116,9 @@ export class Hourglass {
     // neck, level with the dials: on its side, as tall as their arcs.
     const tall = (H - 2 * EDGE) * TALL;
     const bulb = tall / 2 - 2;
-    const wide = Math.min(ARC / 2 - CAP, tall * WIDE);
+    // As wide as the dials beside it: on its side, as tall as their arcs
+    const band = parseFloat(getComputedStyle(canvas).getPropertyValue("--band")) || BAND;
+    const wide = (ARC * band) / BAND / 2 - CAP;
     const cx = W / 2;
     const cy = H / 2;
     // Half its width at t of a bulb, 0 at the neck, 1 at its cap

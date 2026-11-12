@@ -101,10 +101,11 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
-/* Between Position and Length, the hourglass as a knob: as tall as a dial
-   and level with it */
+/* Between Position and Length, the hourglass: upright as tall as a knob,
+   its name to its value, as wide as a dial's arc. On its side, level with
+   the dials and as tall. */
 .knobs .glass { grid-column: span 2; justify-content: flex-start; }
-.knobs .glass canvas { width: calc(100% - 16px); height: calc(var(--band) + 8px); margin-top: calc(var(--name) + 2px); }
+.knobs .glass canvas { width: calc(100% - 16px); height: calc(2 * var(--name) + 12px + var(--band)); }
 
 /* The pads in the board's order: the five others over the seven slices */
 .pads { grid-area: pads; display: grid; }
@@ -155,7 +156,7 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
   #speed, #density, .knobs { padding: 10px 0; }
   .knobs { row-gap: 10px; padding-left: 2px; padding-right: 2px; }
   .knob { gap: 4px; }
-  .knobs .glass canvas { margin-top: var(--name); }
+  .knobs .glass canvas { height: calc(2 * var(--name) + 8px + var(--band)); }
   .knob .label { font-size: 9px; letter-spacing: 0.04em; }
   .knob.fader .mark-at { display: none; }
   .knob.fader svg { transform: none; }
