@@ -27,6 +27,7 @@ const FALL = 12; // px a second, the thread at 1×: at 4× still under half a gr
 const FRESH_MS = 200; // without news for this long: the thread still
 const DROP_MS = 700; // one grain from the neck to the sand, falling faster
 const TALL = 0.85; // of the room upright, about its middle
+const REPOSE = 0.6; // the sand's slope upright: about 31°, as dry sand rests
 
 export class Hourglass {
   private ctx: CanvasRenderingContext2D;
@@ -121,38 +122,41 @@ export class Hourglass {
       for (let k = STEPS; k >= 0; k--) points.push([half(k / STEPS, INSET), (side * (k * (bulb - INSET))) / STEPS]);
       return points.map(turned);
     };
-    const area = (points: Point[]) => {
-      let sum = 0;
-      for (let i = 0; i < points.length; i++) {
-        const [x0, y0] = points[i];
-        const [x1, y1] = points[(i + 1) % points.length];
-        sum += x0 * y1 - x1 * y0;
+    // A share of a bulb as sand at rest: its surface a slope either way from
+    // the middle, as sand lies at its angle of repose. slope > 0 a heap,
+    // where grains land; < 0 a funnel, where they drain; 0 level. The
+    // surface's height in the middle found so the sand's area is the share.
+    const STEP = 0.5; // px, the columns measured
+    const pile = (points: Point[], share: number, slope: number) => {
+      const xs = points.map((q) => q[0]);
+      const columns: [number, number, number][] = []; // x, top, foot
+      for (let x = Math.min(...xs); x <= Math.max(...xs); x += STEP) {
+        let top = Infinity;
+        let foot = -Infinity;
+        for (let i = 0; i < points.length; i++) {
+          const [x0, y0] = points[i];
+          const [x1, y1] = points[(i + 1) % points.length];
+          if (x0 <= x !== x1 <= x) {
+            const y = y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+            top = Math.min(top, y);
+            foot = Math.max(foot, y);
+          }
+        }
+        if (foot > top) columns.push([x, top, foot]);
       }
-      return Math.abs(sum) / 2;
-    };
-    // What of a shape lies below a level
-    const below = (points: Point[], level: number) => {
-      const out: Point[] = [];
-      for (let i = 0; i < points.length; i++) {
-        const a = points[i];
-        const b = points[(i + 1) % points.length];
-        if (a[1] >= level) out.push(a);
-        if (a[1] >= level !== b[1] >= level) out.push([a[0] + ((b[0] - a[0]) * (level - a[1])) / (b[1] - a[1]), level]);
-      }
-      return out;
-    };
-    // A share of a bulb as sand lying level in it: the sand, and its surface
-    const settle = (points: Point[], share: number) => {
+      const surface = (level: number) => (x: number) => level + slope * Math.abs(x - cx);
+      const sand = (level: number) => columns.reduce((sum, [x, top, foot]) => sum + Math.max(0, foot - Math.max(top, surface(level)(x))), 0);
+      const whole = sand(-Infinity);
+      const reach = Math.abs(slope) * Math.max(...xs.map((x) => Math.abs(x - cx))) + 1;
       const ys = points.map((q) => q[1]);
-      let high = Math.min(...ys);
-      let low = Math.max(...ys);
-      const whole = area(points);
-      for (let i = 0; i < 20; i++) {
+      let high = Math.min(...ys) - reach;
+      let low = Math.max(...ys) + reach;
+      for (let i = 0; i < 24; i++) {
         const level = (high + low) / 2;
-        if (area(below(points, level)) > share * whole) high = level;
+        if (sand(level) > share * whole) high = level;
         else low = level;
       }
-      return { sand: below(points, low), level: low };
+      return { surface: surface(low), level: low };
     };
     const within = (points: Point[], x: number, y: number) => {
       let inside = false;
@@ -166,13 +170,12 @@ export class Hourglass {
     // A shape as dots: every point of the grid inside it, the grid about the
     // neck
     const reach = Math.ceil(bulb / DOT) + 1;
-    const dots = (points: Point[]) => {
-      if (points.length < 3) return;
+    const dots = (points: Point[], surface: (x: number) => number) => {
       for (let i = -reach; i <= reach; i++) {
         for (let j = -reach; j <= reach; j++) {
           const x = cx + i * DOT;
           const y = cy + j * DOT;
-          if (within(points, x, y)) ctx.rect(x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
+          if (y >= surface(x) && within(points, x, y)) ctx.rect(x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
         }
       }
     };
@@ -183,12 +186,15 @@ export class Hourglass {
       const { way, speed } = this.motion();
       const left = Math.min(Math.max(p[PARAM.sandLeft], 0), 1);
       const ahead = way > 0 ? -1 : 1;
-      const from = settle(inside(ahead), left);
-      const into = settle(inside(-ahead), 1 - left);
+      // Upright, a funnel above and a heap below; on its side, both level
+      const slope = REPOSE * Math.abs(Math.cos(this.angle));
+      const above = inside(ahead);
+      const from = pile(above, left, -slope);
+      const into = pile(inside(-ahead), 1 - left, slope);
       ctx.fillStyle = accent;
       ctx.beginPath();
-      dots(from.sand);
-      dots(into.sand);
+      dots(above, from.surface);
+      dots(inside(-ahead), into.surface);
       // The thread, from the neck down to the sand below, its dots moving
       // down
       const lower = inside(-ahead);
