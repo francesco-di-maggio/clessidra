@@ -108,9 +108,9 @@ class Core
         float density = 80.0f;
         // 0 square, 1/3 decay, 2/3 bell, 1 reverse
         float window_shape = 2.0f / 3.0f;
-        // Randomness of each grain, 0..1: 0 none, 1 anywhere in the range,
-        // evenly. Position within the amount around the playhead, round the
-        // selection. Size between min_grain_ms and max_grain_ms, exponential.
+        // Randomness of each grain, 0..1: 0 none, 1 anywhere in the range.
+        // Position within the amount either way of the playhead, bell-shaped
+        // (Bell()), round the selection. The others evenly. Size between min_grain_ms and max_grain_ms, exponential.
         // Pitch up to kRandPitchSemitones either way. Below 0, to -1: in
         // octaves, the odds rising to kRandPitchOctaveOdds. Shape anywhere
         // from reverse percussive to percussive.
@@ -268,6 +268,9 @@ class Core
     // x, 0..1, moved by amount towards an even random value
     float Randomise(float x, float amount);
     float Random(); // uniform -1..1
+    // -1..1, bell-shaped: the mean of four Random(), standard deviation 0.29
+    // as a uniform -0.5..0.5
+    float Bell();
 
     Params                params_; // the last set, main loop only
     std::array<Params, 2> slots_;

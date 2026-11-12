@@ -133,8 +133,8 @@ void CoreUI::Process(const Controls& c, Core& core)
                     : 0.0f;
     p.volume = Volume(twin(Controls::S37));
 
-    // S32, Spray: how far each grain strays from the playhead,
-    // evenly, up to the whole loop, and across the stereo field with it.
+    // S32, Spray: how far each grain strays from the playhead, most
+    // near it, up to the whole loop, and across the stereo field with it.
     // Shift: the grains' starts, from regular to random.
     const float rnd_pos = own(Controls::S32);
     p.rand_pos          = rnd_pos * rnd_pos;
