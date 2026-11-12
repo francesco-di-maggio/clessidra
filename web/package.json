@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "pdf-lib": "^1.17.1",
     "typescript": "^6.0.3"
   }
 }

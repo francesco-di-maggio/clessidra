@@ -1,92 +1,127 @@
 ---
-// The manual, two A4 pages in the style of Synthux's blank manual: the panel
-// with every control's name, then what each does. Printed to
-// clessidra-manual.pdf by web/manual.mjs.
-import "../styles/site.css";
-import TouchPanel from "../components/TouchPanel.astro";
-import { CONTROLS, LED, PLAY } from "../lib/controls";
+// The manual's text, on Synthux's Touch II blank manual (web/manual/): the
+// name, each control's line beside the panel, three notes in the box below.
+// In the template's points, A4, transparent: web/manual.mjs prints it and
+// lays it over the template, into clessidra-manual.pdf.
+import { CONTROLS, byId } from "../lib/controls";
 
-const KNOBS = ["S36", "S37", "S30", "S35", "S31", "S32", "S33", "S34"];
-const byId = (id: string) => CONTROLS.find((c) => c.id === id)!;
-const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02"];
+const W = 595.276;
+const H = 841.89;
+// The template's panel, measured: its edges, and the board photo's pixels
+// (controls.ts) onto it, fitted to the drawn knobs
+const PANEL = { left: 195.9, right: 398.9 };
+const at = (x: number, y: number): [number, number] => [200.1 + 0.3275 * x, 280.9 + 0.335 * y];
+// The drawn jacks and faders
+const SPOTS: Record<string, [number, number]> = { IN: [209, 319], OUT: [209, 362.4], S36: [209, 427], S37: [385.6, 427] };
+// Switches: the code under the lever
+const spot = (id: string): [number, number] => {
+  if (SPOTS[id]) return SPOTS[id];
+  const c = byId(id);
+  const [x, y] = at(c.x, c.y);
+  return c.type === "switch" ? [x, y + 11] : [x, y];
+};
+
+// Lines beside the panel: the code, then what it does, the twin in grey
+// under it. Heights are the leader's, in points.
+interface Line { id: string; y: number; text: string; twin?: string }
+const line = (id: string, y: number, label = id): Line => {
+  const c = byId(id);
+  return { id: label, y, text: c.brief ?? c.name, twin: c.twin?.brief };
+};
+const LEFT: Line[] = [
+  line("P10", 297.6),
+  { id: "IN", y: 319, text: "Input" },
+  { id: "OUT", y: 362.4, text: "Output" },
+  line("S31", 390),
+  line("S32", 414),
+  line("S36", 438),
+  line("S30", 462),
+  line("P00", 488.6),
+  line("S09", 503),
+  line("P03", 548.9, "P03–P09"),
+];
+const RIGHT: Line[] = [
+  line("P11", 297.6),
+  line("S33", 390),
+  line("S34", 414),
+  line("S37", 438),
+  line("S35", 462),
+  line("P01", 485.2),
+  line("P02", 497.2),
+  line("S07", 513),
+];
+const CODE = 3.6; // a code's character, 6 pt mono
+const codeEnd = PANEL.left - 16;
+const codeStart = PANEL.right + 16;
+
+const CHIPS = [...CONTROLS.map((c) => c.id), "IN", "OUT"];
+
+// The template's rules: under the name, and in the box
+const TITLE = { x: 196, rules: [134.3, 153.1, 171.9] };
+const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
 ---
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Clessidra · Manual</title>
 <link rel="stylesheet" href="https://francescodimaggio.nl/style/v1/tokens.css">
 <style>
   @page { size: A4; margin: 0; }
-  html, body { margin: 0; background: #fff; color: #111; font: 10pt/1.4 var(--sans); text-wrap: pretty; }
-  .page { box-sizing: border-box; width: 210mm; height: 297mm; padding: 10mm; break-after: page; }
-  .frame { box-sizing: border-box; height: 100%; border: 0.3mm solid #111; padding: 12mm 16mm; display: flex; flex-direction: column; }
-  .title { display: grid; grid-template-columns: auto 1fr; column-gap: 8mm; align-items: center; margin: 0 6mm; }
-  .glass { width: 16mm; height: 22mm; }
-  .glass path { fill: none; stroke: #111; stroke-width: 1.2; }
-  .kicker { font-size: 18pt; font-weight: 300; color: #777; }
-  h1 { margin: 0; font-size: 38pt; font-weight: 400; letter-spacing: -0.01em; line-height: 1; }
-  .lines { margin: 8mm 6mm 0 30mm; }
-  .lines p { margin: 0; padding: 2.4mm 0; border-bottom: 0.25mm solid #111; font-size: 10pt; }
-  .board { flex: 1; min-height: 0; display: flex; justify-content: center; padding: 8mm 0; }
-  .board svg.touch { width: auto; height: 100%; max-height: none; margin: 0; }
-  .touch .plate { fill: #fff; }
-  .box { border: 0.3mm solid #111; padding: 3mm 6mm; margin: 0 8mm; }
-  .box p { margin: 0; padding: 2mm 0; border-bottom: 0.25mm solid #111; }
-  .box p:last-child { border-bottom: 0; }
-  h2 { margin: 0 0 2mm; font: 500 8pt var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: #777; }
-  table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 3mm; font-size: 8.5pt; line-height: 1.3; }
-  th { text-align: left; font: 500 7pt var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: #777; padding: 0 2mm 1.5mm 0; border-bottom: 0.3mm solid #111; }
-  td { padding: 0.45mm 2mm 0.45mm 0; border-bottom: 0.2mm solid #ccc; vertical-align: top; }
-  td:first-child { font: 500 8.5pt var(--mono); width: 26mm; }
-  .touch { --ink: #111; --dim: #777; --line: #bbb; --surface: #fff; --accent: #111; }
+  html, body { margin: 0; background: transparent; }
+  svg { display: block; width: 210mm; height: 297mm; }
+  text { font-family: var(--sans); fill: #111; }
+  .name { font-size: 9.5px; font-weight: 600; }
+  .sub { font-size: 8px; }
+  .url, .code, .chip text { font-family: var(--mono); }
+  .url { font-size: 6.5px; fill: #777; }
+  .code { font-size: 6px; font-weight: 600; }
+  .does { font-size: 6.5px; }
+  .twin { font-size: 6px; fill: #888; }
+  .note { font-size: 7px; }
+  .leader { stroke: #111; stroke-width: 0.5; }
+  .chip rect { fill: #111; }
+  .chip text { font-size: 4.6px; font-weight: 600; fill: #fff; text-anchor: middle; }
 </style>
 </head>
 <body>
-<section class="page"><div class="frame">
-  <div class="title">
-    <svg class="glass" viewBox="-9 -12 18 24" aria-hidden="true"><path d="M-6-10h12M-6 10h12M-4.5-10C-4.5-3.5-1-2-1 0S-4.5 3.5-4.5 10M4.5-10C4.5-3.5 1-2 1 0S4.5 3.5 4.5 10"/></svg>
-    <div><div class="kicker">Simple Touch</div><h1>Clessidra</h1></div>
-  </div>
-  <div class="lines">
-    <p>A granular sampler: grains of a recording, from single drops to a dense cloud.</p>
-    <p>francescodimaggio.nl/clessidra</p>
-    <p>Synthux Design Residency 2026</p>
-  </div>
-  <div class="board"><TouchPanel /></div>
-  <div class="box">
-    <p>Record a sound, then play it as grains: Speed through it, Density how they fall.</p>
-    <p>Two layers: each knob alone, and its twin with P11 held. Nothing jumps when they change.</p>
-    <p>Density at the bottom: the loop silent, the slices still play. S09 at its centre: frozen.</p>
-  </div>
-</div></section>
+<svg viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+  <text class="name" x={TITLE.x} y={TITLE.rules[0] - 4}>Clessidra</text>
+  <text class="sub" x={TITLE.x} y={TITLE.rules[1] - 4}>Granular sampler, inspired by the hourglass</text>
+  <text class="url" x={TITLE.x} y={TITLE.rules[2] - 4}>Firmware v0.3 · francescodimaggio.nl/clessidra</text>
 
-<section class="page"><div class="frame">
-  <h2>Faders and Knobs</h2>
-  <table>
-    <tbody>
-      {KNOBS.map(byId).map((c) => <tr><td>{c.id}</td><td><b>{c.name}</b>. {c.does}{c.twin && <><br /><i>P11</i>: <b>{c.twin.name}</b>. {c.twin.does}</>}</td></tr>)}
-    </tbody>
-  </table>
+  {CHIPS.map((id) => {
+    const [x, y] = spot(id);
+    const w = id.length * 2.9 + 4;
+    return <g class="chip"><rect x={x - w / 2} y={y - 3.6} width={w} height={7.2} rx={3.6} /><text x={x} y={y + 1.6}>{id}</text></g>;
+  })}
 
-  <h2>Pads and Switches</h2>
-  <table>
-    <tbody>
-      {OTHERS.map(byId).map((c) => <tr><td>{c.id}</td><td><b>{c.name}</b>. {c.does}{c.twin && <><br /><i>P11</i>: <b>{c.twin.name}</b>. {c.twin.does}</>}</td></tr>)}
-      <tr><td>P03–P09</td><td><b>Slices</b>. The loop in seven slices: its start, then the recording's strongest attacks inside it. Without attacks, as in a held note, even parts. Left to right on the board: P03, P04, P08, P05, P09, P06, P07. Held: plays its slice in the direction S09 sets, to its end as S07 sets. Several at once. The loop waits.</td></tr>
-      
-    </tbody>
-  </table>
+  {LEFT.map((l) => {
+    const textEnd = codeEnd - l.id.length * CODE - 4;
+    return (
+      <g>
+        <line class="leader" x1={codeEnd + 3} y1={l.y} x2={PANEL.left} y2={l.y} />
+        <text class="code" x={codeEnd} y={l.y + 2.1} text-anchor="end">{l.id}</text>
+        <text class="does" x={textEnd} y={l.y + 2.3} text-anchor="end">{l.text}</text>
+        {l.twin && <text class="twin" x={textEnd} y={l.y + 10.3} text-anchor="end">{l.twin}</text>}
+      </g>
+    );
+  })}
+  {RIGHT.map((l) => {
+    const textStart = codeStart + l.id.length * CODE + 4;
+    return (
+      <g>
+        <line class="leader" x1={PANEL.right} y1={l.y} x2={codeStart - 3} y2={l.y} />
+        <text class="code" x={codeStart} y={l.y + 2.1}>{l.id}</text>
+        <text class="does" x={textStart} y={l.y + 2.3}>{l.text}</text>
+        {l.twin && <text class="twin" x={textStart} y={l.y + 10.3}>{l.twin}</text>}
+      </g>
+    );
+  })}
 
-  <h2>To Play</h2>
-  <table>
-    <tbody>{PLAY.map(([sound, how]) => <tr><td>{sound}</td><td>{how}</td></tr>)}</tbody>
-  </table>
-
-  <h2>LED</h2>
-  <table>
-    <tbody>{LED.map(([state, meaning]) => <tr><td>{state}</td><td>{meaning}</td></tr>)}</tbody>
-  </table>
-</div></section>
+  <text class="note" x={BOX.x} y={BOX.rules[0] - 4}>Grey: with P11 held. After a layer change a knob moves on from where it is, nothing jumps.</text>
+  <text class="note" x={BOX.x} y={BOX.rules[1] - 4}>Always listening: a tap on P10 keeps what just played. Frozen by S09, Speed scrubs the loop.</text>
+  <text class="note" x={BOX.x} y={BOX.rules[2] - 4}>LED: glow = grains, flash = recording, pulse = a stop, steady = P11 held, the twin last turned.</text>
+</svg>
 </body>
 </html>
