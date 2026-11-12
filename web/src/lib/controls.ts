@@ -183,20 +183,20 @@ export const padOf = (index: number) => CONTROLS.find((c) => c.type === "pad" &&
 
 // Starting points: a sound and how to set the panel for it
 export const PLAY: [string, string][] = [
-  ["Rhythm", "Density low, Random timing (P11 + S37) down, Shape on decay, Size short. Size sets how long each hit lasts"],
-  ["Drops", "Density near the bottom, Size short: single grains, now and then"],
-  ["Drums by hand", "Density at the bottom, Shape on square: tap the slices, several at once"],
-  ["Cloud", "Density at the top, Size 150 to 300 ms, Shape on bell, Spray up, Random timing (P11 + S37) full, Reverb (P11 + S35) up"],
-  ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards"],
-  ["Drone", "S09 at the centre, Density at the top, Size long, a little Spray, Reverb up. Speed scrubs the point"],
-  ["One pour", "S07 down: the loop plays once and stops. Trig pours it again"],
-  ["Shimmer", "Random pitch (P11 + S33) below the centre: octaves"],
-  ["Backwards syllables", "Reverse (P11 + S32) at the top: the phrase in order, each grain backwards"],
+  ["Rhythm", "Density low, Random timing (P11\u00a0+\u00a0S37) down, Shape on decay, Size short. Size sets how long each hit lasts."],
+  ["Drops", "Density near the bottom, Size short: single grains, now and then."],
+  ["Drums by hand", "Density at the bottom, Shape on square: tap the slices, several at once."],
+  ["Cloud", "Density at the top, Size 150 to 300 ms, Shape on bell, Spray up, Random timing (P11\u00a0+\u00a0S37) full, Reverb (P11\u00a0+\u00a0S35) up."],
+  ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards."],
+  ["Drone", "S09 at the centre, Density at the top, Size long, a little Spray, Reverb up. Speed scrubs the point."],
+  ["One pour", "S07 down: the loop plays once and stops. Trig pours it again."],
+  ["Shimmer", "Random pitch (P11\u00a0+\u00a0S33) below the centre: octaves."],
+  ["Backwards syllables", "Reverse (P11\u00a0+\u00a0S32) at the top: the phrase in order, each grain backwards."],
 ];
 
 export const LED: [string, string][] = [
   ["Glow", "Grains falling"],
-  ["Flashing", "Recording"],
+  ["Flash", "Recording"],
   ["Pulse", "At a stop: unison, speed 1×, 100 ms, filter off, random pitch off"],
   ["Steady", "P11 held: the twin last turned"],
 ];
