@@ -71,6 +71,7 @@ ol.rows { gap: 6px; padding: 14px; }
 .row { display: grid; grid-template-columns: 112px 1fr; gap: 12px; font-size: 15px; line-height: 20px; }
 .row { align-items: baseline; }
 .row .label { line-height: 14px; }
+.rows.steps .row { grid-template-columns: 32px 1fr; }
 /* A row's text justified and hyphenated as the family's prose */
 .row > :last-child { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
                      hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
