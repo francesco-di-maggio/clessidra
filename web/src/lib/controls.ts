@@ -150,7 +150,7 @@ export const CONTROLS: Control[] = [
     value: (p) => END[p[PARAM.end]] ?? "",
   },
   {
-    id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record", short: "Rec",
+    id: "P10", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
     does: "Tap: keeps the last 8\u00a0s. Hold: records up to 30\u00a0s.",
     twin: { name: "Listen", does: "Hear the input with the grains. Nothing is recorded.", value: () => "Listen" },
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),

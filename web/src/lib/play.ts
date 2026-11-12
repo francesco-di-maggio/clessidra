@@ -92,7 +92,7 @@ SLICE_PADS.forEach((index, i) => {
   const draw = w.draw;
   w.draw = (p) => (draw(p), waveform.hold(i, p));
 });
-const BLACK: [string, string, number][] = [["P10", "Rec", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Trig", 6]];
+const BLACK: [string, string, number][] = [["P10", "Record", 1], ["P11", "Shift", 2], ["P00", "Stop", 4], ["P01", "Reset", 5], ["P02", "Retrigger", 6]];
 for (const [id, label, edge] of BLACK) {
   const w = add(pad(byId(id), $("keys"), label, on));
   w.root.classList.add("black");

@@ -117,8 +117,8 @@ try {
   const ownFaces = await faces();
   const ownDial = await lengthDial();
   check(shifted && /^true Rnd time \d+\s%$/.test(twin), "P11 held: Density shows Random timing in its place", twin);
-  check(/^(hidden )+Listen$/.test(shiftedFaces), "P11 held: the faders' scales hidden, Rec reads Listen", shiftedFaces);
-  check(/^(visible )+Rec$/.test(ownFaces), "P11 released: the scales back, Rec again", ownFaces);
+  check(/^(hidden )+Listen$/.test(shiftedFaces), "P11 held: the faders' scales hidden, Record reads Listen", shiftedFaces);
+  check(/^(visible )+Record$/.test(ownFaces), "P11 released: the scales back, Record again", ownFaces);
   const tickOf = (d) => d.split(" ").pop();
   check(twinDial !== ownDial && tickOf(twinDial) === tickOf(ownDial), "P11 held: Length's arc shows Reverb, its tick stays where the knob is", `${twinDial} | ${ownDial}`);
 
