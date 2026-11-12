@@ -20,16 +20,11 @@ h2.label { scroll-margin-top: 16px; }
 .meta dt { color: var(--dim); font: 500 11px/14px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* The status tile with a clock at its right end: an hourglass for the minute,
-   the time under it. Where the tile is too narrow for both, no clock. */
+   as on the Play page. Where the tile is too narrow, no clock. */
 .status { position: relative; }
-/* Measured against the tile's text: the glass starts at the top of the first
-   row's capitals, the time stands on the last row's baseline */
-.clock { position: absolute; right: 36px; top: 18px; display: grid; grid-template-rows: 62px 20px; row-gap: 16px; justify-items: center; }
-.clock svg { height: 62px; width: auto; }
-.clock .glass { fill: none; stroke: var(--ink); stroke-width: 0.6; stroke-linejoin: round; stroke-linecap: round; }
-.clock .sand { fill: var(--accent); }
-.clock .grain { opacity: 0; }
-.clock .label { line-height: 20px; font-variant-numeric: tabular-nums; }
+/* Its caps from the top of the first row's capitals to the last row's
+   baseline: the glass draws 4.75 px inside its canvas at each end */
+.clock { position: absolute; right: 36px; top: 15px; width: 44px; height: 98px; }
 @media (max-width: 560px) { .clock { display: none; } }
 
 .stack { display: grid; gap: 10px; min-width: 0; }

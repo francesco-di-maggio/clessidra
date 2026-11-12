@@ -18,17 +18,7 @@ import { url } from "../lib/url";
   <dt>Hardware</dt><dd><a href="https://www.synthux.academy/">Synthux Simple Touch</a>, <a href="https://daisy.audio/">Electrosmith Daisy Seed</a></dd>
   <dt>Licence</dt><dd>MIT</dd>
 </dl>
-<div class="clock" role="img" aria-label="The time now, as sand through a minute">
-  <svg viewBox="-6.5 -8.1 13 16.2" aria-hidden="true">
-    <clipPath id="clock-above"><path d="M-4-7.5C-4-2.5-1-1.5-1 0H1C1-1.5 4-2.5 4-7.5Z" /></clipPath>
-    <clipPath id="clock-below"><path d="M-4 7.5C-4 2.5-1 1.5-1 0H1C1 1.5 4 2.5 4 7.5Z" /></clipPath>
-    <rect id="clock-left" class="sand" x="-5" width="10" clip-path="url(#clock-above)" />
-    <rect id="clock-gone" class="sand" x="-5" width="10" clip-path="url(#clock-below)" />
-    <circle id="clock-grain" class="sand grain" r="0.75" />
-    <path class="glass" d="M-5.5-7.5h11M-5.5 7.5h11M-4-7.5C-4-2.5-1-1.5-1 0S-4 2.5-4 7.5M4-7.5C4-2.5 1-1.5 1 0S4 2.5 4 7.5" />
-  </svg>
-  <time id="clock-time" class="label"></time>
-</div>
+<canvas id="clock" class="clock" role="img" aria-label="The minute as sand: a grain each second"></canvas>
 </div>
 
 <div class="tiles">
@@ -44,30 +34,17 @@ import { url } from "../lib/url";
 </Base>
 
 <script>
-  // The clock: the minute as sand. Each second a grain falls from the neck,
-  // so the bulb above holds what is left of the minute and the one below
-  // fills with what has passed. On the minute it starts over. The time under
-  // the glass.
-  const BULB = 7.5; // a bulb's height in the drawing
-  const left = document.getElementById("clock-left")!;
-  const gone = document.getElementById("clock-gone")!;
-  const now = document.getElementById("clock-time") as HTMLTimeElement;
-  const grain = document.getElementById("clock-grain")!;
-  const still = matchMedia("(prefers-reduced-motion: reduce)");
+  // The clock: the minute as sand, drawn as the Play page's glass. Each second
+  // a grain falls, the bulb above holds what is left of the minute.
+  import { Hourglass } from "../lib/hourglass";
+  import { PARAM, PARAM_SIZE } from "../lib/engine";
+  const glass = new Hourglass(document.getElementById("clock") as HTMLCanvasElement);
+  const params = new Float32Array(PARAM_SIZE);
+  params[PARAM.speed] = 1;
+  params[PARAM.heading] = 1;
   function tick() {
-    const d = new Date();
-    const passed = d.getSeconds() / 60;
-    // Above, the sand rests on the neck. Below, on the base.
-    left.setAttribute("y", String(-BULB * (1 - passed)));
-    left.setAttribute("height", String(BULB * (1 - passed)));
-    gone.setAttribute("y", String(BULB * (1 - passed)));
-    gone.setAttribute("height", String(BULB * passed));
-    const text = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-    now.textContent = text;
-    now.dateTime = text;
-    // Down to the sand below, faster as it goes
-    const fall = Math.max(BULB * (1 - passed) - 0.75, 0);
-    if (!still.matches) grain.animate([{ opacity: 1, transform: "translateY(0)" }, { opacity: 1, transform: `translateY(${fall}px)` }], { duration: 700, easing: "ease-in" });
+    params[PARAM.sandLeft] = 1 - new Date().getSeconds() / 60;
+    glass.update(params, true);
   }
   // On the second, as a clock ticks
   tick();
