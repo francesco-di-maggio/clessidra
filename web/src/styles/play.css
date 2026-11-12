@@ -101,9 +101,8 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
-/* Between Position and Length, the hourglass: upright as tall as a knob,
-   its name to its value, as wide as a dial's arc. On its side, level with
-   the dials and as tall. */
+/* Between Position and Length, the hourglass: a knob's room, the glass in
+   it as tall and as wide as a dial's arc, level with the dials */
 .knobs .glass { grid-column: span 2; justify-content: flex-start; }
 .knobs .glass canvas { width: calc(100% - 16px); height: calc(2 * var(--name) + 12px + var(--band)); }
 

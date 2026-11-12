@@ -111,14 +111,14 @@ export class Hourglass {
     const css = getComputedStyle(document.documentElement);
     const accent = css.getPropertyValue("--accent");
 
-    // Upright, most of the room from the top of a knob's name to the foot of
-    // its value, about its middle, as wide as a dial's arc. It turns about its
-    // neck, level with the dials: on its side, as tall as their arcs.
-    const tall = (H - 2 * EDGE) * TALL;
-    const bulb = tall / 2 - 2;
-    // As wide as the dials beside it: on its side, as tall as their arcs
+    // As tall and as wide as the dials' arcs beside it, caps included, about
+    // its middle, level with them: the same upright and on its side. The
+    // clock: most of its room upright.
     const band = parseFloat(getComputedStyle(canvas).getPropertyValue("--band")) || BAND;
-    const wide = (ARC * band) / BAND / 2 - CAP;
+    const arc = (ARC * band) / BAND;
+    const tall = this.single ? (H - 2 * EDGE) * TALL : arc;
+    const bulb = tall / 2 - 2;
+    const wide = arc / 2 - CAP;
     const cx = W / 2;
     const cy = H / 2;
     // Half its width at t of a bulb, 0 at the neck, 1 at its cap
