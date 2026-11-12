@@ -101,10 +101,10 @@ body.app main { flex: 1; min-height: 0; }
 .mark-at { position: absolute; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* A three-way switch: its positions stacked in the band and the value line */
-/* Between Position and Length, the hourglass: upright, from a dial's top to
+/* Between Position and Length, the hourglass: upright, from a knob's name to
    the foot of its value. On its side, as tall as a dial and level with it. */
 .knobs .glass { grid-column: span 2; }
-.knobs .glass canvas { width: calc(100% - 16px); height: calc(var(--band) + 6px + var(--name)); margin-top: calc(var(--name) + 6px); }
+.knobs .glass canvas { width: calc(100% - 16px); height: calc(2 * var(--name) + 12px + var(--band)); }
 
 /* The pads as an octave: the slices white keys, the others black keys on
    their edges, two then three as on a piano. Names at the foot of each key.
@@ -128,7 +128,7 @@ body.app main { flex: 1; min-height: 0; }
        font: 500 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }
 .pad:hover { border-color: var(--dim); }
-.pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.86); height: 56%; padding-bottom: 8px;
+.pad.black { --key: calc((100% - 6 * var(--gap)) / 7); position: absolute; top: 0; z-index: 1; width: calc(var(--key) * 0.76); height: 56%; padding-bottom: 8px;
              left: calc((var(--key) + var(--gap)) * var(--edge) - var(--gap) / 2); transform: translateX(-50%);
              background: var(--bg); color: var(--ink); letter-spacing: 0.04em; }
 /* Rec black as the others, its name orange: the one orange not "on".
@@ -162,7 +162,7 @@ body.app main { flex: 1; min-height: 0; }
   .switches > div:first-child, .switches > div:last-child { grid-column: auto; }
   .switches > div + div { padding-top: 0; }
   .switches::after { display: none; }
-  /* Retrigger, nine letters of 0.6 em, inside its key */
-  .pad.black { font-size: min(9px, calc(2.2cqi - 1.6px)); letter-spacing: 0; }
+  /* Trigger, seven letters of 0.6 em, inside its key */
+  .pad.black { font-size: min(9px, calc(2.5cqi - 1.9px)); letter-spacing: 0; }
   .knob.fader { min-height: 240px; }
 }

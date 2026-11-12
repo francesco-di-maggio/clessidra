@@ -10,12 +10,11 @@ import { PARAM } from "./engine";
 
 type Point = [number, number];
 
-// A dial beside it, px, as measured on the page: its arc below its top and
-// across, and the foot of the value's figures above the foot of their line,
-// less half a stroke
-const ARC_TOP = 5;
+// A knob beside it, px, as measured on the page: its dial's arc across, and
+// the top of the name's letters below its line, as the foot of the value's
+// figures above theirs, less half a stroke. The knob is level about its dial.
 const ARC = 38;
-const FOOT = 4.75;
+const EDGE = 4.75;
 const CAP = 3; // px, a cap past the glass at each side
 const NECK = 0.07; // half its width, of the bulb's
 const STEPS = 24; // along each side of a bulb
@@ -96,13 +95,14 @@ export class Hourglass {
     const css = getComputedStyle(document.documentElement);
     const accent = css.getPropertyValue("--accent");
 
-    // Upright, from the top of a dial's arc to the foot of its value's
-    // figures, as wide as the arc. It turns about its neck, which stays put.
-    const tall = H - ARC_TOP - FOOT;
+    // Upright, from the top of a knob's name to the foot of its value, as
+    // wide as a dial's arc. It turns about its neck, level with the dials: on
+    // its side, as tall as their arcs.
+    const tall = H - 2 * EDGE;
     const bulb = tall / 2 - 2;
     const wide = ARC / 2 - CAP;
     const cx = W / 2;
-    const cy = ARC_TOP + tall / 2;
+    const cy = H / 2;
     // Half its width at t of a bulb, 0 at the neck, 1 at its cap
     const half = (t: number, inset: number) => Math.max(wide * (NECK + (1 - NECK) * (1 - (1 - t) ** 2)) - inset, 0);
     const cos = Math.cos(this.angle);

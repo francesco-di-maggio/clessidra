@@ -214,7 +214,7 @@ void CoreUI::Scrub(float fader, bool frozen, Core& core)
 }
 
 // P00, held: stopped as a tape machine, everything slowing to a halt, back
-// to speed on release. P02, Retrigger: playback from the loop's start, its end in
+// to speed on release. P02, Trigger: playback from the loop's start, its end in
 // reverse, with a grain at once.
 bool CoreUI::Transport(const Controls& c, Core::Params& p)
 {
