@@ -81,12 +81,12 @@ check(r.finite && r.peak > 0.01 && r.peak <= 1, "the recording plays, under full
 const peaks = f32(w.cl_peaks(), w.cl_columns());
 check(peaks.some((p) => p > 0.1), "the waveform shows the recording");
 
-// A tap keeps the last 8 s
+// A tap keeps the last 8 s, copied at 8 times real time: in 1 s
 run(9);
 w.cl_pad(RECORD, 1, 0.5);
 run(0.1);
 w.cl_pad(RECORD, 0, 0);
-run(0.5);
+run(1.5);
 v = view();
 check(w.cl_recordings() === 2 && Math.abs(v[V.sound] / RATE - 8) < 0.02, "tap: the last 8 s", (v[V.sound] / RATE).toFixed(2));
 

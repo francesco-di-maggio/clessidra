@@ -85,7 +85,7 @@ class Core
     static constexpr float  kTapCaptureSeconds = 8.0f;
     static constexpr float  kPourSeconds       = 2.0f;
     static constexpr float  kPreRollSeconds    = 0.05f;
-    static constexpr size_t kCopyPerSample = 21; // × real time: 30 s in 1.4 s
+    static constexpr size_t kCopyPerSample = 8; // × real time: 30 s in 3.8 s
     // ring written on during the copy
     static constexpr float kCopyMarginSeconds = 0.5f;
 

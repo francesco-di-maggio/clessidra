@@ -27,6 +27,8 @@ class Buffer
     // Four-point Hermite interpolation, as DaisySP's DelayLine::ReadHermite.
     // pos wraps within Length().
     float Read(double pos) const;
+    // The same at sample i, below Length(), and fraction f of the next
+    float Read(size_t i, float f) const;
 
   private:
     float* mem_          = nullptr;
@@ -46,8 +48,12 @@ inline float Buffer::Read(double pos) const
 
     // pos can round up to len
     const size_t i0 = std::min(static_cast<size_t>(pos), length_ - 1);
-    const float  f  = float(pos - double(i0));
-    float        xm1, x0, x1, x2;
+    return Read(i0, float(pos - double(i0)));
+}
+
+inline float Buffer::Read(size_t i0, float f) const
+{
+    float xm1, x0, x1, x2;
     if(i0 >= 1 && i0 + 2 < length_)
     {
         xm1 = mem_[i0 - 1];
