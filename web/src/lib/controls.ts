@@ -191,7 +191,7 @@ export const PLAY: [string, string][] = [
   ["Drums by hand", "Density at the bottom, Shape on square: tap the slices, several at once."],
   ["Cloud", "Density at the top, Size 150 to 300 ms, Shape on bell, Spray up, Random timing (P11\u00a0+\u00a0S37) full, Reverb (P11\u00a0+\u00a0S35) up."],
   ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards."],
-  ["Drone", "S09 at the centre, Density at the top, Size long, a little Spray, Reverb up. Speed scrubs the point."],
+  ["Frozen", "S09 at the centre, Density at the top, Size long, a little Spray, Reverb up. Speed scrubs the point."],
   ["One pour", "S07 down: the loop plays once and stops. Trigger pours it again."],
   ["Shimmer", "Random pitch (P11\u00a0+\u00a0S33) below the centre: octaves."],
   ["Backwards syllables", "Reverse (P11\u00a0+\u00a0S32) at the top: the phrase in order, each grain backwards."],
