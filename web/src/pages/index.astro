@@ -22,10 +22,6 @@ import { url } from "../lib/url";
 </div>
 
 <div class="tiles">
-  <a id="listen" class="panel" href={url("clessidra-target.m4a")}>
-    <span class="text"><b>Listen</b><span class="sub" id="listen-time">0:30</span></span>
-    <span class="arrow" aria-hidden="true">▶</span>
-  </a>
   <a class="panel primary" href="play/">
     <span class="text"><b>Play</b><span class="sub">The same firmware in your browser. No board needed.</span></span>
     <span class="arrow" aria-hidden="true">→</span>
@@ -49,30 +45,4 @@ import { url } from "../lib/url";
   // On the second, as a clock ticks
   tick();
   setTimeout(() => (tick(), setInterval(tick, 1000)), 1000 - new Date().getMilliseconds());
-</script>
-
-<script>
-  // The target sound, played in the page: a press starts it, another stops it
-  const link = document.getElementById("listen") as HTMLAnchorElement;
-  const time = document.getElementById("listen-time")!;
-  const arrow = link.querySelector(".arrow")!;
-  const audio = new Audio();
-  audio.preload = "none";
-  const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-  const total = time.textContent!;
-  const show = () => {
-    const playing = !audio.paused && !audio.ended;
-    arrow.textContent = playing ? "■" : "▶";
-    link.classList.toggle("on", playing);
-    time.textContent = playing ? `${clock(audio.currentTime)} of ${total}` : total;
-  };
-  link.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (!audio.src) audio.src = link.href;
-    if (audio.paused) {
-      audio.currentTime = 0;
-      audio.play();
-    } else audio.pause();
-  });
-  for (const event of ["play", "pause", "ended", "timeupdate"]) audio.addEventListener(event, show);
 </script>

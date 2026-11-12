@@ -80,7 +80,6 @@ ol.rows { gap: 6px; padding: 14px; }
 .tiles .primary b { color: var(--bg); }
 .tiles .primary .sub { color: var(--bg); opacity: 0.7; }
 /* Playing: the orange dot before its name, as what is on */
-.tiles .on b::before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 8px 1px 0; border-radius: 50%; background: var(--accent); }
 
 
 /* A file to download: its type on a page */
