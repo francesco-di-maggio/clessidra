@@ -1,7 +1,7 @@
 // The firmware on the page, silent, until Start: it computes what the knobs
 // read, so every value is the firmware's own from the first paint.
 
-import { BLOCK, PARAM_SIZE, RATE, VIEW_SIZE, type Control, type Exports } from "./engine";
+import { BLOCK, KNOBS, PARAM_SIZE, RATE, VIEW_SIZE, type Control, type Exports } from "./engine";
 import { url } from "./url";
 
 export class Preview {
@@ -30,6 +30,6 @@ export class Preview {
     const w = this.w;
     w.cl_process(BLOCK, 0);
     const f32 = (ptr: number, n: number) => new Float32Array(w.memory.buffer, ptr, n).slice();
-    return { params: f32(w.cl_params(), PARAM_SIZE), view: f32(w.cl_view(), VIEW_SIZE) };
+    return { params: f32(w.cl_params(), PARAM_SIZE), values: f32(w.cl_values(), 2 * KNOBS), view: f32(w.cl_view(), VIEW_SIZE) };
   }
 }

@@ -108,14 +108,19 @@ try {
   await sleep(300);
   const shifted = await run(`document.querySelector(".instrument").classList.contains("shifted")`);
   const twin = await run(`(() => { const k = [...document.querySelectorAll(".knob")].find((k) => k.getAttribute("aria-label") === "Density"); return k.classList.contains("twin") + " " + k.querySelector(".label").textContent + " " + k.querySelector(".value").textContent; })()`);
+  const lengthDial = () => run(`(() => { const k = document.querySelector('.knob[aria-label="Length"]'); return k.querySelector("path.fill").getAttribute("d") + " " + k.querySelector("line.tick").getAttribute("x2"); })()`);
+  const twinDial = await lengthDial();
   const faces = () => run(`[".knob.fader .mark-at", ".knob.fader .tick-at"].flatMap((s) => [...document.querySelectorAll(s)].map((m) => getComputedStyle(m).visibility)).join(" ") + " " + document.querySelector('.pad[aria-label="Record"] .num').textContent`);
   const shiftedFaces = await faces();
   await pad("Shift", false);
   await sleep(300);
   const ownFaces = await faces();
+  const ownDial = await lengthDial();
   check(shifted && /^true Rnd time \d+\s%$/.test(twin), "P11 held: Density shows Random timing in its place", twin);
   check(/^(hidden )+Listen$/.test(shiftedFaces), "P11 held: the faders' scales hidden, Rec reads Listen", shiftedFaces);
   check(/^(visible )+Rec$/.test(ownFaces), "P11 released: the scales back, Rec again", ownFaces);
+  const tickOf = (d) => d.split(" ").pop();
+  check(twinDial !== ownDial && tickOf(twinDial) === tickOf(ownDial), "P11 held: Length's arc shows Reverb, its tick stays where the knob is", `${twinDial} | ${ownDial}`);
 
   // A tap keeps the last 8 s of the input
   await pad("Record", true);
@@ -125,6 +130,12 @@ try {
   const tapped = await run(`document.getElementById("buffer").getAttribute("aria-label").replace("Recording, ", "")`);
   // Up to 8 s: only as much input has passed, its silence trimmed
   check(/^\d\.\d s$/.test(tapped) && parseFloat(tapped) <= 8 && tapped !== held, "Rec tapped: up to the last 8 s, a new recording", tapped);
+  const outReads = () => run(`document.querySelector(".gain .value").textContent`);
+  await run(`document.querySelector("button.mute").click()`);
+  const mutedOut = await outReads();
+  await run(`document.querySelector("button.mute").click()`);
+  const playingOut = await outReads();
+  check(mutedOut === "−∞ dB" && playingOut === "0 dB", "OUT muted: reads −∞ dB, then its level again", `${mutedOut} | ${playingOut}`);
   check(errors.length === 0, "no errors", errors.join(" | "));
 
   // The Controls page's help, every text at every tile width: no word space

@@ -29,6 +29,7 @@ export const VIEW_SIZE = 4;
 export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, randTime: 6, randPitch: 7, shape: 8, start: 9, length: 10, volume: 11, randPos: 12, randSize: 13, spread: 14, filter: 15, end: 16, stop: 17, randShape: 18, reverse: 19, sandLeft: 20, heading: 21 } as const;
 export const PARAM_SIZE = 22;
 export const SLICES = 7; // Onsets::kNumSlices
+export const KNOBS = 8; // Controls::kNumKnobs. cl_values: own, then twins
 // cl_grain_fields, per grain: position 0..1 of the recording, progress, window
 // shape, pan, pitch in semitones, size in ms
 export const GRAIN_FIELDS = 6;
@@ -52,6 +53,7 @@ export interface Exports {
   cl_grains(): number;
   cl_grain_fields(): number;
   cl_params(): number;
+  cl_values(): number;
   cl_slices(): number;
   cl_chunk(): number;
   cl_chunk_size(): number;
@@ -70,6 +72,7 @@ export interface Frame {
   view: Float32Array;
   grains: Float32Array;
   params: Float32Array;
+  values: Float32Array; // each knob's value, 0..1, own then twins
   peaks: Float32Array;
   slices: Float32Array; // where each slice starts in the loop, 0..1
 }

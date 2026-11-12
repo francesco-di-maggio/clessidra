@@ -99,6 +99,11 @@ class CoreUI
     void Default(Controls::Knob k, bool twin, float knob);
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
     float Led(uint32_t now_ms, const Core& core) const;
+    // A knob's value, 0..1, on its own layer or its twin's
+    float Value(Controls::Knob k, bool twin) const
+    {
+        return (twin ? twin_ : own_)[k].Value();
+    }
     // Where each slice starts in the loop, 0..1, at the last pass
     const std::array<float, kNumSlices>& SliceStarts() const
     {

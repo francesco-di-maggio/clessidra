@@ -75,6 +75,8 @@ enum Param : size_t
     kNumParams
 };
 float params[kNumParams];
+// Each knob's value, 0..1: the own layer's, then the twins'
+float values[2 * Controls::kNumKnobs];
 
 void UpdatePeaks()
 {
@@ -247,6 +249,16 @@ EXPORT const float* cl_grain_fields()
 EXPORT const float* cl_slices()
 {
     return ui.SliceStarts().data();
+}
+
+EXPORT const float* cl_values()
+{
+    for(size_t k = 0; k < Controls::kNumKnobs; k++)
+    {
+        values[k]                       = ui.Value(Controls::Knob(k), false);
+        values[Controls::kNumKnobs + k] = ui.Value(Controls::Knob(k), true);
+    }
+    return values;
 }
 
 EXPORT const float* cl_params()

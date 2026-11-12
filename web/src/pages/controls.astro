@@ -47,14 +47,16 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
   // What the tiles say before a control is pointed at
   const resting = Object.fromEntries(Object.entries(out).map(([k, e]) => [k, e.textContent!])) as Record<keyof typeof out, string>;
 
+  // No second function: its layer left empty, its room kept
   function show(text: Record<keyof typeof out, string>) {
     for (const k of Object.keys(out) as (keyof typeof out)[]) out[k].textContent = text[k];
+    tiles[1].style.visibility = text.twin ? "" : "hidden";
   }
 
   function describe(id: string) {
     for (const g of panel.querySelectorAll(".ctl")) g.classList.toggle("active", (g as SVGGElement).dataset.id === id);
     const h = help[id];
-    show({ board: id, name: h?.name ?? "Free", does: h?.does ?? "No function yet.", shift: `Shift + ${id}`, twin: h?.twin || "None", twinDoes: h?.twinDoes || "No second function." });
+    show({ board: id, name: h?.name ?? "Free", does: h?.does ?? "No function yet.", shift: `Shift + ${id}`, twin: h?.twin ?? "", twinDoes: h?.twinDoes ?? "" });
   }
 
   // Each layer as tall as its longest text, so pointing never moves the page

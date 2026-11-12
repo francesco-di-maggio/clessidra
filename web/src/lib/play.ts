@@ -3,7 +3,7 @@
 
 import { Audio, type Input } from "./audio";
 import { byId, LEVELS, LEVELS_VALUE, padOf, POSITION, type Control, type Level, type State } from "./controls";
-import { MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
+import { KNOBS, MAX_RECORD_S, RATE, RECORD_PAD, RESET_PAD, SHIFT_PAD, SLICE_PADS, VIEW, type Control as Message, type Frame, type FromWorklet } from "./engine";
 import { Incoming } from "./incoming";
 import { Preview } from "./preview";
 import { Hourglass } from "./hourglass";
@@ -41,8 +41,8 @@ function send(m: Message) {
 // The preview's values on the controls
 function refresh() {
   if (!preview) return;
-  const { params, view } = preview.read();
-  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), incomingAt: 0, grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, view };
+  const { params, values, view } = preview.read();
+  last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), incomingAt: 0, grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, values, view };
   hourglass.update(params, false);
   show();
 }
@@ -119,7 +119,7 @@ function set(c: Control, value: number, show = true) {
     parts.get(c.id)!.draw(value);
     LEVELS_VALUE.set(c.id, value);
     audio.setGain("output", muted.has(c.id) ? 0 : level.gain(value));
-    parts.get(c.id)!.value?.(level.value!(new Float32Array(0), { sound: 0, recording: 0 }));
+    parts.get(c.id)!.value?.(muted.has(c.id) ? "−∞ dB" : level.value!(new Float32Array(0), { sound: 0, recording: 0 }));
     if (show) focus(c);
     return;
   }
@@ -254,6 +254,7 @@ function show() {
     if (w.c.index < 0) continue;
     const twin = shifted() ? w.c.twin : undefined;
     const scrub = !twin && scrubbing && w.c.id === "S36";
+    w.fillTo?.(last.values[(shifted() ? KNOBS : 0) + w.c.index]);
     w.value?.(twin ? twin.value(last.params) : scrub ? `${(last.view[VIEW.playhead] / RATE).toFixed(2)} s` : (w.c.value?.(last.params, v) ?? ""));
     if (w.c.twin) {
       w.label?.(twin ? (twin.short ?? twin.name) : scrub ? "Scrub" : (w.c.short ?? w.c.name));
