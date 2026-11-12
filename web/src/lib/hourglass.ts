@@ -20,7 +20,7 @@ const NECK = 0.07; // half its width, of the bulb's
 const STEPS = 24; // along each side of a bulb
 const INSET = 2; // px, the sand from the glass
 const DOT = 3; // the grid, px, as the input's
-const SIZE = 1.5; // a dot, px
+const SIZE_CLOCK = 1.5; // a dot on the clock, px
 const EASE = 0.25; // of the way to its angle, per frame
 const SETTLED = 0.005; // rad
 const FALL = 12; // px a second, the thread at 1×: at 4× still under half a grid step a frame
@@ -28,6 +28,14 @@ const FRESH_MS = 200; // without news for this long: the thread still
 const DROP_MS = 700; // one grain from the neck to the sand, falling faster
 const TALL = 0.85; // of the room upright, about its middle
 const REPOSE = 0.6; // the sand's slope upright: about 31°, as dry sand rests
+// The grains as sand. Size: a dot from MIN_DOT px at 5 ms to MAX_DOT at 2 s,
+// exponential. Density: the thread's dots one to THREAD_GAPS grid steps apart,
+// from 320 a second down to 0.25. Spray: the thread's dots stray sideways up
+// to a grid step either way, and the heap flattens to SPREAD of its slope.
+const MIN_DOT = 1.0;
+const MAX_DOT = 2.2;
+const THREAD_GAPS = 4;
+const SPREAD = 0.4;
 
 export class Hourglass {
   private ctx: CanvasRenderingContext2D;
@@ -51,7 +59,7 @@ export class Hourglass {
 
   update(params: Float32Array, sound: boolean) {
     // Drawn again only when what it shows changes
-    const shown = [PARAM.sandLeft, PARAM.speed, PARAM.freeze, PARAM.stop, PARAM.heading];
+    const shown = [PARAM.sandLeft, PARAM.speed, PARAM.freeze, PARAM.stop, PARAM.heading, PARAM.density, PARAM.grainMs, PARAM.randPos];
     const same = this.sound === sound && this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
     if (this.single && this.params[PARAM.sandLeft] !== params[PARAM.sandLeft]) this.dropped = performance.now();
     this.params = params.slice();
@@ -83,7 +91,7 @@ export class Hourglass {
     const settled = Math.abs(to - this.angle) < SETTLED;
     if (settled) this.angle = to;
     const running = this.single ? now - this.dropped < DROP_MS : this.flowing() && now - this.stamp < FRESH_MS;
-    if (running) this.fallen = (this.fallen + (FALL * speed * Math.min(now - this.last, 50)) / 1000) % DOT;
+    if (running) this.fallen = (this.fallen + (FALL * speed * Math.min(now - this.last, 50)) / 1000) % (DOT * THREAD_GAPS);
     this.last = now;
     this.draw();
     this.frame = settled && !running ? 0 : requestAnimationFrame(this.tick);
@@ -170,6 +178,11 @@ export class Hourglass {
     // A shape as dots: every point of the grid inside it, the grid about the
     // neck
     const reach = Math.ceil(bulb / DOT) + 1;
+    const unit = (x: number) => Math.min(Math.max(x, 0), 1);
+    const SIZE = this.single ? SIZE_CLOCK : MIN_DOT + (MAX_DOT - MIN_DOT) * unit(Math.log(p[PARAM.grainMs] / 5) / Math.log(400));
+    const density = p[PARAM.density];
+    const gaps = density > 0 ? Math.max(1, Math.round(THREAD_GAPS - (THREAD_GAPS - 1) * unit(Math.log(density / 0.25) / Math.log(1280)))) : 0;
+    const spray = unit(p[PARAM.randPos]);
     const dots = (points: Point[], surface: (x: number) => number) => {
       for (let i = -reach; i <= reach; i++) {
         for (let j = -reach; j <= reach; j++) {
@@ -187,7 +200,7 @@ export class Hourglass {
       const left = Math.min(Math.max(p[PARAM.sandLeft], 0), 1);
       const ahead = way > 0 ? -1 : 1;
       // Upright, a funnel above and a heap below; on its side, both level
-      const slope = REPOSE * Math.abs(Math.cos(this.angle));
+      const slope = REPOSE * (1 - (1 - SPREAD) * spray) * Math.abs(Math.cos(this.angle));
       const above = inside(ahead);
       const from = pile(above, left, -slope);
       const into = pile(inside(-ahead), 1 - left, slope);
@@ -203,8 +216,13 @@ export class Hourglass {
         const t = (performance.now() - this.dropped) / DROP_MS;
         if (t < 1) ctx.rect(cx - SIZE / 2, cy + (into.level - cy) * t * t - SIZE / 2, SIZE, SIZE);
       } else {
-        for (let y = cy + this.fallen; speed > 0 && left > 0 && y < into.level; y += DOT) {
-          if (y - cy < 2 * DOT || within(lower, cx, y)) ctx.rect(cx - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
+        const step = DOT * gaps;
+        for (let y = cy + (this.fallen % step); gaps && speed > 0 && left > 0 && y < into.level; y += step) {
+          // Scattered by Spray, the same way for a row of the grid
+          const row = Math.round((y - cy) / DOT);
+          const stray = Math.round(spray * (2 * Math.abs(Math.sin(row * 12.9898) * 43758.5453 % 1) - 1)) * DOT;
+          const x = cx + (y - cy < 2 * DOT ? 0 : stray);
+          if (y - cy < 2 * DOT || within(lower, x, y)) ctx.rect(x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
         }
       }
       ctx.fill();
