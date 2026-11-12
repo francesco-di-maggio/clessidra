@@ -66,12 +66,16 @@ const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
 <meta charset="utf-8">
 <title>Clessidra · Manual</title>
 <link rel="stylesheet" href="https://francescodimaggio.nl/style/v1/tokens.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400&display=block">
 <style>
   @page { size: A4; margin: 0; }
   html, body { margin: 0; background: transparent; }
   svg { display: block; width: 210mm; height: 297mm; }
   text { font-family: var(--sans); fill: #111; }
   .name { font-size: 9.5px; font-weight: 600; }
+  .kicker, .title { font-family: "Outfit", var(--sans); }
+  .kicker { font-size: 19.6px; font-weight: 200; fill: #8a8a8a; }
+  .title { font-size: 36px; font-weight: 400; letter-spacing: -0.2px; }
   .sub { font-size: 8px; }
   .url, .code, .chip text { font-family: var(--mono); }
   .url { font-size: 6.5px; fill: #777; }
@@ -86,9 +90,14 @@ const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
 </head>
 <body>
 <svg viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-  <text class="name" x={TITLE.x} y={TITLE.rules[0] - 4}>Clessidra</text>
-  <text class="sub" x={TITLE.x} y={TITLE.rules[1] - 4}>Granular sampler, inspired by the hourglass</text>
-  <text class="url" x={TITLE.x} y={TITLE.rules[2] - 4}>By Francesco Di Maggio · v0.3 · francescodimaggio.nl/clessidra</text>
+  <!-- The template's heading, Touch II over Blank Manual, covered and set
+       again with the instrument's name, on the same lines -->
+  <rect x="188" y="56" width="226" height="58" fill="#fff" />
+  <text class="kicker" x="192.5" y="76.8">Touch II</text>
+  <text class="title" x="194" y="108.2">Clessidra</text>
+  <text class="sub" x={TITLE.x} y={TITLE.rules[0] - 4}>Granular sampler, inspired by the hourglass</text>
+  <text class="sub" x={TITLE.x} y={TITLE.rules[1] - 4}>By Francesco Di Maggio</text>
+  <text class="url" x={TITLE.x} y={TITLE.rules[2] - 4}>v0.3 · francescodimaggio.nl/clessidra</text>
 
   {CHIPS.map((id) => {
     const [x, y] = spot(id);
