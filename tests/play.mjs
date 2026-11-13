@@ -117,7 +117,7 @@ try {
   await sleep(300);
   const ownFaces = await faces();
   const ownDial = await lengthDial();
-  check(shifted && /^true Rnd time \d+\s%$/.test(twin), "P11 held: Density shows Random timing in its place", twin);
+  check(shifted && /^true Volume (−∞|[+−-]?\d+) dB$/.test(twin), "P11 held: Density shows Volume in its place", twin);
   check(/^(hidden )+Listen$/.test(shiftedFaces), "P11 held: the faders' scales hidden, Record reads Listen", shiftedFaces);
   check(/^(visible )+Record$/.test(ownFaces), "P11 released: the scales back, Record again", ownFaces);
   const tickOf = (d) => d.split(" ").pop();
@@ -175,8 +175,20 @@ try {
   check(twinDragged !== "Off" && twinRestored === "Off", "P11 held, Random size: dragged, a double click: Off again", `${twinDragged} ${twinRestored}`);
   check(errors.length === 0, "no errors", errors.join(" | "));
 
-  // The Controls page's help, every text at every tile width: no word space
-  // stretched, no last line of one word
+  // On a phone, on one screen: no drag is the page's
+  const phone = async (width, height) => {
+    await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: true });
+    await sleep(300);
+    return run(`[document.documentElement.scrollHeight, innerHeight, Math.round(document.getElementById("buffer").getBoundingClientRect().height)].join(" ")`);
+  };
+  for (const [w, h] of [[402, 760], [402, 716], [375, 690]]) {
+    const [scroll, inner, buffer] = (await phone(w, h)).split(" ").map(Number);
+    check(scroll === inner && buffer >= 70, `${w}×${h}: on one screen, the recording 70 px or more`, `${scroll} ${inner} ${buffer}`);
+  }
+  await send("Emulation.clearDeviceMetricsOverride");
+
+  // The Controls page's help, every text at every tile width: no last line
+  // of one word. Justified, the widest space shown
   await send("Page.navigate", { url: page.replace(/play\/$/, "controls/") });
   await sleep(1500);
   const help = await run(`(() => {
@@ -215,7 +227,7 @@ try {
     }
     return { cases, widest: widest.toFixed(2), lone };
   })()`);
-  check(help?.cases > 100 && Number(help.widest) < 1.1 && help.lone === 0, "Controls help, 200 to 400 px: no stretched spaces, no lone last word", JSON.stringify(help));
+  check(help?.cases > 100 && help.lone === 0, "Controls help, 200 to 400 px: no lone last word", JSON.stringify(help));
   ws.close();
 } catch (err) {
   check(false, "the page runs", err.message);

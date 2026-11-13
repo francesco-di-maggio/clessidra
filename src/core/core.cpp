@@ -396,13 +396,13 @@ void Core::StartGrain(const Params& p,
         latch.buffer = poured_from_;
         to_read      = double(poured_from_->Length()) / double(sound->Length());
     }
-    // Each evenly over its range: position within the amount around the
-    // playhead, round the selection, size between its ends, exponential,
-    // pitch either way
+    // Position: most grains near the playhead, fewer further out, within the
+    // amount either way, round the selection. The others evenly over their
+    // range: size between its ends, exponential, pitch either way.
     double phase = source.phase;
     if(p.rand_pos > 0.0f)
     {
-        phase += 0.5 * std::min(p.rand_pos, 1.0f) * Random();
+        phase += std::min(p.rand_pos, 1.0f) * Bell();
         phase -= std::floor(phase);
     }
     latch.position = (source.start + phase * source.length) * to_read;
@@ -493,6 +493,15 @@ float Core::Random()
     seed_ ^= seed_ >> 17;
     seed_ ^= seed_ << 5;
     return float(int32_t(seed_)) * (1.0f / 2147483648.0f);
+}
+
+float Core::Bell()
+{
+    // Irwin-Hall: bounded, no libm, the same time every call
+    float sum = 0.0f;
+    for(int i = 0; i < 4; i++)
+        sum += Random();
+    return 0.25f * sum;
 }
 
 } // namespace clessidra

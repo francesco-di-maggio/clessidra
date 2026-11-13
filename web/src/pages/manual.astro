@@ -12,7 +12,7 @@ const H = 841.89;
 const PANEL = { left: 195.9, right: 398.9 };
 const at = (x: number, y: number): [number, number] => [200.1 + 0.3275 * x, 280.9 + 0.335 * y];
 // The drawn jacks and faders
-const SPOTS: Record<string, [number, number]> = { IN: [209, 319], OUT: [209, 362.4], S36: [209, 427], S37: [385.6, 427] };
+const SPOTS: Record<string, [number, number]> = { IN: [209, 323.8], OUT: [209, 362.4], S36: [209, 427], S37: [385.6, 427] };
 // Switches: the code under the lever
 const spot = (id: string): [number, number] => {
   if (SPOTS[id]) return SPOTS[id];
@@ -30,7 +30,7 @@ const line = (id: string, y: number, label = id): Line => {
 };
 const LEFT: Line[] = [
   line("P10", 297.6),
-  { id: "IN", y: 319, text: "Input" },
+  { id: "IN", y: 323.8, text: "Input" },
   { id: "OUT", y: 362.4, text: "Output" },
   line("S31", 390),
   line("S32", 414),
@@ -128,9 +128,9 @@ const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
     );
   })}
 
-  <text class="note" x={BOX.x} y={BOX.rules[0] - 4}>Grey: with P11 held. After a layer change a knob moves on from where it is, nothing jumps.</text>
+  <text class="note" x={BOX.x} y={BOX.rules[0] - 4}>Grey: with P11 held. After a layer change, a knob continues from the current value.</text>
   <text class="note" x={BOX.x} y={BOX.rules[1] - 4}>Always listening: a tap on P10 keeps what just played. Frozen by S09, Speed scrubs the loop.</text>
-  <text class="note" x={BOX.x} y={BOX.rules[2] - 4}>LED: glow = grains, flash = recording, pulse = a stop, steady = P11 held, the twin last turned.</text>
+  <text class="note" x={BOX.x} y={BOX.rules[2] - 4}>LED: glow = grains, flash = recording, pulse = a stop, steady = P11 held, the last knob turned.</text>
 </svg>
 </body>
 </html>

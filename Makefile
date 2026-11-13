@@ -1,8 +1,8 @@
 # Project Name
-TARGET = Clessidra
+TARGET = clessidra
 
 # Sources
-CPP_SOURCES = Clessidra.cpp $(wildcard src/hw/*.cpp) $(wildcard src/core/*.cpp) $(wildcard src/ui/*.cpp)
+CPP_SOURCES = clessidra.cpp $(wildcard src/hw/*.cpp) $(wildcard src/core/*.cpp) $(wildcard src/ui/*.cpp)
 C_INCLUDES += -Isrc
 
 # Library Locations
@@ -50,4 +50,9 @@ web-dev: wasm
 manual: web
 	@node web/manual.mjs
 
-.PHONY: test wasm web web-dev manual
+# The icons and the link preview, from web/public/favicon.svg and
+# web/images/og.html. Run after changing either.
+images:
+	@node web/images.mjs
+
+.PHONY: test wasm web web-dev manual images

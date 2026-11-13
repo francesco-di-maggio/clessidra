@@ -1156,7 +1156,7 @@ void StoppedRecord()
           double(r.core.Recordings() - before));
 }
 
-// Frozen at the start: each grain moved by the amount, evenly
+// Frozen at the start: each grain moved within the amount, bell-shaped
 void Randomness()
 {
     // Furthest position read, of the selection, and the mean
@@ -1188,10 +1188,15 @@ void Randomness()
     double mean = 0.0;
     double far  = spread(1.0f, &mean);
     Check(Near(mean, 0.5, 0.1) && far > 0.9,
-          "position random up: even over the selection (mean)",
+          "position random up: round the whole selection (mean)",
           mean);
-    // Within 0.15 either way, round the selection
-    const auto nearest = [](float amount) {
+    // Within 0.3 either way, round the selection: the furthest, the standard
+    // deviation, the share beyond half the reach
+    struct Moves
+    {
+        double furthest = 0.0, deviation = 0.0, outer = 0.0;
+    };
+    const auto moves = [](float amount) {
         Rig r(2.0);
         r.Fill(Sine);
         Core::Params p;
@@ -1202,7 +1207,8 @@ void Randomness()
         p.grain_ms = 20.0f;
         p.rand_pos = amount;
         r.core.SetParams(p);
-        double furthest = 0.0, before = 0.0;
+        Moves  m;
+        double before = 0.0, squares = 0.0, n = 0.0;
         r.Run(2.0, Silence, [&](size_t) {
             for(const auto& g : r.core.Grains())
             {
@@ -1212,16 +1218,31 @@ void Randomness()
                            - 0.5;
                 x              = 2.0 * x;
                 const double d = std::min(x, 1.0 - x);
-                furthest       = std::max(furthest, d);
+                m.furthest     = std::max(m.furthest, d);
+                squares += d * d;
+                m.outer += d > 0.5 * amount;
                 before += x > 0.5;
+                n++;
             }
         });
-        return before > 0.0 ? furthest : -1.0;
+        m.deviation = std::sqrt(squares / n);
+        m.outer /= n;
+        if(before == 0.0)
+            m.furthest = -1.0;
+        return m;
     };
-    const double near = nearest(0.3f);
-    Check(near > 0.1 && near <= 0.15 + 0.01,
-          "position random 0.3: within 0.15 either way, round the selection",
-          near);
+    const Moves m = moves(0.3f);
+    Check(m.furthest > 0.15 && m.furthest <= 0.3 + 0.01,
+          "position random 0.3: within 0.3 either way, round the selection",
+          m.furthest);
+    // As uniform -0.15..0.15: 0.3 / sqrt(12)
+    Check(Near(m.deviation, 0.0866, 0.02),
+          "position random 0.3: standard deviation 0.087",
+          m.deviation);
+    // Irwin-Hall, four: 1 / 12 beyond half the reach, 1 / 2 if even
+    Check(m.outer < 0.2,
+          "position random 0.3: most near the playhead (share beyond 0.15)",
+          m.outer);
     far = spread(0.0f, &mean);
     Check(far < 0.01, "position random off: all at the playhead", far);
 }
@@ -1750,32 +1771,32 @@ void Mapping()
     c.knobs[Controls::S34] = 1.0f;
     c.knobs[Controls::S31] = 1.0f;
     c.knobs[Controls::S35] = 0.0f;
-    c.knobs[Controls::S36] = 0.0f;
+    c.knobs[Controls::S36] = 1.0f;
     c.knobs[Controls::S30] = 1.0f;
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
     Check(p.pitch == 1.0f && Near(p.rand_pitch, 1.0, 1e-2)
-              && Near(p.rand_time, 0.0, 1e-2) && Near(p.rand_shape, 1.0, 1e-2)
+              && Near(p.rand_time, 1.0, 1e-2) && Near(p.rand_shape, 1.0, 1e-2)
               && Near(p.rand_size, 0.25, 1e-2) && Near(p.reverb, 0.0, 1e-2)
               && p.volume == 0.0f && Near(p.speed, 1.0, 1e-6)
               && p.density == density && p.length == 1.0f,
-          "P11 + S33, S37, S34, S31, S35, S36: random pitch, regular starts, "
+          "P11 + S33, S32, S34, S31, S35, S37: random pitch, random starts, "
           "random shape, random size, no reverb, no volume",
           p.rand_pitch);
     Check(Near(p.filter, 1.0, 1e-2) && Near(p.reverse, 1.0, 1e-2)
               && p.start == 0.0f && p.rand_pos == 0.0f
               && p.window_shape == 0.5f,
-          "P11 + S30, S32: high-pass, every grain reversed, Position, Spray "
+          "P11 + S30, S36: high-pass, every grain reversed, Position, Spray "
           "and Shape kept",
           p.filter);
     c.knobs[Controls::S33] = 0.0f;
-    c.knobs[Controls::S36] = 0.5f;
+    c.knobs[Controls::S37] = 0.5f;
     ui.Process(c, r.core);
     Check(p.rand_pitch == -1.0f && Near(p.volume, 0.0316, 1e-3),
-          "P11 + S33 down: in octaves. S36 halfway: -30 dB",
+          "P11 + S33 down: in octaves. S37 halfway: -30 dB",
           p.volume);
     c.knobs[Controls::S33] = 1.0f;
-    c.knobs[Controls::S36] = 0.0f;
+    c.knobs[Controls::S37] = 0.0f;
     ui.Process(c, r.core);
     press(CoreUI::kShiftPad, false);
     Check(p.pitch == 1.0f && Near(p.speed, 1.0, 1e-6)

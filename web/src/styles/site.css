@@ -6,18 +6,22 @@
 @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
 .mark svg path { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
 h2.label { scroll-margin-top: 16px; }
+/* In from the tile's edge, as the tile's own text: its padding and border */
+h2.label { padding-left: 15px; }
 /* A page's first part starts where the others' first panel does */
 .lead + h2.label { margin-top: 0; }
 /* A panel's name inside it */
-.panel > h2.label { margin: 0 0 8px; color: var(--dim); }
+.panel > h2.label { margin: 0 0 8px; padding-left: 0; color: var(--dim); }
 /* Text in a panel at the size of its rows */
 .panel > .prose p { margin: 0; font-size: 15px; line-height: 20px; }
 .lead { text-wrap: pretty; }
 
 /* Facts: a key column and its value, as in the family's facts panel. The
-   small key stands on its value's baseline. */
+   small key on its value's baseline, raised half the difference in capital
+   height (8.1 px against 11.0 px), so it sits centred on the first line. */
 .meta { align-items: baseline; }
 .meta dt { color: var(--dim); font: 500 11px/14px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.meta dt, .row .label { position: relative; top: -1.5px; }
 
 /* The status tile with a clock at its right end: an hourglass for the minute,
    as on the Play page. Where the tile is too narrow, no clock. */
@@ -70,6 +74,9 @@ ol.rows { gap: 6px; padding: 14px; }
 .row { align-items: baseline; }
 .row .label { line-height: 14px; }
 .rows.steps .row { grid-template-columns: 32px 1fr; }
+/* A row's text justified and hyphenated as the family's prose */
+.row > :last-child { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
+                     hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
 /* Links as tiles, one under the other: a name, a line about it, where it
    leads */
 .tiles { display: grid; gap: 10px; }
@@ -80,7 +87,6 @@ ol.rows { gap: 6px; padding: 14px; }
 .tiles .primary b { color: var(--bg); }
 .tiles .primary .sub { color: var(--bg); opacity: 0.7; }
 /* Playing: the orange dot before its name, as what is on */
-.tiles .on b::before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 8px 1px 0; border-radius: 50%; background: var(--accent); }
 
 
 /* A file to download: its type on a page */
@@ -109,12 +115,20 @@ ol.rows { gap: 6px; padding: 14px; }
 .help { display: grid; align-content: start; padding: 8px 14px; }
 .help .layer { display: grid; gap: 2px; align-content: start; }
 .help b { font-size: 17px; font-weight: 600; }
-/* Left-aligned, whole words, its lines balanced: no lone last word */
-.help p { margin: 0; color: var(--dim); font-size: 14px; line-height: 20px; text-wrap: pretty; hyphens: manual; -webkit-hyphens: manual; }
+/* Justified and hyphenated as the family's prose, no lone last word */
+.help p { margin: 0; color: var(--dim); font-size: 14px; line-height: 20px; text-wrap: pretty; text-align: justify; text-align-last: left;
+          hyphens: auto; -webkit-hyphens: auto; hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
 /* The second function under a hairline, its name in orange as on the Play
    page */
 .help hr { width: 100%; margin: 14px 0; border: 0; border-top: 1px solid var(--line); }
 .help .twin { color: var(--accent); }
+/* One column: the help held at the foot of the screen over the board, so a
+   control tapped shows what it does without a scroll */
+@media (max-width: 639px) {
+  .mapping .stack { display: contents; }
+  .mapping .help { position: sticky; bottom: 8px; z-index: 1; }
+  .mapping .notes { order: 1; }
+}
 
 
 /* A segmented control: one of a few, the chosen one lit */
