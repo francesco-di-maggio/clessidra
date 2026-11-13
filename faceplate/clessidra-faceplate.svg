@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="80.90mm" height="68.00mm" viewBox="0 0 229.323 192.756" font-family="'IBM Plex Mono', 'SF Mono', Menlo, monospace">
   <title>Clessidra faceplate, Synthux Simple Touch</title>
-  <desc>1:1, pt. PCB faceplate, as Synthux's template layers: BG (black mask), Copper (exposed), White (silkscreen). Outline and opening centres from Synthux's Simple Touch Faceplate template (DXF), the outline as its lines and arcs (R 48.48 shoulder, R 3.31 corners). Copper drawn gold for the preview.</desc>
+  <desc>1:1, pt. PCB faceplate, as Synthux's Touch 2 Faceplate Template: layers BG (black mask), Copper (exposed), White (silkscreen), openings and outline measured from it (outline as lines and arcs, R 48.48 shoulder, R 3.31 corners). Copper drawn gold for the preview.</desc>
   <g id="plate" inkscape:groupmode="layer" inkscape:label="BG">
-    <path d="M3.31 0H68.99A48.48 48.48 0 0 1 107.55 19.09L130.31 48.95A48.48 48.48 0 0 0 168.87 68.03H226.01A3.31 3.31 0 0 1 229.32 71.34V189.45A3.31 3.31 0 0 1 226.01 192.76H3.31A3.31 3.31 0 0 1 0 189.45V3.31A3.31 3.31 0 0 1 3.31 0ZM5.846 20.990a8.504 8.504 0 1 0 17.008 0a8.504 8.504 0 1 0 -17.008 0ZM5.846 64.190a8.504 8.504 0 1 0 17.008 0a8.504 8.504 0 1 0 -17.008 0ZM38.729 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM82.709 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM126.709 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM170.679 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM38.729 153.210a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM170.679 153.210a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM11.200 103.690a3.200 3.200 0 0 1 6.400 0V168.310a3.200 3.200 0 0 1 -6.400 0ZM211.590 103.690a3.200 3.200 0 0 1 6.400 0V168.310a3.200 3.200 0 0 1 -6.400 0ZM11.200 92.090a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM11.200 179.920a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM211.590 92.090a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM211.590 179.920a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM34.150 185.690a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM185.990 185.690a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM211.270 76.270a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0Z" fill="#0b0b0c" fill-rule="evenodd" />
+    <path d="M3.31 0H68.99A48.48 48.48 0 0 1 107.55 19.09L130.31 48.95A48.48 48.48 0 0 0 168.87 68.03H226.01A3.31 3.31 0 0 1 229.32 71.34V189.45A3.31 3.31 0 0 1 226.01 192.76H3.31A3.31 3.31 0 0 1 0 189.45V3.31A3.31 3.31 0 0 1 3.31 0ZM3.007 21A11.353 11.353 0 1 0 25.713 21A11.353 11.353 0 1 0 3.007 21ZM3.007 64.18A11.353 11.353 0 1 0 25.713 64.18A11.353 11.353 0 1 0 3.007 64.18ZM35.88 104.61A12.77 12.77 0 1 0 61.42 104.61A12.77 12.77 0 1 0 35.88 104.61ZM79.87 104.61A12.77 12.77 0 1 0 105.41 104.61A12.77 12.77 0 1 0 79.87 104.61ZM123.85 104.41A12.77 12.77 0 1 0 149.39 104.41A12.77 12.77 0 1 0 123.85 104.41ZM167.83 104.61A12.77 12.77 0 1 0 193.37 104.61A12.77 12.77 0 1 0 167.83 104.61ZM35.88 153.21A12.77 12.77 0 1 0 61.42 153.21A12.77 12.77 0 1 0 35.88 153.21ZM167.84 153.21A12.77 12.77 0 1 0 193.38 153.21A12.77 12.77 0 1 0 167.84 153.21ZM8.3 105.19A6.1 6.1 0 0 1 20.5 105.19V166.81A6.1 6.1 0 0 1 8.3 166.81ZM208.695 105.19A6.1 6.1 0 0 1 220.895 105.19V166.81A6.1 6.1 0 0 1 208.695 166.81ZM8.007 92.06A6.393 6.393 0 1 0 20.793 92.06A6.393 6.393 0 1 0 8.007 92.06ZM8.007 179.93A6.393 6.393 0 1 0 20.793 179.93A6.393 6.393 0 1 0 8.007 179.93ZM208.397 92.06A6.393 6.393 0 1 0 221.183 92.06A6.393 6.393 0 1 0 208.397 92.06ZM208.397 179.93A6.393 6.393 0 1 0 221.183 179.93A6.393 6.393 0 1 0 208.397 179.93ZM208.077 76.27A6.393 6.393 0 1 0 220.863 76.27A6.393 6.393 0 1 0 208.077 76.27ZM35.265 191.9A6.393 6.393 0 1 1 39.455 191.9ZM189.095 191.9A6.393 6.393 0 1 1 193.285 191.9Z" fill="#0b0b0c" fill-rule="evenodd" />
   </g>
   <defs>
     <path id="twin-S31" d="M33.313 99.028A16.321 16.321 0 0 1 63.987 99.028" />
     <path id="twin-S32" d="M77.293 99.028A16.321 16.321 0 0 1 107.967 99.028" />
-    <path id="twin-S33" d="M121.293 99.028A16.321 16.321 0 0 1 151.967 99.028" />
+    <path id="twin-S33" d="M121.293 98.828A16.321 16.321 0 0 1 151.967 98.828" />
     <path id="twin-S34" d="M165.263 99.028A16.321 16.321 0 0 1 195.937 99.028" />
     <path id="twin-S30" d="M33.313 147.628A16.321 16.321 0 0 1 63.987 147.628" />
     <path id="twin-S35" d="M165.263 147.628A16.321 16.321 0 0 1 195.937 147.628" />
@@ -149,7 +149,7 @@
   <g id="white" inkscape:groupmode="layer" inkscape:label="White">
     <g id="s31-size-white" inkscape:label="S31 Size">
       <path d="M39.089 114.171A13.521 13.521 0 1 1 58.211 114.171" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" />
-      <path d="M48.65 89.29V92.89" stroke="#ffffff" stroke-width="0.6" />
+      <path d="M48.65 89.289V91.34" stroke="#ffffff" stroke-width="0.6" />
       <text x="48.65" y="123.73" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">SIZE</text>
       <text x="38.49" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">5ms</text>
       <text x="58.81" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">2s</text>
@@ -159,11 +159,11 @@
       <text x="92.63" y="123.73" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">SPRAY</text>
     </g>
     <g id="s33-pitch-white" inkscape:label="S33 Pitch">
-      <path d="M127.069 114.171A13.521 13.521 0 1 1 146.191 114.171" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" />
-      <path d="M136.63 89.29V92.89" stroke="#ffffff" stroke-width="0.6" />
-      <text x="136.63" y="123.73" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">PITCH</text>
-      <text x="126.47" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">−24</text>
-      <text x="146.79" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">+24</text>
+      <path d="M127.069 113.971A13.521 13.521 0 1 1 146.191 113.971" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" />
+      <path d="M136.62 89.089V91.14" stroke="#ffffff" stroke-width="0.6" />
+      <text x="136.63" y="123.53" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">PITCH</text>
+      <text x="126.47" y="117.87" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">−24</text>
+      <text x="146.79" y="117.87" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">+24</text>
     </g>
     <g id="s34-shape-white" inkscape:label="S34 Shape">
       <path d="M171.039 114.171A13.521 13.521 0 1 1 190.161 114.171" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" />
@@ -180,13 +180,10 @@
       <text x="180.60" y="172.33" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">LENGTH</text>
     </g>
     <g id="jacks-white" inkscape:label="Jacks">
-      <path d="M4.246 20.990a10.104 10.104 0 1 0 20.208 0a10.104 10.104 0 1 0 -20.208 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
       <text x="14.35" y="36.69" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">IN</text>
-      <path d="M4.246 64.190a10.104 10.104 0 1 0 20.208 0a10.104 10.104 0 1 0 -20.208 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
       <text x="14.35" y="79.89" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">OUT</text>
     </g>
     <g id="s36-speed-white" inkscape:label="S36 Speed">
-      <path d="M9.800 103.690a4.600 4.600 0 0 1 9.200 0V168.310a4.600 4.600 0 0 1 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
       <path d="M21.00 164.91h1.80" stroke="#ffffff" stroke-width="0.5" />
       <text x="23.60" y="165.92" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="start" letter-spacing="0.00">0</text>
       <path d="M21.00 151.42h1.80" stroke="#ffffff" stroke-width="0.5" />
@@ -202,7 +199,6 @@
       <text x="-12.20" y="136.00" font-size="5" font-weight="500" letter-spacing="0.60" text-anchor="start" transform="rotate(-90 7.60 136.00)" fill="#ffffff">SPEED</text>
     </g>
     <g id="s37-density-white" inkscape:label="S37 Density">
-      <path d="M210.190 103.690a4.600 4.600 0 0 1 9.200 0V168.310a4.600 4.600 0 0 1 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
       <path d="M208.19 164.91h-1.80" stroke="#ffffff" stroke-width="0.5" />
       <text x="205.59" y="165.92" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="end" letter-spacing="0.00">0</text>
       <path d="M208.19 151.84h-1.80" stroke="#ffffff" stroke-width="0.5" />
@@ -214,15 +210,6 @@
       <path d="M208.19 107.09h-1.80" stroke="#ffffff" stroke-width="0.5" />
       <text x="205.59" y="108.10" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="end" letter-spacing="0.00">320</text>
       <text x="195.19" y="136.00" font-size="5" font-weight="500" letter-spacing="0.60" text-anchor="start" transform="rotate(90 221.59 136.00)" fill="#ffffff">DENSITY</text>
-    </g>
-    <g id="screws-white" inkscape:label="Screws">
-      <path d="M9.800 92.090a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
-      <path d="M9.800 179.920a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
-      <path d="M210.190 92.090a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
-      <path d="M210.190 179.920a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
-      <path d="M32.750 185.690a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
-      <path d="M184.590 185.690a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
-      <path d="M209.870 76.270a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
     </g>
     <g id="loop-white" inkscape:label="Loop">
       <rect x="76.42" y="146.21" width="0.8" height="0.8" fill="#ffffff" />
