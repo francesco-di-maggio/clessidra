@@ -1,318 +1,358 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-     width="80.90mm" height="68.00mm" viewBox="0 0 229.323 192.756" font-family="'IBM Plex Mono', 'SF Mono', Menlo, monospace">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="80.90mm" height="68.00mm" viewBox="0 0 229.323 192.756" font-family="'IBM Plex Mono', 'SF Mono', Menlo, monospace">
   <title>Clessidra faceplate, Synthux Simple Touch</title>
-  <desc>1:1, pt. Black plate, art in white, grey and orange (UV print over black mask). Outline and opening centres from Synthux's Simple Touch Faceplate template (DXF), the outline as its lines and arcs (R 48.48 shoulder, R 3.31 corners). Screw drills unknown: holes drawn 2.3 mm, to confirm.</desc>
-  <g id="plate" inkscape:groupmode="layer" inkscape:label="Plate (black)">
-    <path d="M3.31 0H68.99A48.48 48.48 0 0 1 107.55 19.09L130.31 48.95A48.48 48.48 0 0 0 168.87 68.03H226.01A3.31 3.31 0 0 1 229.32 71.34V189.45A3.31 3.31 0 0 1 226.01 192.76H3.31A3.31 3.31 0 0 1 0 189.45V3.31A3.31 3.31 0 0 1 3.31 0ZM5.846 20.990a8.504 8.504 0 1 0 17.008 0a8.504 8.504 0 1 0 -17.008 0ZM5.846 64.190a8.504 8.504 0 1 0 17.008 0a8.504 8.504 0 1 0 -17.008 0ZM38.729 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM82.709 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM126.709 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM170.679 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM38.729 153.210a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM170.679 153.210a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM11.200 103.690a3.200 3.200 0 0 1 6.400 0V168.310a3.200 3.200 0 0 1 -6.400 0ZM211.590 103.690a3.200 3.200 0 0 1 6.400 0V168.310a3.200 3.200 0 0 1 -6.400 0ZM11.200 92.090a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM11.200 179.920a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM211.590 92.090a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM211.590 179.920a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM34.150 185.690a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM185.990 185.690a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM211.270 76.270a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0Z" fill="#0b0b0c" fill-rule="evenodd"/>
+  <desc>1:1, pt. PCB faceplate, as Synthux's template layers: BG (black mask), Copper (exposed), White (silkscreen). Outline and opening centres from Synthux's Simple Touch Faceplate template (DXF), the outline as its lines and arcs (R 48.48 shoulder, R 3.31 corners). Copper drawn gold for the preview.</desc>
+  <g id="plate" inkscape:groupmode="layer" inkscape:label="BG">
+    <path d="M3.31 0H68.99A48.48 48.48 0 0 1 107.55 19.09L130.31 48.95A48.48 48.48 0 0 0 168.87 68.03H226.01A3.31 3.31 0 0 1 229.32 71.34V189.45A3.31 3.31 0 0 1 226.01 192.76H3.31A3.31 3.31 0 0 1 0 189.45V3.31A3.31 3.31 0 0 1 3.31 0ZM5.846 20.990a8.504 8.504 0 1 0 17.008 0a8.504 8.504 0 1 0 -17.008 0ZM5.846 64.190a8.504 8.504 0 1 0 17.008 0a8.504 8.504 0 1 0 -17.008 0ZM38.729 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM82.709 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM126.709 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM170.679 104.610a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM38.729 153.210a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM170.679 153.210a9.921 9.921 0 1 0 19.843 0a9.921 9.921 0 1 0 -19.843 0ZM11.200 103.690a3.200 3.200 0 0 1 6.400 0V168.310a3.200 3.200 0 0 1 -6.400 0ZM211.590 103.690a3.200 3.200 0 0 1 6.400 0V168.310a3.200 3.200 0 0 1 -6.400 0ZM11.200 92.090a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM11.200 179.920a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM211.590 92.090a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM211.590 179.920a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM34.150 185.690a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM185.990 185.690a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0ZM211.270 76.270a3.200 3.200 0 1 0 6.400 0a3.200 3.200 0 1 0 -6.400 0Z" fill="#0b0b0c" fill-rule="evenodd" />
   </g>
-  <defs><path id="twin-S31" d="M33.313 99.028A16.321 16.321 0 0 1 63.987 99.028"/><path id="twin-S32" d="M77.293 99.028A16.321 16.321 0 0 1 107.967 99.028"/><path id="twin-S33" d="M121.293 99.028A16.321 16.321 0 0 1 151.967 99.028"/><path id="twin-S34" d="M165.263 99.028A16.321 16.321 0 0 1 195.937 99.028"/><path id="twin-S30" d="M33.313 147.628A16.321 16.321 0 0 1 63.987 147.628"/><path id="twin-S35" d="M165.263 147.628A16.321 16.321 0 0 1 195.937 147.628"/></defs>
-  <g id="art" inkscape:groupmode="layer" inkscape:label="Art (white, grey, orange)">
-    <g id="s31-size" inkscape:label="S31 Size">
-      <path d="M39.089 114.171A13.521 13.521 0 1 1 58.211 114.171" fill="none" stroke="#3a3a3f" stroke-width="1.6" stroke-linecap="round"/>
-      <path d="M48.65 89.29V92.89" stroke="#828288" stroke-width="0.6"/>
-      <text x="48.65" y="123.73" font-size="4.0" font-weight="500" fill="#f2f2f2" text-anchor="middle" letter-spacing="0.48">SIZE</text>
-      <text x="38.49" y="118.07" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">5ms</text>
-      <text x="58.81" y="118.07" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">2s</text>
-      <text font-size="3.2" font-weight="500" fill="#ff5a1f" letter-spacing="0.38"><textPath href="#twin-S31" startOffset="50%" text-anchor="middle">RND SIZE</textPath></text>
+  <defs>
+    <path id="twin-S31" d="M33.313 99.028A16.321 16.321 0 0 1 63.987 99.028" />
+    <path id="twin-S32" d="M77.293 99.028A16.321 16.321 0 0 1 107.967 99.028" />
+    <path id="twin-S33" d="M121.293 99.028A16.321 16.321 0 0 1 151.967 99.028" />
+    <path id="twin-S34" d="M165.263 99.028A16.321 16.321 0 0 1 195.937 99.028" />
+    <path id="twin-S30" d="M33.313 147.628A16.321 16.321 0 0 1 63.987 147.628" />
+    <path id="twin-S35" d="M165.263 147.628A16.321 16.321 0 0 1 195.937 147.628" />
+  </defs>
+  <g id="copper" inkscape:groupmode="layer" inkscape:label="Copper">
+    <g id="s31-size-copper" inkscape:label="S31 Size">
+      <text font-size="3.2" font-weight="500" fill="#c9a25a" letter-spacing="0.38">
+        <textPath href="#twin-S31" startOffset="50%" text-anchor="middle">RND SIZE</textPath>
+      </text>
     </g>
-    <g id="s32-spray" inkscape:label="S32 Spray">
-      <path d="M83.069 114.171A13.521 13.521 0 1 1 102.191 114.171" fill="none" stroke="#3a3a3f" stroke-width="1.6" stroke-linecap="round"/>
-      <text x="92.63" y="123.73" font-size="4.0" font-weight="500" fill="#f2f2f2" text-anchor="middle" letter-spacing="0.48">SPRAY</text>
-      <text x="82.47" y="118.07" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">0</text>
-      <text x="102.79" y="118.07" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">LOOP</text>
-      <text font-size="3.2" font-weight="500" fill="#ff5a1f" letter-spacing="0.38"><textPath href="#twin-S32" startOffset="50%" text-anchor="middle">REVERSE</textPath></text>
+    <g id="s32-spray-copper" inkscape:label="S32 Spray">
+      <text font-size="3.2" font-weight="500" fill="#c9a25a" letter-spacing="0.38">
+        <textPath href="#twin-S32" startOffset="50%" text-anchor="middle">REVERSE</textPath>
+      </text>
     </g>
-    <g id="s33-pitch" inkscape:label="S33 Pitch">
-      <path d="M127.069 114.171A13.521 13.521 0 1 1 146.191 114.171" fill="none" stroke="#3a3a3f" stroke-width="1.6" stroke-linecap="round"/>
-      <path d="M136.63 89.29V92.89" stroke="#828288" stroke-width="0.6"/>
-      <text x="136.63" y="123.73" font-size="4.0" font-weight="500" fill="#f2f2f2" text-anchor="middle" letter-spacing="0.48">PITCH</text>
-      <text x="126.47" y="118.07" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">−24</text>
-      <text x="146.79" y="118.07" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">+24</text>
-      <text font-size="3.2" font-weight="500" fill="#ff5a1f" letter-spacing="0.38"><textPath href="#twin-S33" startOffset="50%" text-anchor="middle">RND PITCH</textPath></text>
+    <g id="s33-pitch-copper" inkscape:label="S33 Pitch">
+      <text font-size="3.2" font-weight="500" fill="#c9a25a" letter-spacing="0.38">
+        <textPath href="#twin-S33" startOffset="50%" text-anchor="middle">RND PITCH</textPath>
+      </text>
     </g>
-    <g id="s34-shape" inkscape:label="S34 Shape">
-      <path d="M171.039 114.171A13.521 13.521 0 1 1 190.161 114.171" fill="none" stroke="#3a3a3f" stroke-width="1.6" stroke-linecap="round"/>
-      <text x="180.60" y="123.73" font-size="4.0" font-weight="500" fill="#f2f2f2" text-anchor="middle" letter-spacing="0.48">SHAPE</text>
-      <text x="170.44" y="118.07" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">SQ</text>
-      <text x="190.76" y="118.07" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">REV</text>
-      <text font-size="3.2" font-weight="500" fill="#ff5a1f" letter-spacing="0.38"><textPath href="#twin-S34" startOffset="50%" text-anchor="middle">RND SHAPE</textPath></text>
+    <g id="s34-shape-copper" inkscape:label="S34 Shape">
+      <text font-size="3.2" font-weight="500" fill="#c9a25a" letter-spacing="0.38">
+        <textPath href="#twin-S34" startOffset="50%" text-anchor="middle">RND SHAPE</textPath>
+      </text>
     </g>
-    <g id="s30-position" inkscape:label="S30 Position">
-      <path d="M39.089 162.771A13.521 13.521 0 1 1 58.211 162.771" fill="none" stroke="#3a3a3f" stroke-width="1.6" stroke-linecap="round"/>
-      <text x="48.65" y="172.33" font-size="4.0" font-weight="500" fill="#f2f2f2" text-anchor="middle" letter-spacing="0.48">POSITION</text>
-      <text x="38.49" y="166.67" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">0</text>
-      <text x="58.81" y="166.67" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">END</text>
-      <text font-size="3.2" font-weight="500" fill="#ff5a1f" letter-spacing="0.38"><textPath href="#twin-S30" startOffset="50%" text-anchor="middle">FILTER</textPath></text>
+    <g id="s30-position-copper" inkscape:label="S30 Position">
+      <text font-size="3.2" font-weight="500" fill="#c9a25a" letter-spacing="0.38">
+        <textPath href="#twin-S30" startOffset="50%" text-anchor="middle">FILTER</textPath>
+      </text>
     </g>
-    <g id="s35-length" inkscape:label="S35 Length">
-      <path d="M171.039 162.771A13.521 13.521 0 1 1 190.161 162.771" fill="none" stroke="#3a3a3f" stroke-width="1.6" stroke-linecap="round"/>
-      <text x="180.60" y="172.33" font-size="4.0" font-weight="500" fill="#f2f2f2" text-anchor="middle" letter-spacing="0.48">LENGTH</text>
-      <text x="170.44" y="166.67" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">0</text>
-      <text x="190.76" y="166.67" font-size="2.9" font-weight="500" fill="#828288" text-anchor="middle" letter-spacing="0.00">ALL</text>
-      <text font-size="3.2" font-weight="500" fill="#ff5a1f" letter-spacing="0.38"><textPath href="#twin-S35" startOffset="50%" text-anchor="middle">REVERB</textPath></text>
+    <g id="s35-length-copper" inkscape:label="S35 Length">
+      <text font-size="3.2" font-weight="500" fill="#c9a25a" letter-spacing="0.38">
+        <textPath href="#twin-S35" startOffset="50%" text-anchor="middle">REVERB</textPath>
+      </text>
     </g>
-    <g id="jacks" inkscape:label="Jacks">
-      <path d="M4.246 20.990a10.104 10.104 0 1 0 20.208 0a10.104 10.104 0 1 0 -20.208 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
-      <text x="14.35" y="36.69" font-size="4.0" font-weight="500" fill="#f2f2f2" text-anchor="middle" letter-spacing="0.48">IN</text>
-      <path d="M4.246 64.190a10.104 10.104 0 1 0 20.208 0a10.104 10.104 0 1 0 -20.208 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
-      <text x="14.35" y="79.89" font-size="4.0" font-weight="500" fill="#f2f2f2" text-anchor="middle" letter-spacing="0.48">OUT</text>
+    <g id="s36-speed-copper" inkscape:label="S36 Speed">
+      <text x="9.40" y="136.00" font-size="4" font-weight="500" letter-spacing="0.60" text-anchor="start" transform="rotate(-90 7.60 136.00)" fill="#c9a25a">VOLUME</text>
     </g>
-    <g id="s36-speed" inkscape:label="S36 Speed">
-      <path d="M9.800 103.690a4.600 4.600 0 0 1 9.200 0V168.310a4.600 4.600 0 0 1 -9.200 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
-      <path d="M21.00 164.91h1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="23.60" y="165.92" font-size="2.9" font-weight="500" fill="#828288" text-anchor="start" letter-spacing="0.00">0</text>
-      <path d="M21.00 151.42h1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="23.60" y="152.43" font-size="2.9" font-weight="500" fill="#828288" text-anchor="start" letter-spacing="0.00">¼</text>
-      <path d="M21.00 139.85h1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="23.60" y="140.87" font-size="2.9" font-weight="500" fill="#828288" text-anchor="start" letter-spacing="0.00">½</text>
-      <path d="M21.00 128.29h1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="23.60" y="129.31" font-size="2.9" font-weight="500" fill="#828288" text-anchor="start" letter-spacing="0.00">1×</text>
-      <path d="M21.00 116.73h1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="23.60" y="117.74" font-size="2.9" font-weight="500" fill="#828288" text-anchor="start" letter-spacing="0.00">2×</text>
-      <path d="M21.00 107.09h1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="23.60" y="108.10" font-size="2.9" font-weight="500" fill="#828288" text-anchor="start" letter-spacing="0.00">4×</text>
-      <text x="7.60" y="136.00" font-size="5.0" font-weight="500" letter-spacing="0.60" text-anchor="middle" transform="rotate(-90 7.60 136.00)"><tspan fill="#f2f2f2">SPEED</tspan><tspan fill="#ff5a1f" font-size="4.0" dx="3.6">VOLUME</tspan></text>
+    <g id="s37-density-copper" inkscape:label="S37 Density">
+      <text x="223.99" y="136.00" font-size="4" font-weight="500" letter-spacing="0.60" text-anchor="start" transform="rotate(90 221.59 136.00)" fill="#c9a25a">RND TIME</text>
     </g>
-    <g id="s37-density" inkscape:label="S37 Density">
-      <path d="M210.190 103.690a4.600 4.600 0 0 1 9.200 0V168.310a4.600 4.600 0 0 1 -9.200 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
-      <path d="M208.19 164.91h-1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="205.59" y="165.92" font-size="2.9" font-weight="500" fill="#828288" text-anchor="end" letter-spacing="0.00">0</text>
-      <path d="M208.19 151.84h-1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="205.59" y="152.86" font-size="2.9" font-weight="500" fill="#828288" text-anchor="end" letter-spacing="0.00">1</text>
-      <path d="M208.19 133.98h-1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="205.59" y="134.99" font-size="2.9" font-weight="500" fill="#828288" text-anchor="end" letter-spacing="0.00">10</text>
-      <path d="M208.19 116.11h-1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="205.59" y="117.13" font-size="2.9" font-weight="500" fill="#828288" text-anchor="end" letter-spacing="0.00">100</text>
-      <path d="M208.19 107.09h-1.80" stroke="#828288" stroke-width="0.5"/>
-      <text x="205.59" y="108.10" font-size="2.9" font-weight="500" fill="#828288" text-anchor="end" letter-spacing="0.00">320</text>
-      <text x="221.59" y="136.00" font-size="5.0" font-weight="500" letter-spacing="0.60" text-anchor="middle" transform="rotate(90 221.59 136.00)"><tspan fill="#f2f2f2">DENSITY</tspan><tspan fill="#ff5a1f" font-size="4.0" dx="3.6">RND TIME</tspan></text>
+    <g id="loop-copper" inkscape:label="Loop">
+      <path d="M106.22 144.61V161.81" stroke="#c9a25a" stroke-width="0.6" />
+      <path d="M104.82 142.81H107.62L106.22 144.61Z" fill="#c9a25a" />
     </g>
-    <g id="screws" inkscape:label="Screws">
-      <path d="M9.800 92.090a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
-      <path d="M9.800 179.920a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
-      <path d="M210.190 92.090a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
-      <path d="M210.190 179.920a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
-      <path d="M32.750 185.690a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
-      <path d="M184.590 185.690a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
-      <path d="M209.870 76.270a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#3a3a3f" stroke-width="0.6"/>
+    <g id="sand-copper" inkscape:label="Sand">
+      <rect x="39.67" y="22.21" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="56.68" y="22.21" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="41.38" y="23.91" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="43.07" y="23.91" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="44.77" y="23.91" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="51.57" y="23.91" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="53.27" y="23.91" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="54.97" y="23.91" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="43.07" y="25.61" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="44.77" y="25.61" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="46.47" y="25.61" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="25.61" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="49.88" y="25.61" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="51.57" y="25.61" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="53.27" y="25.61" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="44.77" y="27.31" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="46.47" y="27.31" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="27.31" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="49.88" y="27.31" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="51.57" y="27.31" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="46.47" y="29.01" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="29.01" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="49.88" y="29.01" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="46.01" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="44.77" y="47.71" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="46.47" y="47.71" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="47.71" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="49.88" y="47.71" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="51.57" y="47.71" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="43.07" y="49.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="44.77" y="49.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="46.47" y="49.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="49.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="49.88" y="49.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="51.57" y="49.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="53.27" y="49.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="39.67" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="41.38" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="43.07" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="44.77" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="46.47" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="49.88" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="51.57" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="53.27" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="54.97" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="56.68" y="51.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="36.27" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="37.97" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="39.67" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="41.38" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="43.07" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="44.77" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="46.47" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="49.88" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="51.57" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="53.27" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="54.97" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="56.68" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="58.38" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="60.08" y="52.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="32.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="34.11" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="35.81" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="37.51" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="39.21" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="40.91" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="42.61" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="44.31" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="56.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="58.49" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="61.36" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="64.62" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="68.18" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="43.07" y="71.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="44.77" y="71.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="46.47" y="71.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="71.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="49.88" y="71.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="51.57" y="71.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="53.27" y="71.41" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="44.77" y="69.71" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="46.47" y="69.71" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="69.71" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="49.88" y="69.71" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="51.57" y="69.71" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="46.47" y="68.01" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="48.17" y="68.01" width="0.95" height="0.95" fill="#c9a25a" />
+      <rect x="49.88" y="68.01" width="0.95" height="0.95" fill="#c9a25a" />
     </g>
-    <g id="loop" inkscape:label="Loop">
-      <rect x="76.42" y="146.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="76.42" y="148.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="76.42" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="76.42" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="76.42" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="76.42" y="157.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="76.42" y="159.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="79.22" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="79.22" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="79.22" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="82.02" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="82.02" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="82.02" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="84.82" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="84.82" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="84.82" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="87.62" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="90.42" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="93.22" y="146.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="93.22" y="148.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="93.22" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="93.22" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="93.22" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="93.22" y="157.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="93.22" y="159.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="96.02" y="148.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="96.02" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="96.02" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="96.02" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="96.02" y="157.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="98.82" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="98.82" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="98.82" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="101.62" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="104.42" y="146.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="104.42" y="148.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="104.42" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="104.42" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="104.42" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="104.42" y="157.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="104.42" y="159.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="107.22" y="148.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="107.22" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="107.22" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="107.22" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="107.22" y="157.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="110.02" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="110.02" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="110.02" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="112.82" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="112.82" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="112.82" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="115.62" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="118.42" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="121.22" y="146.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="121.22" y="148.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="121.22" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="121.22" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="121.22" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="121.22" y="157.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="121.22" y="159.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="124.02" y="148.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="124.02" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="124.02" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="124.02" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="124.02" y="157.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="126.82" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="126.82" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="126.82" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="129.62" y="146.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="129.62" y="148.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="129.62" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="129.62" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="129.62" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="129.62" y="157.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="129.62" y="159.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="132.42" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="132.42" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="132.42" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="135.22" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="135.22" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="135.22" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="138.02" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="140.82" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="143.62" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="146.42" y="146.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="146.42" y="148.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="146.42" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="146.42" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="146.42" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="146.42" y="157.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="146.42" y="159.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="149.22" y="148.41" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="149.22" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="149.22" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="149.22" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="149.22" y="157.21" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="152.02" y="150.61" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="152.02" y="152.81" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <rect x="152.02" y="155.01" width="0.8" height="0.8" fill="#828288" opacity="0.55"/>
-      <path d="M75.82 144.61H74.23V161.81H75.82" fill="none" stroke="#828288" stroke-width="0.5"/>
-      <path d="M153.43 144.61H155.02V161.81H153.43" fill="none" stroke="#828288" stroke-width="0.5"/>
-      <path d="M106.22 144.61V161.81" stroke="#ff5a1f" stroke-width="0.6"/>
-      <path d="M104.82 142.81H107.62L106.22 144.61Z" fill="#ff5a1f"/>
+  </g>
+  <g id="white" inkscape:groupmode="layer" inkscape:label="White">
+    <g id="s31-size-white" inkscape:label="S31 Size">
+      <path d="M39.089 114.171A13.521 13.521 0 1 1 58.211 114.171" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" />
+      <path d="M48.65 89.29V92.89" stroke="#ffffff" stroke-width="0.6" />
+      <text x="48.65" y="123.73" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">SIZE</text>
+      <text x="38.49" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">5ms</text>
+      <text x="58.81" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">2s</text>
     </g>
-    <g id="hourglass" inkscape:label="Hourglass">
-      <path d="M34.65 10.886C34.65 18.219 38.99 25.553 47.67 32.886C38.99 40.219 34.65 47.553 34.65 54.886M62.65 10.886C62.65 18.219 58.31 25.553 49.63 32.886C58.31 40.219 62.65 47.553 62.65 54.886" fill="none" stroke="#f2f2f2" stroke-width="0.8" stroke-linecap="round"/>
-      <path d="M32.85 10.89H64.45" stroke="#f2f2f2" stroke-width="1.0" stroke-linecap="round"/>
+    <g id="s32-spray-white" inkscape:label="S32 Spray">
+      <path d="M83.069 114.171A13.521 13.521 0 1 1 102.191 114.171" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" />
+      <text x="92.63" y="123.73" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">SPRAY</text>
+      <text x="82.47" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">0</text>
+      <text x="102.79" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">LOOP</text>
     </g>
-    <g id="sand" inkscape:label="Sand">
-      <rect x="39.67" y="22.21" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="56.68" y="22.21" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="41.38" y="23.91" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="43.07" y="23.91" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="44.77" y="23.91" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="51.57" y="23.91" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="53.27" y="23.91" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="54.97" y="23.91" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="43.07" y="25.61" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="44.77" y="25.61" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="46.47" y="25.61" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="25.61" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="49.88" y="25.61" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="51.57" y="25.61" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="53.27" y="25.61" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="44.77" y="27.31" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="46.47" y="27.31" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="27.31" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="49.88" y="27.31" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="51.57" y="27.31" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="46.47" y="29.01" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="29.01" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="49.88" y="29.01" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="46.01" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="44.77" y="47.71" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="46.47" y="47.71" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="47.71" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="49.88" y="47.71" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="51.57" y="47.71" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="43.07" y="49.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="44.77" y="49.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="46.47" y="49.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="49.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="49.88" y="49.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="51.57" y="49.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="53.27" y="49.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="39.67" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="41.38" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="43.07" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="44.77" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="46.47" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="49.88" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="51.57" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="53.27" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="54.97" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="56.68" y="51.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="36.27" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="37.97" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="39.67" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="41.38" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="43.07" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="44.77" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="46.47" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="49.88" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="51.57" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="53.27" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="54.97" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="56.68" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="58.38" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="60.08" y="52.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="32.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="34.11" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="35.81" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="37.51" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="39.21" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="40.91" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="42.61" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="44.31" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="56.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="58.49" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="61.36" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="64.62" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="68.18" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="43.07" y="71.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="44.77" y="71.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="46.47" y="71.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="71.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="49.88" y="71.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="51.57" y="71.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="53.27" y="71.41" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="44.77" y="69.71" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="46.47" y="69.71" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="69.71" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="49.88" y="69.71" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="51.57" y="69.71" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="46.47" y="68.01" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="48.17" y="68.01" width="0.95" height="0.95" fill="#ff5a1f"/>
-      <rect x="49.88" y="68.01" width="0.95" height="0.95" fill="#ff5a1f"/>
+    <g id="s33-pitch-white" inkscape:label="S33 Pitch">
+      <path d="M127.069 114.171A13.521 13.521 0 1 1 146.191 114.171" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" />
+      <path d="M136.63 89.29V92.89" stroke="#ffffff" stroke-width="0.6" />
+      <text x="136.63" y="123.73" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">PITCH</text>
+      <text x="126.47" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">−24</text>
+      <text x="146.79" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">+24</text>
     </g>
-    <g id="in-wire" inkscape:label="IN wire">
-      <path d="M26.45 20.99H35.40" stroke="#828288" stroke-width="0.75" stroke-linecap="round" stroke-dasharray="0 1.6"/>
-      <circle cx="26.45" cy="20.99" r="0.85" fill="#828288"/>
+    <g id="s34-shape-white" inkscape:label="S34 Shape">
+      <path d="M171.039 114.171A13.521 13.521 0 1 1 190.161 114.171" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" />
+      <text x="180.60" y="123.73" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">SHAPE</text>
+      <text x="170.44" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">SQ</text>
+      <text x="190.76" y="118.07" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">REV</text>
     </g>
-    <g id="loop-wires" inkscape:label="Loop wires">
-      <path d="M64.17 153.21L73.63 153.21" fill="none" stroke="#828288" stroke-width="0.75" stroke-linecap="round" stroke-dasharray="0 1.6"/>
-      <circle cx="64.17" cy="153.21" r="0.85" fill="#828288"/>
-      <path d="M165.08 153.21L155.62 153.21" fill="none" stroke="#828288" stroke-width="0.75" stroke-linecap="round" stroke-dasharray="0 1.6"/>
-      <circle cx="165.08" cy="153.21" r="0.85" fill="#828288"/>
+    <g id="s30-position-white" inkscape:label="S30 Position">
+      <path d="M39.089 162.771A13.521 13.521 0 1 1 58.211 162.771" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" />
+      <text x="48.65" y="172.33" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">POSITION</text>
+      <text x="38.49" y="166.67" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">0</text>
+      <text x="58.81" y="166.67" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">END</text>
     </g>
-    <g id="name" inkscape:label="Name">
-      <text x="114.66" y="186.99" font-size="6.8" font-weight="600" fill="#f2f2f2" text-anchor="middle" letter-spacing="2.18">CLESSIDRA</text>
+    <g id="s35-length-white" inkscape:label="S35 Length">
+      <path d="M171.039 162.771A13.521 13.521 0 1 1 190.161 162.771" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" />
+      <text x="180.60" y="172.33" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">LENGTH</text>
+      <text x="170.44" y="166.67" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">0</text>
+      <text x="190.76" y="166.67" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.00">ALL</text>
+    </g>
+    <g id="jacks-white" inkscape:label="Jacks">
+      <path d="M4.246 20.990a10.104 10.104 0 1 0 20.208 0a10.104 10.104 0 1 0 -20.208 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <text x="14.35" y="36.69" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">IN</text>
+      <path d="M4.246 64.190a10.104 10.104 0 1 0 20.208 0a10.104 10.104 0 1 0 -20.208 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <text x="14.35" y="79.89" font-size="4.0" font-weight="500" fill="#ffffff" text-anchor="middle" letter-spacing="0.48">OUT</text>
+    </g>
+    <g id="s36-speed-white" inkscape:label="S36 Speed">
+      <path d="M9.800 103.690a4.600 4.600 0 0 1 9.200 0V168.310a4.600 4.600 0 0 1 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <path d="M21.00 164.91h1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="23.60" y="165.92" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="start" letter-spacing="0.00">0</text>
+      <path d="M21.00 151.42h1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="23.60" y="152.43" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="start" letter-spacing="0.00">¼</text>
+      <path d="M21.00 139.85h1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="23.60" y="140.87" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="start" letter-spacing="0.00">½</text>
+      <path d="M21.00 128.29h1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="23.60" y="129.31" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="start" letter-spacing="0.00">1×</text>
+      <path d="M21.00 116.73h1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="23.60" y="117.74" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="start" letter-spacing="0.00">2×</text>
+      <path d="M21.00 107.09h1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="23.60" y="108.10" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="start" letter-spacing="0.00">4×</text>
+      <text x="-12.20" y="136.00" font-size="5" font-weight="500" letter-spacing="0.60" text-anchor="start" transform="rotate(-90 7.60 136.00)" fill="#ffffff">SPEED</text>
+    </g>
+    <g id="s37-density-white" inkscape:label="S37 Density">
+      <path d="M210.190 103.690a4.600 4.600 0 0 1 9.200 0V168.310a4.600 4.600 0 0 1 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <path d="M208.19 164.91h-1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="205.59" y="165.92" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="end" letter-spacing="0.00">0</text>
+      <path d="M208.19 151.84h-1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="205.59" y="152.86" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="end" letter-spacing="0.00">1</text>
+      <path d="M208.19 133.98h-1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="205.59" y="134.99" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="end" letter-spacing="0.00">10</text>
+      <path d="M208.19 116.11h-1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="205.59" y="117.13" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="end" letter-spacing="0.00">100</text>
+      <path d="M208.19 107.09h-1.80" stroke="#ffffff" stroke-width="0.5" />
+      <text x="205.59" y="108.10" font-size="2.9" font-weight="500" fill="#ffffff" text-anchor="end" letter-spacing="0.00">320</text>
+      <text x="195.19" y="136.00" font-size="5" font-weight="500" letter-spacing="0.60" text-anchor="start" transform="rotate(90 221.59 136.00)" fill="#ffffff">DENSITY</text>
+    </g>
+    <g id="screws-white" inkscape:label="Screws">
+      <path d="M9.800 92.090a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <path d="M9.800 179.920a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <path d="M210.190 92.090a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <path d="M210.190 179.920a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <path d="M32.750 185.690a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <path d="M184.590 185.690a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <path d="M209.870 76.270a4.600 4.600 0 1 0 9.200 0a4.600 4.600 0 1 0 -9.200 0Z" fill="none" stroke="#ffffff" stroke-width="0.5" />
+    </g>
+    <g id="loop-white" inkscape:label="Loop">
+      <rect x="76.42" y="146.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="76.42" y="148.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="76.42" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="76.42" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="76.42" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="76.42" y="157.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="76.42" y="159.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="79.22" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="79.22" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="79.22" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="82.02" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="82.02" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="82.02" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="84.82" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="84.82" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="84.82" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="87.62" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="90.42" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="93.22" y="146.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="93.22" y="148.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="93.22" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="93.22" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="93.22" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="93.22" y="157.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="93.22" y="159.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="96.02" y="148.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="96.02" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="96.02" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="96.02" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="96.02" y="157.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="98.82" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="98.82" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="98.82" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="101.62" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="104.42" y="146.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="104.42" y="148.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="104.42" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="104.42" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="104.42" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="104.42" y="157.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="104.42" y="159.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="107.22" y="148.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="107.22" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="107.22" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="107.22" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="107.22" y="157.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="110.02" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="110.02" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="110.02" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="112.82" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="112.82" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="112.82" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="115.62" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="118.42" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="121.22" y="146.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="121.22" y="148.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="121.22" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="121.22" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="121.22" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="121.22" y="157.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="121.22" y="159.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="124.02" y="148.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="124.02" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="124.02" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="124.02" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="124.02" y="157.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="126.82" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="126.82" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="126.82" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="129.62" y="146.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="129.62" y="148.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="129.62" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="129.62" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="129.62" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="129.62" y="157.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="129.62" y="159.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="132.42" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="132.42" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="132.42" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="135.22" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="135.22" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="135.22" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="138.02" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="140.82" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="143.62" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="146.42" y="146.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="146.42" y="148.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="146.42" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="146.42" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="146.42" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="146.42" y="157.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="146.42" y="159.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="149.22" y="148.41" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="149.22" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="149.22" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="149.22" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="149.22" y="157.21" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="152.02" y="150.61" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="152.02" y="152.81" width="0.8" height="0.8" fill="#ffffff" />
+      <rect x="152.02" y="155.01" width="0.8" height="0.8" fill="#ffffff" />
+      <path d="M75.82 144.61H74.23V161.81H75.82" fill="none" stroke="#ffffff" stroke-width="0.5" />
+      <path d="M153.43 144.61H155.02V161.81H153.43" fill="none" stroke="#ffffff" stroke-width="0.5" />
+    </g>
+    <g id="hourglass-white" inkscape:label="Hourglass">
+      <path d="M34.65 10.886C34.65 18.219 38.99 25.553 47.67 32.886C38.99 40.219 34.65 47.553 34.65 54.886M62.65 10.886C62.65 18.219 58.31 25.553 49.63 32.886C58.31 40.219 62.65 47.553 62.65 54.886" fill="none" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" />
+      <path d="M32.85 10.89H64.45" stroke="#ffffff" stroke-width="1.0" stroke-linecap="round" />
+    </g>
+    <g id="in-wire-white" inkscape:label="IN wire">
+      <path d="M26.45 20.99H35.40" stroke="#ffffff" stroke-width="0.75" stroke-linecap="round" stroke-dasharray="0 1.6" />
+      <circle cx="26.45" cy="20.99" r="0.85" fill="#ffffff" />
+    </g>
+    <g id="loop-wires-white" inkscape:label="Loop wires">
+      <path d="M64.17 153.21L73.63 153.21" fill="none" stroke="#ffffff" stroke-width="0.75" stroke-linecap="round" stroke-dasharray="0 1.6" />
+      <circle cx="64.17" cy="153.21" r="0.85" fill="#ffffff" />
+      <path d="M165.08 153.21L155.62 153.21" fill="none" stroke="#ffffff" stroke-width="0.75" stroke-linecap="round" stroke-dasharray="0 1.6" />
+      <circle cx="165.08" cy="153.21" r="0.85" fill="#ffffff" />
+    </g>
+    <g id="name-white" inkscape:label="Name">
+      <text x="114.66" y="186.99" font-size="6.8" font-weight="600" fill="#ffffff" text-anchor="middle" letter-spacing="2.18">CLESSIDRA</text>
     </g>
   </g>
   <g id="cut" inkscape:groupmode="layer" inkscape:label="Cut (reference)" sodipodi:insensitive="true" fill="none" stroke="#e33" stroke-width="0.25" opacity="0.6">
-    <path d="M3.31 0H68.99A48.48 48.48 0 0 1 107.55 19.09L130.31 48.95A48.48 48.48 0 0 0 168.87 68.03H226.01A3.31 3.31 0 0 1 229.32 71.34V189.45A3.31 3.31 0 0 1 226.01 192.76H3.31A3.31 3.31 0 0 1 0 189.45V3.31A3.31 3.31 0 0 1 3.31 0Z"/>
+    <path d="M3.31 0H68.99A48.48 48.48 0 0 1 107.55 19.09L130.31 48.95A48.48 48.48 0 0 0 168.87 68.03H226.01A3.31 3.31 0 0 1 229.32 71.34V189.45A3.31 3.31 0 0 1 226.01 192.76H3.31A3.31 3.31 0 0 1 0 189.45V3.31A3.31 3.31 0 0 1 3.31 0Z" />
   </g>
 </svg>
