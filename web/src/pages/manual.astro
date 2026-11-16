@@ -83,6 +83,7 @@ const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
   .does { font-size: 6.5px; }
   .twin { font-size: 6px; fill: #888; }
   .note { font-size: 7px; }
+  .note .grey { fill: #888; }
   .leader { stroke: #111; stroke-width: 0.5; }
   .chip rect { fill: #111; }
   .chip text { font-size: 4.6px; font-weight: 600; fill: #fff; text-anchor: middle; }
@@ -95,7 +96,7 @@ const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
   <rect x="188" y="56" width="226" height="58" fill="#fff" />
   <text class="kicker" x="192.5" y="76.8">Touch II</text>
   <text class="title" x="194" y="108.2">Clessidra</text>
-  <text class="sub" x={TITLE.x} y={TITLE.rules[0] - 4}>Granular sampler, inspired by the hourglass</text>
+  <text class="sub" x={TITLE.x} y={TITLE.rules[0] - 4}>A granular sampler inspired by the hourglass.</text>
   <text class="sub" x={TITLE.x} y={TITLE.rules[1] - 4}>By Francesco Di Maggio</text>
   <text class="url" x={TITLE.x} y={TITLE.rules[2] - 4}>v0.3 · francescodimaggio.nl/clessidra</text>
 
@@ -128,7 +129,7 @@ const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
     );
   })}
 
-  <text class="note" x={BOX.x} y={BOX.rules[0] - 4}>Grey: with P11 held. After a layer change, a knob continues from the current value.</text>
+  <text class="note" x={BOX.x} y={BOX.rules[0] - 4}><tspan class="grey">Grey</tspan>: the second layer, with P11 held. After a layer change, a knob continues from its value.</text>
   <text class="note" x={BOX.x} y={BOX.rules[1] - 4}>Always listening: a tap on P10 keeps what just played. Frozen by S09, Speed scrubs the loop.</text>
   <text class="note" x={BOX.x} y={BOX.rules[2] - 4}>LED: glow = grains, flash = recording, pulse = a stop, steady = P11 held, the last knob turned.</text>
 </svg>
