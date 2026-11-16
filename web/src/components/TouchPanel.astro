@@ -1,5 +1,5 @@
 ---
-// The Simple Touch panel as a drawing, after Synthux's own (Touch II blank
+// The Simple Touch 2 panel as a drawing, after Synthux's own (Touch II blank
 // manual): the board, its mounting holes, the plate of knobs and faders with
 // its cut for the Seed, the jacks. Every control where it sits on the board,
 // at its starting value, with its name. Built once, no script.
@@ -23,7 +23,7 @@ const knobDeg = (v: number) => -SWEEP / 2 + v * SWEEP;
 const faderY = (v: number) => FADER.bottom - v * (FADER.bottom - FADER.top);
 const leverY = (p: number) => (p === POSITION.up ? -26 : p === POSITION.down ? 8 : -9);
 ---
-<svg class="touch" viewBox="0 0 600 973" role="img" aria-label="The Simple Touch panel with each control's name">
+<svg class="touch" viewBox="0 0 600 973" role="img" aria-label="The Simple Touch 2 panel with each control's name">
   <rect class="plate" x="2" y="2" width="596" height="969" rx="18" />
   {[[56, 22], [544, 22], [56, 943], [544, 943]].map(([x, y]) => <circle class="hole" cx={x} cy={y} r="12" />)}
   <g class="board" aria-hidden="true">

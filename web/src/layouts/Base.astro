@@ -10,7 +10,7 @@ interface Props {
   app?: boolean;
 }
 
-const { title, app = false, description = "A granular instrument inspired by the hourglass, for the Synthux Simple Touch." } = Astro.props;
+const { title, app = false, description = "A granular sampler inspired by the hourglass, for the Synthux Simple Touch 2." } = Astro.props;
 const pageTitle = title ? `${title} · Clessidra` : "Clessidra";
 const path = Astro.url.pathname;
 const nav = [

@@ -33,7 +33,7 @@ h2.label { padding-left: 15px; }
 
 .stack { display: grid; gap: 10px; min-width: 0; }
 
-/* The panel: the Simple Touch as a drawing, every control where it sits on the board */
+/* The panel: the Simple Touch 2 as a drawing, every control where it sits on the board */
 svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh - 120px); margin: 0 auto; }
 .touch .plate { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
 .touch .hole { fill: var(--surface); stroke: var(--dim); stroke-width: 2; }

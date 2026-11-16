@@ -1,4 +1,4 @@
-// The Simple Touch's controls in this firmware: where each sits on the board,
+// The Simple Touch 2's controls in this firmware: where each sits on the board,
 // what it does, and how its value reads. Indices follow Controls
 // (src/hw/controls.h). Positions are the board's, in the 600 × 973 photo's
 // pixels (touch.jpeg). Play, Controls and the panel drawing read them.

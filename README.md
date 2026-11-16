@@ -1,6 +1,6 @@
 # Clessidra
 
-A real-time granular sampler for the Synthux Simple Touch, inspired by the hourglass.
+A real-time granular sampler for the Synthux Simple Touch 2, inspired by the hourglass.
 
 <img src="touch.jpeg" width="300"/>
 
