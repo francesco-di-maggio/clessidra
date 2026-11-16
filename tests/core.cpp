@@ -1688,11 +1688,16 @@ void Mapping()
     c.knobs[Controls::S32] = 0.0f;
 
     // S33, Pitch: stops at the fifth and two octaves
-    c.knobs[Controls::S33] = 0.5f + 4.15f / 12.0f; // on the fifth
+    // Past the centre detent, 0.05 either way, the stops stretched over the
+    // rest
+    c.knobs[Controls::S33] = 0.55f + 0.45f * 4.15f / 6.0f; // on the fifth
     ui.Process(c, r.core);
     Check(Near(p.pitch, std::exp2(7.0 / 12.0), 1e-3),
           "S33: a stop at a fifth",
           p.pitch);
+    c.knobs[Controls::S33] = 0.45f;
+    ui.Process(c, r.core);
+    Check(p.pitch == 1.0f, "S33: 0.05 off the centre, still unison", p.pitch);
     c.knobs[Controls::S33] = 0.0f;
     ui.Process(c, r.core);
     Check(Near(p.pitch, 0.25, 1e-3), "S33 bottom: two octaves down", p.pitch);
