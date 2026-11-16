@@ -518,6 +518,33 @@ void Windows()
           top);
 }
 
+// At rate 1 a grain returns the buffer as it is, from whatever position
+void ExactRead()
+{
+    std::vector<float> mem(kRate, 0.0f);
+    Buffer             buffer;
+    buffer.Init(mem.data(), mem.size(), kRate);
+    for(size_t i = 0; i < mem.size(); i++)
+        mem[i] = std::sin(float(i) * 2.5f);
+    buffer.Finish(mem.size());
+    Grain        grain;
+    Grain::Latch latch;
+    latch.buffer   = &buffer;
+    latch.position = 20000.5 - 0.13;
+    latch.rate     = 1.0f;
+    latch.pan      = 0.0f;
+    latch.shape    = 0.0f;
+    latch.inc      = 1.0 / 10000.0;
+    grain.Start(latch, 0);
+    std::vector<float> left(10000, 0.0f), right(10000, 0.0f);
+    Grain::Sums        sums;
+    grain.Render(1.0, left.data(), right.data(), left.size(), sums);
+    float worst = 0.0f;
+    for(size_t n = 1000; n < 9000; n++)
+        worst = std::max(worst, std::fabs(left[n] - mem[20000 + n]));
+    Check(worst < 1e-6f, "rate 1: the buffer as it is (worst error)", worst);
+}
+
 // The filter's gain at hz, dB, on a sine after a second to settle
 double Gain(float hz, float cutoff, float q, bool low)
 {
@@ -1968,6 +1995,7 @@ int main()
     Fuzz();
     Level();
     Windows();
+    ExactRead();
     Filter();
     Jumps();
     Scrubbed();
