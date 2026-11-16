@@ -474,7 +474,7 @@ std::vector<float> Window(float shape)
     Grain        grain;
     Grain::Latch latch;
     latch.buffer   = &buffer;
-    latch.position = kRate / 2;
+    latch.position = kRate / 2.0;
     latch.rate     = 0.0f;
     latch.pan      = 0.0f; // all left, gain 1
     latch.shape    = shape;
@@ -518,7 +518,7 @@ void Windows()
     std::fill(ones.begin(), ones.end(), 1.0f);
     buffer.Finish(ones.size());
     latch.buffer   = &buffer;
-    latch.position = kRate / 2;
+    latch.position = kRate / 2.0;
     latch.rate     = 0.0f;
     latch.pan      = 0.0f;
     latch.shape    = 0.0f;

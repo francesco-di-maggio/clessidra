@@ -185,7 +185,8 @@ const transport: [string, string][] = [
 const effects: [string, string][] = [
   ["Filter", "SVF: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz."],
   ["Reverb", "ReverbSc on the grains. Decay 0.5 to 16 s, up to half wet."],
-  ["Limiter", "Look-ahead 5 ms, −0.5 dBFS. The grains +6 dB into it."],
+  ["Listen", "P11 + P10: the input alone, 1 s to dry, 0.5 s back. P11 let go: recording, still dry."],
+  ["Limiter", "Look-ahead 5 ms, −0.5 dBFS, after the mix."],
   ["Volume", "After the limiter: off, then −60 to 0 dB."],
 ];
 const runtime: [string, string][] = [
@@ -231,7 +232,7 @@ const runtime: [string, string][] = [
 <h2 class="label">05 Level</h2>
 <section class="panel figure prose">
   <Fragment set:html={level()} />
-  <p>Grains in phase add in amplitude, scattered ones in power. A normaliser measures both every block, 5 ms smoothed, and brings the sum to the input's level with 0.9 headroom, never boosting grains that cancel. Aligned starts keep slowed grains in phase: at ½× a sawtooth's harmonics vary 0.27 dB from one 20 ms frame to the next, as at 1×. Without, 1.0 dB, and 5.6 dB in a dense random cloud.</p>
+  <p>Grains in phase add in amplitude, scattered ones in power. A normaliser measures both every block, 5 ms smoothed, and brings the sum to the input's level with 0.9 headroom, never boosting grains that cancel. Aligned starts keep slowed grains in phase: at ½× a sawtooth's harmonics vary 0.27 dB from one 20 ms frame to the next, as at 1×. Without, 1.0 dB, and 5.4 dB in a dense random cloud.</p>
 </section>
 
 <h2 class="label">06 Transport</h2>
