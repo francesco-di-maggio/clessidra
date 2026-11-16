@@ -114,7 +114,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S32", brief: "Spray: scattered round the playhead", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
-    does: "How far grains stray from the playhead, most near it, up to the whole loop, and across the stereo field.",
+    does: "How far grains stray from the playhead, evenly, up to the whole loop, and across the stereo field.",
     value: (p) => (p[PARAM.spread] === 0 ? "Off" : percent(p[PARAM.spread])),
     twin: { name: "Random timing", brief: "Random timing: regular to random", short: "Rnd time", does: "When grains start, from a regular pulse to random.", value: (p) => (p[PARAM.randTime] === 0 ? "Regular" : percent(p[PARAM.randTime])) },
   },
@@ -153,7 +153,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P10", brief: "Tap: the last 8 s. Hold: up to 30 s", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
-    does: "Tap: keeps the last 8\u00a0s. Hold: records up to 30\u00a0s.",
+    does: "Tap: keeps the last 8\u00a0s. Hold: records up to 30\u00a0s. The first recording fades in over 2\u00a0s, later ones blend in grain by grain.",
     twin: { name: "Listen", brief: "Listen: the input alone. Let go of P11: record", does: "Hear the input alone, faded over 1 s. Nothing is recorded until P11 is let go, then P10 records with the input still alone. Let go of P10: the grains fade back in over 0.5 s.", value: () => "Listen" },
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },

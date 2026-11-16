@@ -1070,8 +1070,8 @@ void Pour()
           before[4]);
 }
 
-// The first recording rises in: its grains per second from 0 over the pour,
-// no grain at once
+// The first recording fades in over the pour, equal power, the grains at full
+// level from the start
 void Rise()
 {
     Rig          r(2.0);
@@ -1083,16 +1083,10 @@ void Rise()
     std::array<double, 4> rms{};
     for(double& x : rms)
         x = Rms(r, 0.5);
-    Check(rms[0] < 0.5 * rms[3] && rms[1] < rms[3],
-          "first recording: rises in over 2 s (rms, first half second of last)",
+    Check(rms[0] < 0.4 * rms[3] && rms[0] < rms[1] && rms[1] < rms[2]
+              && rms[2] < rms[3],
+          "first recording: fades in over 2 s (rms, first half second of last)",
           rms[0] / rms[3]);
-    const size_t at_once = [&] {
-        Rig fresh(2.0);
-        fresh.core.SetParams(p);
-        fresh.Record(1.0, Sine);
-        return Starts(fresh, 0.02);
-    }();
-    Check(at_once == 0, "first recording: no grain at once", double(at_once));
 }
 
 // Between samples: a 10 kHz sine read half a sample off keeps its level, as
@@ -1232,7 +1226,7 @@ void StoppedRecord()
           double(r.core.Recordings() - before));
 }
 
-// Frozen at the start: each grain moved within the amount, bell-shaped
+// Frozen at the start: each grain moved by the amount, evenly
 void Randomness()
 {
     // Furthest position read, of the selection, and the mean
@@ -1264,15 +1258,10 @@ void Randomness()
     double mean = 0.0;
     double far  = spread(1.0f, &mean);
     Check(Near(mean, 0.5, 0.1) && far > 0.9,
-          "position random up: round the whole selection (mean)",
+          "position random up: even over the selection (mean)",
           mean);
-    // Within 0.3 either way, round the selection: the furthest, the standard
-    // deviation, the share beyond half the reach
-    struct Moves
-    {
-        double furthest = 0.0, deviation = 0.0, outer = 0.0;
-    };
-    const auto moves = [](float amount) {
+    // Within 0.15 either way, round the selection
+    const auto nearest = [](float amount) {
         Rig r(2.0);
         r.Fill(Sine);
         Core::Params p;
@@ -1283,8 +1272,7 @@ void Randomness()
         p.grain_ms = 20.0f;
         p.rand_pos = amount;
         r.core.SetParams(p);
-        Moves  m;
-        double before = 0.0, squares = 0.0, n = 0.0;
+        double furthest = 0.0, before = 0.0;
         r.Run(2.0, Silence, [&](size_t) {
             for(const auto& g : r.core.Grains())
             {
@@ -1294,31 +1282,16 @@ void Randomness()
                            - 0.5;
                 x              = 2.0 * x;
                 const double d = std::min(x, 1.0 - x);
-                m.furthest     = std::max(m.furthest, d);
-                squares += d * d;
-                m.outer += d > 0.5 * amount;
+                furthest       = std::max(furthest, d);
                 before += x > 0.5;
-                n++;
             }
         });
-        m.deviation = std::sqrt(squares / n);
-        m.outer /= n;
-        if(before == 0.0)
-            m.furthest = -1.0;
-        return m;
+        return before > 0.0 ? furthest : -1.0;
     };
-    const Moves m = moves(0.3f);
-    Check(m.furthest > 0.15 && m.furthest <= 0.3 + 0.01,
-          "position random 0.3: within 0.3 either way, round the selection",
-          m.furthest);
-    // As uniform -0.15..0.15: 0.3 / sqrt(12)
-    Check(Near(m.deviation, 0.0866, 0.02),
-          "position random 0.3: standard deviation 0.087",
-          m.deviation);
-    // Irwin-Hall, four: 1 / 12 beyond half the reach, 1 / 2 if even
-    Check(m.outer < 0.2,
-          "position random 0.3: most near the playhead (share beyond 0.15)",
-          m.outer);
+    const double near = nearest(0.3f);
+    Check(near > 0.1 && near <= 0.15 + 0.01,
+          "position random 0.3: within 0.15 either way, round the selection",
+          near);
     far = spread(0.0f, &mean);
     Check(far < 0.01, "position random off: all at the playhead", far);
 }
@@ -1715,11 +1688,16 @@ void Mapping()
     c.knobs[Controls::S32] = 0.0f;
 
     // S33, Pitch: stops at the fifth and two octaves
-    c.knobs[Controls::S33] = 0.5f + 4.15f / 12.0f; // on the fifth
+    // Past the centre detent, 0.05 either way, the stops stretched over the
+    // rest
+    c.knobs[Controls::S33] = 0.55f + 0.45f * 4.15f / 6.0f; // on the fifth
     ui.Process(c, r.core);
     Check(Near(p.pitch, std::exp2(7.0 / 12.0), 1e-3),
           "S33: a stop at a fifth",
           p.pitch);
+    c.knobs[Controls::S33] = 0.45f;
+    ui.Process(c, r.core);
+    Check(p.pitch == 1.0f, "S33: 0.05 off the centre, still unison", p.pitch);
     c.knobs[Controls::S33] = 0.0f;
     ui.Process(c, r.core);
     Check(Near(p.pitch, 0.25, 1e-3), "S33 bottom: two octaves down", p.pitch);

@@ -78,8 +78,8 @@ class Core
     // one the touch from kPreRollSeconds before it, up to the buffers'
     // capacity. Copied to the buffer not playing, which then plays: over
     // kPourSeconds, each new grain reads it with odds rising from 0 to 1, the
-    // others the recording before. With none before, its grains per second
-    // rise from 0 instead.
+    // others the recording before. With none before, the output fades in over
+    // kPourSeconds instead, equal power.
     static constexpr size_t kNumBuffers        = 2;
     static constexpr float  kTapSeconds        = 0.3f;
     static constexpr float  kTapCaptureSeconds = 8.0f;
@@ -109,11 +109,12 @@ class Core
         // 0 square, 1/3 decay, 2/3 bell, 1 reverse
         float window_shape = 2.0f / 3.0f;
         // Randomness of each grain, 0..1: 0 none, 1 anywhere in the range.
-        // Position within the amount either way of the playhead, bell-shaped
-        // (Bell()), round the selection. The others evenly. Size between min_grain_ms and max_grain_ms, exponential.
-        // Pitch up to kRandPitchSemitones either way. Below 0, to -1: in
-        // octaves, the odds rising to kRandPitchOctaveOdds. Shape anywhere
-        // from reverse percussive to percussive.
+        // Position evenly within the amount, a share of the selection,
+        // centred on the playhead, round the selection. Size between
+        // min_grain_ms and max_grain_ms, exponential. Pitch up to
+        // kRandPitchSemitones either way. Below 0, to -1: in octaves, the odds
+        // rising to kRandPitchOctaveOdds. Shape anywhere from reverse
+        // percussive to percussive.
         float rand_pos   = 0.0f;
         float rand_size  = 0.0f;
         float rand_pitch = 0.0f;
@@ -268,9 +269,6 @@ class Core
     // x, 0..1, moved by amount towards an even random value
     float Randomise(float x, float amount);
     float Random(); // uniform -1..1
-    // -1..1, bell-shaped: the mean of four Random(), standard deviation 0.29
-    // as a uniform -0.5..0.5
-    float Bell();
 
     Params                params_; // the last set, main loop only
     std::array<Params, 2> slots_;
@@ -333,6 +331,7 @@ class Core
     Limiter            limiter_;
     // Gains at the end of the last block
     float norm_gain_  = 0.0f;
+    float fade_gain_  = 1.0f; // the first recording's fade-in
     float tape_       = 1.0f; // speed of everything, Params.stop ramping it
     float stop_gain_  = 1.0f;
     float reverb_dry_ = 1.0f;

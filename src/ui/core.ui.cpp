@@ -133,9 +133,9 @@ void CoreUI::Process(const Controls& c, Core& core)
                     : 0.0f;
     p.volume = Volume(twin(Controls::S37));
 
-    // S32, Spray: how far each grain strays from the playhead, most
-    // near it, up to the whole loop, and across the stereo field with it.
-    // Shift: the grains' starts, from regular to random.
+    // S32, Spray: how far each grain strays from the playhead, evenly, up
+    // to the whole loop, and across the stereo field with it. Shift: the
+    // grains' starts, from regular to random.
     const float rnd_pos = own(Controls::S32);
     p.rand_pos          = rnd_pos * rnd_pos;
     p.spread            = rnd_pos;
@@ -143,7 +143,8 @@ void CoreUI::Process(const Controls& c, Core& core)
 
     // S33, Pitch. Shift: its randomness, none at the centre. Up: free, to an
     // octave either way. Down: in octaves, more grains an octave away.
-    const float semitones = Stops(own(Controls::S33), kIntervals);
+    const float semitones
+        = Stops(Detent(own(Controls::S33), 0.05f), kIntervals);
     const float rnd_pitch = 2.0f * Detent(twin(Controls::S33), 0.05f) - 1.0f;
     p.pitch               = std::exp2(semitones / 12.0f);
     p.rand_pitch = rnd_pitch < 0.0f ? rnd_pitch : rnd_pitch * rnd_pitch;
