@@ -41,10 +41,10 @@ class CoreUI
     static constexpr float kMinDensity  = 0.25f;
     static constexpr float kMaxDensity  = 320.0f;
 
-    // S32, Spray: none at the bottom, then a width in ms, exponential
+    // S32, Spray: none at the bottom, then a width in ms, exponential from
+    // kMinSprayMs to the whole selection
     static constexpr float kSprayNone  = 0.04f; // of its travel
     static constexpr float kMinSprayMs = 1.0f;
-    static constexpr float kMaxSprayMs = 2000.0f;
 
     // S31, Size: from kMinGrainMs to kMaxGrainMs, exponential
     static constexpr float kMinGrainMs = 5.0f;

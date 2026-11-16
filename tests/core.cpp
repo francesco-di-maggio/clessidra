@@ -1696,7 +1696,7 @@ void Mapping()
           p.grain_ms);
     c.knobs[Controls::S31] = 0.5f;
 
-    // S32, Spray: off to kMaxSprayMs, the pan with it
+    // S32, Spray: off to the whole selection, the pan with it
     c.knobs[Controls::S37] = 0.75f;
     ui.Process(c, r.core);
     Check(p.spray_ms == 0.0f && p.spread == 0.0f,
@@ -1704,9 +1704,11 @@ void Mapping()
           p.spread);
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
-    Check(Near(p.spray_ms, CoreUI::kMaxSprayMs, 0.5) && p.spread == 1.0f
+    const double selection_ms
+        = double(p.length) * double(r.core.SoundSamples()) / kRate * 1000.0;
+    Check(Near(p.spray_ms, selection_ms, 0.5) && p.spread == 1.0f
               && p.rand_pitch == 0.0f,
-          "S32 top: 2 s wide, pan widest, nothing else random",
+          "S32 top: the whole selection wide, pan widest, nothing else random",
           p.spray_ms);
     c.knobs[Controls::S32] = 0.0f;
 
@@ -1820,7 +1822,9 @@ void Mapping()
     ui.Process(c, r.core);
     c.touched[CoreUI::kShiftPad] = false;
     ui.Process(c, r.core);
-    Check(Near(p.spray_ms, 7.9, 0.1),
+    const double kept_ms
+        = double(p.length) * double(r.core.SoundSamples()) / kRate * 1000.0;
+    Check(Near(p.spray_ms, std::pow(kept_ms, (0.3 - 0.04) / 0.96), 0.1),
           "a knob turned as P11 is touched: the move kept",
           p.spray_ms);
     c.knobs[Controls::S32] = 0.0f;

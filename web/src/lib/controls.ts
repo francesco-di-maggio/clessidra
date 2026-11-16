@@ -114,7 +114,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S32", brief: "Spray: scattered either way of the playhead", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
-    does: "How far grains stray from the playhead, evenly either way, 1 ms to 2 s wide, and across the stereo field.",
+    does: "How far grains stray from the playhead, evenly either way, from 1 ms to the whole loop wide, and across the stereo field.",
     value: (p) => (p[PARAM.sprayMs] === 0 ? "Off" : ms(p[PARAM.sprayMs])),
     twin: { name: "Random timing", brief: "Random timing: regular to random", short: "Rnd time", does: "When grains start, from a regular pulse to random.", value: (p) => (p[PARAM.randTime] === 0 ? "Regular" : percent(p[PARAM.randTime])) },
   },

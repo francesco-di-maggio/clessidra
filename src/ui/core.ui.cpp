@@ -134,12 +134,13 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.volume = Volume(twin(Controls::S37));
 
     // S32, Spray: each grain starts evenly within a width round the
-    // playhead, none at the bottom, then kMinSprayMs to kMaxSprayMs, and
-    // across the stereo field with it. Shift: the grains' starts, from regular
-    // to random.
+    // playhead, none at the bottom, then kMinSprayMs to the whole selection,
+    // exponential, and across the stereo field with it. Shift: the grains'
+    // starts, from regular to random.
+    const float spray_top = std::max(p.length * seconds * 1000.0f, kMinSprayMs);
     const float spray = (own(Controls::S32) - kSprayNone) / (1.0f - kSprayNone);
     p.spray_ms        = spray > 0.0f
-                     ? kMinSprayMs * std::pow(kMaxSprayMs / kMinSprayMs, spray)
+                     ? kMinSprayMs * std::pow(spray_top / kMinSprayMs, spray)
                      : 0.0f;
     p.spread    = std::max(spray, 0.0f);
     p.rand_time = twin(Controls::S32);
