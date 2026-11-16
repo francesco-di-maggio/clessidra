@@ -29,7 +29,7 @@ Download the [binary](https://github.com/francesco-di-maggio/clessidra/releases/
 | P02 | Trigger: the loop from its start | |
 | P03–P09 | Slices: hold, several at once | |
 
-[Manual (PDF)](https://francescodimaggio.nl/clessidra/clessidra-manual.pdf) · [Controls](https://francescodimaggio.nl/clessidra/controls/) · [Play in the browser](https://francescodimaggio.nl/clessidra/play/)
+[Manual (PDF)](https://francescodimaggio.nl/clessidra/clessidra-manual.pdf) · [Controls](https://francescodimaggio.nl/clessidra/controls/) · [Play in the browser](https://francescodimaggio.nl/clessidra/play/) · [Video](https://youtu.be/pCucjLu59Ak)
 
 ## Build
 
