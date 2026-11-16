@@ -72,10 +72,6 @@ class CoreUI
     // S36 frozen: moves under this are noise, not scrubbing
     static constexpr float kScrubStep = 0.002f;
 
-    // P11 + P10, listening: the input heard with the grains,
-    // equal power
-    static constexpr float kMonitorMix = 0.5f;
-
     // LED
     // brightness while grains play, below the pulse
     static constexpr float kGlow = 0.6f;
@@ -135,8 +131,10 @@ class CoreUI
     bool                                      frozen_ = false;
     // S36 when it last scrubbed
     float scrub_from_ = 0.0f;
-    // P10: touched, recording, or listening with Shift
+    // P10: touched, recording, or listening with Shift. Dry: the input alone
+    // until P10 is let go. Listening: Shift still held, nothing recorded.
     bool record_touched_ = false;
+    bool dry_            = false;
     bool listening_      = false;
     bool record_         = false;
     bool reset_touched_  = false;

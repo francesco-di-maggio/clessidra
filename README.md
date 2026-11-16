@@ -22,7 +22,7 @@ Download the [binary](https://github.com/francesco-di-maggio/clessidra/releases/
 | S34 | Shape: square, decay, bell, reverse | Random shape |
 | S09 | Forward / freeze / reverse | |
 | S07 | End: loop / turn over / once | |
-| P10 | Record. Tap: the last 8 s. Hold: up to 30 s | Listen: the input, nothing recorded |
+| P10 | Record. Tap: the last 8 s. Hold: up to 30 s | Listen: the input alone. Let go of P11: record |
 | P11 | Hold: the second layer | |
 | P00 | Stop: held, slows to a halt | |
 | P01 | Reset: second layer to defaults | |

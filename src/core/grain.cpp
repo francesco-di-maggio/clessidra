@@ -9,11 +9,15 @@ namespace clessidra
 {
 void Grain::Start(const Latch& latch, size_t offset)
 {
-    latch_  = latch;
-    offset_ = offset;
-    phase_  = 0.0;
-    read_   = 0.0;
-    active_ = true;
+    // From a whole sample, an int32 start as Clouds' grains
+    // (clouds/dsp/grain.h:61,70-72): at rate 1 the Hermite read is exact, not
+    // a fractional delay filtering the highs. Floor, as Aligner reads signs.
+    latch_          = latch;
+    latch_.position = std::floor(latch.position);
+    offset_         = offset;
+    phase_          = 0.0;
+    read_           = 0.0;
+    active_         = true;
     // Equal-power pan
     const float angle = HALFPI_F * latch.pan;
     gain_l_           = std::cos(angle);

@@ -208,10 +208,15 @@ void Core::Process(const float* const* in, float** out, size_t size)
         = (std::min(1.0f, tape_ / kStopFade) - stop_gain_) / n;
     const float norm_step = (norm_ - norm_gain_) / n;
     // Dry and wet, equal power, exact at the ends
-    const float mix         = std::clamp(p.mix, 0.0f, 1.0f);
-    const float mix_angle   = HALFPI_F * mix;
-    const float dry         = mix >= 1.0f ? 0.0f : std::cos(mix_angle);
-    const float wet         = mix <= 0.0f ? 0.0f : std::sin(mix_angle);
+    const float mix_target = std::clamp(p.mix, 0.0f, 1.0f);
+    const float mix_step
+        = n
+          / ((mix_target > mix_ ? kToWetSeconds : kToDrySeconds)
+             * sample_rate_);
+    mix_ += std::clamp(mix_target - mix_, -mix_step, mix_step);
+    const float mix_angle   = HALFPI_F * mix_;
+    const float dry         = mix_ >= 1.0f ? 0.0f : std::cos(mix_angle);
+    const float wet         = mix_ <= 0.0f ? 0.0f : std::sin(mix_angle);
     const float dry_step    = (dry - dry_gain_) / n;
     const float wet_step    = (wet - wet_gain_) / n;
     const float volume_step = (std::clamp(p.volume, 0.0f, 1.0f) - volume_) / n;
@@ -245,8 +250,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
         out[1][i] = r * reverb_dry_ + reverb_r * reverb_wet_;
         dry_gain_ += dry_step;
         wet_gain_ += wet_step;
-        out[0][i] = out[0][i] * kOutputGain * wet_gain_ + in_l * dry_gain_;
-        out[1][i] = out[1][i] * kOutputGain * wet_gain_ + in_r * dry_gain_;
+        out[0][i] = out[0][i] * wet_gain_ + in_l * dry_gain_;
+        out[1][i] = out[1][i] * wet_gain_ + in_r * dry_gain_;
         limiter_.Process(out[0][i], out[1][i]);
         volume_ += volume_step;
         out[0][i] *= volume_;

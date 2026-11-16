@@ -149,8 +149,8 @@ void Level()
         }
     }
     const double db = 10.0 * std::log10(out / in);
-    Check(db > 6.0 && db < 9.5,
-          "8 grains at once: 9 dB over two jacks of input, at most (dB)",
+    Check(db > 0.0 && db < 3.5,
+          "8 grains at once: 3 dB over two jacks of input, at most (dB)",
           db);
 
     // Heavy: 20 ms grains, the most density, reverb: never above the limiter
@@ -314,7 +314,7 @@ void Record()
           "silence at both ends: trimmed (s)",
           Seconds(trim.rig.core));
 
-    // P10 held: only the grains. With P11: the input heard with them.
+    // P10 held: only the grains. With P11: only the input.
     auto  level = [](double) { return 0.25f; };
     Panel held;
     held.c.touched[CoreUI::kRecordPad] = true;
@@ -325,11 +325,26 @@ void Record()
     dry.c.touched[CoreUI::kShiftPad] = true;
     dry.Run(0.01, level);
     dry.c.touched[CoreUI::kRecordPad] = true;
-    dry.Run(0.5, level);
+    dry.Run(1.2, level);
     const double through = PanelRms(dry, 0.3, level);
-    Check(Near(through, 0.25 * std::sqrt(0.5), 0.002),
-          "P11 + P10: the input heard, equal power (rms)",
+    Check(Near(through, 0.25, 0.002),
+          "P11 + P10: the input alone (rms)",
           through);
+    // P11 + P10, then P11 let go with P10 held: recording from there, the input
+    // still alone. P10 let go: the recording lands.
+    const uint32_t landed            = dry.rig.core.Recordings();
+    dry.c.touched[CoreUI::kShiftPad] = false;
+    dry.Run(1.2, Sine);
+    dry.Run(0.1, level);
+    const double recording = PanelRms(dry, 0.3, level);
+    Check(Near(recording, 0.25, 0.002),
+          "P11 let go, P10 held: recording, the input still alone (rms)",
+          recording);
+    dry.c.touched[CoreUI::kRecordPad] = false;
+    dry.Run(2.0, Sine);
+    Check(dry.rig.core.Recordings() == landed + 1,
+          "P10 let go: the recording lands",
+          double(dry.rig.core.Recordings() - landed));
     Panel wet;
     wet.Run(0.5, Sine);
     const double none = PanelRms(wet, 0.5, Sine);
@@ -516,6 +531,67 @@ void Windows()
     Check(small[0] == 0.0f && top > 0.9f && small[239] < 0.01f,
           "window, 5 ms square: up and down within it (peak)",
           top);
+}
+
+// At rate 1 a grain returns the buffer as it is, from whatever position
+void ExactRead()
+{
+    std::vector<float> mem(kRate, 0.0f);
+    Buffer             buffer;
+    buffer.Init(mem.data(), mem.size(), kRate);
+    for(size_t i = 0; i < mem.size(); i++)
+        mem[i] = std::sin(float(i) * 2.5f);
+    buffer.Finish(mem.size());
+    Grain        grain;
+    Grain::Latch latch;
+    latch.buffer   = &buffer;
+    latch.position = 20000.5 - 0.13;
+    latch.rate     = 1.0f;
+    latch.pan      = 0.0f;
+    latch.shape    = 0.0f;
+    latch.inc      = 1.0 / 10000.0;
+    grain.Start(latch, 0);
+    std::vector<float> left(10000, 0.0f), right(10000, 0.0f);
+    Grain::Sums        sums;
+    grain.Render(1.0, left.data(), right.data(), left.size(), sums);
+    float worst = 0.0f;
+    for(size_t n = 1000; n < 9000; n++)
+        worst = std::max(worst, std::fabs(left[n] - mem[20000 + n]));
+    Check(worst < 1e-6f, "rate 1: the buffer as it is (worst error)", worst);
+}
+
+// The input's share of the output, a second at a time: wet to dry in 1 s, dry
+// to wet in 0.5 s, equal power (no grains: wet is silent)
+void MixFade()
+{
+    Rig          r(1.0);
+    Core::Params p;
+    p.density = 0.0f;
+    p.mix     = 0.0f;
+    r.core.SetParams(p);
+    float        l[kBlock], o1[kBlock], o2[kBlock];
+    const float* in[2]  = {l, l};
+    float*       out[2] = {o1, o2};
+    const auto   share  = [&](double seconds) {
+        for(size_t b = 0; b < size_t(seconds * kRate / kBlock); b++)
+        {
+            std::fill(l, l + kBlock, 0.25f);
+            r.core.Process(in, out, kBlock);
+        }
+        return double(o1[kBlock - 1]) / 0.25;
+    };
+    const double half_to_dry = share(0.5);
+    const double dry         = share(0.5);
+    p.mix                    = 1.0f;
+    r.core.SetParams(p);
+    const double half_to_wet = share(0.25);
+    const double wet         = share(0.3);
+    Check(Near(half_to_dry, std::sqrt(0.5), 0.03) && Near(dry, 1.0, 0.01),
+          "wet to dry: half way at 0.5 s, dry at 1 s (share)",
+          half_to_dry);
+    Check(Near(half_to_wet, std::sqrt(0.5), 0.03) && Near(wet, 0.0, 0.01),
+          "dry to wet: half way at 0.25 s, wet by 0.55 s (share)",
+          half_to_wet);
 }
 
 // The filter's gain at hz, dB, on a sine after a second to settle
@@ -1825,9 +1901,7 @@ void Mapping()
     const uint32_t recordings = r.core.Recordings();
     press(CoreUI::kRecordPad, true);
     r.Run(0.5, Sine);
-    Check(Near(p.mix, CoreUI::kMonitorMix, 1e-6),
-          "P11 + P10: the input heard",
-          p.mix);
+    Check(p.mix == 0.0f, "P11 + P10: the input heard", p.mix);
     press(CoreUI::kRecordPad, false);
     press(CoreUI::kShiftPad, false);
     r.Run(0.5, Sine);
@@ -1970,6 +2044,8 @@ int main()
     Fuzz();
     Level();
     Windows();
+    ExactRead();
+    MixFade();
     Filter();
     Jumps();
     Scrubbed();
