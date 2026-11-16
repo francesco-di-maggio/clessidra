@@ -54,7 +54,7 @@ function signal() {
   const xl = x(2) + w / 2;
   o.push(`<path class="ln dash" d="M${x(0)},${y0 + h / 2}H-5V${y1 + h + 12}H${xl}"/>`);
   o.push(arrow(xl, y1 + h + 12, xl, y1 + h + 0.6, "ln dash"));
-  o.push(`<text class="sub l" x="${xl + 6}" y="${y1 + h + 14}">Listen, P11 + P10: the input with the grains</text>`);
+  o.push(`<text class="sub l" x="${xl + 6}" y="${y1 + h + 14}">Listen, P11 + P10: the input alone</text>`);
   return `<svg class="dia" viewBox="-7 0 305 116" role="img" aria-label="Signal path">${o.join("")}</svg>`;
 }
 

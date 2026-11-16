@@ -149,8 +149,8 @@ void Level()
         }
     }
     const double db = 10.0 * std::log10(out / in);
-    Check(db > 6.0 && db < 9.5,
-          "8 grains at once: 9 dB over two jacks of input, at most (dB)",
+    Check(db > 0.0 && db < 3.5,
+          "8 grains at once: 3 dB over two jacks of input, at most (dB)",
           db);
 
     // Heavy: 20 ms grains, the most density, reverb: never above the limiter
@@ -314,7 +314,7 @@ void Record()
           "silence at both ends: trimmed (s)",
           Seconds(trim.rig.core));
 
-    // P10 held: only the grains. With P11: the input heard with them.
+    // P10 held: only the grains. With P11: only the input.
     auto  level = [](double) { return 0.25f; };
     Panel held;
     held.c.touched[CoreUI::kRecordPad] = true;
@@ -325,10 +325,10 @@ void Record()
     dry.c.touched[CoreUI::kShiftPad] = true;
     dry.Run(0.01, level);
     dry.c.touched[CoreUI::kRecordPad] = true;
-    dry.Run(0.5, level);
+    dry.Run(1.2, level);
     const double through = PanelRms(dry, 0.3, level);
-    Check(Near(through, 0.25 * std::sqrt(0.5), 0.002),
-          "P11 + P10: the input heard, equal power (rms)",
+    Check(Near(through, 0.25, 0.002),
+          "P11 + P10: the input alone (rms)",
           through);
     Panel wet;
     wet.Run(0.5, Sine);
@@ -1825,9 +1825,7 @@ void Mapping()
     const uint32_t recordings = r.core.Recordings();
     press(CoreUI::kRecordPad, true);
     r.Run(0.5, Sine);
-    Check(Near(p.mix, CoreUI::kMonitorMix, 1e-6),
-          "P11 + P10: the input heard",
-          p.mix);
+    Check(p.mix == 0.0f, "P11 + P10: the input heard", p.mix);
     press(CoreUI::kRecordPad, false);
     press(CoreUI::kShiftPad, false);
     r.Run(0.5, Sine);

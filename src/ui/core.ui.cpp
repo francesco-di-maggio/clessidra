@@ -245,8 +245,7 @@ void CoreUI::Default(Controls::Knob k, bool twin, float knob)
 }
 
 // P10: record while held, the grains playing on. A tap keeps the seconds
-// before it. Touched with Shift: the input heard with the grains, nothing
-// recorded.
+// before it. Touched with Shift: the input alone, nothing recorded.
 void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
 {
     const bool touched = c.touched[kRecordPad];
@@ -255,7 +254,7 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
     record_touched_ = touched;
     record_         = touched && !listening_;
     core.SetRecording(record_);
-    p.mix = touched && listening_ ? kMonitorMix : 1.0f;
+    p.mix = touched && listening_ ? 0.0f : 1.0f;
 }
 
 // P03-P09: the loop in slices, left to right, each from an onset of the

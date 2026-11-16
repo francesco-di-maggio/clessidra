@@ -72,10 +72,6 @@ class CoreUI
     // S36 frozen: moves under this are noise, not scrubbing
     static constexpr float kScrubStep = 0.002f;
 
-    // P11 + P10, listening: the input heard with the grains,
-    // equal power
-    static constexpr float kMonitorMix = 0.5f;
-
     // LED
     // brightness while grains play, below the pulse
     static constexpr float kGlow = 0.6f;
