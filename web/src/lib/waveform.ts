@@ -139,9 +139,9 @@ export class Waveform {
       ctx.fillText(`${i + 1}`, (s0 + s1) / 2, bottom + 8);
     });
 
-    // Spray: where 11 grains in 12 land about the playhead, round the
-    // loop, faint. The rarest reach twice as far.
-    const reach = 0.5 * Math.min(f.params[PARAM.randPos] ?? 0, 1) * v[VIEW.selLength];
+    // Spray: where the grains land about the playhead, evenly, round the
+    // loop, faint.
+    const reach = 0.5 * 0.001 * (f.params[PARAM.sprayMs] ?? 0) * RATE;
     if (reach > 0) {
       ctx.fillStyle = withAlpha(c.accent, 0.12);
       const from = v[VIEW.playhead] - reach;

@@ -1070,8 +1070,8 @@ void Pour()
           before[4]);
 }
 
-// The first recording rises in: its grains per second from 0 over the pour,
-// no grain at once
+// The first recording fades in over the pour, equal power, the grains at full
+// level from the start
 void Rise()
 {
     Rig          r(2.0);
@@ -1083,16 +1083,10 @@ void Rise()
     std::array<double, 4> rms{};
     for(double& x : rms)
         x = Rms(r, 0.5);
-    Check(rms[0] < 0.5 * rms[3] && rms[1] < rms[3],
-          "first recording: rises in over 2 s (rms, first half second of last)",
+    Check(rms[0] < 0.4 * rms[3] && rms[0] < rms[1] && rms[1] < rms[2]
+              && rms[2] < rms[3],
+          "first recording: fades in over 2 s (rms, first half second of last)",
           rms[0] / rms[3]);
-    const size_t at_once = [&] {
-        Rig fresh(2.0);
-        fresh.core.SetParams(p);
-        fresh.Record(1.0, Sine);
-        return Starts(fresh, 0.02);
-    }();
-    Check(at_once == 0, "first recording: no grain at once", double(at_once));
 }
 
 // Between samples: a 10 kHz sine read half a sample off keeps its level, as
@@ -1232,18 +1226,18 @@ void StoppedRecord()
           double(r.core.Recordings() - before));
 }
 
-// Frozen at the start: each grain moved within the amount, bell-shaped
+// Frozen at the start: each grain moved evenly within the spray's width
 void Randomness()
 {
     // Furthest position read, of the selection, and the mean
-    const auto spread = [](float amount, double* mean) {
+    const auto spread = [](float width_ms, double* mean) {
         Rig r(2.0);
         r.Fill(Sine);
         Core::Params p;
         p.freeze   = true;
         p.density  = 40.0f;
         p.grain_ms = 20.0f;
-        p.rand_pos = amount;
+        p.spray_ms = width_ms;
         r.core.SetParams(p);
         double sum = 0.0, furthest = 0.0, n = 0.0;
         r.Run(2.0, Silence, [&](size_t) {
@@ -1262,17 +1256,17 @@ void Randomness()
         return furthest;
     };
     double mean = 0.0;
-    double far  = spread(1.0f, &mean);
+    double far  = spread(2000.0f, &mean);
     Check(Near(mean, 0.5, 0.1) && far > 0.9,
-          "position random up: round the whole selection (mean)",
+          "spray as wide as the sound: round the whole selection (mean)",
           mean);
-    // Within 0.3 either way, round the selection: the furthest, the standard
-    // deviation, the share beyond half the reach
+    // 300 ms on a 1 s selection: within 0.15 either way, round the selection.
+    // The furthest, the standard deviation, the share beyond half the reach.
     struct Moves
     {
         double furthest = 0.0, deviation = 0.0, outer = 0.0;
     };
-    const auto moves = [](float amount) {
+    const auto moves = [](float width_ms) {
         Rig r(2.0);
         r.Fill(Sine);
         Core::Params p;
@@ -1281,10 +1275,11 @@ void Randomness()
         p.length   = 0.5f;
         p.density  = 40.0f;
         p.grain_ms = 20.0f;
-        p.rand_pos = amount;
+        p.spray_ms = width_ms;
         r.core.SetParams(p);
-        Moves  m;
-        double before = 0.0, squares = 0.0, n = 0.0;
+        const double reach = 0.5 * 0.001 * double(width_ms); // of 1 s
+        Moves        m;
+        double       before = 0.0, squares = 0.0, n = 0.0;
         r.Run(2.0, Silence, [&](size_t) {
             for(const auto& g : r.core.Grains())
             {
@@ -1296,7 +1291,7 @@ void Randomness()
                 const double d = std::min(x, 1.0 - x);
                 m.furthest     = std::max(m.furthest, d);
                 squares += d * d;
-                m.outer += d > 0.5 * amount;
+                m.outer += d > 0.5 * reach;
                 before += x > 0.5;
                 n++;
             }
@@ -1307,20 +1302,20 @@ void Randomness()
             m.furthest = -1.0;
         return m;
     };
-    const Moves m = moves(0.3f);
-    Check(m.furthest > 0.15 && m.furthest <= 0.3 + 0.01,
-          "position random 0.3: within 0.3 either way, round the selection",
+    const Moves m = moves(300.0f);
+    Check(m.furthest > 0.1 && m.furthest <= 0.15 + 0.01,
+          "spray 300 ms: within 150 ms either way, round the selection",
           m.furthest);
-    // As uniform -0.15..0.15: 0.3 / sqrt(12)
+    // Uniform -0.15..0.15: 0.3 / sqrt(12)
     Check(Near(m.deviation, 0.0866, 0.02),
-          "position random 0.3: standard deviation 0.087",
+          "spray 300 ms: standard deviation 0.087 of the selection",
           m.deviation);
-    // Irwin-Hall, four: 1 / 12 beyond half the reach, 1 / 2 if even
-    Check(m.outer < 0.2,
-          "position random 0.3: most near the playhead (share beyond 0.15)",
+    // Uniform: half of them beyond half the reach
+    Check(Near(m.outer, 0.5, 0.1),
+          "spray 300 ms: evenly, half beyond 75 ms",
           m.outer);
     far = spread(0.0f, &mean);
-    Check(far < 0.01, "position random off: all at the playhead", far);
+    Check(far < 0.01, "spray off: all at the playhead", far);
 }
 
 // Intervals between starts, of the mean: the shortest, the longest and their
@@ -1386,7 +1381,7 @@ double Width(float density, float spread)
     r.Fill(Sine);
     Core::Params p;
     p.density  = density;
-    p.rand_pos = 1.0f;
+    p.spray_ms = 100.0f;
     p.spread   = spread;
     r.core.SetParams(p);
     r.Run(0.5, Silence);
@@ -1701,17 +1696,18 @@ void Mapping()
           p.grain_ms);
     c.knobs[Controls::S31] = 0.5f;
 
-    // S32, Spray: off to the whole loop, the pan with it
+    // S32, Spray: off to kMaxSprayMs, the pan with it
     c.knobs[Controls::S37] = 0.75f;
     ui.Process(c, r.core);
-    Check(p.rand_pos == 0.0f && p.spread == 0.0f,
+    Check(p.spray_ms == 0.0f && p.spread == 0.0f,
           "S32 bottom: grains at the playhead, centred",
           p.spread);
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.rand_pos == 1.0f && p.spread == 1.0f && p.rand_pitch == 0.0f,
-          "S32 top: the whole loop, pan widest, nothing else random",
-          p.rand_pos);
+    Check(Near(p.spray_ms, CoreUI::kMaxSprayMs, 0.5) && p.spread == 1.0f
+              && p.rand_pitch == 0.0f,
+          "S32 top: 2 s wide, pan widest, nothing else random",
+          p.spray_ms);
     c.knobs[Controls::S32] = 0.0f;
 
     // S33, Pitch: stops at the fifth and two octaves
@@ -1824,9 +1820,9 @@ void Mapping()
     ui.Process(c, r.core);
     c.touched[CoreUI::kShiftPad] = false;
     ui.Process(c, r.core);
-    Check(Near(p.rand_pos, 0.09, 1e-3),
+    Check(Near(p.spray_ms, 7.9, 0.1),
           "a knob turned as P11 is touched: the move kept",
-          p.rand_pos);
+          p.spray_ms);
     c.knobs[Controls::S32] = 0.0f;
     ui.Process(c, r.core);
 
@@ -1860,7 +1856,7 @@ void Mapping()
           "random shape, random size, no reverb, no volume",
           p.rand_pitch);
     Check(Near(p.filter, 1.0, 1e-2) && Near(p.reverse, 1.0, 1e-2)
-              && p.start == 0.0f && p.rand_pos == 0.0f
+              && p.start == 0.0f && p.spray_ms == 0.0f
               && p.window_shape == 0.5f,
           "P11 + S30, S36: high-pass, every grain reversed, Position, Spray "
           "and Shape kept",
@@ -1885,7 +1881,7 @@ void Mapping()
     c.knobs[Controls::S32] = 0.0f;
     ui.Process(c, r.core);
     Check(Near(p.pitch, 0.25, 1e-3) && p.length == 1.0f && p.start == 0.0f
-              && p.rand_pos == 0.0f,
+              && p.spray_ms == 0.0f,
           "then S33 takes its own over",
           p.pitch);
 

@@ -47,8 +47,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
     {
         restart_ = false;
         playhead_.Restart(p.speed < 0.0f);
-        // With a grain at once, unless rising from silence
-        schedule_.phase = poured_from_ ? schedule_.next : 0.0;
+        // With a grain at once
+        schedule_.phase = schedule_.next;
     }
     // A grain at once, the starts counted from it
     const float jump = jump_.exchange(-1.0f, std::memory_order_relaxed);
@@ -78,9 +78,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
     aligns_ = std::min(kAlignBurst,
                        aligns_ + kAlignsPerSecond * float(size) / sample_rate_);
 
-    // The first recording rises from silence: its grains per second from 0
-    const float rise = poured_from_ ? 1.0f : pour_;
-
     // Slices: each newly held one from its start, a grain at once. At no
     // density, two grains at once, regular: the slice as it is.
     const bool   slicing      = p.slices_held != 0;
@@ -109,7 +106,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
             playhead_.Advance(play_inc, p.end);
             const bool due = !playhead_.Ended()
                              && Due(schedule_,
-                                    density * tape_ * rise / sample_rate_,
+                                    density * tape_ / sample_rate_,
                                     p.rand_time);
             if(due || (now && i == 0))
                 StartGrain(p,
@@ -207,6 +204,10 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float stop_step
         = (std::min(1.0f, tape_ / kStopFade) - stop_gain_) / n;
     const float norm_step = (norm_ - norm_gain_) / n;
+    // The first recording fades in over the pour, equal power: the grains at
+    // full level from the start, the output rising
+    const float fade_target = poured_from_ ? 1.0f : std::sin(HALFPI_F * pour_);
+    const float fade_step   = (fade_target - fade_gain_) / n;
     // Dry and wet, equal power, exact at the ends
     const float mix_target = std::clamp(p.mix, 0.0f, 1.0f);
     const float mix_step
@@ -226,7 +227,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
         reverb_wet_ += reverb_wet_step;
         norm_gain_ += norm_step;
         stop_gain_ += stop_step;
-        const float gain = norm_gain_ * stop_gain_;
+        fade_gain_ += fade_step;
+        const float gain = norm_gain_ * stop_gain_ * fade_gain_;
         // Into the reverb before the filter
         float reverb_l, reverb_r;
         reverb_.Process(
@@ -401,13 +403,14 @@ void Core::StartGrain(const Params& p,
         latch.buffer = poured_from_;
         to_read      = double(poured_from_->Length()) / double(sound->Length());
     }
-    // Position: most grains near the playhead, fewer further out, within the
-    // amount either way, round the selection. The others evenly over their
-    // range: size between its ends, exponential, pitch either way.
+    // Position: evenly within the spray's width, centred on the playhead,
+    // round the selection. The others evenly over their range: size between
+    // its ends, exponential, pitch either way.
     double phase = source.phase;
-    if(p.rand_pos > 0.0f)
+    if(p.spray_ms > 0.0f)
     {
-        phase += std::min(p.rand_pos, 1.0f) * Bell();
+        const double width = 0.001 * double(p.spray_ms) * sample_rate_;
+        phase += 0.5 * width * double(Random()) / source.length;
         phase -= std::floor(phase);
     }
     latch.position = (source.start + phase * source.length) * to_read;
@@ -442,7 +445,7 @@ void Core::StartGrain(const Params& p,
     latch.pan         = 0.5f + 0.5f * Random() * std::min(width * scale, 1.0f);
     // In phase with the grain before, moved at most a quarter of its length.
     // Not scattered by Spray: those are meant to differ.
-    if(p.rand_pos <= 0.0f && last && last->IsActive()
+    if(p.spray_ms <= 0.0f && last && last->IsActive()
        && last->Source() == latch.buffer && aligns_ >= 1.0f)
     {
         aligns_ -= 1.0f;
@@ -498,15 +501,6 @@ float Core::Random()
     seed_ ^= seed_ >> 17;
     seed_ ^= seed_ << 5;
     return float(int32_t(seed_)) * (1.0f / 2147483648.0f);
-}
-
-float Core::Bell()
-{
-    // Irwin-Hall: bounded, no libm, the same time every call
-    float sum = 0.0f;
-    for(int i = 0; i < 4; i++)
-        sum += Random();
-    return 0.25f * sum;
 }
 
 } // namespace clessidra

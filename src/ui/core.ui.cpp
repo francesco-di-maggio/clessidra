@@ -133,13 +133,16 @@ void CoreUI::Process(const Controls& c, Core& core)
                     : 0.0f;
     p.volume = Volume(twin(Controls::S37));
 
-    // S32, Spray: how far each grain strays from the playhead, most
-    // near it, up to the whole loop, and across the stereo field with it.
-    // Shift: the grains' starts, from regular to random.
-    const float rnd_pos = own(Controls::S32);
-    p.rand_pos          = rnd_pos * rnd_pos;
-    p.spread            = rnd_pos;
-    p.rand_time         = twin(Controls::S32);
+    // S32, Spray: each grain starts evenly within a width round the
+    // playhead, none at the bottom, then kMinSprayMs to kMaxSprayMs, and
+    // across the stereo field with it. Shift: the grains' starts, from regular
+    // to random.
+    const float spray = (own(Controls::S32) - kSprayNone) / (1.0f - kSprayNone);
+    p.spray_ms        = spray > 0.0f
+                     ? kMinSprayMs * std::pow(kMaxSprayMs / kMinSprayMs, spray)
+                     : 0.0f;
+    p.spread    = std::max(spray, 0.0f);
+    p.rand_time = twin(Controls::S32);
 
     // S33, Pitch. Shift: its randomness, none at the centre. Up: free, to an
     // octave either way. Down: in octaves, more grains an octave away.
