@@ -43,7 +43,7 @@ function refresh() {
   if (!preview) return;
   const { params, values, view } = preview.read();
   last = { type: "view", led: 0, input: 0, output: 0, incoming: new Float32Array(0), incomingAt: 0, grains: new Float32Array(0), peaks: new Float32Array(0), slices: new Float32Array(0), params, values, view };
-  hourglass.update(params, false, 0);
+  hourglass.update(params, false);
   show();
 }
 const waveform = new Waveform($<HTMLCanvasElement>("buffer"));
@@ -271,7 +271,7 @@ function onMessage(m: FromWorklet) {
     waveform.recording = incoming.recording = recording();
     incoming.update(m.incoming, m.incomingAt);
     waveform.update(m);
-    hourglass.update(m.params, m.view[VIEW.sound] > 0, (m.view[VIEW.selLength] / RATE) * 1000);
+    hourglass.update(m.params, m.view[VIEW.sound] > 0);
     show();
     for (const t of touches.values()) sendPad(t);
   } else if (m.type === "error") fail("Can't start", m.message);

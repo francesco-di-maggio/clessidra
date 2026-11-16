@@ -41,7 +41,6 @@ const SPREAD = 0.4;
 export class Hourglass {
   private ctx: CanvasRenderingContext2D;
   private params: Float32Array = new Float32Array(0);
-  private selectionMs = 0;
   private sound = false; // something recorded
   private angle = 0; // rad, clockwise from upright
   private frame = 0;
@@ -59,14 +58,13 @@ export class Hourglass {
     new ResizeObserver(() => this.draw()).observe(canvas);
   }
 
-  update(params: Float32Array, sound: boolean, selectionMs: number) {
+  update(params: Float32Array, sound: boolean) {
     // Drawn again only when what it shows changes
-    const shown = [PARAM.sandLeft, PARAM.speed, PARAM.freeze, PARAM.stop, PARAM.heading, PARAM.density, PARAM.grainMs, PARAM.sprayMs];
-    const same = this.sound === sound && this.selectionMs === selectionMs && this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
+    const shown = [PARAM.sandLeft, PARAM.speed, PARAM.freeze, PARAM.stop, PARAM.heading, PARAM.density, PARAM.grainMs, PARAM.randPos];
+    const same = this.sound === sound && this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
     if (this.single && this.params[PARAM.sandLeft] !== params[PARAM.sandLeft]) this.dropped = performance.now();
     this.params = params.slice();
     this.sound = sound;
-    this.selectionMs = selectionMs;
     this.stamp = performance.now();
     if ((!same || this.flowing()) && !this.frame) this.frame = requestAnimationFrame(this.tick);
   }
@@ -187,7 +185,7 @@ export class Hourglass {
     const SIZE = this.single ? SIZE_CLOCK : MIN_DOT + (MAX_DOT - MIN_DOT) * unit(Math.log(p[PARAM.grainMs] / 5) / Math.log(400));
     const density = p[PARAM.density];
     const gaps = density > 0 ? Math.max(1, Math.round(THREAD_GAPS - (THREAD_GAPS - 1) * unit(Math.log(density / 0.25) / Math.log(1280)))) : 0;
-    const spray = p[PARAM.sprayMs] > 0 ? unit(Math.log(p[PARAM.sprayMs]) / Math.max(Math.log(this.selectionMs), 1e-6)) : 0;
+    const spray = unit(Math.log(p[PARAM.randPos] + 1) / Math.log(2001));
     const dots = (points: Point[], surface: (x: number) => number) => {
       for (let i = -reach; i <= reach; i++) {
         for (let j = -reach; j <= reach; j++) {

@@ -108,14 +108,14 @@ class Core
         float density = 80.0f;
         // 0 square, 1/3 decay, 2/3 bell, 1 reverse
         float window_shape = 2.0f / 3.0f;
-        // Spray, ms: each grain's start evenly within this width, centred on
-        // the playhead, round the selection. 0: at the playhead.
-        float spray_ms = 0.0f;
         // Randomness of each grain, 0..1: 0 none, 1 anywhere in the range.
-        // Size between min_grain_ms and max_grain_ms, exponential. Pitch up to
+        // Position evenly within the amount, a share of the selection,
+        // centred on the playhead, round the selection. Size between
+        // min_grain_ms and max_grain_ms, exponential. Pitch up to
         // kRandPitchSemitones either way. Below 0, to -1: in octaves, the odds
         // rising to kRandPitchOctaveOdds. Shape anywhere from reverse
         // percussive to percussive.
+        float rand_pos   = 0.0f;
         float rand_size  = 0.0f;
         float rand_pitch = 0.0f;
         float rand_shape = 0.0f;

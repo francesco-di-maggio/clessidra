@@ -403,14 +403,13 @@ void Core::StartGrain(const Params& p,
         latch.buffer = poured_from_;
         to_read      = double(poured_from_->Length()) / double(sound->Length());
     }
-    // Position: evenly within the spray's width, centred on the playhead,
-    // round the selection. The others evenly over their range: size between
-    // its ends, exponential, pitch either way.
+    // Each evenly over its range: position within the amount around the
+    // playhead, round the selection, size between its ends, exponential,
+    // pitch either way
     double phase = source.phase;
-    if(p.spray_ms > 0.0f)
+    if(p.rand_pos > 0.0f)
     {
-        const double width = 0.001 * double(p.spray_ms) * sample_rate_;
-        phase += 0.5 * width * double(Random()) / source.length;
+        phase += 0.5 * std::min(p.rand_pos, 1.0f) * Random();
         phase -= std::floor(phase);
     }
     latch.position = (source.start + phase * source.length) * to_read;
@@ -445,7 +444,7 @@ void Core::StartGrain(const Params& p,
     latch.pan         = 0.5f + 0.5f * Random() * std::min(width * scale, 1.0f);
     // In phase with the grain before, moved at most a quarter of its length.
     // Not scattered by Spray: those are meant to differ.
-    if(p.spray_ms <= 0.0f && last && last->IsActive()
+    if(p.rand_pos <= 0.0f && last && last->IsActive()
        && last->Source() == latch.buffer && aligns_ >= 1.0f)
     {
         aligns_ -= 1.0f;

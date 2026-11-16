@@ -40,7 +40,7 @@ import { url } from "../lib/url";
   params[PARAM.heading] = 1;
   function tick() {
     params[PARAM.sandLeft] = 1 - new Date().getSeconds() / 60;
-    glass.update(params, true, 0);
+    glass.update(params, true);
   }
   // On the second, as a clock ticks
   tick();

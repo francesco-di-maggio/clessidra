@@ -141,7 +141,7 @@ export class Waveform {
 
     // Spray: where the grains land about the playhead, evenly, round the
     // loop, faint.
-    const reach = 0.5 * 0.001 * (f.params[PARAM.sprayMs] ?? 0) * RATE;
+    const reach = 0.5 * Math.min(f.params[PARAM.randPos] ?? 0, 1) * v[VIEW.selLength];
     if (reach > 0) {
       ctx.fillStyle = withAlpha(c.accent, 0.12);
       const from = v[VIEW.playhead] - reach;

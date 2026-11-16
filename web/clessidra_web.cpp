@@ -62,7 +62,7 @@ enum Param : size_t
     kStart,
     kLength,
     kVolume,
-    kSprayMs,
+    kRandPos,
     kRandSize,
     kSpread,
     kFilter,
@@ -276,7 +276,7 @@ EXPORT const float* cl_params()
     params[kStart]        = p.start;
     params[kLength]       = p.length;
     params[kVolume]       = p.volume;
-    params[kSprayMs]      = p.spray_ms;
+    params[kRandPos]      = p.rand_pos;
     params[kRandSize]     = p.rand_size;
     params[kSpread]       = p.spread;
     params[kFilter]       = p.filter;
