@@ -209,7 +209,10 @@ void Core::Process(const float* const* in, float** out, size_t size)
     const float norm_step = (norm_ - norm_gain_) / n;
     // Dry and wet, equal power, exact at the ends
     const float mix_target = std::clamp(p.mix, 0.0f, 1.0f);
-    const float mix_step   = n / (kMixSeconds * sample_rate_);
+    const float mix_step
+        = n
+          / ((mix_target > mix_ ? kToWetSeconds : kToDrySeconds)
+             * sample_rate_);
     mix_ += std::clamp(mix_target - mix_, -mix_step, mix_step);
     const float mix_angle   = HALFPI_F * mix_;
     const float dry         = mix_ >= 1.0f ? 0.0f : std::cos(mix_angle);

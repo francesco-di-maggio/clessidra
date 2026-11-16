@@ -42,8 +42,9 @@ class Core
     static constexpr float kRandPitchOctaveOdds = 2.0f / 3.0f;
     // One jack or two: -3 dB on one, +3 dB on two in phase, not -6 and 0
     static constexpr float kInputSum = 0.7071f;
-    // The mix crossfades dry and wet over this
-    static constexpr float kMixSeconds = 1.0f;
+    // The mix crossfades from wet to dry, and back, over these
+    static constexpr float kToDrySeconds = 1.0f;
+    static constexpr float kToWetSeconds = 0.5f;
     // smoothing of the gain measurements
     static constexpr float kNormSeconds = 0.005f;
     // Reverb on the grains: equal-power crossfade up to kReverbMaxAmount, decay

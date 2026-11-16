@@ -131,8 +131,10 @@ class CoreUI
     bool                                      frozen_ = false;
     // S36 when it last scrubbed
     float scrub_from_ = 0.0f;
-    // P10: touched, recording, or listening with Shift
+    // P10: touched, recording, or listening with Shift. Dry: the input alone
+    // until P10 is let go. Listening: Shift still held, nothing recorded.
     bool record_touched_ = false;
+    bool dry_            = false;
     bool listening_      = false;
     bool record_         = false;
     bool reset_touched_  = false;

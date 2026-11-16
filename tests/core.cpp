@@ -330,6 +330,21 @@ void Record()
     Check(Near(through, 0.25, 0.002),
           "P11 + P10: the input alone (rms)",
           through);
+    // P11 + P10, then P11 let go with P10 held: recording from there, the input
+    // still alone. P10 let go: the recording lands.
+    const uint32_t landed            = dry.rig.core.Recordings();
+    dry.c.touched[CoreUI::kShiftPad] = false;
+    dry.Run(1.2, Sine);
+    dry.Run(0.1, level);
+    const double recording = PanelRms(dry, 0.3, level);
+    Check(Near(recording, 0.25, 0.002),
+          "P11 let go, P10 held: recording, the input still alone (rms)",
+          recording);
+    dry.c.touched[CoreUI::kRecordPad] = false;
+    dry.Run(2.0, Sine);
+    Check(dry.rig.core.Recordings() == landed + 1,
+          "P10 let go: the recording lands",
+          double(dry.rig.core.Recordings() - landed));
     Panel wet;
     wet.Run(0.5, Sine);
     const double none = PanelRms(wet, 0.5, Sine);
@@ -543,6 +558,40 @@ void ExactRead()
     for(size_t n = 1000; n < 9000; n++)
         worst = std::max(worst, std::fabs(left[n] - mem[20000 + n]));
     Check(worst < 1e-6f, "rate 1: the buffer as it is (worst error)", worst);
+}
+
+// The input's share of the output, a second at a time: wet to dry in 1 s, dry
+// to wet in 0.5 s, equal power (no grains: wet is silent)
+void MixFade()
+{
+    Rig          r(1.0);
+    Core::Params p;
+    p.density = 0.0f;
+    p.mix     = 0.0f;
+    r.core.SetParams(p);
+    float        l[kBlock], o1[kBlock], o2[kBlock];
+    const float* in[2]  = {l, l};
+    float*       out[2] = {o1, o2};
+    const auto   share  = [&](double seconds) {
+        for(size_t b = 0; b < size_t(seconds * kRate / kBlock); b++)
+        {
+            std::fill(l, l + kBlock, 0.25f);
+            r.core.Process(in, out, kBlock);
+        }
+        return double(o1[kBlock - 1]) / 0.25;
+    };
+    const double half_to_dry = share(0.5);
+    const double dry         = share(0.5);
+    p.mix                    = 1.0f;
+    r.core.SetParams(p);
+    const double half_to_wet = share(0.25);
+    const double wet         = share(0.3);
+    Check(Near(half_to_dry, std::sqrt(0.5), 0.03) && Near(dry, 1.0, 0.01),
+          "wet to dry: half way at 0.5 s, dry at 1 s (share)",
+          half_to_dry);
+    Check(Near(half_to_wet, std::sqrt(0.5), 0.03) && Near(wet, 0.0, 0.01),
+          "dry to wet: half way at 0.25 s, wet by 0.55 s (share)",
+          half_to_wet);
 }
 
 // The filter's gain at hz, dB, on a sine after a second to settle
@@ -1996,6 +2045,7 @@ int main()
     Level();
     Windows();
     ExactRead();
+    MixFade();
     Filter();
     Jumps();
     Scrubbed();
