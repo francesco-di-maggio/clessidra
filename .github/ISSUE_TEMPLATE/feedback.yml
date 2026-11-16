@@ -8,7 +8,7 @@ body:
     attributes:
       label: Played on
       options:
-        - Simple Touch
+        - Simple Touch 2
         - Browser
     validations:
       required: true

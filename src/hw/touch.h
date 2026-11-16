@@ -8,7 +8,7 @@
 
 namespace clessidra
 {
-// The Simple Touch: the Seed, its LED and the panel, read with libDaisy's own
+// The Simple Touch 2: the Seed, its LED and the panel, read with libDaisy's own
 // drivers.
 class Touch
 {

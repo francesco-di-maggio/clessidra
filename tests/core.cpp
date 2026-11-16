@@ -1,4 +1,4 @@
-// Host tests: the core and the Simple Touch mapping on a computer, no board.
+// Host tests: the core and the Simple Touch 2 mapping on a computer, no board.
 // Built and run by tests/run.sh (make test). Each check prints PASS or FAIL.
 
 #include <algorithm>
