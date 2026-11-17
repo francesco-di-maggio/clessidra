@@ -20,7 +20,7 @@ class CoreUI
 {
   public:
     // Pads
-    static constexpr size_t kStopPad  = 0; // held: stopped as a tape machine
+    static constexpr size_t kStopPad  = 0; // held: slowed as a tape machine
     static constexpr size_t kResetPad = 1; // the twins back to their defaults
     static constexpr size_t kTrigPad
         = 2; // playback from the loop's start, at once
@@ -34,28 +34,28 @@ class CoreUI
     static constexpr std::array<size_t, kNumSlices> kSlicePads
         = {3, 4, 8, 5, 9, 6, 7};
 
-    // S37, Density: none at the bottom, then grains per second, exponential,
-    // whatever the size. At the top, all the voices sound at the size's
-    // centre, 100 ms.
-    static constexpr float kDensityNone = 0.04f; // of its travel
-    static constexpr float kMinDensity  = 0.25f;
-    static constexpr float kMaxDensity  = 320.0f;
+    // S37, Density: grains per second at the stops, at Speed's places,
+    // whatever the size. At Size's centre, 100 ms: 20, level with 1x, sounds
+    // two grains at once, the recording as it is, and the top all the voices.
+    static constexpr float kDensities[]
+        = {0.0f, 1.0f, 5.0f, 20.0f, 80.0f, 320.0f};
 
     // S31, Size: from kMinGrainMs to kMaxGrainMs, exponential
     static constexpr float kMinGrainMs = 5.0f;
     static constexpr float kMaxGrainMs = 2000.0f;
 
     // The second layer's values at power-up and after a reset: sizes,
-    // pitches and shapes as set, centred, the filter off, a short
-    // reverb (1.7 s, a quarter wet), full volume, starts at random
+    // pitches and shapes as set, centred, the filter off, no reverb, full
+    // volume, regular starts. With the first layer at its marks, the
+    // recording as it is.
     static constexpr float kRandomPitch = 0.5f;
     static constexpr float kRandomSize  = 0.0f;
     static constexpr float kRandomShape = 0.0f;
     static constexpr float kSpread      = 0.0f;
     static constexpr float kFilter      = 0.5f;
-    static constexpr float kReverb      = 0.35f;
+    static constexpr float kReverb      = 0.0f;
     static constexpr float kVolume      = 1.0f;
-    static constexpr float kJitter      = 1.0f;
+    static constexpr float kJitter      = 0.0f;
     // S30 to S37
     static constexpr std::array<float, Controls::kNumKnobs> kTwinDefaults
         = {kFilter,
@@ -68,6 +68,13 @@ class CoreUI
            kJitter};
     // P11 + S36, Volume: off at the bottom, then this range up to 0 dB
     static constexpr float kVolumeDb = 60.0f;
+
+    // Pad pressure, measured (Pads): light 0.31-0.53, medium 0.59-0.72, hard
+    // 0.78-0.98. From kFirmPressure, P00 halts and the slices play full. A
+    // slice touched at kLightPressure or less plays kSoftDb down.
+    static constexpr float kLightPressure = 0.3f;
+    static constexpr float kFirmPressure  = 0.6f;
+    static constexpr float kSoftDb        = 12.0f;
 
     // S36 frozen: moves under this are noise, not scrubbing
     static constexpr float kScrubStep = 0.002f;

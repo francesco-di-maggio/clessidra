@@ -26,9 +26,9 @@ h2.label { padding-left: 15px; }
 /* The status tile with a clock at its right end: an hourglass for the minute,
    as on the Play page. Where the tile is too narrow, no clock. */
 .status { position: relative; }
-/* Its caps from the top of the first row's capitals to the last row's
-   baseline: the glass draws 4.75 px inside its canvas at each end */
-.clock { position: absolute; right: 36px; top: 15px; width: 44px; height: 98px; }
+/* As tall as the Play page's glass (a knob, name to value: 92 px), centred
+   on the rows: the glass draws 4.75 px inside its canvas at each end */
+.clock { position: absolute; right: 36px; top: 18px; width: 44px; height: 92px; }
 @media (max-width: 560px) { .clock { display: none; } }
 
 .stack { display: grid; gap: 10px; min-width: 0; }

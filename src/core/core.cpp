@@ -56,7 +56,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
     {
         playhead_.Jump(jump);
         schedule_.phase = 0.0;
-        if(!p.stop)
+        if(p.stop <= 0.0f)
             tape_ = 1.0f;
     }
     const bool  now   = jump >= 0.0f && len > 0.0;
@@ -67,11 +67,12 @@ void Core::Process(const float* const* in, float** out, size_t size)
         playhead_.Jump(to - std::floor(to));
     }
 
-    // Stop: the speed of everything ramps to 0 or back to 1 over
-    // kStopSeconds, at a steady rate as a tape machine's
+    // Stop: the speed of everything ramps to 1 - stop, at a steady rate as
+    // a tape machine's, 0 to 1 in kStopSeconds
     const float tape_step = float(size) / (kStopSeconds * sample_rate_);
-    tape_                 = p.stop ? std::max(0.0f, tape_ - tape_step)
-                   : std::min(1.0f, tape_ + tape_step);
+    const float tape_to   = 1.0f - std::clamp(p.stop, 0.0f, 1.0f);
+    tape_ = tape_ > tape_to ? std::max(tape_to, tape_ - tape_step)
+                            : std::min(tape_to, tape_ + tape_step);
     const double play_inc
         = p.freeze ? 0.0 : p.speed * double(tape_) / sel_len; // per sample
 
@@ -136,7 +137,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
                             span,
                             head.Phase(),
                             (p.speed < 0.0f) != (head.Heading() < 0),
-                            grain_samples},
+                            grain_samples,
+                            p.slice_level[s]},
                            &sound,
                            i,
                            slice_last_[s]);
@@ -413,6 +415,7 @@ void Core::StartGrain(const Params& p,
         phase -= std::floor(phase);
     }
     latch.position = (source.start + phase * source.length) * to_read;
+    latch.level    = source.level;
     double length  = 1.0; // of the size
     if(p.rand_size > 0.0f && p.max_grain_ms > p.min_grain_ms)
     {
