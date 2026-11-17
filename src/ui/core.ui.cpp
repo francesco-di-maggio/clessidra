@@ -202,13 +202,13 @@ void CoreUI::Knobs(const Controls& c, bool frozen)
 }
 
 // Frozen: S36's moves move the playhead through the loop, a full stroke the
-// whole loop. Freezing leaves it where it is.
+// whole loop. Freezing leaves it where it is, and so do moves with Shift.
 void CoreUI::Scrub(float fader, bool frozen, Core& core)
 {
-    if(frozen && !frozen_)
+    if((frozen && !frozen_) || shift_)
         scrub_from_ = fader;
     frozen_ = frozen;
-    if(!frozen || shift_ || std::fabs(fader - scrub_from_) < kScrubStep)
+    if(!frozen || std::fabs(fader - scrub_from_) < kScrubStep)
         return;
     core.Scrub(fader - scrub_from_);
     scrub_from_ = fader;

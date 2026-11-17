@@ -1762,6 +1762,17 @@ void Mapping()
               && Near(p.speed, 1.0, 1e-6),
           "frozen, S36 up a fifth of its travel: a fifth of the loop on",
           scrubbed);
+    const double frozen_at       = r.core.PlayheadPhase();
+    c.touched[CoreUI::kShiftPad] = true;
+    ui.Process(c, r.core);
+    c.knobs[Controls::S36] = 0.3f;
+    ui.Process(c, r.core);
+    c.touched[CoreUI::kShiftPad] = false;
+    ui.Process(c, r.core);
+    r.Run(0.01, Silence);
+    Check(r.core.PlayheadPhase() == frozen_at,
+          "frozen, S36 moved with P11 held, let go: the playhead stays",
+          r.core.PlayheadPhase());
     c.switches[Controls::S09] = Controls::Up;
     ui.Process(c, r.core);
     Check(Near(p.speed, 1.0, 1e-6) && !p.freeze,
