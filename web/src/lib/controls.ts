@@ -172,8 +172,8 @@ export const CONTROLS: Control[] = [
   },
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
-    brief: "Slices: hold, several at once",
-    does: "Hold to play a slice, cut at the recording's attacks. Several at once.",
+    brief: "Slices: hold, firmer is louder",
+    does: "Hold to play a slice, cut at the recording's attacks. A light touch plays it 12\u00a0dB softer, a firm one full. Several at once.",
   })),
 ];
 

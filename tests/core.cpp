@@ -1506,6 +1506,40 @@ void Slicing()
           even[4]);
 }
 
+// A slice louder the firmer its pad: kSoftDb down at a light touch, full
+// from a firm one
+void SliceLevels()
+{
+    const auto played = [](float pressure) {
+        Rig r(1.0);
+        r.Fill(Sine);
+        CoreUI   ui;
+        Controls c;
+        c.knobs.fill(0.5f);
+        c.knobs[Controls::S30]            = 0.0f;
+        c.knobs[Controls::S35]            = 1.0f;
+        c.knobs[Controls::S32]            = 0.0f;
+        c.knobs[Controls::S37]            = 0.0f; // the loop silent
+        c.switches                        = {Controls::Up, Controls::Up};
+        c.pressure[CoreUI::kSlicePads[0]] = pressure;
+        ui.Process(c, r.core); // the recording seen, then the pad
+        c.touched[CoreUI::kSlicePads[0]] = true;
+        r.Run(0.6, Silence, [&](size_t) { ui.Process(c, r.core); });
+        const double rms = Rms(r, 0.2);
+        return std::make_pair(rms, r.core.CurrentParams().slice_level[0]);
+    };
+    const auto light = played(CoreUI::kLightPressure);
+    const auto firm  = played(0.9f);
+    Check(
+        Near(firm.second, 1.0, 1e-6)
+            && Near(light.second, std::pow(10.0, -CoreUI::kSoftDb / 20.0), 1e-3)
+            && Near(20.0 * std::log10(light.first / firm.first),
+                    -CoreUI::kSoftDb,
+                    1.0),
+        "slice, light touch: 12 dB under a firm one (dB)",
+        20.0 * std::log10(light.first / firm.first));
+}
+
 // After a layer change, a knob moves its value from where it is, both
 // reaching the end stops together
 void Takeovers()
@@ -2097,6 +2131,7 @@ int main()
     Cloud();
     Takeovers();
     Slicing();
+    SliceLevels();
     Defaults();
     Transparent();
     Mapping();

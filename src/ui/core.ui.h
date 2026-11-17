@@ -69,9 +69,12 @@ class CoreUI
     // P11 + S36, Volume: off at the bottom, then this range up to 0 dB
     static constexpr float kVolumeDb = 60.0f;
 
-    // P00: from this pressure, a halt. Measured (Pads): light 0.31-0.53,
-    // medium 0.59-0.72, hard 0.78-0.98.
-    static constexpr float kStopPressure = 0.6f;
+    // Pad pressure, measured (Pads): light 0.31-0.53, medium 0.59-0.72, hard
+    // 0.78-0.98. From kFirmPressure, P00 halts and the slices play full. A
+    // slice touched at kLightPressure or less plays kSoftDb down.
+    static constexpr float kLightPressure = 0.3f;
+    static constexpr float kFirmPressure  = 0.6f;
+    static constexpr float kSoftDb        = 12.0f;
 
     // S36 frozen: moves under this are noise, not scrubbing
     static constexpr float kScrubStep = 0.002f;

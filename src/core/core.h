@@ -137,6 +137,7 @@ class Core
         // is. While any is held the selection's playhead waits.
         std::array<float, kNumSlices> slice_start{};
         std::array<float, kNumSlices> slice_length{};
+        std::array<float, kNumSlices> slice_level{1, 1, 1, 1, 1, 1, 1};
         uint32_t                      slices_held = 0; // bit i: slice i
     };
 
@@ -233,6 +234,7 @@ class Core
         double phase;  // through the span
         bool   backwards;
         double grain_samples; // its length, before Params.rand_size
+        float  level = 1.0f;  // each grain's gain
     };
 
     enum class Capture

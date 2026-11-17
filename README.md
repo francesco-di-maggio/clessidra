@@ -27,7 +27,7 @@ Download the [binary](https://github.com/francesco-di-maggio/clessidra/releases/
 | P00 | Stop: light slows, firm halts | |
 | P01 | Reset: second layer to defaults | |
 | P02 | Trigger: the loop from its start | |
-| P03–P09 | Slices: hold, several at once | |
+| P03–P09 | Slices: hold, firmer is louder | |
 
 [Manual (PDF)](https://francescodimaggio.nl/clessidra/clessidra-manual.pdf) · [Controls](https://francescodimaggio.nl/clessidra/controls/) · [Play in the browser](https://francescodimaggio.nl/clessidra/play/) · [Video](https://youtu.be/RqA2F2Bw7CE)
 

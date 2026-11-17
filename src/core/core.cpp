@@ -137,7 +137,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
                             span,
                             head.Phase(),
                             (p.speed < 0.0f) != (head.Heading() < 0),
-                            grain_samples},
+                            grain_samples,
+                            p.slice_level[s]},
                            &sound,
                            i,
                            slice_last_[s]);
@@ -414,6 +415,7 @@ void Core::StartGrain(const Params& p,
         phase -= std::floor(phase);
     }
     latch.position = (source.start + phase * source.length) * to_read;
+    latch.level    = source.level;
     double length  = 1.0; // of the size
     if(p.rand_size > 0.0f && p.max_grain_ms > p.min_grain_ms)
     {
