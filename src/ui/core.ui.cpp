@@ -209,14 +209,16 @@ void CoreUI::Scrub(float fader, bool frozen, Core& core)
     scrub_from_ = fader;
 }
 
-// P00, held: stopped as a tape machine, everything slowing to a halt, back
-// to speed on release. P02, Trigger: playback from the loop's start, its end in
-// reverse, with a grain at once.
+// P00, held: slowed as a tape machine, a light touch partly, from
+// kStopPressure to a halt, back to speed on release. P02, Trigger: playback
+// from the loop's start, its end in reverse, with a grain at once.
 bool CoreUI::Transport(const Controls& c, Core::Params& p)
 {
     const bool trig = c.touched[kTrigPad] && !trig_touched_;
     trig_touched_   = c.touched[kTrigPad];
-    p.stop          = c.touched[kStopPad];
+    p.stop          = c.touched[kStopPad]
+                 ? std::min(c.pressure[kStopPad] / kStopPressure, 1.0f)
+                 : 0.0f;
     return trig;
 }
 

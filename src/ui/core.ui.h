@@ -20,7 +20,7 @@ class CoreUI
 {
   public:
     // Pads
-    static constexpr size_t kStopPad  = 0; // held: stopped as a tape machine
+    static constexpr size_t kStopPad  = 0; // held: slowed as a tape machine
     static constexpr size_t kResetPad = 1; // the twins back to their defaults
     static constexpr size_t kTrigPad
         = 2; // playback from the loop's start, at once
@@ -68,6 +68,10 @@ class CoreUI
            kJitter};
     // P11 + S36, Volume: off at the bottom, then this range up to 0 dB
     static constexpr float kVolumeDb = 60.0f;
+
+    // P00: from this pressure, a halt. Measured (Pads): light 0.31-0.53,
+    // medium 0.59-0.72, hard 0.78-0.98.
+    static constexpr float kStopPressure = 0.6f;
 
     // S36 frozen: moves under this are noise, not scrubbing
     static constexpr float kScrubStep = 0.002f;

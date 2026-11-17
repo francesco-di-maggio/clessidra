@@ -24,7 +24,7 @@ Download the [binary](https://github.com/francesco-di-maggio/clessidra/releases/
 | S07 | End: loop / turn over / once | |
 | P10 | Record. Tap: the last 8 s. Hold: up to 30 s | Listen: the input alone. Let go of P11: record |
 | P11 | Hold: the second layer | |
-| P00 | Stop: held, slows to a halt | |
+| P00 | Stop: light slows, firm halts | |
 | P01 | Reset: second layer to defaults | |
 | P02 | Trigger: the loop from its start | |
 | P03–P09 | Slices: hold, several at once | |

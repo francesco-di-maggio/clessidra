@@ -2014,17 +2014,27 @@ void Mapping()
     c.knobs[Controls::S35] = 1.0f;
     ui.Process(c, r.core);
     r.Run(2.0, Silence);
-    const double playing = Rms(r, 0.2);
+    const double playing         = Rms(r, 0.2);
+    c.pressure[CoreUI::kStopPad] = 0.3f; // light
     press(CoreUI::kStopPad, true);
     r.Run(Core::kStopSeconds, Silence);
-    const double stopped = Rms(r, 0.2);
-    const bool   held    = p.stop;
+    const double slowed          = Rms(r, 0.2);
+    const float  braked          = p.stop;
+    c.pressure[CoreUI::kStopPad] = 0.7f; // medium
+    press(CoreUI::kStopPad, true);
+    r.Run(Core::kStopSeconds, Silence);
+    const double stopped         = Rms(r, 0.2);
+    const float  held            = p.stop;
+    c.pressure[CoreUI::kStopPad] = 0.0f;
     press(CoreUI::kStopPad, false);
     r.Run(Core::kStopSeconds + 0.2, Silence);
     const double again = Rms(r, 0.3);
-    Check(held && p.stop == false && stopped < 0.2 * playing
+    Check(Near(braked, 0.5, 1e-3) && slowed > 0.5 * playing,
+          "P00 light: slowed to half, still sounding (rms)",
+          slowed / playing);
+    Check(held == 1.0f && p.stop == 0.0f && stopped < 0.2 * playing
               && again > 0.5 * playing,
-          "P00 held: stopped as a tape machine, released: back to speed (rms)",
+          "P00 firm: stopped as a tape machine, released: back to speed (rms)",
           stopped / playing);
     r.Run(0.3, Silence);
     press(CoreUI::kTrigPad, true);

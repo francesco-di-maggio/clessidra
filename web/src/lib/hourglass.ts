@@ -73,9 +73,9 @@ export class Hourglass {
   // to 1: the glass is no more than upright
   private motion() {
     const p = this.params;
-    const still = p[PARAM.freeze] || p[PARAM.stop];
+    const still = p[PARAM.freeze] || p[PARAM.stop] >= 1;
     const way = (p[PARAM.speed] < 0 ? -1 : 1) * (p[PARAM.heading] < 0 ? -1 : 1);
-    const speed = still ? 0 : Math.abs(p[PARAM.speed]);
+    const speed = still ? 0 : Math.abs(p[PARAM.speed]) * (1 - p[PARAM.stop]);
     return { way, speed, pace: Math.min(speed, 1) };
   }
 

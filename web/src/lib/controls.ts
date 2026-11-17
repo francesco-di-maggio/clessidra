@@ -162,9 +162,9 @@ export const CONTROLS: Control[] = [
     does: "Second functions back to their defaults.",
   },
   {
-    id: "P00", brief: "Stop: held, slows to a halt", type: "pad", index: STOP_PAD, ...padAt(STOP_PAD), name: "Stop",
-    does: "Held: stops as a tape machine, slowing to a halt. Released: back to speed.",
-    value: (p) => (p[PARAM.stop] ? "Stopped" : ""),
+    id: "P00", brief: "Stop: light slows, firm halts", type: "pad", index: STOP_PAD, ...padAt(STOP_PAD), name: "Stop",
+    does: "Held: slows as a tape machine, the pitch with it. A light touch slows it, a firm press halts it. Released: back to speed.",
+    value: (p) => (p[PARAM.stop] >= 1 ? "Stopped" : p[PARAM.stop] > 0 ? "Slowing" : ""),
   },
   {
     id: "P02", brief: "Trigger: the loop from its start", type: "pad", index: TRIG_PAD, ...padAt(TRIG_PAD), name: "Trigger",
