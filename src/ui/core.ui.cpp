@@ -124,13 +124,9 @@ void CoreUI::Process(const Controls& c, Core& core)
     const float rnd_size = twin(Controls::S31);
     p.rand_size          = rnd_size * rnd_size / 4.0f;
 
-    // S37, Density: grains per second, none at the bottom. Shift, Jitter:
-    // the starts, from regular to random.
-    const float rate
-        = (own(Controls::S37) - kDensityNone) / (1.0f - kDensityNone);
-    p.density = rate > 0.0f
-                    ? kMinDensity * std::pow(kMaxDensity / kMinDensity, rate)
-                    : 0.0f;
+    // S37, Density: grains per second, none at the bottom, then 1, 5, 20,
+    // 80 and 320. Shift, Jitter: the starts, from regular to random.
+    p.density   = Stops(0.5f + 0.5f * own(Controls::S37), kDensities);
     p.rand_time = twin(Controls::S37);
 
     // S32, Spray: how far each grain strays from the playhead, evenly, up

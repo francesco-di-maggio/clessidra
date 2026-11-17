@@ -1588,7 +1588,7 @@ void Transparent()
 {
     Panel panel(4.0);
     panel.c.knobs[Controls::S36] = 0.63f;       // 1×
-    panel.c.knobs[Controls::S37] = 0.628f;      // 20 grains per second
+    panel.c.knobs[Controls::S37] = 0.633f;      // 20 grains per second
     panel.c.knobs[Controls::S34] = 2.0f / 3.0f; // bell
     const auto saw               = [](double t) {
         const double x = t * 110.0;
@@ -1657,27 +1657,28 @@ void Mapping()
     c.knobs[Controls::S30] = 0.0f;
     ui.Process(c, r.core);
 
-    // S37, Density: none at the bottom, then 0.25 to 320 grains per second,
-    // whatever the size
+    // S37, Density: none at the bottom, then stops at 1, 5, 20, 80 and 320
+    // grains per second, whatever the size
     const auto at = [&](float x) {
         c.knobs[Controls::S37] = x;
         ui.Process(c, r.core);
         return p;
     };
     const Core::Params closed = at(0.0f);
-    const Core::Params slow   = at(CoreUI::kDensityNone + 1e-4f);
-    const Core::Params middle = at(0.5f + 0.5f * CoreUI::kDensityNone);
+    const Core::Params rest   = at(0.06f);
+    const Core::Params slow   = at(0.11f);
+    const Core::Params middle = at(0.633f);
     const Core::Params cloud  = at(1.0f);
-    Check(closed.density == 0.0f, "S37 bottom: none", closed.density);
-    Check(Near(slow.density, CoreUI::kMinDensity, 1e-2),
-          "S37 just above: a grain every 4 s",
+    Check(closed.density == 0.0f && rest.density == 0.0f,
+          "S37 bottom, its first fifteenth: none",
+          rest.density);
+    Check(Near(slow.density, 0.25, 0.03),
+          "S37 a tenth up: a grain every 4 s",
           slow.density);
-    Check(Near(middle.density,
-               std::sqrt(CoreUI::kMinDensity * CoreUI::kMaxDensity),
-               1e-2),
-          "S37 halfway: 8.9 grains per second, exponential",
+    Check(middle.density == 20.0f,
+          "S37 fourth stop, level with Speed's 1x: 20 grains per second",
           middle.density);
-    Check(Near(cloud.density, CoreUI::kMaxDensity, 1e-2),
+    Check(cloud.density == 320.0f,
           "S37 top: 320 grains per second",
           cloud.density);
     c.knobs[Controls::S31] = 0.1f;

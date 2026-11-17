@@ -34,12 +34,11 @@ class CoreUI
     static constexpr std::array<size_t, kNumSlices> kSlicePads
         = {3, 4, 8, 5, 9, 6, 7};
 
-    // S37, Density: none at the bottom, then grains per second, exponential,
-    // whatever the size. At the top, all the voices sound at the size's
-    // centre, 100 ms.
-    static constexpr float kDensityNone = 0.04f; // of its travel
-    static constexpr float kMinDensity  = 0.25f;
-    static constexpr float kMaxDensity  = 320.0f;
+    // S37, Density: grains per second at the stops, at Speed's places,
+    // whatever the size. At Size's centre, 100 ms: 20, level with 1x, sounds
+    // two grains at once, the recording as it is, and the top all the voices.
+    static constexpr float kDensities[]
+        = {0.0f, 1.0f, 5.0f, 20.0f, 80.0f, 320.0f};
 
     // S31, Size: from kMinGrainMs to kMaxGrainMs, exponential
     static constexpr float kMinGrainMs = 5.0f;

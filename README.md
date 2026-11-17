@@ -13,7 +13,7 @@ Download the [binary](https://github.com/francesco-di-maggio/clessidra/releases/
 | Control | Function | P11 held |
 |---|---|---|
 | S36 | Speed 0–4×, stops at ¼ ½ 1 2 4 | Volume |
-| S37 | Density: none, then 0.25–320 a second | Jitter: regular to random |
+| S37 | Density: 0–320 a second, stops at 1 5 20 80 | Jitter: regular to random |
 | S30 | Position: where the loop starts | Filter: low-pass / off / high-pass |
 | S35 | Length: a share of the rest | Reverb |
 | S31 | Size: 5 ms – 2 s, 100 ms at the centre | Random size |
