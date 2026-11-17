@@ -122,7 +122,7 @@ class Core
         // Starts from periodic, 0, to random intervals, 1: mostly short, a
         // long tail. The same mean.
         float rand_time = 0.0f;
-        // 0..1, the pan width, wider with the grains sounding
+        // 0..1, each grain's pan: centred to anywhere from left to right
         float spread = 0.0f;
         float filter = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains

@@ -1379,10 +1379,11 @@ void Pan()
     Check(Width(130.0f, 0.0f) > 0.999,
           "spread 0: grains at the centre (L/R correlation)",
           Width(130.0f, 0.0f));
-    const double lone = Width(10.0f, 1.0f);
-    const double full = Width(130.0f, 1.0f);
-    Check(full < 0.8 && lone > full + 0.1,
-          "spread 1: wider with more grains (L/R correlation)",
+    const double half = Width(10.0f, 0.5f);
+    const double full = Width(10.0f, 1.0f);
+    Check(full < 0.75 && half > full + 0.1,
+          "spread 1: lone grains anywhere across the field, wider than at "
+          "half (L/R correlation)",
           full);
 }
 

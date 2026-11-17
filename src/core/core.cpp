@@ -380,14 +380,14 @@ void Core::StartGrain(const Params& p,
                       size_t        offset,
                       const Grain*& last)
 {
-    Grain* grain  = nullptr;
-    size_t active = 0;
+    Grain* grain = nullptr;
     for(auto& g : grains_)
     {
-        if(g.IsActive())
-            active++;
-        else if(!grain)
+        if(!g.IsActive())
+        {
             grain = &g;
+            break;
+        }
     }
     if(!grain)
     {
@@ -435,11 +435,7 @@ void Core::StartGrain(const Params& p,
     latch.rate = p.pitch * std::exp2(semitones / 12.0f);
     if(source.backwards)
         latch.rate = -latch.rate;
-    // Width with the grains sounding and how much they differ: a lone grain
-    // near the centre, most of the others too
-    const float width = 0.5f * float(active + 1) * p.spread;
-    const float scale = 0.5f - 0.5f * Random();
-    latch.pan         = 0.5f + 0.5f * Random() * std::min(width * scale, 1.0f);
+    latch.pan = 0.5f + 0.5f * Random() * std::clamp(p.spread, 0.0f, 1.0f);
     // In phase with the grain before, moved at most a quarter of its length.
     // Not scattered by Spray: those are meant to differ.
     if(p.rand_pos <= 0.0f && last && last->IsActive()
