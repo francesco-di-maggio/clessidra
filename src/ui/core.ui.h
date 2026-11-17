@@ -46,16 +46,17 @@ class CoreUI
     static constexpr float kMaxGrainMs = 2000.0f;
 
     // The second layer's values at power-up and after a reset: sizes,
-    // pitches and shapes as set, centred, the filter off, a short
-    // reverb (1.7 s, a quarter wet), full volume, starts at random
+    // pitches and shapes as set, centred, the filter off, no reverb, full
+    // volume, regular starts. With the first layer at its marks, the
+    // recording as it is.
     static constexpr float kRandomPitch = 0.5f;
     static constexpr float kRandomSize  = 0.0f;
     static constexpr float kRandomShape = 0.0f;
     static constexpr float kSpread      = 0.0f;
     static constexpr float kFilter      = 0.5f;
-    static constexpr float kReverb      = 0.35f;
+    static constexpr float kReverb      = 0.0f;
     static constexpr float kVolume      = 1.0f;
-    static constexpr float kJitter      = 1.0f;
+    static constexpr float kJitter      = 0.0f;
     // S30 to S37
     static constexpr std::array<float, Controls::kNumKnobs> kTwinDefaults
         = {kFilter,

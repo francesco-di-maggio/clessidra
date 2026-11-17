@@ -1581,6 +1581,39 @@ void Defaults()
           p.grain_ms);
 }
 
+// The panel at its marks and the second layer at its defaults: the recording
+// as it is. A steady sawtooth recorded through P10 keeps a steady level, as
+// loud as it came in.
+void Transparent()
+{
+    Panel panel(4.0);
+    panel.c.knobs[Controls::S36] = 0.63f;       // 1×
+    panel.c.knobs[Controls::S37] = 0.628f;      // 20 grains per second
+    panel.c.knobs[Controls::S34] = 2.0f / 3.0f; // bell
+    const auto saw               = [](double t) {
+        const double x = t * 110.0;
+        return 0.4f * float(2.0 * (x - std::floor(x)) - 1.0);
+    };
+    panel.Record(4.0, saw);
+    panel.Run(3.0, Silence);
+    std::vector<double> frames;
+    for(int f = 0; f < 300; f++)
+        frames.push_back(20.0 * std::log10(PanelRms(panel, 0.01, Silence)));
+    double mean = 0.0, var = 0.0;
+    for(double f : frames)
+        mean += f / double(frames.size());
+    for(double f : frames)
+        var += (f - mean) * (f - mean) / double(frames.size());
+    const double in = 20.0 * std::log10(0.4 / std::sqrt(3.0));
+    std::printf(
+        "      defaults: level %+.2f dB against the input, flutter %.2f dB\n",
+        mean - in,
+        std::sqrt(var));
+    Check(std::sqrt(var) < 1.5 && std::fabs(mean - in) < 1.5,
+          "defaults: the recording as it is, steady and as loud (flutter dB)",
+          std::sqrt(var));
+}
+
 void Mapping()
 {
     Rig      r(2.0);
@@ -1599,10 +1632,10 @@ void Mapping()
           "S36 on its fourth stop, S09 up: speed 1 forward, looped",
           p.speed);
     Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.mix == 1.0f
-              && p.filter == 0.0f && p.reverb == CoreUI::kReverb
-              && p.rand_pitch == 0.0f && p.rand_time == 1.0f
-              && p.rand_shape == 0.0f && p.spread == 0.0f && p.volume == 1.0f,
-          "power-up: unison, shape as set, filter off, short reverb, random "
+              && p.filter == 0.0f && p.reverb == 0.0f && p.rand_pitch == 0.0f
+              && p.rand_time == 0.0f && p.rand_shape == 0.0f && p.spread == 0.0f
+              && p.volume == 1.0f,
+          "power-up: unison, shape as set, filter off, no reverb, regular "
           "starts, centred, full volume",
           p.pitch);
     Check(p.start == 0.0f && p.length == 1.0f,
@@ -1880,8 +1913,9 @@ void Mapping()
     press(CoreUI::kResetPad, false);
     press(CoreUI::kShiftPad, true);
     Check(p.rand_pitch == 0.0f && p.reverb == CoreUI::kReverb
-              && p.filter == 0.0f && p.rand_size == 0.0f && p.rand_time == 1.0f
-              && p.rand_shape == 0.0f && p.spread == 0.0f && p.volume == 1.0f,
+              && p.filter == 0.0f && p.rand_size == 0.0f
+              && p.rand_time == CoreUI::kJitter && p.rand_shape == 0.0f
+              && p.spread == 0.0f && p.volume == 1.0f,
           "P01: the twins back to their defaults",
           p.rand_pitch);
     const uint32_t recordings = r.core.Recordings();
@@ -2053,6 +2087,7 @@ int main()
     Takeovers();
     Slicing();
     Defaults();
+    Transparent();
     Mapping();
     std::printf("%s\n",
                 failures ? "Some checks failed." : "All checks passed.");
