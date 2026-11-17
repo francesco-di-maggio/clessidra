@@ -124,27 +124,29 @@ run(0.1, silence);
 const params = f32(w.cl_params(), 13);
 check(Math.abs(params[0] - 1) < 1e-6, "Speed on its fourth stop: 1", params[0]);
 
-// P11 held: S35 sets the reverb, S37 the volume, back to full after, S32
-// regular starts, up and down again. Length, Density and Spray stay as they
-// were
+// P11 held: S35 sets the reverb, S36 the volume, back to full after, S37
+// regular starts, up and down again. Length, Speed, Density and Spray stay as
+// they were
 const SHIFT = 11;
 const param = (i) => f32(w.cl_params(), 21)[i];
-const before = [param(10), param(2)];
+const before = [param(10), param(0), param(2)];
 w.cl_pad(SHIFT, 1, 0.5);
 run(0.02, silence);
 w.cl_knob(KNOB.S35, 1);
-w.cl_knob(KNOB.S37, 0);
+w.cl_knob(KNOB.S36, 0);
 run(0.02, silence);
 const shifted = [param(5), param(11)];
+w.cl_knob(KNOB.S36, 1);
 w.cl_knob(KNOB.S37, 1);
-w.cl_knob(KNOB.S32, 1);
 run(0.02, silence);
-w.cl_knob(KNOB.S32, 0);
+w.cl_knob(KNOB.S37, 0);
 run(0.02, silence);
 const starts = param(6);
 w.cl_pad(SHIFT, 0, 0);
 run(0.02, silence);
-check(shifted[0] > 0.9 && shifted[1] === 0 && starts === 0 && param(10) === before[0] && param(2) === before[1] && param(12) === 0, "P11 + S35, S37, S32: the reverb, no volume, regular starts, Length, Density and Spray kept", [...shifted, starts].join(" "));
+check(shifted[0] > 0.9 && shifted[1] === 0 && starts === 0 && param(11) === 1 && param(10) === before[0] && param(0) === before[1] && param(2) === before[2] && param(12) === 0, "P11 + S35, S36, S37: the reverb, no volume, regular starts, Length, Speed, Density and Spray kept", [...shifted, starts].join(" "));
+w.cl_knob(KNOB.S36, SPEED_1);
+w.cl_knob(KNOB.S37, 0.75);
 
 // S37 at the bottom: no grains. At the top: a cloud, 320 a second of 100 ms
 // fills the 32 voices
