@@ -1,9 +1,10 @@
 ---
-// The manual's text, on Synthux's Touch II blank manual (web/manual/): the
-// name, each control's line beside the panel, three notes in the box below.
-// In the template's points, A4, transparent: web/manual.mjs prints it and
-// lays it over the template, into clessidra-manual.pdf.
-import { CONTROLS, byId } from "../lib/controls";
+// The manual's text, on Synthux's Touch II blank manual (web/manual/). Page
+// 1: the name, each control's line beside the panel, three steps to start in
+// the box below. Page 2: what each control does, ways to play, the LED. In the
+// template's points, A4, transparent: web/manual.mjs prints it and lays it
+// over the template, into clessidra-manual.pdf.
+import { CONTROLS, LED, PLAY, byId } from "../lib/controls";
 
 const W = 595.276;
 const H = 841.89;
@@ -59,6 +60,10 @@ const CHIPS = [...CONTROLS.map((c) => c.id), "IN", "OUT"];
 // The template's rules: under the name, and in the box
 const TITLE = { x: 196, rules: [134.3, 153.1, 171.9] };
 const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
+
+const KNOBS = ["S36", "S37", "S30", "S35", "S31", "S32", "S33", "S34"].map(byId);
+const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02"].map(byId);
+const SLICES = byId("P03");
 ---
 <!doctype html>
 <html lang="en">
@@ -70,7 +75,7 @@ const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
 <style>
   @page { size: A4; margin: 0; }
   html, body { margin: 0; background: transparent; }
-  svg { display: block; width: 210mm; height: 297mm; }
+  svg { display: block; width: 210mm; height: 297mm; break-after: page; }
   text { font-family: var(--sans); fill: #111; }
   .name { font-size: 9.5px; font-weight: 600; }
   .kicker, .title { font-family: "Outfit", var(--sans); }
@@ -83,10 +88,16 @@ const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
   .does { font-size: 6.5px; }
   .twin { font-size: 6px; fill: #888; }
   .note { font-size: 7px; }
-  .note .grey { fill: #888; }
+  .note .step { font-weight: 600; }
   .leader { stroke: #111; stroke-width: 0.5; }
   .chip rect { fill: #111; }
   .chip text { font-size: 4.6px; font-weight: 600; fill: #fff; text-anchor: middle; }
+  .page { box-sizing: border-box; width: 210mm; height: 297mm; padding: 60pt 56pt; font: 7pt/1.35 var(--sans); color: #111; text-wrap: pretty; }
+  h2 { margin: 0 0 3pt; font: 600 6pt var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: #888; }
+  table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 14pt; }
+  td { padding: 3pt 6pt 3pt 0; border-bottom: 0.5pt solid #111; vertical-align: top; }
+  td:first-child { width: 58pt; font: 600 6pt/1.6 var(--mono); }
+  .second { color: #888; }
 </style>
 </head>
 <body>
@@ -129,9 +140,29 @@ const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
     );
   })}
 
-  <text class="note" x={BOX.x} y={BOX.rules[0] - 4}><tspan class="grey">Grey</tspan>: the second layer, with P11 held. After a layer change, a knob continues from its value.</text>
-  <text class="note" x={BOX.x} y={BOX.rules[1] - 4}>Always listening: a tap on P10 keeps what just played. Frozen by S09, Speed scrubs the loop.</text>
-  <text class="note" x={BOX.x} y={BOX.rules[2] - 4}>LED: glow = grains, flash = recording, pulse = a stop, steady = P11 held, the last knob turned.</text>
+  <text class="note" x={BOX.x} y={BOX.rules[0] - 4}><tspan class="step">Record</tspan>: tap or hold P10 to start the loop.</text>
+  <text class="note" x={BOX.x} y={BOX.rules[1] - 4}><tspan class="step">Set</tspan>: turn Density and Size to pour it.</text>
+  <text class="note" x={BOX.x} y={BOX.rules[2] - 4}><tspan class="step">Play</tspan>: hold the slices to play their parts.</text>
 </svg>
+
+<section class="page">
+  <h2>Faders and knobs</h2>
+  <table>
+    {KNOBS.map((c) => <tr><td>{c.id}</td><td><b>{c.name}</b>. {c.does}{c.twin && <><br /><span class="second"><b>{c.twin.name}</b>. {c.twin.does}</span></>}</td></tr>)}
+  </table>
+  <h2>Pads and switches</h2>
+  <table>
+    {OTHERS.map((c) => <tr><td>{c.id}</td><td><b>{c.name}</b>. {c.does}{c.twin && <><br /><span class="second"><b>{c.twin.name}</b>. {c.twin.does}</span></>}</td></tr>)}
+    <tr><td>P03–P09</td><td><b>Slices</b>. {SLICES.does}</td></tr>
+  </table>
+  <h2>To play</h2>
+  <table>
+    {PLAY.map(([sound, how]) => <tr><td>{sound}</td><td>{how}</td></tr>)}
+  </table>
+  <h2>LED</h2>
+  <table>
+    {LED.map(([state, meaning]) => <tr><td>{state}</td><td>{meaning}</td></tr>)}
+  </table>
+</section>
 </body>
 </html>
