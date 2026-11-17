@@ -62,12 +62,12 @@ CoreUI::CoreUI()
 {
     twin_[Controls::S30] = Takeover(kFilter, true);
     twin_[Controls::S31] = Takeover(kRandomSize);
-    twin_[Controls::S32] = Takeover(kRandomTime);
+    twin_[Controls::S32] = Takeover(kSpread);
     twin_[Controls::S33] = Takeover(kRandomPitch, true);
     twin_[Controls::S34] = Takeover(kRandomShape);
     twin_[Controls::S35] = Takeover(kReverb);
-    twin_[Controls::S36] = Takeover(kReverse);
-    twin_[Controls::S37] = Takeover(kVolume);
+    twin_[Controls::S36] = Takeover(kVolume);
+    twin_[Controls::S37] = Takeover(kJitter);
 }
 
 void CoreUI::Process(const Controls& c, Core& core)
@@ -100,14 +100,14 @@ void CoreUI::Process(const Controls& c, Core& core)
 
     // S36, Speed: the time stretched, the grains' pitch their own. Frozen, it
     // scrubs through the loop instead, and takes the speed up again after.
-    // Shift, Reverse: the odds a grain reads the other way. S07, End: at the
-    // loop's end once and no more, turned over, or round again.
+    // Shift: the output volume. S07, End: at the loop's end once and no more,
+    // turned over, or round again.
     const float speed = Stops(0.5f + 0.5f * own(Controls::S36), kSpeeds);
     Slices(c, core, p);
-    p.speed   = mode == Controls::Down ? -speed : speed;
-    p.freeze  = frozen || speed == 0.0f;
-    p.end     = EndOf(c.switches[Controls::S07]);
-    p.reverse = twin(Controls::S36);
+    p.speed  = mode == Controls::Down ? -speed : speed;
+    p.freeze = frozen || speed == 0.0f;
+    p.end    = EndOf(c.switches[Controls::S07]);
+    p.volume = Volume(twin(Controls::S36));
 
     // S31, Size: kMinGrainMs to kMaxGrainMs, exponential, 100 ms at the
     // centre, up to half the recording. Shift: its randomness.
@@ -124,22 +124,19 @@ void CoreUI::Process(const Controls& c, Core& core)
     const float rnd_size = twin(Controls::S31);
     p.rand_size          = rnd_size * rnd_size / 4.0f;
 
-    // S37, Density: grains per second, none at the bottom. Shift: the output
-    // volume.
+    // S37, Density: grains per second, none at the bottom. Shift, Jitter:
+    // the starts, from regular to random.
     const float rate
         = (own(Controls::S37) - kDensityNone) / (1.0f - kDensityNone);
     p.density = rate > 0.0f
                     ? kMinDensity * std::pow(kMaxDensity / kMinDensity, rate)
                     : 0.0f;
-    p.volume = Volume(twin(Controls::S37));
+    p.rand_time = twin(Controls::S37);
 
     // S32, Spray: how far each grain strays from the playhead, evenly, up
-    // to the whole loop, and across the stereo field with it. Shift: the
-    // grains' starts, from regular to random.
+    // to the whole loop. Shift, Spread: the widest the stereo field gets.
     const float rnd_pos = own(Controls::S32);
     p.rand_pos          = rnd_pos * rnd_pos;
-    p.spread            = rnd_pos;
-    p.rand_time         = twin(Controls::S32);
 
     // S33, Pitch. Shift: its randomness, none at the centre. Up: free, to an
     // octave either way. Down: in octaves, more grains an octave away.
@@ -153,6 +150,13 @@ void CoreUI::Process(const Controls& c, Core& core)
     // even steps along the knob. Shift: its randomness.
     p.window_shape = own(Controls::S34);
     p.rand_shape   = twin(Controls::S34);
+
+    // The width follows how much the grains differ, up to Spread (Beads,
+    // granular_player.h:85). Not the starts: random by default, they would
+    // widen a cloud that is otherwise the same.
+    const float differ
+        = rnd_pos + rnd_size + std::fabs(rnd_pitch) + p.rand_shape;
+    p.spread = twin(Controls::S32) * std::min(differ, 1.0f);
 
     const bool trig = Transport(c, p);
     core.SetParams(p);

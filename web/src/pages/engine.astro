@@ -172,8 +172,8 @@ const grain: [string, string][] = [
   ["Random pitch", "Up: free, to ±12 semitones. Down: octaves, up to 2 grains in 3."],
   ["Size", "5 ms to 2 s, 100 ms at the centre. Random: part way to any."],
   ["Window", "Beads' envelope along Shape. At least 0.5 ms up, 10 ms down."],
-  ["Pan", "Spray spreads them, wider as more sound at once. Equal power."],
-  ["Direction", "The playhead's. Reverse sets the share read the other way."],
+  ["Pan", "Wider the more the grains differ and the more sound at once, up to Spread. Equal power."],
+  ["Direction", "The playhead's."],
 ];
 const transport: [string, string][] = [
   ["Speed", "0 to 4×, the pitch kept. Frozen, a full stroke scrubs the loop."],
@@ -226,7 +226,7 @@ const runtime: [string, string][] = [
 <h2 class="label">04 Starts</h2>
 <section class="panel figure prose">
   <Fragment set:html={starts()} />
-  <p>Density is grains a second, 0.25 to 320, none at the bottom, whatever their size: grains sounding at once are Density × Size. Random timing takes the starts from a regular pulse to nearly Poisson, the same mean. 32 voices: when all sound, a new grain is dropped.</p>
+  <p>Density is grains a second, 0.25 to 320, none at the bottom, whatever their size: grains sounding at once are Density × Size. Jitter takes the starts from a regular pulse to nearly Poisson, the same mean. 32 voices: when all sound, a new grain is dropped.</p>
 </section>
 
 <h2 class="label">05 Level</h2>

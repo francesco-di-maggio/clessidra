@@ -433,9 +433,7 @@ void Core::StartGrain(const Params& p,
         semitones       = away ? std::copysign(12.0f, random) : 0.0f;
     }
     latch.rate = p.pitch * std::exp2(semitones / 12.0f);
-    const bool mirrored
-        = p.reverse > 0.0f && 0.5f + 0.5f * Random() < p.reverse;
-    if(source.backwards != mirrored)
+    if(source.backwards)
         latch.rate = -latch.rate;
     // Width with the grains sounding and how much they differ: a lone grain
     // near the centre, most of the others too
