@@ -46,12 +46,12 @@ class CoreUI
     static constexpr float kMaxGrainMs = 2000.0f;
 
     // The second layer's values at power-up and after a reset: sizes,
-    // pitches and shapes as set, the full width, the filter off, a short
+    // pitches and shapes as set, centred, the filter off, a short
     // reverb (1.7 s, a quarter wet), full volume, starts at random
     static constexpr float kRandomPitch = 0.5f;
     static constexpr float kRandomSize  = 0.0f;
     static constexpr float kRandomShape = 0.0f;
-    static constexpr float kSpread      = 1.0f;
+    static constexpr float kSpread      = 0.0f;
     static constexpr float kFilter      = 0.5f;
     static constexpr float kReverb      = 0.35f;
     static constexpr float kVolume      = 1.0f;

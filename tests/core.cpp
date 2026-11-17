@@ -1667,7 +1667,7 @@ void Mapping()
           p.grain_ms);
     c.knobs[Controls::S31] = 0.5f;
 
-    // S32, Spray: off to the whole loop, the pan with it
+    // S32, Spray: off to the whole loop, the pan its own
     c.knobs[Controls::S37] = 0.75f;
     ui.Process(c, r.core);
     Check(p.rand_pos == 0.0f && p.spread == 0.0f,
@@ -1675,8 +1675,8 @@ void Mapping()
           p.spread);
     c.knobs[Controls::S32] = 1.0f;
     ui.Process(c, r.core);
-    Check(p.rand_pos == 1.0f && p.spread == 1.0f && p.rand_pitch == 0.0f,
-          "S32 top: the whole loop, pan widest, nothing else random",
+    Check(p.rand_pos == 1.0f && p.spread == 0.0f && p.rand_pitch == 0.0f,
+          "S32 top: the whole loop, still centred, nothing else random",
           p.rand_pos);
     c.knobs[Controls::S32] = 0.0f;
 

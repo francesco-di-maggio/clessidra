@@ -116,7 +116,7 @@ export const CONTROLS: Control[] = [
     id: "S32", brief: "Spray: scattered round the playhead", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
     does: "How far grains stray from the playhead, evenly, up to the whole loop.",
     value: (p) => (p[PARAM.randPos] === 0 ? "Off" : percent(Math.sqrt(p[PARAM.randPos]))),
-    twin: { name: "Spread", brief: "Spread: the widest the grains pan", does: "How wide the grains pan, up to the full stereo field. Wider the more they differ: Spray, Random size, pitch and shape.", value: (p) => (p[PARAM.spread] === 0 ? "Centre" : percent(p[PARAM.spread])) },
+    twin: { name: "Spread", brief: "Spread: each grain's pan", does: "How wide the grains pan, from the centre to the whole stereo field.", value: (p) => (p[PARAM.spread] === 0 ? "Centre" : percent(p[PARAM.spread])) },
   },
   {
     id: "S33", brief: "Pitch ±24 semitones, musical stops", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,

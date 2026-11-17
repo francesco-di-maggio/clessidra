@@ -134,9 +134,11 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.rand_time = twin(Controls::S37);
 
     // S32, Spray: how far each grain strays from the playhead, evenly, up
-    // to the whole loop. Shift, Spread: the widest the stereo field gets.
+    // to the whole loop. Shift, Spread: each grain's pan, centred to the
+    // whole stereo field.
     const float rnd_pos = own(Controls::S32);
     p.rand_pos          = rnd_pos * rnd_pos;
+    p.spread            = twin(Controls::S32);
 
     // S33, Pitch. Shift: its randomness, none at the centre. Up: free, to an
     // octave either way. Down: in octaves, more grains an octave away.
@@ -150,13 +152,6 @@ void CoreUI::Process(const Controls& c, Core& core)
     // even steps along the knob. Shift: its randomness.
     p.window_shape = own(Controls::S34);
     p.rand_shape   = twin(Controls::S34);
-
-    // The width follows how much the grains differ, up to Spread (Beads,
-    // granular_player.h:85). Not the starts: random by default, they would
-    // widen a cloud that is otherwise the same.
-    const float differ
-        = rnd_pos + rnd_size + std::fabs(rnd_pitch) + p.rand_shape;
-    p.spread = twin(Controls::S32) * std::min(differ, 1.0f);
 
     const bool trig = Transport(c, p);
     core.SetParams(p);
