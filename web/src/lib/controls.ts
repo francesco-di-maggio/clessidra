@@ -57,13 +57,9 @@ const SPEED_STOPS = ["0", "¼", "½", "1×", "2×", "4×"];
 const SEGMENTS = SPEED_STOPS.length - 1;
 const speedAt = (stop: number) => (stop === SEGMENTS ? SEGMENTS : stop === 0 ? 0 : stop + 1 / 6) / SEGMENTS;
 const SPEED_SCALE = SPEED_STOPS.map((label, i) => ({ at: speedAt(i), label })).reverse();
-// Density's grains per second where the fader puts them (CoreUI:
-// kDensityNone, kMinDensity, kMaxDensity)
-const NONE = 0.04;
-const MIN_DENSITY = 0.25;
-const MAX_DENSITY = 320;
-const densityAt = (rate: number) => NONE + (1 - NONE) * (Math.log(rate / MIN_DENSITY) / Math.log(MAX_DENSITY / MIN_DENSITY));
-const DENSITY_SCALE = [MAX_DENSITY, 100, 10, 1].map((r) => ({ at: densityAt(r), label: `${r}` })).concat([{ at: 0, label: "0" }]);
+// Density's stops from the bottom, at Speed's places (CoreUI: kDensities)
+const DENSITY_STOPS = ["0", "1", "5", "20", "80", "320"];
+const DENSITY_SCALE = DENSITY_STOPS.map((label, i) => ({ at: speedAt(i), label })).reverse();
 const db = (gain: number) => (gain < 0.001 ? "−∞ dB" : `${signed(20 * Math.log10(gain), 0)} dB`);
 
 const PAD_AT: Record<number, [number, number]> = {
@@ -80,8 +76,8 @@ export const CONTROLS: Control[] = [
     twin: { name: "Volume", brief: "Volume", does: "Output level, off to 0\u00a0dB.", value: (p) => db(p[PARAM.volume]) },
   },
   {
-    id: "S37", brief: "Density: none, then 0.25–320 a second", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: densityAt(20), scale: DENSITY_SCALE,
-    does: "Grains per second, 0 to 320. At the top with Size at its centre, all 32 voices sound.",
+    id: "S37", brief: "Density: 0–320 a second, stops at 1 5 20 80", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: speedAt(3), scale: DENSITY_SCALE,
+    does: "Grains per second, 0 to 320, with stops at 1, 5, 20 and 80. At 20 with Size at its centre: the recording as it is. At the top: all 32 voices.",
     value: (p) => {
       const d = p[PARAM.density];
       return d === 0 ? "None" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
@@ -166,9 +162,9 @@ export const CONTROLS: Control[] = [
     does: "Second functions back to their defaults.",
   },
   {
-    id: "P00", brief: "Stop: held, slows to a halt", type: "pad", index: STOP_PAD, ...padAt(STOP_PAD), name: "Stop",
-    does: "Held: stops as a tape machine, slowing to a halt. Released: back to speed.",
-    value: (p) => (p[PARAM.stop] ? "Stopped" : ""),
+    id: "P00", brief: "Stop: light slows, firm halts", type: "pad", index: STOP_PAD, ...padAt(STOP_PAD), name: "Stop",
+    does: "Held: slows as a tape machine, the pitch with it. A light touch slows it, a firm press halts it. Released: back to speed.",
+    value: (p) => (p[PARAM.stop] >= 1 ? "Stopped" : p[PARAM.stop] > 0 ? "Slowing" : ""),
   },
   {
     id: "P02", brief: "Trigger: the loop from its start", type: "pad", index: TRIG_PAD, ...padAt(TRIG_PAD), name: "Trigger",
@@ -176,8 +172,8 @@ export const CONTROLS: Control[] = [
   },
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
-    brief: "Slices: hold, several at once",
-    does: "Hold to play a slice, cut at the recording's attacks. Several at once.",
+    brief: "Slices: hold, firmer is louder",
+    does: "Hold to play a slice, cut at the recording's attacks. A light touch plays it 12\u00a0dB softer, a firm one full. Several at once.",
   })),
 ];
 

@@ -17,6 +17,7 @@ class Grain
         double        position = 0.0;  // samples
         float         rate     = 1.0f; // samples read per output sample
         float         pan      = 0.5f; // 0 left .. 1 right
+        float         level    = 1.0f; // gain, after the measured power
         // window: 0 square, 1/3 decay, 2/3 bell, 1 reverse
         float  shape = 2.0f / 3.0f;
         double inc   = 0.0; // window phase per sample: 1 / length in samples

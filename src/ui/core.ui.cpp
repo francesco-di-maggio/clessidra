@@ -56,6 +56,18 @@ namespace
                    : 0.0f;
     }
 
+    // A slice's gain from its pad's pressure: kSoftDb down at a light touch,
+    // full from a firm one, in dB between
+    float SliceLevel(float pressure)
+    {
+        const float firm
+            = std::clamp((pressure - CoreUI::kLightPressure)
+                             / (CoreUI::kFirmPressure - CoreUI::kLightPressure),
+                         0.0f,
+                         1.0f);
+        return std::pow(10.0f, -CoreUI::kSoftDb * (1.0f - firm) / 20.0f);
+    }
+
 } // namespace
 
 CoreUI::CoreUI()
@@ -124,13 +136,9 @@ void CoreUI::Process(const Controls& c, Core& core)
     const float rnd_size = twin(Controls::S31);
     p.rand_size          = rnd_size * rnd_size / 4.0f;
 
-    // S37, Density: grains per second, none at the bottom. Shift, Jitter:
-    // the starts, from regular to random.
-    const float rate
-        = (own(Controls::S37) - kDensityNone) / (1.0f - kDensityNone);
-    p.density = rate > 0.0f
-                    ? kMinDensity * std::pow(kMaxDensity / kMinDensity, rate)
-                    : 0.0f;
+    // S37, Density: grains per second, none at the bottom, then 1, 5, 20,
+    // 80 and 320. Shift, Jitter: the starts, from regular to random.
+    p.density   = Stops(0.5f + 0.5f * own(Controls::S37), kDensities);
     p.rand_time = twin(Controls::S37);
 
     // S32, Spray: how far each grain strays from the playhead, evenly, up
@@ -213,14 +221,16 @@ void CoreUI::Scrub(float fader, bool frozen, Core& core)
     scrub_from_ = fader;
 }
 
-// P00, held: stopped as a tape machine, everything slowing to a halt, back
-// to speed on release. P02, Trigger: playback from the loop's start, its end in
-// reverse, with a grain at once.
+// P00, held: slowed as a tape machine, a light touch partly, from
+// kFirmPressure to a halt, back to speed on release. P02, Trigger: playback
+// from the loop's start, its end in reverse, with a grain at once.
 bool CoreUI::Transport(const Controls& c, Core::Params& p)
 {
     const bool trig = c.touched[kTrigPad] && !trig_touched_;
     trig_touched_   = c.touched[kTrigPad];
-    p.stop          = c.touched[kStopPad];
+    p.stop          = c.touched[kStopPad]
+                 ? std::min(c.pressure[kStopPad] / kFirmPressure, 1.0f)
+                 : 0.0f;
     return trig;
 }
 
@@ -262,7 +272,7 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
 }
 
 // P03-P09: the loop in slices, left to right, each from an onset of the
-// recording. Each held one plays its slice. A new recording ends those held.
+// recording. Each held one plays its slice, louder the firmer the touch. A new recording ends those held.
 void CoreUI::Slices(const Controls& c, const Core& core, Core::Params& p)
 {
     const bool fresh = core.Recordings() != analysed_;
@@ -281,6 +291,7 @@ void CoreUI::Slices(const Controls& c, const Core& core, Core::Params& p)
         const float end    = i + 1 < kNumSlices ? slice_starts_[i + 1] : 1.0f;
         p.slice_start[i]   = slice_starts_[i];
         p.slice_length[i]  = std::max(end - slice_starts_[i], 0.0f);
+        p.slice_level[i]   = SliceLevel(c.pressure[kSlicePads[i]]);
         if(touched && !slices_stale_[i])
             p.slices_held |= 1u << i;
     }

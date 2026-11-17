@@ -27,7 +27,6 @@ const SETTLED = 0.005; // rad
 const FALL = 12; // px a second, the thread at 1×: at 4× still under half a grid step a frame
 const FRESH_MS = 200; // without news for this long: the thread still
 const DROP_MS = 700; // one grain from the neck to the sand, falling faster
-const TALL = 0.85; // of the room upright, about its middle
 const REPOSE = 0.6; // the sand's slope upright: about 31°, as dry sand rests
 // The grains as sand. Size: a dot from MIN_DOT px at 5 ms to MAX_DOT at 2 s,
 // exponential. Density: the thread's dots one to THREAD_GAPS grid steps apart,
@@ -73,9 +72,9 @@ export class Hourglass {
   // to 1: the glass is no more than upright
   private motion() {
     const p = this.params;
-    const still = p[PARAM.freeze] || p[PARAM.stop];
+    const still = p[PARAM.freeze] || p[PARAM.stop] >= 1;
     const way = (p[PARAM.speed] < 0 ? -1 : 1) * (p[PARAM.heading] < 0 ? -1 : 1);
-    const speed = still ? 0 : Math.abs(p[PARAM.speed]);
+    const speed = still ? 0 : Math.abs(p[PARAM.speed]) * (1 - p[PARAM.stop]);
     return { way, speed, pace: Math.min(speed, 1) };
   }
 
@@ -111,12 +110,11 @@ export class Hourglass {
     const css = getComputedStyle(document.documentElement);
     const accent = css.getPropertyValue("--accent");
 
-    // As tall and as wide as the dials' arcs beside it, caps included, about
-    // its middle, level with them: the same upright and on its side. The
-    // clock: most of its room upright.
+    // As wide as the dials' arcs, caps included, and as tall as its room:
+    // on Play from a knob's name to its value, the same on Home
     const band = parseFloat(getComputedStyle(canvas).getPropertyValue("--band")) || BAND;
     const arc = (ARC * band) / BAND;
-    const tall = this.single ? (H - 2 * EDGE) * TALL : arc;
+    const tall = H - 2 * EDGE;
     const bulb = tall / 2 - 2;
     const wide = arc / 2 - CAP;
     const cx = W / 2;

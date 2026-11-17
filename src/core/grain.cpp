@@ -20,8 +20,8 @@ void Grain::Start(const Latch& latch, size_t offset)
     active_         = true;
     // Equal-power pan
     const float angle = HALFPI_F * latch.pan;
-    gain_l_           = std::cos(angle);
-    gain_r_           = std::sin(angle);
+    gain_l_           = latch.level * std::cos(angle);
+    gain_r_           = latch.level * std::sin(angle);
 
     // Beads' grain envelope (beads/dsp/grain_envelope.h:57): square, decay,
     // bell, reverse along the shape. Here the grain keeps its length, so the

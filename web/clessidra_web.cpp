@@ -280,7 +280,7 @@ EXPORT const float* cl_params()
     params[kSpread]       = p.spread;
     params[kFilter]       = p.filter;
     params[kEnd]          = float(p.end);
-    params[kStop]         = p.stop ? 1.0f : 0.0f;
+    params[kStop]         = p.stop;
     params[kRandShape]    = p.rand_shape;
     params[kSandLeft]     = core.SandLeft();
     params[kHeading]      = float(core.Heading());

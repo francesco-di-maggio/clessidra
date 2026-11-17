@@ -102,7 +102,7 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 
 /* A three-way switch: its positions stacked in the band and the value line */
 /* Between Position and Length, the hourglass: a knob's room, the glass in
-   it as tall and as wide as a dial's arc, level with the dials */
+   it as wide as a dial's arc and as tall as a knob, name to value */
 .knobs .glass { grid-column: span 2; justify-content: flex-start; }
 .knobs .glass canvas { width: calc(100% - 16px); height: calc(2 * var(--name) + 12px + var(--band)); }
 

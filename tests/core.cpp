@@ -1506,6 +1506,40 @@ void Slicing()
           even[4]);
 }
 
+// A slice louder the firmer its pad: kSoftDb down at a light touch, full
+// from a firm one
+void SliceLevels()
+{
+    const auto played = [](float pressure) {
+        Rig r(1.0);
+        r.Fill(Sine);
+        CoreUI   ui;
+        Controls c;
+        c.knobs.fill(0.5f);
+        c.knobs[Controls::S30]            = 0.0f;
+        c.knobs[Controls::S35]            = 1.0f;
+        c.knobs[Controls::S32]            = 0.0f;
+        c.knobs[Controls::S37]            = 0.0f; // the loop silent
+        c.switches                        = {Controls::Up, Controls::Up};
+        c.pressure[CoreUI::kSlicePads[0]] = pressure;
+        ui.Process(c, r.core); // the recording seen, then the pad
+        c.touched[CoreUI::kSlicePads[0]] = true;
+        r.Run(0.6, Silence, [&](size_t) { ui.Process(c, r.core); });
+        const double rms = Rms(r, 0.2);
+        return std::make_pair(rms, r.core.CurrentParams().slice_level[0]);
+    };
+    const auto light = played(CoreUI::kLightPressure);
+    const auto firm  = played(0.9f);
+    Check(
+        Near(firm.second, 1.0, 1e-6)
+            && Near(light.second, std::pow(10.0, -CoreUI::kSoftDb / 20.0), 1e-3)
+            && Near(20.0 * std::log10(light.first / firm.first),
+                    -CoreUI::kSoftDb,
+                    1.0),
+        "slice, light touch: 12 dB under a firm one (dB)",
+        20.0 * std::log10(light.first / firm.first));
+}
+
 // After a layer change, a knob moves its value from where it is, both
 // reaching the end stops together
 void Takeovers()
@@ -1581,6 +1615,39 @@ void Defaults()
           p.grain_ms);
 }
 
+// The panel at its marks and the second layer at its defaults: the recording
+// as it is. A steady sawtooth recorded through P10 keeps a steady level, as
+// loud as it came in.
+void Transparent()
+{
+    Panel panel(4.0);
+    panel.c.knobs[Controls::S36] = 0.63f;       // 1×
+    panel.c.knobs[Controls::S37] = 0.633f;      // 20 grains per second
+    panel.c.knobs[Controls::S34] = 2.0f / 3.0f; // bell
+    const auto saw               = [](double t) {
+        const double x = t * 110.0;
+        return 0.4f * float(2.0 * (x - std::floor(x)) - 1.0);
+    };
+    panel.Record(4.0, saw);
+    panel.Run(3.0, Silence);
+    std::vector<double> frames;
+    for(int f = 0; f < 300; f++)
+        frames.push_back(20.0 * std::log10(PanelRms(panel, 0.01, Silence)));
+    double mean = 0.0, var = 0.0;
+    for(double f : frames)
+        mean += f / double(frames.size());
+    for(double f : frames)
+        var += (f - mean) * (f - mean) / double(frames.size());
+    const double in = 20.0 * std::log10(0.4 / std::sqrt(3.0));
+    std::printf(
+        "      defaults: level %+.2f dB against the input, flutter %.2f dB\n",
+        mean - in,
+        std::sqrt(var));
+    Check(std::sqrt(var) < 1.5 && std::fabs(mean - in) < 1.5,
+          "defaults: the recording as it is, steady and as loud (flutter dB)",
+          std::sqrt(var));
+}
+
 void Mapping()
 {
     Rig      r(2.0);
@@ -1599,10 +1666,10 @@ void Mapping()
           "S36 on its fourth stop, S09 up: speed 1 forward, looped",
           p.speed);
     Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.mix == 1.0f
-              && p.filter == 0.0f && p.reverb == CoreUI::kReverb
-              && p.rand_pitch == 0.0f && p.rand_time == 1.0f
-              && p.rand_shape == 0.0f && p.spread == 0.0f && p.volume == 1.0f,
-          "power-up: unison, shape as set, filter off, short reverb, random "
+              && p.filter == 0.0f && p.reverb == 0.0f && p.rand_pitch == 0.0f
+              && p.rand_time == 0.0f && p.rand_shape == 0.0f && p.spread == 0.0f
+              && p.volume == 1.0f,
+          "power-up: unison, shape as set, filter off, no reverb, regular "
           "starts, centred, full volume",
           p.pitch);
     Check(p.start == 0.0f && p.length == 1.0f,
@@ -1624,27 +1691,28 @@ void Mapping()
     c.knobs[Controls::S30] = 0.0f;
     ui.Process(c, r.core);
 
-    // S37, Density: none at the bottom, then 0.25 to 320 grains per second,
-    // whatever the size
+    // S37, Density: none at the bottom, then stops at 1, 5, 20, 80 and 320
+    // grains per second, whatever the size
     const auto at = [&](float x) {
         c.knobs[Controls::S37] = x;
         ui.Process(c, r.core);
         return p;
     };
     const Core::Params closed = at(0.0f);
-    const Core::Params slow   = at(CoreUI::kDensityNone + 1e-4f);
-    const Core::Params middle = at(0.5f + 0.5f * CoreUI::kDensityNone);
+    const Core::Params rest   = at(0.06f);
+    const Core::Params slow   = at(0.11f);
+    const Core::Params middle = at(0.633f);
     const Core::Params cloud  = at(1.0f);
-    Check(closed.density == 0.0f, "S37 bottom: none", closed.density);
-    Check(Near(slow.density, CoreUI::kMinDensity, 1e-2),
-          "S37 just above: a grain every 4 s",
+    Check(closed.density == 0.0f && rest.density == 0.0f,
+          "S37 bottom, its first fifteenth: none",
+          rest.density);
+    Check(Near(slow.density, 0.25, 0.03),
+          "S37 a tenth up: a grain every 4 s",
           slow.density);
-    Check(Near(middle.density,
-               std::sqrt(CoreUI::kMinDensity * CoreUI::kMaxDensity),
-               1e-2),
-          "S37 halfway: 8.9 grains per second, exponential",
+    Check(middle.density == 20.0f,
+          "S37 fourth stop, level with Speed's 1x: 20 grains per second",
           middle.density);
-    Check(Near(cloud.density, CoreUI::kMaxDensity, 1e-2),
+    Check(cloud.density == 320.0f,
           "S37 top: 320 grains per second",
           cloud.density);
     c.knobs[Controls::S31] = 0.1f;
@@ -1880,8 +1948,9 @@ void Mapping()
     press(CoreUI::kResetPad, false);
     press(CoreUI::kShiftPad, true);
     Check(p.rand_pitch == 0.0f && p.reverb == CoreUI::kReverb
-              && p.filter == 0.0f && p.rand_size == 0.0f && p.rand_time == 1.0f
-              && p.rand_shape == 0.0f && p.spread == 0.0f && p.volume == 1.0f,
+              && p.filter == 0.0f && p.rand_size == 0.0f
+              && p.rand_time == CoreUI::kJitter && p.rand_shape == 0.0f
+              && p.spread == 0.0f && p.volume == 1.0f,
           "P01: the twins back to their defaults",
           p.rand_pitch);
     const uint32_t recordings = r.core.Recordings();
@@ -1979,17 +2048,27 @@ void Mapping()
     c.knobs[Controls::S35] = 1.0f;
     ui.Process(c, r.core);
     r.Run(2.0, Silence);
-    const double playing = Rms(r, 0.2);
+    const double playing         = Rms(r, 0.2);
+    c.pressure[CoreUI::kStopPad] = 0.3f; // light
     press(CoreUI::kStopPad, true);
     r.Run(Core::kStopSeconds, Silence);
-    const double stopped = Rms(r, 0.2);
-    const bool   held    = p.stop;
+    const double slowed          = Rms(r, 0.2);
+    const float  braked          = p.stop;
+    c.pressure[CoreUI::kStopPad] = 0.7f; // medium
+    press(CoreUI::kStopPad, true);
+    r.Run(Core::kStopSeconds, Silence);
+    const double stopped         = Rms(r, 0.2);
+    const float  held            = p.stop;
+    c.pressure[CoreUI::kStopPad] = 0.0f;
     press(CoreUI::kStopPad, false);
     r.Run(Core::kStopSeconds + 0.2, Silence);
     const double again = Rms(r, 0.3);
-    Check(held && p.stop == false && stopped < 0.2 * playing
+    Check(Near(braked, 0.5, 1e-3) && slowed > 0.5 * playing,
+          "P00 light: slowed to half, still sounding (rms)",
+          slowed / playing);
+    Check(held == 1.0f && p.stop == 0.0f && stopped < 0.2 * playing
               && again > 0.5 * playing,
-          "P00 held: stopped as a tape machine, released: back to speed (rms)",
+          "P00 firm: stopped as a tape machine, released: back to speed (rms)",
           stopped / playing);
     r.Run(0.3, Silence);
     press(CoreUI::kTrigPad, true);
@@ -2052,7 +2131,9 @@ int main()
     Cloud();
     Takeovers();
     Slicing();
+    SliceLevels();
     Defaults();
+    Transparent();
     Mapping();
     std::printf("%s\n",
                 failures ? "Some checks failed." : "All checks passed.");
