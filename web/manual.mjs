@@ -8,9 +8,10 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
 
 const PORT = 4330;
+const FRAME = 23; // the template's frame, inside its line, in points
 const dist = new URL("dist/", import.meta.url).pathname;
 const out = new URL("public/clessidra-manual.pdf", import.meta.url).pathname;
 const template = new URL("manual/touch-ii-blank.pdf", import.meta.url).pathname;
@@ -38,10 +39,15 @@ try {
   // Async: the server above answers from this same process
   const text = join(profile, "text.pdf");
   await promisify(execFile)(chrome, ["--headless=new", `--user-data-dir=${profile}`, "--no-pdf-header-footer", "--virtual-time-budget=5000", `--print-to-pdf=${text}`, `http://localhost:${PORT}/clessidra/manual/`]);
-  // The template's page as it is, the text over it, page for page in points
+  // The template's page as it is, the text over it, page for page in points.
+  // Page 2: the template's frame alone, its inside covered.
   const manual = await PDFDocument.load(readFileSync(template));
-  const [over] = await manual.embedPdf(readFileSync(text), [0]);
-  manual.getPage(0).drawPage(over, { x: 0, y: 0 });
+  const [blank] = await manual.copyPages(manual, [0]);
+  manual.addPage(blank);
+  const { width, height } = blank.getSize();
+  blank.drawRectangle({ x: FRAME, y: FRAME, width: width - 2 * FRAME, height: height - 2 * FRAME, color: rgb(1, 1, 1) });
+  const pages = await manual.embedPdf(readFileSync(text), [0, 1]);
+  pages.forEach((page, i) => manual.getPage(i).drawPage(page, { x: 0, y: 0 }));
   manual.setTitle("Clessidra · Manual");
   writeFileSync(out, await manual.save());
   console.log(out);
