@@ -1,7 +1,7 @@
 ---
 // The manual's text, on Synthux's Touch II blank manual (web/manual/). Page
-// 1: the name, each control's line beside the panel, three steps to start in
-// the box below. Page 2: what each control does, ways to play, the LED. In the
+// 1: the name, each control's line beside the panel, the box below left for
+// notes. Page 2: what each control does, ways to play, the LED. In the
 // template's points, A4, transparent: web/manual.mjs prints it and lays it
 // over the template, into clessidra-manual.pdf.
 import { CONTROLS, LED, PLAY, byId } from "../lib/controls";
@@ -57,9 +57,8 @@ const codeStart = PANEL.right + 16;
 
 const CHIPS = [...CONTROLS.map((c) => c.id), "IN", "OUT"];
 
-// The template's rules: under the name, and in the box
+// The template's rules under the name
 const TITLE = { x: 196, rules: [134.3, 153.1, 171.9] };
-const BOX = { x: 122.8, rules: [736.8, 755.5, 774.2] };
 
 const KNOBS = ["S36", "S37", "S30", "S35", "S31", "S32", "S33", "S34"].map(byId);
 const OTHERS = ["S09", "S07", "P10", "P11", "P00", "P01", "P02"].map(byId);
@@ -87,8 +86,6 @@ const SLICES = byId("P03");
   .code { font-size: 6px; font-weight: 600; }
   .does { font-size: 6.5px; }
   .twin { font-size: 6px; fill: #888; }
-  .note { font-size: 7px; }
-  .note .step { font-weight: 600; }
   .leader { stroke: #111; stroke-width: 0.5; }
   .chip rect { fill: #111; }
   .chip text { font-size: 4.6px; font-weight: 600; fill: #fff; text-anchor: middle; }
@@ -140,9 +137,6 @@ const SLICES = byId("P03");
     );
   })}
 
-  <text class="note" x={BOX.x} y={BOX.rules[0] - 4}><tspan class="step">Record</tspan>: tap or hold P10 to start the loop.</text>
-  <text class="note" x={BOX.x} y={BOX.rules[1] - 4}><tspan class="step">Set</tspan>: turn Density and Size to pour it.</text>
-  <text class="note" x={BOX.x} y={BOX.rules[2] - 4}><tspan class="step">Play</tspan>: hold the slices to play their parts.</text>
 </svg>
 
 <section class="page">
