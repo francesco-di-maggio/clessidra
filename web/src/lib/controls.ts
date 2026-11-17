@@ -76,7 +76,7 @@ export const CONTROLS: Control[] = [
     twin: { name: "Volume", brief: "Volume", does: "Output level, off to 0\u00a0dB.", value: (p) => db(p[PARAM.volume]) },
   },
   {
-    id: "S37", brief: "Density: 0–320 a second, stops at 1 5 20 80", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: speedAt(3), scale: DENSITY_SCALE,
+    id: "S37", brief: "Density 0–320/s, stops at 1 5 20 80", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: speedAt(3), scale: DENSITY_SCALE,
     does: "Grains per second, 0 to 320, with stops at 1, 5, 20 and 80. At 20 with Size at its centre: the recording as it is. At the top: all 32 voices.",
     value: (p) => {
       const d = p[PARAM.density];
