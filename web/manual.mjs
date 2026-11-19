@@ -1,5 +1,5 @@
 // Prints the manual page of web/dist with headless Chrome, lays it over
-// Synthux's Touch II blank manual (manual/touch-ii-blank.pdf) and writes
+// Synthux's Touch II blank manual (templates/touch-ii-blank.pdf) and writes
 // web/public/clessidra-manual.pdf. From the repo: make manual, after make web.
 // Chrome from $CHROME, or where it usually is.
 import { execFile } from "node:child_process";
@@ -14,7 +14,7 @@ const PORT = 4330;
 const FRAME = 23; // the template's frame, inside its line, in points
 const dist = new URL("dist/", import.meta.url).pathname;
 const out = new URL("public/clessidra-manual.pdf", import.meta.url).pathname;
-const template = new URL("manual/touch-ii-blank.pdf", import.meta.url).pathname;
+const template = new URL("templates/touch-ii-blank.pdf", import.meta.url).pathname;
 const chrome = [process.env.CHROME, "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome", "/usr/bin/chromium"].find((p) => p && existsSync(p));
 if (!chrome) throw new Error("no Chrome: set CHROME");
 
