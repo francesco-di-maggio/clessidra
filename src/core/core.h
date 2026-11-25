@@ -128,9 +128,8 @@ class Core
         float reverb = 0.0f; // 0 none .. 1 most and longest, on the grains
         // 0 at speed .. 1 halted, as a tape machine: everything slows to
         // 1 - stop over kStopSeconds; the reverb rings on
-        float stop   = 0.0f;
-        float mix    = 1.0f; // 0 dry .. 1 wet, equal power
-        float volume = 1.0f; // output gain, after the limiter
+        float stop = 0.0f;
+        float mix  = 1.0f; // 0 dry .. 1 wet, equal power
         // Slices of the selection, 0..1 of it. Each held one plays its own
         // span from its start, to its end as End sets, at speed and density,
         // a grain at once. At no density: two grains at once, regular, the slice as it
@@ -339,7 +338,6 @@ class Core
     float mix_        = 1.0f; // Params.mix, ramped
     float dry_gain_   = 0.0f;
     float wet_gain_   = 1.0f;
-    float volume_     = 1.0f;
 };
 
 } // namespace clessidra

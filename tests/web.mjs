@@ -124,7 +124,7 @@ run(0.1, silence);
 const params = f32(w.cl_params(), 13);
 check(Math.abs(params[0] - 1) < 1e-6, "Speed on its fourth stop: 1", params[0]);
 
-// P11 held: S35 sets the reverb, S36 the volume, back to full after, S37
+// P11 held: S35 sets the reverb, S36 the mix, all wet again after, S37
 // regular starts, up and down again. Length, Speed, Density and Spray stay as
 // they were
 const SHIFT = 11;
@@ -144,7 +144,7 @@ run(0.02, silence);
 const starts = param(6);
 w.cl_pad(SHIFT, 0, 0);
 run(0.02, silence);
-check(shifted[0] > 0.9 && shifted[1] === 0 && starts === 0 && param(11) === 1 && param(10) === before[0] && param(0) === before[1] && param(2) === before[2] && param(12) === 0, "P11 + S35, S36, S37: the reverb, no volume, regular starts, Length, Speed, Density and Spray kept", [...shifted, starts].join(" "));
+check(shifted[0] > 0.9 && shifted[1] === 0 && starts === 0 && param(11) === 1 && param(10) === before[0] && param(0) === before[1] && param(2) === before[2] && param(12) === 0, "P11 + S35, S36, S37: the reverb, dry, regular starts, Length, Speed, Density and Spray kept", [...shifted, starts].join(" "));
 w.cl_knob(KNOB.S36, SPEED_1);
 w.cl_knob(KNOB.S37, 0.75);
 

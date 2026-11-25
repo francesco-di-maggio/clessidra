@@ -1715,10 +1715,10 @@ void Mapping()
           p.speed);
     Check(Near(p.pitch, 1.0, 1e-6) && p.window_shape == 0.5f && p.mix == 1.0f
               && p.filter == 0.0f && p.reverb == 0.0f && p.rand_pitch == 0.0f
-              && p.rand_time == 0.0f && p.rand_shape == 0.0f && p.spread == 0.0f
-              && p.volume == 1.0f,
+              && p.rand_time == 0.0f && p.rand_shape == 0.0f
+              && p.spread == 0.0f,
           "power-up: unison, shape as set, filter off, no reverb, regular "
-          "starts, centred, full volume",
+          "starts, centred, all grains",
           p.pitch);
     Check(p.start == 0.0f && p.length == 1.0f,
           "S30 bottom, S35 top: the whole recording",
@@ -1953,10 +1953,10 @@ void Mapping()
     Check(p.pitch == 1.0f && Near(p.rand_pitch, 1.0, 1e-2)
               && p.rand_time == 0.0f && Near(p.rand_shape, 1.0, 1e-2)
               && Near(p.rand_size, 0.25, 1e-2) && Near(p.reverb, 0.0, 1e-2)
-              && p.volume == 0.0f && Near(p.speed, 1.0, 1e-6)
+              && p.mix == 0.0f && Near(p.speed, 1.0, 1e-6)
               && p.density == density && p.length == 1.0f,
           "P11 + S33, S37, S34, S31, S35, S36: random pitch, regular starts, "
-          "random shape, random size, no reverb, no volume",
+          "random shape, random size, no reverb, dry",
           p.rand_pitch);
     Check(Near(p.filter, 1.0, 1e-2) && Near(p.spread, 1.0, 1e-2)
               && p.start == 0.0f && p.rand_pos == 0.0f
@@ -1967,11 +1967,11 @@ void Mapping()
     c.knobs[Controls::S33] = 0.0f;
     c.knobs[Controls::S36] = 0.5f;
     ui.Process(c, r.core);
-    Check(p.rand_pitch == -1.0f && Near(p.volume, 0.0316, 1e-3)
+    Check(p.rand_pitch == -1.0f && Near(p.mix, 0.5, 1e-2)
               && Near(p.spread, 0.5, 1e-2),
-          "P11 + S33 down: in octaves. S36 halfway: -30 dB. S32 halfway: "
+          "P11 + S33 down: in octaves. S36 halfway: half wet. S32 halfway: "
           "half as wide",
-          p.volume);
+          p.mix);
     c.knobs[Controls::S32] = 1.0f;
     c.knobs[Controls::S33] = 1.0f;
     c.knobs[Controls::S36] = 0.0f;
@@ -1998,7 +1998,7 @@ void Mapping()
     Check(p.rand_pitch == 0.0f && p.reverb == CoreUI::kReverb
               && p.filter == 0.0f && p.rand_size == 0.0f
               && p.rand_time == CoreUI::kJitter && p.rand_shape == 0.0f
-              && p.spread == 0.0f && p.volume == 1.0f,
+              && p.spread == 0.0f && p.mix == 1.0f,
           "P11 + P01: the twins back to their defaults",
           p.rand_pitch);
     const uint32_t recordings = r.core.Recordings();
@@ -2023,7 +2023,7 @@ void Mapping()
     Check(p.start == 0.0f && p.length == 1.0f && Near(p.grain_ms, 100.0, 1e-3)
               && p.rand_pos == 0.0f && p.pitch == 1.0f
               && Near(p.window_shape, 2.0 / 3.0, 1e-6) && p.speed == 1.0f
-              && p.density == 20.0f && p.volume == 1.0f
+              && p.density == 20.0f
               && ui.Led(5000 + CoreUI::kPulseMs - 1, r.core) == 1.0f,
           "P01: the first layer back to its defaults, a pulse",
           p.grain_ms);
