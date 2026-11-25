@@ -33,7 +33,7 @@ function arrow(x1: number, y1: number, x2: number, y2: number, cls = "ln") {
 function signal() {
   const rows = [
     [["Input", "mono, DC block"], ["Ring", "31 s"], ["Buffers", "2 × 30 s"], ["Grains", "32 voices"], ["Level", "normaliser"]],
-    [["Filter", "SVF"], ["Reverb", "ReverbSc"], ["Limiter", "−0.5 dBFS"], ["Volume", "−60 to 0 dB"], ["Output", "stereo"]],
+    [["Filter", "SVF"], ["Reverb", "ReverbSc"], ["Mix", "dry and wet"], ["Limiter", "−0.5 dBFS"], ["Output", "stereo"]],
   ];
   const w = 52, h = 28, gap = 9, y0 = 14, y1 = 70;
   const x = (i: number) => i * (w + gap);
@@ -50,11 +50,11 @@ function signal() {
   o.push(`<path class="ln" d="M${xe},${y0 + h}V${y0 + h + 14}H${x(0) + w / 2}"/>`);
   o.push(arrow(x(0) + w / 2, y0 + h + 14, x(0) + w / 2, y1 - 0.6));
   o.push(`<text class="code" x="${x(2) - gap / 2}" y="${y0 - 4}">P10</text>`);
-  // Listen: the input to the limiter
+  // The input to the mix
   const xl = x(2) + w / 2;
   o.push(`<path class="ln dash" d="M${x(0)},${y0 + h / 2}H-5V${y1 + h + 12}H${xl}"/>`);
   o.push(arrow(xl, y1 + h + 12, xl, y1 + h + 0.6, "ln dash"));
-  o.push(`<text class="sub l" x="${xl + 6}" y="${y1 + h + 14}">Listen, P11 + P10: the input alone</text>`);
+  o.push(`<text class="sub l" x="${xl + 6}" y="${y1 + h + 14}">The input: Mix P11 + S36, Listen P11 + P10</text>`);
   return `<svg class="dia" viewBox="-7 0 305 116" role="img" aria-label="Signal path">${o.join("")}</svg>`;
 }
 
@@ -185,9 +185,9 @@ const transport: [string, string][] = [
 const effects: [string, string][] = [
   ["Filter", "SVF: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz."],
   ["Reverb", "ReverbSc on the grains. Decay 0.5 to 16 s, up to half wet."],
+  ["Mix", "P11 + S36: the input against the grains, equal power. Grains alone at the top."],
   ["Listen", "P11 + P10: the input alone, 1 s to dry, 0.5 s back. P11 let go: recording, still dry."],
   ["Limiter", "Look-ahead 5 ms, −0.5 dBFS, after the mix."],
-  ["Volume", "After the limiter: off, then −60 to 0 dB."],
 ];
 const runtime: [string, string][] = [
   ["Audio", "48 kHz, 48-sample blocks: 1 ms. Recordings in SDRAM, mono."],

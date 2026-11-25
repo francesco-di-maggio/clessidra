@@ -48,14 +48,6 @@ namespace
                    : s07 == Controls::Centre ? End::Turn : End::Once;
     }
 
-    // Off at the bottom, then kVolumeDb up to 0 dB
-    float Volume(float x)
-    {
-        return x > 0.0f
-                   ? std::pow(10.0f, CoreUI::kVolumeDb * (x - 1.0f) / 20.0f)
-                   : 0.0f;
-    }
-
     // A slice's gain from its pad's pressure: kSoftDb down at a light touch,
     // full from a firm one, in dB between
     float SliceLevel(float pressure)
@@ -78,7 +70,7 @@ CoreUI::CoreUI()
     twin_[Controls::S33] = Takeover(kRandomPitch, true);
     twin_[Controls::S34] = Takeover(kRandomShape);
     twin_[Controls::S35] = Takeover(kReverb);
-    twin_[Controls::S36] = Takeover(kVolume);
+    twin_[Controls::S36] = Takeover(kMix);
     twin_[Controls::S37] = Takeover(kJitter);
 }
 
@@ -112,14 +104,14 @@ void CoreUI::Process(const Controls& c, Core& core)
 
     // S36, Speed: the time stretched, the grains' pitch their own. Frozen, it
     // scrubs through the loop instead, and takes the speed up again after.
-    // Shift: the output volume. S07, End: at the loop's end once and no more,
-    // turned over, or round again.
+    // Shift: the mix, the input alone at the bottom, the grains alone at the
+    // top. S07, End: at the loop's end once and no more, turned over, or round
+    // again.
     const float speed = Stops(0.5f + 0.5f * own(Controls::S36), kSpeeds);
     Slices(c, core, p);
     p.speed  = mode == Controls::Down ? -speed : speed;
     p.freeze = frozen || speed == 0.0f;
     p.end    = EndOf(c.switches[Controls::S07]);
-    p.volume = Volume(twin(Controls::S36));
 
     // S31, Size: kMinGrainMs to kMaxGrainMs, exponential, 100 ms at the
     // centre, up to half the recording. Shift: its randomness.
@@ -261,7 +253,7 @@ void CoreUI::Default(Controls::Knob k, bool twin, float knob)
 // P10: record while held, the grains playing on. A tap keeps the seconds
 // before it. Touched with Shift: the input alone, nothing recorded. Shift
 // let go, P10 held: recording from there, the input still alone until P10 is
-// let go.
+// let go. Otherwise the mix as P11 + S36 sets it.
 void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
 {
     const bool touched = c.touched[kRecordPad];
@@ -272,7 +264,7 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
     record_touched_ = touched;
     record_         = touched && !listening_;
     core.SetRecording(record_);
-    p.mix = touched && dry_ ? 0.0f : 1.0f;
+    p.mix = touched && dry_ ? 0.0f : twin_[Controls::S36].Value();
 }
 
 // P03-P09: the loop in slices, left to right, each from an onset of the

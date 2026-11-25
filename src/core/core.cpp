@@ -218,12 +218,11 @@ void Core::Process(const float* const* in, float** out, size_t size)
           / ((mix_target > mix_ ? kToWetSeconds : kToDrySeconds)
              * sample_rate_);
     mix_ += std::clamp(mix_target - mix_, -mix_step, mix_step);
-    const float mix_angle   = HALFPI_F * mix_;
-    const float dry         = mix_ >= 1.0f ? 0.0f : std::cos(mix_angle);
-    const float wet         = mix_ <= 0.0f ? 0.0f : std::sin(mix_angle);
-    const float dry_step    = (dry - dry_gain_) / n;
-    const float wet_step    = (wet - wet_gain_) / n;
-    const float volume_step = (std::clamp(p.volume, 0.0f, 1.0f) - volume_) / n;
+    const float mix_angle = HALFPI_F * mix_;
+    const float dry       = mix_ >= 1.0f ? 0.0f : std::cos(mix_angle);
+    const float wet       = mix_ <= 0.0f ? 0.0f : std::sin(mix_angle);
+    const float dry_step  = (dry - dry_gain_) / n;
+    const float wet_step  = (wet - wet_gain_) / n;
     for(size_t i = 0; i < size; i++)
     {
         reverb_dry_ += reverb_dry_step;
@@ -258,9 +257,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
         out[0][i] = out[0][i] * wet_gain_ + in_l * dry_gain_;
         out[1][i] = out[1][i] * wet_gain_ + in_r * dry_gain_;
         limiter_.Process(out[0][i], out[1][i]);
-        volume_ += volume_step;
-        out[0][i] *= volume_;
-        out[1][i] *= volume_;
     }
     UpdateCapture(size);
 }

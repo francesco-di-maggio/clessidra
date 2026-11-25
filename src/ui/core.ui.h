@@ -52,8 +52,8 @@ class CoreUI
         = {0.0f, 0.5f, 0.0f, 0.5f, 2.0f / 3.0f, 1.0f, kStopMiddle, kStopMiddle};
 
     // The second layer's values at power-up and after a reset: sizes,
-    // pitches and shapes as set, centred, the filter off, no reverb, full
-    // volume, regular starts. With the first layer at its marks, the
+    // pitches and shapes as set, centred, the filter off, no reverb, all
+    // grains, regular starts. With the first layer at its marks, the
     // recording as it is.
     static constexpr float kRandomPitch = 0.5f;
     static constexpr float kRandomSize  = 0.0f;
@@ -61,7 +61,7 @@ class CoreUI
     static constexpr float kSpread      = 0.0f;
     static constexpr float kFilter      = 0.5f;
     static constexpr float kReverb      = 0.0f;
-    static constexpr float kVolume      = 1.0f;
+    static constexpr float kMix         = 1.0f;
     static constexpr float kJitter      = 0.0f;
     // S30 to S37
     static constexpr std::array<float, Controls::kNumKnobs> kTwinDefaults
@@ -71,10 +71,8 @@ class CoreUI
            kRandomPitch,
            kRandomShape,
            kReverb,
-           kVolume,
+           kMix,
            kJitter};
-    // P11 + S36, Volume: off at the bottom, then this range up to 0 dB
-    static constexpr float kVolumeDb = 60.0f;
 
     // Pad pressure, measured (Pads): light 0.31-0.53, medium 0.59-0.72, hard
     // 0.78-0.98. From kFirmPressure, P00 halts and the slices play full. A

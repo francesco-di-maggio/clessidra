@@ -73,7 +73,7 @@ export const CONTROLS: Control[] = [
     id: "S36", brief: "Speed 0–4×, stops at ¼ ½ 1 2 4", type: "fader", index: 6, x: 36, y: 0, name: "Speed", initial: speedAt(3), scale: SPEED_SCALE,
     does: "0 to 4×, with stops at ¼, ½, 1, 2 and 4×. The pitch stays. Frozen: scrubs the loop.",
     value: (p) => (p[PARAM.freeze] ? "Frozen" : `${Math.abs(p[PARAM.speed]).toFixed(2)}×`),
-    twin: { name: "Volume", brief: "Volume", does: "Output level, off to 0\u00a0dB.", value: (p) => db(p[PARAM.volume]) },
+    twin: { name: "Mix", brief: "Mix: dry to wet", does: "The input against the grains, equal power: the input alone at the bottom, the grains alone at the top.", value: (p) => (p[PARAM.mix] >= 1 ? "Wet" : p[PARAM.mix] <= 0 ? "Dry" : `${percent(p[PARAM.mix])} wet`) },
   },
   {
     id: "S37", brief: "Density 0–320/s, stops at 1 5 20 80", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: speedAt(3), scale: DENSITY_SCALE,

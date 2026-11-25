@@ -61,7 +61,7 @@ enum Param : size_t
     kWindowShape,
     kStart,
     kLength,
-    kVolume,
+    kMix,
     kRandPos,
     kRandSize,
     kSpread,
@@ -274,7 +274,7 @@ EXPORT const float* cl_params()
     params[kWindowShape]  = p.window_shape;
     params[kStart]        = p.start;
     params[kLength]       = p.length;
-    params[kVolume]       = p.volume;
+    params[kMix]          = p.mix;
     params[kRandPos]      = p.rand_pos;
     params[kRandSize]     = p.rand_size;
     params[kSpread]       = p.spread;
