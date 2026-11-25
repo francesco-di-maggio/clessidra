@@ -807,6 +807,54 @@ void SliceEnds()
           double(late));
 }
 
+// A held slice's grains read inside it, long and pitched up, either way, the
+// last slice not round to the recording's start
+void SliceOverrun()
+{
+    const auto widest = [](float start, float pitch, bool* started) {
+        Rig r(1.0);
+        r.Fill(Sine);
+        Core::Params p;
+        p.density         = 50.0f;
+        p.grain_ms        = 2000.0f;
+        p.end             = End::Once;
+        p.speed           = pitch < 0.0f ? -1.0f : 1.0f;
+        p.pitch           = std::fabs(pitch);
+        p.slice_start[0]  = start;
+        p.slice_length[0] = 0.25f;
+        p.slices_held     = 1;
+        r.core.SetParams(p);
+        const double lo  = start * kRate;
+        const double hi  = (start + 0.25f) * kRate;
+        double       out = 0.0;
+        *started         = false;
+        r.Run(0.5, Silence, [&](size_t) {
+            for(const auto& g : r.core.Grains())
+            {
+                if(!g.IsActive())
+                    continue;
+                *started        = true;
+                const double at = g.Position();
+                out             = std::max(out, std::max(lo - at, at - hi));
+            }
+        });
+        return out;
+    };
+    bool         started;
+    const double inner = widest(0.25f, 4.0f, &started);
+    Check(started && inner <= 2.0,
+          "slice, 2 s grains at +24: inside it (samples out)",
+          inner);
+    const double last = widest(0.75f, 4.0f, &started);
+    Check(started && last <= 2.0,
+          "last slice: not round to the start (samples out)",
+          last);
+    const double back = widest(0.25f, -4.0f, &started);
+    Check(started && back <= 2.0,
+          "slice in reverse: inside it (samples out)",
+          back);
+}
+
 // A jump: a grain at once, whatever the density, the starts counted from it
 void Jumps()
 {
@@ -1943,15 +1991,15 @@ void Mapping()
           "then S33 takes its own over",
           p.pitch);
 
-    // P01: the twins reset. P11 + P10: listen, nothing recorded.
+    // P11 + P01: the twins reset. P11 + P10: listen, nothing recorded.
+    press(CoreUI::kShiftPad, true);
     press(CoreUI::kResetPad, true);
     press(CoreUI::kResetPad, false);
-    press(CoreUI::kShiftPad, true);
     Check(p.rand_pitch == 0.0f && p.reverb == CoreUI::kReverb
               && p.filter == 0.0f && p.rand_size == 0.0f
               && p.rand_time == CoreUI::kJitter && p.rand_shape == 0.0f
               && p.spread == 0.0f && p.volume == 1.0f,
-          "P01: the twins back to their defaults",
+          "P11 + P01: the twins back to their defaults",
           p.rand_pitch);
     const uint32_t recordings = r.core.Recordings();
     press(CoreUI::kRecordPad, true);
@@ -1963,6 +2011,26 @@ void Mapping()
     Check(r.core.Recordings() == recordings && p.mix == 1.0f,
           "P11 + P10 released: nothing recorded, all wet again",
           double(r.core.Recordings()));
+
+    // P01: the first layer at its defaults, the recording as it is, with a
+    // pulse
+    const auto knobs = c.knobs;
+    c.knobs          = {0.3f, 0.9f, 0.7f, 0.1f, 0.2f, 0.4f, 0.95f, 0.1f};
+    ui.Process(c, r.core);
+    c.now_ms = 5000;
+    press(CoreUI::kResetPad, true);
+    press(CoreUI::kResetPad, false);
+    Check(p.start == 0.0f && p.length == 1.0f && Near(p.grain_ms, 100.0, 1e-3)
+              && p.rand_pos == 0.0f && p.pitch == 1.0f
+              && Near(p.window_shape, 2.0 / 3.0, 1e-6) && p.speed == 1.0f
+              && p.density == 20.0f && p.volume == 1.0f
+              && ui.Led(5000 + CoreUI::kPulseMs - 1, r.core) == 1.0f,
+          "P01: the first layer back to its defaults, a pulse",
+          p.grain_ms);
+    c.knobs = knobs;
+    for(size_t k = 0; k < Controls::kNumKnobs; k++)
+        ui.Default(Controls::Knob(k), false, c.knobs[k]);
+    ui.Process(c, r.core);
     c.knobs[Controls::S33] = 0.5f;
     c.knobs[Controls::S34] = 0.5f;
     c.knobs[Controls::S31] = 0.5f;
@@ -2116,6 +2184,7 @@ int main()
     Scrubbed();
     Ends();
     SliceEnds();
+    SliceOverrun();
     RandomPitch();
     Mirrored();
     Selection();

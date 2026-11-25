@@ -138,7 +138,8 @@ void Core::Process(const float* const* in, float** out, size_t size)
                             head.Phase(),
                             (p.speed < 0.0f) != (head.Heading() < 0),
                             grain_samples,
-                            p.slice_level[s]},
+                            p.slice_level[s],
+                            true},
                            &sound,
                            i,
                            slice_last_[s]);
@@ -451,6 +452,26 @@ void Core::StartGrain(const Params& p,
                                         latch.position,
                                         latch.rate,
                                         size_t(0.25 / latch.inc));
+    }
+    // A slice's grains inside it: shortened to the room before the edge they
+    // read towards, at least min_grain_ms, ending at the edge
+    if(source.slice)
+    {
+        const double lo      = source.start * to_read;
+        const double hi      = (source.start + source.length) * to_read;
+        const bool   forward = latch.rate > 0.0f;
+        const double rate    = std::fabs(double(latch.rate));
+        const double fit
+            = std::min(rate * p.min_grain_ms * 0.001 * sample_rate_, hi - lo);
+        if(fit <= 0.0)
+            return;
+        double room = forward ? hi - latch.position : latch.position - lo;
+        if(room < fit)
+        {
+            latch.position = forward ? hi - fit : lo + fit;
+            room           = fit;
+        }
+        latch.inc = std::max(latch.inc, rate / room);
     }
     grain->Start(latch, offset);
     last = grain;

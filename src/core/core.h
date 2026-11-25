@@ -235,6 +235,7 @@ class Core
         bool   backwards;
         double grain_samples; // its length, before Params.rand_size
         float  level = 1.0f;  // each grain's gain
+        bool   slice = false; // kept inside the span
     };
 
     enum class Capture

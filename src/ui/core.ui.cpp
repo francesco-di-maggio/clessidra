@@ -234,14 +234,18 @@ bool CoreUI::Transport(const Controls& c, Core::Params& p)
     return trig;
 }
 
-// P01: the second layer's values back to their defaults
+// P01: the first layer's values back to their defaults, with Shift the
+// second's, and a pulse. Each knob takes over from where it is.
 void CoreUI::Reset(const Controls& c)
 {
     const bool touched = c.touched[kResetPad];
     if(touched && !reset_touched_)
     {
+        auto&       layer    = shift_ ? twin_ : own_;
+        const auto& defaults = shift_ ? kTwinDefaults : kOwnDefaults;
         for(size_t k = 0; k < Controls::kNumKnobs; k++)
-            twin_[k].Set(kTwinDefaults[k], c.knobs[k]);
+            layer[k].Set(defaults[k], c.knobs[k]);
+        pulse_until_ = c.now_ms + kPulseMs;
     }
     reset_touched_ = touched;
 }

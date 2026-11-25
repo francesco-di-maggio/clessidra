@@ -158,8 +158,9 @@ export const CONTROLS: Control[] = [
     does: "Hold for each knob's second function.",
   },
   {
-    id: "P01", brief: "Reset: second layer to defaults", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
-    does: "Second functions back to their defaults.",
+    id: "P01", brief: "Reset: first layer, with P11 the second", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
+    does: "The knobs' values back to their defaults: the recording as it is. Each knob takes over from where it is.",
+    twin: { name: "Reset", does: "Second functions back to their defaults.", value: () => "Reset" },
   },
   {
     id: "P00", brief: "Stop: light slows, firm halts", type: "pad", index: STOP_PAD, ...padAt(STOP_PAD), name: "Stop",

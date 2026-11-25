@@ -200,7 +200,8 @@ addEventListener("pointermove", (e) => {
 const KEYS: Record<string, number> = { r: RECORD_PAD, shift: SHIFT_PAD, "0": RESET_PAD };
 SLICE_PADS.forEach((index, i) => (KEYS[`${i + 1}`] = index));
 function keyPad(e: KeyboardEvent) {
-  const key = e.key.toLowerCase();
+  // Digits by their key: with Shift, 0 is still reset
+  const key = e.code.startsWith("Digit") ? e.code.slice(5) : e.key.toLowerCase();
   return key in KEYS ? KEYS[key] : null;
 }
 addEventListener("keydown", (e) => {
