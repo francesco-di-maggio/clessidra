@@ -21,7 +21,7 @@ class CoreUI
   public:
     // Pads
     static constexpr size_t kStopPad  = 0; // held: slowed as a tape machine
-    static constexpr size_t kResetPad = 1; // the twins back to their defaults
+    static constexpr size_t kResetPad = 1; // a layer back to its defaults
     static constexpr size_t kTrigPad
         = 2; // playback from the loop's start, at once
     static constexpr size_t kRecordPad = 10; // tap or hold. With Shift: listen
@@ -43,6 +43,13 @@ class CoreUI
     // S31, Size: from kMinGrainMs to kMaxGrainMs, exponential
     static constexpr float kMinGrainMs = 5.0f;
     static constexpr float kMaxGrainMs = 2000.0f;
+
+    // The first layer's values after a reset: the recording as it is. 1x and
+    // 20 grains per second at the middle of their stop's flat third.
+    static constexpr float kStopMiddle = 0.6333f;
+    // S30 to S37: Position, Size, Spray, Pitch, Shape, Length, Speed, Density
+    static constexpr std::array<float, Controls::kNumKnobs> kOwnDefaults
+        = {0.0f, 0.5f, 0.0f, 0.5f, 2.0f / 3.0f, 1.0f, kStopMiddle, kStopMiddle};
 
     // The second layer's values at power-up and after a reset: sizes,
     // pitches and shapes as set, centred, the filter off, no reverb, full
