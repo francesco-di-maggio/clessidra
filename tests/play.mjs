@@ -185,6 +185,13 @@ try {
     const [scroll, inner, buffer] = (await phone(w, h)).split(" ").map(Number);
     check(scroll === inner && buffer >= 70, `${w}×${h}: on one screen, the recording 70 px or more`, `${scroll} ${inner} ${buffer}`);
   }
+  // On a laptop, every tile shows all it holds: short screens scroll instead
+  for (const [w, h] of [[1300, 820], [1300, 801], [1300, 780], [1300, 740]]) {
+    await send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+    await sleep(300);
+    const cut = await run(`[...document.querySelectorAll(".controls, .pads, .transport")].filter((t) => t.scrollHeight > t.clientHeight + 1).map((t) => t.className).join(" ")`);
+    check(cut === "", `${w}×${h}: no tile cut off`, cut);
+  }
   await send("Emulation.clearDeviceMetricsOverride");
 
   // The Controls page's help, every text at every tile width: no last line

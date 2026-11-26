@@ -135,7 +135,7 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 .pad.free { pointer-events: none; color: var(--dim); background: none; border-style: dashed; }
 
 /* Little height: the page scrolls rather than squeezing */
-@media (max-height: 700px) {
+@media (max-height: 800px) {
   body.app { height: auto; min-height: 100dvh; overflow: visible; }
   .instrument { height: auto; grid-template-rows: 56px 296px auto auto; }
 }

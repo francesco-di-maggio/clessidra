@@ -35,6 +35,7 @@ nav a:hover { color: var(--ink); }
 nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
 @media (max-width: 480px) { nav { gap: 0 18px; } }
 /* Play on a phone: the logo is the way back, the recording keeps the room */
+body.app header { min-height: 48px; }
 @media (max-width: 639px) {
   body.app nav { display: none; }
   body.app header { min-height: 48px; }
