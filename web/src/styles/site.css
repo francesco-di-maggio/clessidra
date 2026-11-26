@@ -115,11 +115,13 @@ a:hover .arrow { color: var(--ink); }
 
 /* Home, on one screen: the line, the call, what it is, beside the minute
    as sand */
-.home { display: grid; gap: 40px; align-content: center; padding: 48px 0; flex: 1; }
+.home { display: grid; gap: 32px; align-content: center; padding: 48px 0; flex: 1; }
 @media (min-width: 560px) { .home { grid-template-columns: minmax(0, 1fr) 112px; } }
 .home .intro { display: grid; gap: 16px; align-content: center; }
 .home .intro .prose { color: var(--dim); }
-.home .intro .lead { color: var(--ink); font-size: var(--title); line-height: var(--line-title); }
+/* The line on one line beside the glass: 0.9 of a title */
+.home .intro .lead { color: var(--ink); font-size: calc(0.9 * var(--title)); line-height: var(--line-title); }
+@media (min-width: 672px) { .home .intro .lead { white-space: nowrap; } }
 .home .intro .control { width: auto; justify-self: start; margin-top: 8px; }
 /* The status over a hairline, as Synthux Academy over its rule on the plate */
 .home .intro .status { padding-bottom: 16px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }

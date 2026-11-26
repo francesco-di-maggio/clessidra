@@ -25,10 +25,10 @@ const LIGHT = {
 };
 export const COLOUR = { black: BLACK, light: LIGHT };
 
-// The faceplate's two legends, 1.2 apart: a control's name (title, 700) and
-// its second function (text, 600), both in capitals, tracked 0.1em.
+// The faceplate's two legends, 2 mm and 1.5 mm: a control's name (title,
+// 700) and its second function (text, 600), both in capitals, tracked 0.1em.
 // Sentences at the text size, 500.
-export const SIZE = { text: 15, title: 18, line: 22, titleLine: 24, track: "0.1em", radius: 4 };
+export const SIZE = { text: 15, title: 20, line: 22, titleLine: 26, track: "0.1em", radius: 4 };
 export const FONT = `"Barlow Semi Condensed", system-ui, sans-serif`;
 
 // Dot matrix, 7 rows, # a dot. A dot is DOT of its pitch, one empty column

@@ -27,8 +27,9 @@ import { url } from "../lib/url";
   import { PARAM, PARAM_SIZE } from "../lib/engine";
   const glass = new Hourglass(document.getElementById("clock") as HTMLCanvasElement, true);
   const params = new Float32Array(PARAM_SIZE);
-  params[PARAM.speed] = 1;
-  params[PARAM.density] = 20;
+  // A one-minute glass pours a fast, dense stream
+  params[PARAM.speed] = 20;
+  params[PARAM.density] = 320;
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   function tick() {
     const now = Date.now();
