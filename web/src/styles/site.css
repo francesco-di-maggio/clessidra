@@ -43,9 +43,8 @@ nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accen
 footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 16px 0 24px; border-top: 1px solid var(--line); }
 footer a { text-decoration: none; }
 footer a:hover { color: var(--ink); }
-/* Every link underlined, as in a sentence */
-footer > span:first-child a, .status a { text-decoration: underline; text-decoration-color: var(--dim); }
-footer > span:first-child a:hover, .status a:hover { text-decoration-color: var(--ink); }
+/* Links in capitals as the nav: no line, brighter when pointed at. Links in
+   sentences underlined. */
 footer .links { display: flex; align-items: center; gap: 20px; }
 footer .links a { display: flex; padding: 6px; margin: -6px; color: var(--dim); }
 footer .links svg { width: 16px; height: 16px; }
