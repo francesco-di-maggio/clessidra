@@ -34,7 +34,6 @@ header { display: flex; align-items: center; gap: 12px; min-height: 64px; }
 .mark { display: flex; color: var(--accent); }
 .mark .logo { display: block; height: 21px; width: auto; }
 .crumb { display: flex; gap: 12px; color: var(--ink); }
-body.app header { border-bottom: 1px solid var(--line); }
 .crumb .slash { color: var(--dim); }
 nav { display: flex; flex-wrap: wrap; gap: 0 24px; border-bottom: 1px solid var(--line); }
 nav a { flex: none; padding: 4px 0 10px; margin-bottom: -1px; text-decoration: none; border-bottom: 2px solid transparent; }
