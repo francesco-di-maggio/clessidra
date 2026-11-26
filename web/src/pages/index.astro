@@ -5,15 +5,15 @@ import { url } from "../lib/url";
 <Base>
 <section class="home">
   <div class="intro">
-    <p class="label">Granular touch sampler</p>
-    <p class="lead">A real-time granular sampler for stretching, freezing and slicing time.</p>
-    <p class="prose">Inspired by the hourglass, it explores the slow emptying of the glass and the fast trickle of single grains. It lets you capture and bend time through sound, slowing it down, speeding it up, reversing it or freezing it. Broken grains, like sand, are gathered and pieced back together, never quite the same and never fully still.</p>
-    <a class="control primary" href={url("play/")}>Play in the browser <span class="arrow" aria-hidden="true">→</span></a>
     <p class="label status">
       <span class="live">In progress</span>
       <a href="https://www.synthux.academy/residency">Synthux Residency 2026</a>
       <a href="https://youtu.be/RqA2F2Bw7CE">How to play</a>
     </p>
+    <p class="label">Granular touch sampler</p>
+    <p class="lead">A real-time granular sampler for stretching, freezing and slicing time.</p>
+    <p class="prose">Inspired by the hourglass, it explores the slow emptying of the glass and the fast trickle of single grains. It lets you capture and bend time through sound, slowing it down, speeding it up, reversing it or freezing it. Broken grains, like sand, are gathered and pieced back together, never quite the same and never fully still.</p>
+    <a class="control primary" href={url("play/")}>Play in the browser <span class="arrow" aria-hidden="true">→</span></a>
   </div>
   <canvas id="clock" class="clock" role="img" aria-label="The minute as sand: a grain each second"></canvas>
 </section>
@@ -27,9 +27,13 @@ import { url } from "../lib/url";
   const glass = new Hourglass(document.getElementById("clock") as HTMLCanvasElement, true);
   const params = new Float32Array(PARAM_SIZE);
   params[PARAM.speed] = 1;
-  params[PARAM.heading] = 1;
+  // Turned over each minute, the sand lying a little differently each time
   function tick() {
-    params[PARAM.sandLeft] = 1 - new Date().getSeconds() / 60;
+    const now = new Date();
+    const minute = Math.floor(now.getTime() / 60000);
+    params[PARAM.sandLeft] = 1 - now.getSeconds() / 60;
+    params[PARAM.heading] = minute % 2 ? -1 : 1;
+    glass.turn = minute;
     glass.update(params, true);
   }
   // On the second, as a clock ticks

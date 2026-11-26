@@ -48,7 +48,10 @@ footer a:hover { color: var(--ink); }
 footer .links { display: flex; align-items: center; gap: 20px; }
 footer .links a { display: flex; padding: 6px; margin: -6px; color: var(--dim); }
 footer .links a:hover { color: var(--ink); }
-footer .links svg { width: 16px; height: 16px; }
+/* Sized by eye: a full square looks larger than a circle */
+footer .links svg { height: 16px; width: auto; }
+footer .links a[aria-label="LinkedIn"] svg { height: 14px; }
+footer .links a[aria-label="Email"] svg { height: 13.6px; }
 
 /* A page's title and line */
 .head { display: grid; gap: 4px; padding: 32px 0 24px; }
@@ -112,16 +115,19 @@ a:hover .arrow { color: var(--ink); }
 
 /* Home, on one screen: the line, the call, what it is, beside the minute
    as sand */
-.home { display: grid; gap: 40px; align-items: center; padding: 48px 0; flex: 1; }
+.home { display: grid; gap: 40px; align-content: center; padding: 48px 0; flex: 1; }
 @media (min-width: 560px) { .home { grid-template-columns: minmax(0, 1fr) 112px; } }
 .home .intro { display: grid; gap: 16px; align-content: center; }
 .home .intro .prose { color: var(--dim); }
 .home .intro .lead { color: var(--ink); font-size: var(--title); line-height: var(--line-title); }
-.home .intro .control { width: auto; justify-self: start; margin: 8px 0; }
+.home .intro .control { width: auto; justify-self: start; margin-top: 8px; }
+.home .intro .status { margin-bottom: 8px; }
 .status { display: flex; flex-wrap: wrap; gap: 4px 20px; }
 .status a { text-decoration: none; }
 .status a:hover { color: var(--ink); }
-.clock { width: 112px; height: 240px; --band: 112px; }
+/* As tall as the text beside it: the status on its top cap, the call on its
+   foot */
+.clock { width: 112px; height: 100%; min-height: 200px; --band: 112px; }
 @media (max-width: 559px) { .clock { display: none; } }
 
 /* Faceplate: the art, its colours, its type */

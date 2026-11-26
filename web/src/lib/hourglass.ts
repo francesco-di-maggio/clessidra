@@ -48,6 +48,10 @@ export class Hourglass {
   private fallen = 0; // px the thread has moved, within a step of the grid
   private last = 0; // the frame before, ms
   private dropped = -Infinity; // when the sand last fell a step, ms
+  private landing = 1; // single: the sand above before the grain falling lands
+  // Each turn of the glass the sand lies a little differently: its slope and
+  // where its heap peaks, from this
+  turn = 0;
 
   // single: one grain falls each time the sand falls a step, as a clock's
   // seconds, instead of a thread
@@ -61,7 +65,12 @@ export class Hourglass {
     // Drawn again only when what it shows changes
     const shown = [PARAM.sandLeft, PARAM.speed, PARAM.freeze, PARAM.stop, PARAM.heading, PARAM.density, PARAM.grainMs, PARAM.spray];
     const same = this.sound === sound && this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
-    if (this.single && this.params[PARAM.sandLeft] !== params[PARAM.sandLeft]) this.dropped = performance.now();
+    if (this.single && this.params[PARAM.sandLeft] !== params[PARAM.sandLeft]) {
+      this.dropped = performance.now();
+      // A grain on its way lands on the sand as it was; turned over, none
+      const was = this.params[PARAM.sandLeft];
+      this.landing = params[PARAM.sandLeft] < was ? was : params[PARAM.sandLeft];
+    }
     this.params = params.slice();
     this.sound = sound;
     this.stamp = performance.now();
@@ -138,7 +147,7 @@ export class Hourglass {
     // where it lay until the crater reaches it. The surface's height in the
     // middle found so the sand's area is the share.
     const STEP = 0.5; // px, the columns measured
-    const pile = (points: Point[], share: number, slope: number, rim = -Infinity) => {
+    const pile = (points: Point[], share: number, slope: number, rim = -Infinity, apex = cx) => {
       const xs = points.map((q) => q[0]);
       const columns: [number, number, number][] = []; // x, top, foot
       for (let x = Math.min(...xs); x <= Math.max(...xs); x += STEP) {
@@ -155,7 +164,7 @@ export class Hourglass {
         }
         if (foot > top) columns.push([x, top, foot]);
       }
-      const surface = (level: number) => (x: number) => Math.max(rim, level + slope * Math.abs(x - cx));
+      const surface = (level: number) => (x: number) => Math.max(rim, level + slope * Math.abs(x - apex));
       const sand = (level: number) => columns.reduce((sum, [x, top, foot]) => sum + Math.max(0, foot - Math.max(top, surface(level)(x))), 0);
       const whole = sand(-Infinity);
       const reach = Math.abs(slope) * Math.max(...xs.map((x) => Math.abs(x - cx))) + 1;
@@ -202,13 +211,20 @@ export class Hourglass {
       const { way, speed } = this.motion();
       const left = Math.min(Math.max(p[PARAM.sandLeft], 0), 1);
       const ahead = way > 0 ? -1 : 1;
-      // Upright, a funnel above and a heap below; on its side, both level
-      const slope = REPOSE * (1 - (1 - SPREAD) * spray) * Math.abs(Math.cos(this.angle));
+      // Upright, a funnel above and a heap below; on its side, both level.
+      // Each turn a little steeper or flatter, the heap's peak off centre.
+      const vary = (k: number) => Math.abs(Math.sin((this.turn + 1) * k) * 43758.5453) % 1;
+      const slope = REPOSE * (1 + 0.3 * (vary(12.9898) - 0.5)) * (1 - (1 - SPREAD) * spray) * Math.abs(Math.cos(this.angle));
+      const apex = cx + (vary(78.233) - 0.5) * 0.3 * wide;
       const above = inside(ahead);
-      // The sand above drains as a crater from where it lay level, full
-      const rim = pile(above, FILL, 0).level;
-      const from = pile(above, left * FILL, -slope, rim);
-      const into = pile(inside(-ahead), (1 - left) * FILL, slope);
+      // The sand above drains as a crater from where it lay level, full. While
+      // the glass turns over, the bulb that empties is still below: a heap.
+      const upper = ahead * Math.cos(this.angle) < 0;
+      const rim = upper ? pile(above, FILL, 0).level : -Infinity;
+      const from = pile(above, left * FILL, upper ? -slope : slope, rim);
+      // A grain falling joins the heap when it lands
+      const landed = this.single && performance.now() - this.dropped < DROP_MS ? this.landing : left;
+      const into = pile(inside(-ahead), (1 - landed) * FILL, slope, -Infinity, apex);
       ctx.fillStyle = accent;
       ctx.beginPath();
       dots(above, from.surface);
