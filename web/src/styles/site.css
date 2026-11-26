@@ -192,7 +192,7 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 .help p { margin: 0; color: var(--dim); text-wrap: pretty; text-align: justify; text-align-last: left;
           hyphens: auto; -webkit-hyphens: auto; hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
 .help hr { width: 100%; margin: 24px 0; border: 0; border-top: 1px solid var(--line); }
-.help .twin { color: var(--twin); }
+.help .twin { color: var(--tan); }
 .mapping .notes { display: grid; gap: 0; }
 .note { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); }
 /* One column: the help held at the foot of the screen over the board, so a

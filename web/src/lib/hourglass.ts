@@ -111,7 +111,7 @@ export class Hourglass {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     const css = getComputedStyle(document.documentElement);
-    const accent = css.getPropertyValue("--accent");
+    const tan = css.getPropertyValue("--tan");
 
     // As wide as the dials' arcs, caps included, and as tall as its room:
     // on Play from a knob's name to its value, the same on Home
@@ -214,7 +214,7 @@ export class Hourglass {
       const rim = upper ? pile(above, FILL, 0).level : -Infinity;
       const from = pile(above, left * FILL, upper ? -slope : slope, rim);
       const into = pile(inside(-ahead), (1 - left) * FILL, slope);
-      ctx.fillStyle = accent;
+      ctx.fillStyle = tan;
       ctx.beginPath();
       dots(above, from.surface);
       dots(inside(-ahead), into.surface);
