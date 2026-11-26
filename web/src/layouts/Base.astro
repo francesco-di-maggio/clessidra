@@ -51,7 +51,7 @@ const logo = matrix([..."CLESSIDRA"], "currentColor", 'class="logo" aria-hidden=
 <slot name="head" />
 </head>
 <body class={app ? "app" : undefined}>
-{!app && <canvas class="dust" aria-hidden="true"></canvas>}
+<canvas class="dust" aria-hidden="true"></canvas>
 <header>
   <a class="mark" href={url()} aria-label="Clessidra"><Fragment set:html={logo} /></a>
   {app && <span class="label crumb"><span class="slash" aria-hidden="true">/</span>{title}</span>}
@@ -75,11 +75,9 @@ const logo = matrix([..."CLESSIDRA"], "currentColor", 'class="logo" aria-hidden=
     </span>
   </footer>
 )}
-{!app && (
-  <script>
-    import { fall } from "../lib/grains";
-    fall(document.querySelector<HTMLCanvasElement>(".dust")!);
-  </script>
-)}
+<script>
+  import { fall } from "../lib/grains";
+  fall(document.querySelector<HTMLCanvasElement>(".dust")!);
+</script>
 </body>
 </html>

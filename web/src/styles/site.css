@@ -104,7 +104,7 @@ a:hover .arrow { color: var(--ink); }
 .segmented input { position: absolute; opacity: 0; pointer-events: none; }
 .segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
 
-/* Dust: grains falling slowly behind every page but Play */
+/* Dust: grains falling slowly behind every page */
 .dust { position: fixed; inset: 0; z-index: -1; width: 100%; height: 100%; pointer-events: none; }
 
 /* Home, on one screen: the line, the call, what it is, beside the minute
