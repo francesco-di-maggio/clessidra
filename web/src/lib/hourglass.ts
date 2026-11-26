@@ -27,7 +27,6 @@ const SETTLED = 0.005; // rad
 const EASE_TURN = 0.07; // the clock turning over: about a second
 const FALL = 12; // px a second, the thread at 1×: at 4× still under half a grid step a frame
 const FRESH_MS = 200; // without news for this long: the thread still
-const DROP_MS = 700; // one grain from the neck to the sand, falling faster
 const REPOSE = 0.6; // the sand's slope upright: about 31°, as dry sand rests
 const FILL = 0.75; // of a bulb, all the sand: full above, the rest air
 // The grains as sand. Size: a dot from MIN_DOT px at 5 ms to MAX_DOT at 2 s,
@@ -48,12 +47,10 @@ export class Hourglass {
   private stamp = 0; // when the parameters last came, ms
   private fallen = 0; // px the thread has moved, within a step of the grid
   private last = 0; // the frame before, ms
-  private dropped = -Infinity; // when the sand last fell a step, ms
-  private landing = 1; // single: the sand above before the grain falling lands
 
-  // single: one grain falls each time the sand falls a step, as a clock's
-  // seconds, instead of a thread
-  constructor(private canvas: HTMLCanvasElement, private single = false) {
+  // clock: a minute's glass, turned over slowly, always the same way round,
+  // its dots smaller
+  constructor(private canvas: HTMLCanvasElement, private clock = false) {
     this.ctx = canvas.getContext("2d")!;
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => this.draw());
     new ResizeObserver(() => this.draw()).observe(canvas);
@@ -63,18 +60,11 @@ export class Hourglass {
     // Drawn again only when what it shows changes
     const shown = [PARAM.sandLeft, PARAM.speed, PARAM.freeze, PARAM.stop, PARAM.heading, PARAM.density, PARAM.grainMs, PARAM.spray];
     const same = this.sound === sound && this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
-    // A grain falls as the sand above drops a step, and lands on the sand as
-    // it was. Turned over, none falls.
-    const was = this.params[PARAM.sandLeft];
-    if (this.single && params[PARAM.sandLeft] < was) {
-      this.dropped = performance.now();
-      this.landing = was;
-    }
     const first = this.params.length === 0;
     this.params = params.slice();
     this.sound = sound;
     // The clock stands as it should from the start, no turn
-    if (this.single && first) this.angle = (Math.PI / 2) * (1 - this.motion().way * this.motion().pace);
+    if (this.clock && first) this.angle = (Math.PI / 2) * (1 - this.motion().way * this.motion().pace);
     this.stamp = performance.now();
     if ((!same || this.flowing()) && !this.frame) this.frame = requestAnimationFrame(this.tick);
   }
@@ -99,11 +89,11 @@ export class Hourglass {
     const { way, speed, pace } = this.motion();
     let to = (Math.PI / 2) * (1 - way * pace);
     // The clock turns over slowly, always the same way round
-    if (this.single) while (to < this.angle - SETTLED) to += 2 * Math.PI;
-    this.angle += (to - this.angle) * (this.single ? EASE_TURN : EASE);
+    if (this.clock) while (to < this.angle - SETTLED) to += 2 * Math.PI;
+    this.angle += (to - this.angle) * (this.clock ? EASE_TURN : EASE);
     const settled = Math.abs(to - this.angle) < SETTLED;
     if (settled) this.angle = to;
-    const running = this.single ? now - this.dropped < DROP_MS : this.flowing() && now - this.stamp < FRESH_MS;
+    const running = this.flowing() && now - this.stamp < FRESH_MS;
     if (running) this.fallen = (this.fallen + (FALL * speed * Math.min(now - this.last, 50)) / 1000) % (DOT * THREAD_GAPS);
     this.last = now;
     this.draw();
@@ -195,7 +185,7 @@ export class Hourglass {
     // neck
     const reach = Math.ceil(bulb / DOT) + 1;
     const unit = (x: number) => Math.min(Math.max(x, 0), 1);
-    const SIZE = this.single ? SIZE_CLOCK : MIN_DOT + (MAX_DOT - MIN_DOT) * unit(Math.log(p[PARAM.grainMs] / 5) / Math.log(400));
+    const SIZE = this.clock ? SIZE_CLOCK : MIN_DOT + (MAX_DOT - MIN_DOT) * unit(Math.log(p[PARAM.grainMs] / 5) / Math.log(400));
     const density = p[PARAM.density];
     const gaps = density > 0 ? Math.max(1, Math.round(THREAD_GAPS - (THREAD_GAPS - 1) * unit(Math.log(density / 0.25) / Math.log(1280)))) : 0;
     const spray = unit(Math.log(p[PARAM.spray] + 1) / Math.log(2001));
@@ -223,9 +213,7 @@ export class Hourglass {
       const upper = ahead * Math.cos(this.angle) < 0;
       const rim = upper ? pile(above, FILL, 0).level : -Infinity;
       const from = pile(above, left * FILL, upper ? -slope : slope, rim);
-      // A grain falling joins the heap when it lands
-      const landed = this.single && performance.now() - this.dropped < DROP_MS ? this.landing : left;
-      const into = pile(inside(-ahead), (1 - landed) * FILL, slope);
+      const into = pile(inside(-ahead), (1 - left) * FILL, slope);
       ctx.fillStyle = accent;
       ctx.beginPath();
       dots(above, from.surface);
@@ -233,23 +221,17 @@ export class Hourglass {
       // The thread, from the neck down to the sand below, its dots moving
       // down
       const lower = inside(-ahead);
-      if (this.single) {
-        // One grain, from the neck down to the sand, falling faster
-        const t = (performance.now() - this.dropped) / DROP_MS;
-        if (t < 1) ctx.rect(cx - SIZE / 2, cy + (into.level - cy) * t * t - SIZE / 2, SIZE, SIZE);
-      } else {
-        const step = DOT * gaps;
-        // Falling from rest at the neck, faster as it goes: a grain s along
-        // the thread is s² / drop below the neck, so they part as they fall
-        const drop = into.level - cy;
-        for (let s = this.fallen % step; gaps && speed > 0 && left > 0 && drop > 0 && s < drop; s += step) {
-          const y = cy + (s * s) / drop;
-          // Scattered by Spray, the same way for a row of the grid
-          const row = Math.round((y - cy) / DOT);
-          const stray = Math.round(spray * (2 * Math.abs(Math.sin(row * 12.9898) * 43758.5453 % 1) - 1)) * DOT;
-          const x = cx + (y - cy < 2 * DOT ? 0 : stray);
-          if (y - cy < 2 * DOT || within(lower, x, y)) ctx.rect(x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
-        }
+      const step = DOT * gaps;
+      // Falling from rest at the neck, faster as it goes: a grain s along
+      // the thread is s² / drop below the neck, so they part as they fall
+      const drop = into.level - cy;
+      for (let s = this.fallen % step; gaps && speed > 0 && left > 0 && drop > 0 && s < drop; s += step) {
+        const y = cy + (s * s) / drop;
+        // Scattered by Spray, the same way for a row of the grid
+        const row = Math.round((y - cy) / DOT);
+        const stray = Math.round(spray * (2 * Math.abs(Math.sin(row * 12.9898) * 43758.5453 % 1) - 1)) * DOT;
+        const x = cx + (y - cy < 2 * DOT ? 0 : stray);
+        if (y - cy < 2 * DOT || within(lower, x, y)) ctx.rect(x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
       }
       ctx.fill();
     }

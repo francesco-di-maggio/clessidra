@@ -20,22 +20,25 @@ import { url } from "../lib/url";
 </Base>
 
 <script>
-  // The clock: the minute as sand, drawn as the Play page's glass. Each second
-  // a grain falls, the bulb above holds what is left of the minute.
+  // The clock: the minute as sand, drawn as the Play page's glass, pouring
+  // in a steady thread and turned over each minute. Under reduced motion, a
+  // step each second.
   import { Hourglass } from "../lib/hourglass";
   import { PARAM, PARAM_SIZE } from "../lib/engine";
   const glass = new Hourglass(document.getElementById("clock") as HTMLCanvasElement, true);
   const params = new Float32Array(PARAM_SIZE);
   params[PARAM.speed] = 1;
-  // Turned over each minute
+  params[PARAM.density] = 20;
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   function tick() {
-    const now = new Date();
-    const minute = Math.floor(now.getTime() / 60000);
-    params[PARAM.sandLeft] = 1 - now.getSeconds() / 60;
+    const now = Date.now();
+    const minute = Math.floor(now / 60000);
+    const into = still ? Math.floor((now % 60000) / 1000) * 1000 : now % 60000;
+    params[PARAM.sandLeft] = 1 - into / 60000;
     params[PARAM.heading] = minute % 2 ? -1 : 1;
     glass.update(params, true);
+    if (still) setTimeout(tick, 1000 - (now % 1000));
+    else requestAnimationFrame(tick);
   }
-  // On the second, as a clock ticks
   tick();
-  setTimeout(() => (tick(), setInterval(tick, 1000)), 1000 - new Date().getMilliseconds());
 </script>
