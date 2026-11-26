@@ -44,8 +44,10 @@ footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12
 footer a { text-decoration: none; }
 footer a:hover { color: var(--ink); }
 /* Links in capitals: an arrow out. Links in sentences: underlined. */
-footer a::after, .status a::after { content: "↗"; margin-left: 0.25em; letter-spacing: 0; }
-footer .links { display: flex; gap: 24px; }
+footer > span:first-child a::after, .status a::after { content: "↗"; margin-left: 0.25em; letter-spacing: 0; }
+footer .links { display: flex; align-items: center; gap: 20px; }
+footer .links a { display: flex; padding: 6px; margin: -6px; color: var(--dim); }
+footer .links svg { width: 16px; height: 16px; }
 
 /* A page's title and line */
 .head { display: grid; gap: 4px; padding: 48px 0 32px; }

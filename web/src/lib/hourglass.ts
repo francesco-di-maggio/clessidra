@@ -132,10 +132,12 @@ export class Hourglass {
     };
     // A share of a bulb as sand at rest: its surface a slope either way from
     // the middle, as sand lies at its angle of repose. slope > 0 a heap,
-    // where grains land; < 0 a funnel, where they drain; 0 level. The
-    // surface's height in the middle found so the sand's area is the share.
+    // where grains land; < 0 a funnel, where they drain; 0 level. A funnel
+    // is a crater in sand that was level at rim: the sand round it stays
+    // where it lay until the crater reaches it. The surface's height in the
+    // middle found so the sand's area is the share.
     const STEP = 0.5; // px, the columns measured
-    const pile = (points: Point[], share: number, slope: number) => {
+    const pile = (points: Point[], share: number, slope: number, rim = -Infinity) => {
       const xs = points.map((q) => q[0]);
       const columns: [number, number, number][] = []; // x, top, foot
       for (let x = Math.min(...xs); x <= Math.max(...xs); x += STEP) {
@@ -152,7 +154,7 @@ export class Hourglass {
         }
         if (foot > top) columns.push([x, top, foot]);
       }
-      const surface = (level: number) => (x: number) => level + slope * Math.abs(x - cx);
+      const surface = (level: number) => (x: number) => Math.max(rim, level + slope * Math.abs(x - cx));
       const sand = (level: number) => columns.reduce((sum, [x, top, foot]) => sum + Math.max(0, foot - Math.max(top, surface(level)(x))), 0);
       const whole = sand(-Infinity);
       const reach = Math.abs(slope) * Math.max(...xs.map((x) => Math.abs(x - cx))) + 1;
@@ -202,7 +204,8 @@ export class Hourglass {
       // Upright, a funnel above and a heap below; on its side, both level
       const slope = REPOSE * (1 - (1 - SPREAD) * spray) * Math.abs(Math.cos(this.angle));
       const above = inside(ahead);
-      const from = pile(above, left, -slope);
+      // Full, the sand above lies level with the top of its bulb
+      const from = pile(above, left, -slope, Math.min(...above.map((q) => q[1])));
       const into = pile(inside(-ahead), 1 - left, slope);
       ctx.fillStyle = accent;
       ctx.beginPath();
