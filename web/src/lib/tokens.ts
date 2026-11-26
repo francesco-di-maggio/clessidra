@@ -43,8 +43,8 @@ export const GLYPHS: Record<string, string[]> = {
   D: ["####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."],
   R: ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"],
   A: [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
-  // The icon: a glass, sand fallen below
-  hourglass: ["#####", "#...#", ".#.#.", "..#..", ".#.#.", "#.#.#", "#####"],
+  // The icon: a glass, its sand fallen into the bulb below
+  hourglass: ["#####", "#...#", ".#.#.", "..#..", ".###.", "#####", "#####"],
 };
 
 // The dots of a word or glyph, in pitch units: [x, y] of each centre, and
@@ -61,9 +61,9 @@ export function dots(chars: string[]) {
 }
 
 // An SVG of dots, filled with currentColor unless a colour is given
-export function matrix(chars: string[], fill = "currentColor", attrs = "") {
+export function matrix(chars: string[], fill = "currentColor", attrs = "", dot = DOT) {
   const { dots: d, width, height } = dots(chars);
-  const r = DOT / 2;
+  const r = dot / 2;
   const circles = d.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join("");
   return `<svg viewBox="0 0 ${width} ${height}" fill="${fill}" ${attrs}>${circles}</svg>`;
 }

@@ -27,13 +27,12 @@ import { url } from "../lib/url";
   const glass = new Hourglass(document.getElementById("clock") as HTMLCanvasElement, true);
   const params = new Float32Array(PARAM_SIZE);
   params[PARAM.speed] = 1;
-  // Turned over each minute, the sand lying a little differently each time
+  // Turned over each minute
   function tick() {
     const now = new Date();
     const minute = Math.floor(now.getTime() / 60000);
     params[PARAM.sandLeft] = 1 - now.getSeconds() / 60;
     params[PARAM.heading] = minute % 2 ? -1 : 1;
-    glass.turn = minute;
     glass.update(params, true);
   }
   // On the second, as a clock ticks
