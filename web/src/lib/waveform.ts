@@ -4,7 +4,7 @@
 
 import { GRAIN_FIELDS, PARAM, RATE, VIEW, type Frame } from "./engine";
 
-const PITCH_RANGE = 36; // semitones: Pitch's ±24 and Random pitch's ±12
+const PITCH_RANGE = 36; // semitones: Pitch's ±24 and Shimmer's ±12
 const SIZE_MIN = 5; // ms, CoreUI::kMinGrainMs
 const SIZE_MAX = 2000; // CoreUI::kMaxGrainMs
 
@@ -141,7 +141,7 @@ export class Waveform {
 
     // Spray: where the grains land about the playhead, evenly, round the
     // loop, faint.
-    const reach = 0.5 * Math.min(f.params[PARAM.randPos] ?? 0, 1) * v[VIEW.selLength];
+    const reach = 0.5 * Math.min(f.params[PARAM.spray] ?? 0, 1) * v[VIEW.selLength];
     if (reach > 0) {
       ctx.fillStyle = withAlpha(c.accent, 0.12);
       const from = v[VIEW.playhead] - reach;

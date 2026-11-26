@@ -172,7 +172,7 @@ try {
   await doubleClick();
   const twinRestored = await size();
   await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "Shift" }))`);
-  check(twinDragged !== "Off" && twinRestored === "Off", "P11 held, Random size: dragged, a double click: Off again", `${twinDragged} ${twinRestored}`);
+  check(twinDragged !== "Off" && twinRestored === "Off", "P11 held, Grit: dragged, a double click: Off again", `${twinDragged} ${twinRestored}`);
   check(errors.length === 0, "no errors", errors.join(" | "));
 
   // On a phone, on one screen: no drag is the page's

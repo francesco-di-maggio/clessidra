@@ -55,24 +55,17 @@ class CoreUI
     // pitches and shapes as set, centred, the filter off, no reverb, all
     // grains, regular starts. With the first layer at its marks, the
     // recording as it is.
-    static constexpr float kRandomPitch = 0.5f;
-    static constexpr float kRandomSize  = 0.0f;
-    static constexpr float kRandomShape = 0.0f;
-    static constexpr float kSpread      = 0.0f;
-    static constexpr float kFilter      = 0.5f;
-    static constexpr float kReverb      = 0.0f;
-    static constexpr float kMix         = 1.0f;
-    static constexpr float kJitter      = 0.0f;
+    static constexpr float kShimmer = 0.5f;
+    static constexpr float kGrit    = 0.0f;
+    static constexpr float kWarp    = 0.0f;
+    static constexpr float kSpread  = 0.0f;
+    static constexpr float kFilter  = 0.5f;
+    static constexpr float kReverb  = 0.0f;
+    static constexpr float kMix     = 1.0f;
+    static constexpr float kJitter  = 0.0f;
     // S30 to S37
     static constexpr std::array<float, Controls::kNumKnobs> kTwinDefaults
-        = {kFilter,
-           kRandomSize,
-           kSpread,
-           kRandomPitch,
-           kRandomShape,
-           kReverb,
-           kMix,
-           kJitter};
+        = {kFilter, kGrit, kSpread, kShimmer, kWarp, kReverb, kMix, kJitter};
 
     // Pad pressure, measured (Pads): light 0.31-0.53, medium 0.59-0.72, hard
     // 0.78-0.98. From kFirmPressure, P00 halts and the slices play full. A

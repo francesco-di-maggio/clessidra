@@ -56,19 +56,19 @@ enum Param : size_t
     kGrainMs,
     kPitch,
     kReverb,
-    kRandTime,
-    kRandPitch,
+    kJitter,
+    kShimmer,
     kWindowShape,
     kStart,
     kLength,
     kMix,
-    kRandPos,
-    kRandSize,
+    kSpray,
+    kGrit,
     kSpread,
     kFilter,
     kEnd,
     kStop,
-    kRandShape,
+    kWarp,
     kSandLeft,
     kHeading,
     kNumParams
@@ -269,19 +269,19 @@ EXPORT const float* cl_params()
     params[kGrainMs]      = core.GrainMs();
     params[kPitch]        = 12.0f * std::log2(p.pitch);
     params[kReverb]       = p.reverb;
-    params[kRandTime]     = p.rand_time;
-    params[kRandPitch]    = p.rand_pitch;
+    params[kJitter]       = p.jitter;
+    params[kShimmer]      = p.shimmer;
     params[kWindowShape]  = p.window_shape;
     params[kStart]        = p.start;
     params[kLength]       = p.length;
     params[kMix]          = p.mix;
-    params[kRandPos]      = p.rand_pos;
-    params[kRandSize]     = p.rand_size;
+    params[kSpray]        = p.spray;
+    params[kGrit]         = p.grit;
     params[kSpread]       = p.spread;
     params[kFilter]       = p.filter;
     params[kEnd]          = float(p.end);
     params[kStop]         = p.stop;
-    params[kRandShape]    = p.rand_shape;
+    params[kWarp]         = p.warp;
     params[kSandLeft]     = core.SandLeft();
     params[kHeading]      = float(core.Heading());
     return params;

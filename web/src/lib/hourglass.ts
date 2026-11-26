@@ -59,7 +59,7 @@ export class Hourglass {
 
   update(params: Float32Array, sound: boolean) {
     // Drawn again only when what it shows changes
-    const shown = [PARAM.sandLeft, PARAM.speed, PARAM.freeze, PARAM.stop, PARAM.heading, PARAM.density, PARAM.grainMs, PARAM.randPos];
+    const shown = [PARAM.sandLeft, PARAM.speed, PARAM.freeze, PARAM.stop, PARAM.heading, PARAM.density, PARAM.grainMs, PARAM.spray];
     const same = this.sound === sound && this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
     if (this.single && this.params[PARAM.sandLeft] !== params[PARAM.sandLeft]) this.dropped = performance.now();
     this.params = params.slice();
@@ -183,7 +183,7 @@ export class Hourglass {
     const SIZE = this.single ? SIZE_CLOCK : MIN_DOT + (MAX_DOT - MIN_DOT) * unit(Math.log(p[PARAM.grainMs] / 5) / Math.log(400));
     const density = p[PARAM.density];
     const gaps = density > 0 ? Math.max(1, Math.round(THREAD_GAPS - (THREAD_GAPS - 1) * unit(Math.log(density / 0.25) / Math.log(1280)))) : 0;
-    const spray = unit(Math.log(p[PARAM.randPos] + 1) / Math.log(2001));
+    const spray = unit(Math.log(p[PARAM.spray] + 1) / Math.log(2001));
     const dots = (points: Point[], surface: (x: number) => number) => {
       for (let i = -reach; i <= reach; i++) {
         for (let j = -reach; j <= reach; j++) {
