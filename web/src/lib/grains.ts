@@ -1,4 +1,4 @@
-// Grains falling slowly down a canvas, in the accent colour, drifting a
+// Grains falling slowly down a canvas, in tan as on the faceplate, drifting a
 // little as in still air. The same grains from page to page: where they were
 // is kept for the tab and they go on falling from there. Still under reduced
 // motion: drawn once where they are.
@@ -73,9 +73,9 @@ export function fall(canvas: HTMLCanvasElement) {
   }
 
   function draw() {
-    const accent = getComputedStyle(canvas).getPropertyValue("--accent");
+    const tan = getComputedStyle(canvas).getPropertyValue("--tan");
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = accent;
+    ctx.fillStyle = tan;
     for (const g of grains) {
       ctx.globalAlpha = g.alpha;
       ctx.beginPath();

@@ -11,7 +11,7 @@ const BLACK = {
   ink: "#ecebe4",
   dim: "#a09d93",
   accent: "#d6a548",
-  twin: "#c4a978",
+  tan: "#c4a978", // sand, dust, second functions
 };
 const LIGHT = {
   bg: "#f7f5ef",
@@ -21,7 +21,7 @@ const LIGHT = {
   ink: "#111111",
   dim: "#5c5950",
   accent: "#8a6a1f",
-  twin: "#8a6a1f",
+  tan: "#8a6a1f",
 };
 export const COLOUR = { black: BLACK, light: LIGHT };
 
