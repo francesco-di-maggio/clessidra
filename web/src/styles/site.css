@@ -30,7 +30,7 @@ p { margin: 0; }
 
 /* Header: the logo. Under it the pages, on a hairline, the current one
    on a gold rule. On Play the logo and the page's name, no pages. */
-header { display: flex; align-items: center; gap: 12px; min-height: 64px; }
+header { display: flex; align-items: center; gap: 12px; min-height: 56px; }
 .mark { display: flex; color: var(--accent); }
 .mark .logo { display: block; height: 21px; width: auto; }
 .crumb { display: flex; gap: 12px; color: var(--ink); }
@@ -40,19 +40,20 @@ nav a { flex: none; padding: 4px 0 10px; margin-bottom: -1px; text-decoration: n
 nav a:hover { color: var(--ink); }
 nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
 @media (max-width: 480px) { nav { gap: 0 18px; } }
-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 24px 0 32px; border-top: 1px solid var(--line); }
+footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 16px 0 24px; border-top: 1px solid var(--line); }
 footer a { text-decoration: none; }
 footer a:hover { color: var(--ink); }
-/* Links in capitals: an arrow out. Links in sentences: underlined. */
-footer > span:first-child a::after, .status a::after { content: "↗"; margin-left: 0.25em; letter-spacing: 0; }
+/* Links underlined, the line dim until pointed at */
+footer > span:first-child a, .status a { text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 5px; }
+footer > span:first-child a:hover, .status a:hover { text-decoration-color: var(--dim); }
 footer .links { display: flex; align-items: center; gap: 20px; }
 footer .links a { display: flex; padding: 6px; margin: -6px; color: var(--dim); }
 footer .links svg { width: 16px; height: 16px; }
 
 /* A page's title and line */
-.head { display: grid; gap: 4px; padding: 48px 0 32px; }
+.head { display: grid; gap: 4px; padding: 32px 0 24px; }
 /* A section: its name over what it holds. One hairline over it. */
-.sect { display: grid; gap: 16px; padding: 24px 0 40px; border-top: 1px solid var(--line); }
+.sect { display: grid; gap: 12px; padding: 20px 0 28px; border-top: 1px solid var(--line); }
 
 .prose p { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
            hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
@@ -168,7 +169,7 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 .touch .free { cursor: default; }
 
 /* Controls: the panel beside its help, one screen on a laptop */
-.mapping { display: grid; gap: 24px; align-items: start; padding-bottom: 48px; }
+.mapping { display: grid; gap: 24px; align-items: start; padding-bottom: 24px; }
 @media (min-width: 640px) { .mapping { grid-template-columns: auto minmax(0, 1fr); } }
 .mapping svg.touch { width: auto; height: clamp(360px, calc(100dvh - 300px), 640px); max-height: none; }
 /* Beside the board and as tall: the control, under a hairline its second
