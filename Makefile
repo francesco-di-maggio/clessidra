@@ -50,9 +50,9 @@ web-dev: wasm
 manual: web
 	@node web/manual.mjs
 
-# The icons and the link preview, from web/public/favicon.svg and
-# web/images/og.html. Run after changing either.
-images:
+# The icons and the link preview, from the site's favicon.svg and og page
+# (web/src/lib/tokens.ts). Run after changing either.
+images: web
 	@node web/images.mjs
 
 .PHONY: test wasm web web-dev manual images

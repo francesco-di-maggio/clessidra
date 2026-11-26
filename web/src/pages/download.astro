@@ -1,24 +1,32 @@
 ---
 import Base from "../layouts/Base.astro";
 import { url } from "../lib/url";
+
+const pdf = `<svg class="file" viewBox="0 0 24 24" aria-label="PDF"><path d="M6 2.5h8l4.5 4.5v14.5h-12.5z M14 2.5v4.5h4.5" /><text x="12" y="17.5">PDF</text></svg>`;
 ---
 <Base title="Download" description="Clessidra's firmware for the Synthux Simple Touch 2, and how to flash it.">
-<h1>Download</h1>
-<p class="lead">Firmware for the Synthux Simple Touch 2, flashed over USB.</p>
-
-<h2 class="label">Steps</h2>
-<ol class="panel rows steps">
-  <li class="row"><span class="label">01</span><span>Download the <a href="https://github.com/francesco-di-maggio/clessidra/releases/latest/download/clessidra.bin">Firmware</a>.</span></li>
-  <li class="row"><span class="label">02</span><span>Connect the Seed over USB.</span></li>
-  <li class="row"><span class="label">03</span><span>Hold BOOT, tap RESET, then release BOOT.</span></li>
-  <li class="row"><span class="label">04</span><span>Flash the firmware on the <a href="https://flash.daisy.audio/">Daisy Web Programmer</a> (from Chrome or Edge).</span></li>
-</ol>
-
-<h2 class="label">Resources</h2>
-<div class="tiles">
-  <a class="panel" href={url("clessidra-manual.pdf")} download><span class="text"><b>Manual</b><span class="sub">A4, 1 page</span></span><svg class="file" viewBox="0 0 24 24" aria-label="PDF"><path d="M6 2.5h8l4.5 4.5v14.5h-12.5z M14 2.5v4.5h4.5" /><text x="12" y="17.5">PDF</text></svg></a>
-  <a class="panel" href={url("clessidra-engine.pdf")} download><span class="text"><b>Engine</b><span class="sub">How it works, A4</span></span><svg class="file" viewBox="0 0 24 24" aria-label="PDF"><path d="M6 2.5h8l4.5 4.5v14.5h-12.5z M14 2.5v4.5h4.5" /><text x="12" y="17.5">PDF</text></svg></a>
-  <a class="panel" href="https://github.com/francesco-di-maggio/clessidra/releases"><span class="text"><b>Releases</b><span class="sub">Changes per version</span></span><span class="arrow" aria-hidden="true">→</span></a>
-  <a class="panel" href="https://github.com/francesco-di-maggio/clessidra"><span class="text"><b>Source</b><span class="sub">Builds with the Daisy Toolchain</span></span><span class="arrow" aria-hidden="true">→</span></a>
+<div class="head">
+  <h1>Download</h1>
+  <p class="lead">Firmware for the Synthux Simple Touch 2, flashed over USB.</p>
 </div>
+
+<section class="sect">
+  <h2 class="label">Steps</h2>
+  <ol class="rows steps measure">
+    <li class="row"><span class="label">01</span><span>Download the <a href="https://github.com/francesco-di-maggio/clessidra/releases/latest/download/clessidra.bin">Firmware</a>.</span></li>
+    <li class="row"><span class="label">02</span><span>Connect the Seed over USB.</span></li>
+    <li class="row"><span class="label">03</span><span>Hold BOOT, tap RESET, then release BOOT.</span></li>
+    <li class="row"><span class="label">04</span><span>Flash the firmware on the <a href="https://flash.daisy.audio/">Daisy Web Programmer</a> (from Chrome or Edge).</span></li>
+  </ol>
+</section>
+
+<section class="sect">
+  <h2 class="label">Resources</h2>
+  <ul class="links-list measure">
+    <li><a href={url("clessidra-manual.pdf")} download><span class="text"><b>Manual</b><span class="sub">A4, 2 pages</span></span><Fragment set:html={pdf} /></a></li>
+    <li><a href={url("clessidra-engine.pdf")} download><span class="text"><b>Engine</b><span class="sub">How it works, A4</span></span><Fragment set:html={pdf} /></a></li>
+    <li><a href="https://github.com/francesco-di-maggio/clessidra/releases"><span class="text"><b>Releases</b><span class="sub">Changes per version</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+    <li><a href="https://github.com/francesco-di-maggio/clessidra"><span class="text"><b>Source</b><span class="sub">Builds with the Daisy Toolchain</span></span><span class="arrow" aria-hidden="true">→</span></a></li>
+  </ul>
+</section>
 </Base>

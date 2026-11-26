@@ -1,33 +1,39 @@
 ---
 import Base from "../layouts/Base.astro";
 import { url } from "../lib/url";
+import faceplate from "../../../faceplate/clessidra-faceplate.svg?raw";
+
+const plate = faceplate.replace(/^<\?xml[^>]*>\s*/, "").replace("<svg ", '<svg role="img" aria-label="The Clessidra faceplate on the Simple Touch 2" ');
 ---
 <Base>
-<h1>Clessidra</h1>
-<p class="lead">It's the instrument where you pour grains of sound from single drops into a dense cloud.</p>
-
-<h2 class="label">About</h2>
-<section class="panel">
-  <div class="prose"><p>A real-time granular sampler inspired by the hourglass. It explores the slow emptying of the glass and the fast trickle of single grains. It lets you capture and bend time through sound, slowing it down, speeding it up, reversing it or freezing it. Broken grains, like sand, are gathered and pieced back together, never quite the same and never fully still.</p></div>
+<section class="hero">
+  <canvas class="grains" aria-hidden="true"></canvas>
+  <div class="intro">
+    <p class="label">Granular touch sampler</p>
+    <p class="lead">It's the instrument where you pour grains of sound from single drops into a dense cloud.</p>
+    <a class="control primary" href={url("play/")}>Play in the browser <span class="arrow" aria-hidden="true">→</span></a>
+  </div>
+  <figure class="plate"><Fragment set:html={plate} /></figure>
 </section>
 
-<div class="status">
-<dl class="panel meta">
-  <dt>Status</dt><dd class="live">In progress</dd>
-  <dt>Made at</dt><dd><a href="https://www.synthux.academy/residency">Synthux Design Residency 2026</a></dd>
-  <dt>Hardware</dt><dd><a href="https://www.synthux.academy/">Synthux Simple Touch 2</a>, <a href="https://daisy.audio/">Electrosmith Daisy Seed</a></dd>
-  <dt>Video</dt><dd><a href="https://youtu.be/RqA2F2Bw7CE">How to play</a></dd>
-  <dt>Licence</dt><dd>MIT</dd>
-</dl>
-<canvas id="clock" class="clock" role="img" aria-label="The minute as sand: a grain each second"></canvas>
-</div>
+<section class="sect">
+  <h2 class="label">About</h2>
+  <div class="prose measure"><p>A real-time granular sampler inspired by the hourglass. It explores the slow emptying of the glass and the fast trickle of single grains. It lets you capture and bend time through sound, slowing it down, speeding it up, reversing it or freezing it. Broken grains, like sand, are gathered and pieced back together, never quite the same and never fully still.</p></div>
+</section>
 
-<div class="tiles">
-  <a class="panel primary" href="play/">
-    <span class="text"><b>Play</b><span class="sub">The same firmware in your browser.</span></span>
-    <span class="arrow" aria-hidden="true">→</span>
-  </a>
-</div>
+<section class="sect">
+  <h2 class="label">Facts</h2>
+  <div class="facts measure">
+    <dl class="meta">
+      <dt class="label">Status</dt><dd class="live">In progress</dd>
+      <dt class="label">Made at</dt><dd><a href="https://www.synthux.academy/residency">Synthux Design Residency 2026</a></dd>
+      <dt class="label">Hardware</dt><dd><a href="https://www.synthux.academy/">Synthux Simple Touch 2</a>, <a href="https://daisy.audio/">Electrosmith Daisy Seed</a></dd>
+      <dt class="label">Video</dt><dd><a href="https://youtu.be/RqA2F2Bw7CE">How to play</a></dd>
+      <dt class="label">Licence</dt><dd>MIT</dd>
+    </dl>
+    <canvas id="clock" class="clock" role="img" aria-label="The minute as sand: a grain each second"></canvas>
+  </div>
+</section>
 </Base>
 
 <script>
@@ -35,6 +41,7 @@ import { url } from "../lib/url";
   // a grain falls, the bulb above holds what is left of the minute.
   import { Hourglass } from "../lib/hourglass";
   import { PARAM, PARAM_SIZE } from "../lib/engine";
+  import { fall } from "../lib/grains";
   const glass = new Hourglass(document.getElementById("clock") as HTMLCanvasElement, true);
   const params = new Float32Array(PARAM_SIZE);
   params[PARAM.speed] = 1;
@@ -46,4 +53,5 @@ import { url } from "../lib/url";
   // On the second, as a clock ticks
   tick();
   setTimeout(() => (tick(), setInterval(tick, 1000)), 1000 - new Date().getMilliseconds());
+  fall(document.querySelector<HTMLCanvasElement>(".grains")!);
 </script>

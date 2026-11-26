@@ -1,6 +1,6 @@
 // The input strip: the input over the seconds a tap on Rec keeps, newest at
 // the right, as dots on a linear scale, its scale below. The part being recorded
-// in orange. Each column of dots holds one stretch of the input and moves left
+// in gold. Each column of dots holds one stretch of the input and moves left
 // with it, every screen frame.
 
 import { INCOMING_COLUMNS, INCOMING_SECONDS, TAP_SECONDS } from "./engine";
@@ -23,7 +23,6 @@ export class Incoming {
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => this.draw());
-    new MutationObserver(() => this.draw()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     new ResizeObserver(() => this.draw()).observe(canvas);
   }
 
@@ -100,7 +99,7 @@ export class Incoming {
       ctx.lineTo(x, axis - 3.5);
     }
     ctx.stroke();
-    ctx.font = `500 10px ${css.getPropertyValue("--mono")}`;
+    ctx.font = `500 10px ${css.getPropertyValue("--sans")}`;
     ctx.textBaseline = "middle";
     ctx.fillStyle = css.getPropertyValue("--dim");
     ctx.textAlign = "left";

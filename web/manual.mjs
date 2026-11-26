@@ -5,33 +5,19 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { extname, join } from "node:path";
+import { join } from "node:path";
 import { PDFDocument, rgb } from "pdf-lib";
+import { serve } from "./serve.mjs";
 
 const PORT = 4330;
 const FRAME = 23; // the template's frame, inside its line, in points
-const dist = new URL("dist/", import.meta.url).pathname;
 const out = new URL("public/clessidra-manual.pdf", import.meta.url).pathname;
 const template = new URL("templates/touch-ii-blank.pdf", import.meta.url).pathname;
 const chrome = [process.env.CHROME, "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome", "/usr/bin/chromium"].find((p) => p && existsSync(p));
 if (!chrome) throw new Error("no Chrome: set CHROME");
 
-// web/dist at /clessidra/, as GitHub Pages serves it
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml" };
-const server = createServer((req, res) => {
-  let path = decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/^\/clessidra\//, "");
-  if (path === "" || path.endsWith("/")) path += "index.html";
-  try {
-    const body = readFileSync(join(dist, path));
-    res.writeHead(200, { "Content-Type": TYPES[extname(path)] ?? "application/octet-stream" });
-    res.end(body);
-  } catch {
-    res.writeHead(404);
-    res.end();
-  }
-}).listen(PORT);
+const server = serve(PORT);
 
 try {
   // Its own profile: a running Chrome would otherwise take the job over

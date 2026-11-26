@@ -31,7 +31,7 @@ interface Colours {
   dim: string;
   line: string;
   accent: string;
-  mono: string;
+  sans: string;
 }
 
 const DOT = 4; // the waveform's grid, px
@@ -50,7 +50,6 @@ export class Waveform {
     this.ctx = canvas.getContext("2d")!;
     this.colours();
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => this.colours());
-    new MutationObserver(() => this.colours()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     new ResizeObserver(() => this.draw()).observe(canvas);
   }
 
@@ -62,7 +61,7 @@ export class Waveform {
   private colours() {
     const css = getComputedStyle(document.documentElement);
     const get = (name: string) => css.getPropertyValue(name).trim();
-    this.c = { surface: get("--surface"), ink: get("--ink"), dim: get("--dim"), line: get("--line"), accent: get("--accent"), mono: get("--mono") };
+    this.c = { surface: get("--surface"), ink: get("--ink"), dim: get("--dim"), line: get("--line"), accent: get("--accent"), sans: get("--sans") };
     this.dotsKey = "";
     this.draw();
   }
@@ -94,7 +93,7 @@ export class Waveform {
     const sound = f ? f.view[VIEW.sound] : 0;
     const x = (s: number) => pad + (s / sound) * width;
 
-    ctx.font = `500 11px ${c.mono}`;
+    ctx.font = `500 11px ${c.sans}`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
     if (!f || !sound) {
@@ -215,7 +214,7 @@ export class Waveform {
   // The seconds of the recording below, dim, a tick and a figure each step
   private axis(seconds: number, W: number, pad: number, width: number, axis: number) {
     const { ctx, c } = this;
-    ctx.font = `500 10px ${c.mono}`;
+    ctx.font = `500 10px ${c.sans}`;
     ctx.fillStyle = c.dim;
     ctx.strokeStyle = c.line;
     ctx.lineWidth = 1;

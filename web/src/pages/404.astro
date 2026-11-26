@@ -1,11 +1,16 @@
 ---
 import Base from "../layouts/Base.astro";
+import { url } from "../lib/url";
 ---
 <Base title="Not Found">
-<h1>Not Found</h1>
-<p class="lead">No page here.</p>
-<a class="panel primary" href={import.meta.env.BASE_URL}>
-  <span><span class="label">Clessidra</span><span class="title">Home</span></span>
-  <span class="arrow" aria-hidden="true">→</span>
-</a>
+<div class="head">
+  <h1>Not Found</h1>
+  <p class="lead">No page here.</p>
+</div>
+<section class="sect">
+  <h2 class="label">Go to</h2>
+  <ul class="links-list measure">
+    <li><a href={url()}><span class="text"><b>Home</b></span><span class="arrow" aria-hidden="true">→</span></a></li>
+  </ul>
+</section>
 </Base>

@@ -6,13 +6,15 @@ import { CONTROLS } from "../lib/controls";
 // What the help shows for each control, by id
 const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { name: c.name, does: c.does ?? "", twin: c.twin?.name ?? "", twinDoes: c.twin?.does ?? "" }]));
 ---
-<Base title="Controls" description="Clessidra's controls on the Synthux Simple Touch 2.">
-<h1>Controls</h1>
-<p class="lead">What each control of the Simple Touch 2 does.</p>
+<Base title="Controls" reading description="Clessidra's controls on the Synthux Simple Touch 2.">
+<div class="head">
+  <h1>Controls</h1>
+  <p class="lead">What each control of the Simple Touch 2 does.</p>
+</div>
 <div class="mapping">
-  <div class="panel touch-panel"><TouchPanel /></div>
+  <div class="touch-panel"><TouchPanel /></div>
   <div class="stack">
-    <div class="panel help" aria-live="polite">
+    <div class="help" aria-live="polite">
       <div class="layer">
         <span id="help-board" class="label">Control</span>
         <b id="help-name">Point at a control</b>
@@ -26,10 +28,10 @@ const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id
       </div>
     </div>
     <div class="notes">
-      <div class="panel note"><span class="label">Record</span><span>Tap or hold Rec to start the loop.</span></div>
-      <div class="panel note"><span class="label">Set</span><span>Turn Density and Size to pour it.</span></div>
-      <div class="panel note"><span class="label">Play</span><span>Hold the slices to play their parts.</span></div>
-      <div class="panel note"><span class="label">Repeat</span><span>Set Direction and End to repeat it.</span></div>
+      <div class="note"><span class="label">Record</span><span>Tap or hold Rec to start the loop.</span></div>
+      <div class="note"><span class="label">Set</span><span>Turn Density and Size to pour it.</span></div>
+      <div class="note"><span class="label">Play</span><span>Hold the slices to play their parts.</span></div>
+      <div class="note"><span class="label">Repeat</span><span>Set Direction and End to repeat it.</span></div>
     </div>
   </div>
 </div>

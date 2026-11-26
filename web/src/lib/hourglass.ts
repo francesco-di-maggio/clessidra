@@ -53,7 +53,6 @@ export class Hourglass {
   constructor(private canvas: HTMLCanvasElement, private single = false) {
     this.ctx = canvas.getContext("2d")!;
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => this.draw());
-    new MutationObserver(() => this.draw()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     new ResizeObserver(() => this.draw()).observe(canvas);
   }
 
