@@ -121,7 +121,8 @@ a:hover .arrow { color: var(--ink); }
 .home .intro .prose { color: var(--dim); }
 .home .intro .lead { color: var(--ink); font-size: var(--title); line-height: var(--line-title); }
 .home .intro .control { width: auto; justify-self: start; margin-top: 8px; }
-.home .intro .status { margin-bottom: 8px; }
+/* The status over a hairline, as Synthux Academy over its rule on the plate */
+.home .intro .status { padding-bottom: 16px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
 .status { display: flex; flex-wrap: wrap; gap: 4px 20px; }
 .status a { text-decoration: none; }
 .status a:hover { color: var(--ink); }

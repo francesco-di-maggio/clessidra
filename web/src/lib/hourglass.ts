@@ -24,6 +24,7 @@ const DOT = 3; // the grid, px, as the input's
 const SIZE_CLOCK = 1.5; // a dot on the clock, px
 const EASE = 0.25; // of the way to its angle, per frame
 const SETTLED = 0.005; // rad
+const EASE_TURN = 0.07; // the clock turning over: about a second
 const FALL = 12; // px a second, the thread at 1×: at 4× still under half a grid step a frame
 const FRESH_MS = 200; // without news for this long: the thread still
 const DROP_MS = 700; // one grain from the neck to the sand, falling faster
@@ -62,14 +63,18 @@ export class Hourglass {
     // Drawn again only when what it shows changes
     const shown = [PARAM.sandLeft, PARAM.speed, PARAM.freeze, PARAM.stop, PARAM.heading, PARAM.density, PARAM.grainMs, PARAM.spray];
     const same = this.sound === sound && this.params.length === params.length && shown.every((i) => this.params[i] === params[i]);
-    if (this.single && this.params[PARAM.sandLeft] !== params[PARAM.sandLeft]) {
+    // A grain falls as the sand above drops a step, and lands on the sand as
+    // it was. Turned over, none falls.
+    const was = this.params[PARAM.sandLeft];
+    if (this.single && params[PARAM.sandLeft] < was) {
       this.dropped = performance.now();
-      // A grain on its way lands on the sand as it was; turned over, none
-      const was = this.params[PARAM.sandLeft];
-      this.landing = params[PARAM.sandLeft] < was ? was : params[PARAM.sandLeft];
+      this.landing = was;
     }
+    const first = this.params.length === 0;
     this.params = params.slice();
     this.sound = sound;
+    // The clock stands as it should from the start, no turn
+    if (this.single && first) this.angle = (Math.PI / 2) * (1 - this.motion().way * this.motion().pace);
     this.stamp = performance.now();
     if ((!same || this.flowing()) && !this.frame) this.frame = requestAnimationFrame(this.tick);
   }
@@ -92,8 +97,10 @@ export class Hourglass {
   // A frame: the glass turns towards where it should stand, the thread falls
   private tick = (now: number) => {
     const { way, speed, pace } = this.motion();
-    const to = (Math.PI / 2) * (1 - way * pace);
-    this.angle += (to - this.angle) * EASE;
+    let to = (Math.PI / 2) * (1 - way * pace);
+    // The clock turns over slowly, always the same way round
+    if (this.single) while (to < this.angle - SETTLED) to += 2 * Math.PI;
+    this.angle += (to - this.angle) * (this.single ? EASE_TURN : EASE);
     const settled = Math.abs(to - this.angle) < SETTLED;
     if (settled) this.angle = to;
     const running = this.single ? now - this.dropped < DROP_MS : this.flowing() && now - this.stamp < FRESH_MS;
