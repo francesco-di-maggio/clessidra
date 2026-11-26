@@ -5,7 +5,7 @@
    rest. Every tile 14 px in, names on one line, values on one
    line. Gold only for what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
-body.app main { flex: 1; min-height: 0; }
+body.app main { flex: 1; min-height: 0; padding: 12px 0 16px; }
 /* An instrument: the arrow over every control, as on a desktop app. Dragging,
    the cursor shows the way the control moves, wherever it goes */
 .instrument button, .instrument .pad { cursor: default; }
