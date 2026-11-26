@@ -1,0 +1,37 @@
+---
+// The link image, 1200 × 630: the logo, the line, the faceplate. Rendered to
+// public/og.png by web/images.mjs, not linked from the site.
+import "@fontsource/barlow-semi-condensed/600.css";
+import { css, matrix } from "../lib/tokens";
+import faceplate from "../../../faceplate/clessidra-faceplate.svg?raw";
+
+const plate = faceplate.replace(/^<\?xml[^>]*>\s*/, "");
+const logo = matrix([..."CLESSIDRA"], "var(--accent)", 'class="logo"');
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Clessidra</title>
+<style is:inline set:html={css()}></style>
+<style is:global>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+  .text { position: absolute; left: 80px; top: 170px; width: 520px; display: grid; gap: 40px; }
+  .logo { width: 520px; height: auto; display: block; }
+  p { margin: 0; font-size: 40px; line-height: 50px; font-weight: 600; }
+  .label { font-size: 32px; line-height: 40px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+  .plate { position: absolute; left: 640px; top: 105px; width: 500px; }
+  .plate #mask path { fill: var(--surface); }
+  .plate svg { display: block; width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<div class="text">
+  <Fragment set:html={logo} />
+  <p>A real-time granular sampler inspired by the hourglass.</p>
+  <span class="label">Synthux Simple Touch 2</span>
+</div>
+<div class="plate"><Fragment set:html={plate} /></div>
+</body>
+</html>

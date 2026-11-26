@@ -33,7 +33,7 @@ function arrow(x1: number, y1: number, x2: number, y2: number, cls = "ln") {
 function signal() {
   const rows = [
     [["Input", "mono, DC block"], ["Ring", "31 s"], ["Buffers", "2 × 30 s"], ["Grains", "32 voices"], ["Level", "normaliser"]],
-    [["Filter", "SVF"], ["Reverb", "ReverbSc"], ["Limiter", "−0.5 dBFS"], ["Volume", "−60 to 0 dB"], ["Output", "stereo"]],
+    [["Filter", "SVF"], ["Reverb", "ReverbSc"], ["Mix", "dry and wet"], ["Limiter", "−0.5 dBFS"], ["Output", "stereo"]],
   ];
   const w = 52, h = 28, gap = 9, y0 = 14, y1 = 70;
   const x = (i: number) => i * (w + gap);
@@ -50,11 +50,11 @@ function signal() {
   o.push(`<path class="ln" d="M${xe},${y0 + h}V${y0 + h + 14}H${x(0) + w / 2}"/>`);
   o.push(arrow(x(0) + w / 2, y0 + h + 14, x(0) + w / 2, y1 - 0.6));
   o.push(`<text class="code" x="${x(2) - gap / 2}" y="${y0 - 4}">P10</text>`);
-  // Listen: the input to the limiter
+  // The input to the mix
   const xl = x(2) + w / 2;
   o.push(`<path class="ln dash" d="M${x(0)},${y0 + h / 2}H-5V${y1 + h + 12}H${xl}"/>`);
   o.push(arrow(xl, y1 + h + 12, xl, y1 + h + 0.6, "ln dash"));
-  o.push(`<text class="sub l" x="${xl + 6}" y="${y1 + h + 14}">Listen, P11 + P10: the input alone</text>`);
+  o.push(`<text class="sub l" x="${xl + 6}" y="${y1 + h + 14}">The input: Mix P11 + S36, Listen P11 + P10</text>`);
   return `<svg class="dia" viewBox="-7 0 305 116" role="img" aria-label="Signal path">${o.join("")}</svg>`;
 }
 
@@ -92,7 +92,7 @@ function recording() {
   o.push(arrow(ph, cy - 19, ph + 22, cy - 19));
   o.push(`<rect class="spray" x="${ph - 26}" y="${cy + 17}" width="52" height="3" rx="1.5"/>`);
   o.push(`<text class="sub l" x="${ph + 26}" y="${cy - 16}">playhead, S36</text>`);
-  o.push(`<text class="sub l" x="${ph + 30}" y="${cy + 21}">Spray, S32</text>`);
+  o.push(`<text class="sub l" x="${ph + 30}" y="${cy + 21}">Spray, S31</text>`);
   o.push(`<text class="sub l" x="${x0}" y="${cy - 31}">recording</text>`);
   o.push(`<text class="sub l" x="${x0}" y="${cy + 38}">slices, P03–P09</text>`);
   return `<svg class="dia" viewBox="0 0 300 84" role="img" aria-label="A recording, its loop, playhead and slices">${o.join("")}</svg>`;
@@ -169,8 +169,8 @@ const grain: [string, string][] = [
   ["Position", "The playhead. With Spray, evenly round it, up to the loop."],
   ["Start", "Moved up to 5.3 ms or a quarter of its length to continue the grain before in phase, the signs of 512 samples compared, as Clouds' WSOLA player. Not with Spray up."],
   ["Read", "Four-point Hermite, as Beads. Rate 2^(n/12), ±24 semitones."],
-  ["Random pitch", "Up: free, to ±12 semitones. Down: octaves, up to 2 grains in 3."],
-  ["Size", "5 ms to 2 s, 100 ms at the centre. Random: part way to any."],
+  ["Shimmer", "Up: free, to ±12 semitones. Down: octaves, up to 2 grains in 3."],
+  ["Size", "5 ms to 2 s, 100 ms at the centre. Grit: part way to any."],
   ["Window", "Beads' envelope along Shape. At least 0.5 ms up, 10 ms down."],
   ["Pan", "Spread places each grain, from the centre to anywhere across. Equal power."],
   ["Direction", "The playhead's."],
@@ -185,9 +185,9 @@ const transport: [string, string][] = [
 const effects: [string, string][] = [
   ["Filter", "SVF: low-pass to 200 Hz, off at the centre, high-pass to 2 kHz."],
   ["Reverb", "ReverbSc on the grains. Decay 0.5 to 16 s, up to half wet."],
+  ["Mix", "P11 + S36: the input against the grains, equal power. Grains alone at the top."],
   ["Listen", "P11 + P10: the input alone, 1 s to dry, 0.5 s back. P11 let go: recording, still dry."],
   ["Limiter", "Look-ahead 5 ms, −0.5 dBFS, after the mix."],
-  ["Volume", "After the limiter: off, then −60 to 0 dB."],
 ];
 const runtime: [string, string][] = [
   ["Audio", "48 kHz, 48-sample blocks: 1 ms. Recordings in SDRAM, mono."],
@@ -196,17 +196,22 @@ const runtime: [string, string][] = [
 ];
 ---
 <Base title="Engine" description="How Clessidra turns a recording into grains: signal path, grains, starts, level, transport, effects.">
-<h1>Engine</h1>
-<p class="lead">How a recording becomes grains, and how they fall.</p>
+<div class="head">
+  <h1>Engine</h1>
+  <p class="lead">How a recording becomes grains, and how they fall.</p>
+</div>
 
-<h2 class="label">01 Signal path</h2>
-<section class="panel figure prose">
+<section class="sect">
+<h2 class="label">Signal path</h2>
+<div class="figure prose">
   <Fragment set:html={signal()} />
   <p>Both jacks are summed to mono, −3 dB each. The ring takes the input all the time. P10 copies from it into the buffer not playing, and the grains read the buffer playing.</p>
+</div>
 </section>
 
-<h2 class="label">02 Recording</h2>
-<section class="panel figure">
+<section class="sect">
+<h2 class="label">Recording</h2>
+<div class="figure">
   <Fragment set:html={recording()} />
   <ol class="rows">
     <li class="row"><span class="label">Tap</span><span>Under 0.3 s: the 8 s before it.</span></li>
@@ -215,48 +220,60 @@ const runtime: [string, string][] = [
     <li class="row"><span class="label">Land</span><span>Copied at 8×. Over 2 s new grains read it with rising odds.</span></li>
     <li class="row"><span class="label">Slices</span><span>Attacks found once in 5 ms frames, the strongest 64 kept. Seven slices: the loop's start, then its strongest attacks. Too few: even parts.</span></li>
   </ol>
+</div>
 </section>
 
-<h2 class="label">03 A grain</h2>
-<section class="panel figure">
+<section class="sect">
+<h2 class="label">A grain</h2>
+<div class="figure">
   <ol class="rows">{grain.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
   <Fragment set:html={shapes()} />
+</div>
 </section>
 
-<h2 class="label">04 Starts</h2>
-<section class="panel figure prose">
+<section class="sect">
+<h2 class="label">Starts</h2>
+<div class="figure prose">
   <Fragment set:html={starts()} />
   <p>Density is grains a second, 0.25 to 320, none at the bottom, whatever their size: grains sounding at once are Density × Size. Jitter takes the starts from a regular pulse to nearly Poisson, the same mean. 32 voices: when all sound, a new grain is dropped.</p>
+</div>
 </section>
 
-<h2 class="label">05 Level</h2>
-<section class="panel figure prose">
+<section class="sect">
+<h2 class="label">Level</h2>
+<div class="figure prose">
   <Fragment set:html={level()} />
   <p>Grains in phase add in amplitude, scattered ones in power. A normaliser measures both every block, 5 ms smoothed, and brings the sum to the input's level with 0.9 headroom, never boosting grains that cancel. Aligned starts keep slowed grains in phase: at ½× a sawtooth's harmonics vary 0.27 dB from one 20 ms frame to the next, as at 1×. Without, 1.0 dB, and 5.4 dB in a dense random cloud.</p>
+</div>
 </section>
 
-<h2 class="label">06 Transport</h2>
-<ol class="panel rows">{transport.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+<section class="sect">
+<h2 class="label">Transport</h2>
+<ol class="rows">{transport.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+</section>
 
-<h2 class="label">07 Effects</h2>
-<ol class="panel rows">{effects.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+<section class="sect">
+<h2 class="label">Effects</h2>
+<ol class="rows">{effects.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+</section>
 
-<h2 class="label">08 Runtime</h2>
-<ol class="panel rows">{runtime.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+<section class="sect">
+<h2 class="label">Runtime</h2>
+<ol class="rows">{runtime.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+</section>
 </Base>
 
 <style is:global>
-  .figure { display: grid; gap: 12px; }
-  .figure > p { margin: 0; font-size: 15px; line-height: 20px; }
+  .figure { display: grid; gap: 24px; }
   .figure ol.rows { padding: 0; }
   .dia { width: 100%; height: auto; display: block; overflow: visible; }
   .dia text { font: 500 7px var(--sans); fill: var(--ink); text-anchor: middle; }
   .dia .sub { font-size: 5.6px; fill: var(--dim); }
-  .dia .code { font: 600 5.6px var(--mono); fill: var(--dim); }
+  .dia .code { font: 600 5.6px var(--sans); fill: var(--dim); }
   .dia .l { text-anchor: start; }
   .dia .inv { fill: var(--bg); }
   .dia .box { fill: var(--bg); stroke: var(--line); stroke-width: 0.8; }
-  .dia .box.on { fill: var(--ink); stroke: none; }
+  .dia .box.on { fill: var(--accent); stroke: none; }
   .dia .ln { stroke: var(--dim); stroke-width: 0.7; fill: none; }
   .dia .ln.faint { stroke: var(--line); }
   .dia .ln.dash { stroke-dasharray: 2.5 2; }
@@ -271,10 +288,10 @@ const runtime: [string, string][] = [
   .dia .g.thin { fill: color-mix(in srgb, var(--ink) 3%, transparent); stroke-width: 0.25; }
   @media print {
     @page { size: A4; margin: 14mm 15mm; }
-    h1 { font-size: 22pt; }
-    .lead { margin-bottom: 4mm; }
-    .row, .figure > p { font-size: 9pt; line-height: 12pt; }
-    .row { grid-template-columns: 26mm 1fr; }
-    ol.panel.rows { padding: 0; }
+    :root { --text: 9pt; --line-text: 12pt; --title: 11.25pt; --line-title: 15pt; }
+    .sect { grid-template-columns: 30mm 1fr; display: grid; column-gap: 6mm; }
+    .sect > h2 { grid-column: 1; }
+    .sect > :not(h2) { grid-column: 2; }
+    .row { grid-template-columns: 24mm 1fr; padding: 1.5mm 0; }
   }
 </style>

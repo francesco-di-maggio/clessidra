@@ -172,7 +172,7 @@ try {
   await doubleClick();
   const twinRestored = await size();
   await run(`dispatchEvent(new KeyboardEvent("keyup", { key: "Shift" }))`);
-  check(twinDragged !== "Off" && twinRestored === "Off", "P11 held, Random size: dragged, a double click: Off again", `${twinDragged} ${twinRestored}`);
+  check(twinDragged !== "Off" && twinRestored === "Off", "P11 held, Grit: dragged, a double click: Off again", `${twinDragged} ${twinRestored}`);
   check(errors.length === 0, "no errors", errors.join(" | "));
 
   // On a phone, on one screen: no drag is the page's
@@ -184,6 +184,15 @@ try {
   for (const [w, h] of [[402, 760], [402, 716], [375, 690]]) {
     const [scroll, inner, buffer] = (await phone(w, h)).split(" ").map(Number);
     check(scroll === inner && buffer >= 70, `${w}×${h}: on one screen, the recording 70 px or more`, `${scroll} ${inner} ${buffer}`);
+  }
+  // On a laptop, every tile shows all it holds, on one screen from 720 px.
+  // Shorter, the page scrolls instead.
+  for (const [w, h] of [[1300, 820], [1300, 780], [1300, 740], [1300, 720], [1300, 660]]) {
+    await send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+    await sleep(300);
+    const cut = await run(`[...document.querySelectorAll(".controls, .pads, .transport")].filter((t) => t.scrollHeight > t.clientHeight + 1).map((t) => t.className).join(" ")`);
+    const scroll = await run(`document.documentElement.scrollHeight - innerHeight`);
+    check(cut === "" && (h < 720 || scroll === 0), `${w}×${h}: no tile cut off${h < 720 ? "" : ", on one screen"}`, `${cut} ${scroll}`);
   }
   await send("Emulation.clearDeviceMetricsOverride");
 
