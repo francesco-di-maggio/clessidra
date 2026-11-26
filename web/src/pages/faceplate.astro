@@ -3,6 +3,7 @@ import Base from "../layouts/Base.astro";
 import { COLOUR, FONT } from "../lib/tokens";
 import faceplate from "../../../faceplate/clessidra-faceplate.svg?raw";
 import pdf from "../../../faceplate/clessidra-faceplate.pdf?url";
+import print from "../../../faceplate/clessidra-faceplate-print.pdf?url";
 import svg from "../../../faceplate/clessidra-faceplate.svg?url";
 
 const art = faceplate.replace(/^<\?xml[^>]*>\s*/, "").replace("<svg ", '<svg role="img" aria-label="The Clessidra faceplate" ');
@@ -10,7 +11,7 @@ const c = COLOUR.black;
 const swatches = [
   ["Plate", c.bg],
   ["Gold", c.accent],
-  ["Tan", c.twin],
+  ["Tan", c.tan],
   ["Well", c.well],
 ];
 const font = FONT.split(",")[0].replace(/"/g, "");
@@ -51,7 +52,8 @@ const font = FONT.split(",")[0].replace(/"/g, "");
 <section class="sect">
   <h2 class="label">Files</h2>
   <ul class="links-list">
-    <li><a href={pdf} download="clessidra-faceplate.pdf"><span class="text"><b>Print</b><span class="sub">PDF, A4 at 100%</span></span><span class="arrow" aria-hidden="true">↓</span></a></li>
+    <li><a href={print} download="clessidra-faceplate-print.pdf"><span class="text"><b>Print</b><span class="sub">PDF, A4 at 100%, saves ink</span></span><span class="arrow" aria-hidden="true">↓</span></a></li>
+    <li><a href={pdf} download="clessidra-faceplate.pdf"><span class="text"><b>Preview</b><span class="sub">PDF, gold on black</span></span><span class="arrow" aria-hidden="true">↓</span></a></li>
     <li><a href={svg} download="clessidra-faceplate.svg"><span class="text"><b>Art</b><span class="sub">SVG, text as text</span></span><span class="arrow" aria-hidden="true">↓</span></a></li>
   </ul>
 </section>

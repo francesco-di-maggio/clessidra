@@ -87,8 +87,8 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 .knob.focus .label, .knob:focus-visible .label { color: var(--ink); }
 .knob:focus-visible, .gain:focus-visible, .pad:focus-visible { outline: none; }
 /* P11 held: the twin's name and value in place, in tan */
-.knob.twin .label, .knob.twin .value { color: var(--twin); }
-.knob.twin .fill, .knob.twin .tick { stroke: var(--twin); }
+.knob.twin .label, .knob.twin .value { color: var(--tan); }
+.knob.twin .fill, .knob.twin .tick { stroke: var(--tan); }
 
 /* A fader: the same name and value lines, the slot between them */
 .knob.fader { height: 100%; }
