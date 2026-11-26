@@ -4,6 +4,16 @@ interface Grain { x: number; y: number; r: number; speed: number; alpha: number 
 
 const AREA = 18000; // px² a grain
 const SPEED = [4, 14]; // px/s
+// The faceplate's dust: four sizes, S to XL (its radii 0.24, 0.3, 0.36,
+// 0.46), the small ones most
+const SIZES = [0.8, 1.0, 1.2, 1.55]; // px, radius
+const ODDS = [0.4, 0.3, 0.2, 0.1];
+
+function radius() {
+  let u = Math.random();
+  for (let i = 0; i < SIZES.length; i++) if ((u -= ODDS[i]) < 0) return SIZES[i];
+  return SIZES[0];
+}
 
 export function fall(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext("2d")!;
@@ -17,7 +27,7 @@ export function fall(canvas: HTMLCanvasElement) {
   const grain = (y: number): Grain => ({
     x: Math.random() * W,
     y,
-    r: 0.6 + Math.random() * 0.9,
+    r: radius(),
     speed: SPEED[0] + Math.random() * (SPEED[1] - SPEED[0]),
     alpha: 0.15 + Math.random() * 0.35,
   });
