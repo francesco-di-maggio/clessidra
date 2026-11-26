@@ -56,10 +56,10 @@ const silence = () => 0;
 // Panel: speed 1, 100 ms, pitch unison, whole selection, plain grains,
 // 50 per second, looped
 w.cl_knob(KNOB.S36, SPEED_1);
-w.cl_knob(KNOB.S31, 0.5);
-w.cl_knob(KNOB.S32, 0);
-w.cl_knob(KNOB.S33, 0.5);
+w.cl_knob(KNOB.S32, 0.5);
+w.cl_knob(KNOB.S31, 0);
 w.cl_knob(KNOB.S34, 0.5);
+w.cl_knob(KNOB.S33, 0.5);
 w.cl_knob(KNOB.S30, 0);
 w.cl_knob(KNOB.S35, 1);
 w.cl_knob(KNOB.S37, 0.75);

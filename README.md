@@ -16,10 +16,10 @@ Download the [binary](https://github.com/francesco-di-maggio/clessidra/releases/
 | S37 | Density 0–320/s, stops at 1 5 20 80 | Jitter: regular to random |
 | S30 | Position: where the loop starts | Filter: low-pass / off / high-pass |
 | S35 | Length: a share of the rest | Reverb |
-| S31 | Size: 5 ms – 2 s, 100 ms at the centre | Random size |
-| S32 | Spray: scattered round the playhead | Spread: each grain's pan |
-| S33 | Pitch ±24 semitones, musical stops | Random pitch: up free, down octaves |
-| S34 | Shape: square, decay, bell, reverse | Random shape |
+| S31 | Spray: scattered round the playhead | Spread: each grain's pan |
+| S32 | Size: 5 ms – 2 s, 100 ms at the centre | Grit: random size |
+| S33 | Shape: square, decay, bell, reverse | Flux: random shape |
+| S34 | Pitch ±24 semitones, musical stops | Shimmer: up free, down octaves |
 | S09 | Forward / freeze / reverse | |
 | S07 | End: loop / turn over / once | |
 | P10 | Record. Tap: the last 8 s. Hold: up to 30 s | Listen: the input alone. Let go of P11: record |

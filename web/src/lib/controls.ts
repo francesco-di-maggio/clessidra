@@ -46,7 +46,7 @@ const seconds = (samples: number) => `${(samples / RATE).toFixed(2)} s`;
 const percent = (x: number) => `${Math.round(x * 100)} %`;
 const ms = (x: number) => (x < 1000 ? `${Math.round(x)} ms` : `${(x / 1000).toFixed(2)} s`);
 const signed = (x: number, digits: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(digits)}`;
-const RAND_PITCH = 12; // Core::kRandPitchSemitones
+const SHIMMER = 12; // Core::kShimmerSemitones
 const END = ["Once", "Turn", "Loop"]; // Playhead's End
 // Shape's four, evenly along the knob, and their short names
 const SHAPES = [["Square", "Sq"], ["Decay", "Dec"], ["Bell", "Bell"], ["Reverse", "Rev"]];
@@ -82,7 +82,7 @@ export const CONTROLS: Control[] = [
       const d = p[PARAM.density];
       return d === 0 ? "None" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
     },
-    twin: { name: "Jitter", brief: "Jitter: regular to random", does: "When grains start, from a regular pulse to random.", value: (p) => (p[PARAM.randTime] === 0 ? "Regular" : percent(p[PARAM.randTime])) },
+    twin: { name: "Jitter", brief: "Jitter: regular to random", does: "When grains start, from a regular pulse to random.", value: (p) => (p[PARAM.jitter] === 0 ? "Regular" : percent(p[PARAM.jitter])) },
   },
   {
     id: "S30", brief: "Position: where the loop starts", type: "knob", index: 0, x: 120, y: 478, name: "Position", initial: 0,
@@ -103,31 +103,19 @@ export const CONTROLS: Control[] = [
     twin: { name: "Reverb", brief: "Reverb", does: "Reverb on the grains, from none to long tails.", value: (p) => percent(p[PARAM.reverb]) },
   },
   {
-    id: "S31", brief: "Size: 5 ms – 2 s, 100 ms at the centre", type: "knob", index: 1, x: 120, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
-    does: "Grain length. 5\u00a0ms to 2\u00a0s, 100\u00a0ms at the centre.",
-    value: (p) => ms(p[PARAM.grainMs]),
-    twin: { name: "Random size", brief: "Random size", short: "Rnd size", does: "Each grain a different length, up to about an octave either way.", value: (p) => (p[PARAM.randSize] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.randSize]))) },
-  },
-  {
-    id: "S32", brief: "Spray: scattered round the playhead", type: "knob", index: 2, x: 240, y: 350, name: "Spray", initial: 0,
+    id: "S31", brief: "Spray: scattered round the playhead", type: "knob", index: 1, x: 120, y: 350, name: "Spray", initial: 0,
     does: "How far grains stray from the playhead, evenly, up to the whole loop.",
-    value: (p) => (p[PARAM.randPos] === 0 ? "Off" : percent(Math.sqrt(p[PARAM.randPos]))),
+    value: (p) => (p[PARAM.spray] === 0 ? "Off" : percent(Math.sqrt(p[PARAM.spray]))),
     twin: { name: "Spread", brief: "Spread: each grain's pan", does: "Each grain panned at random, from the centre to anywhere from left to right.", value: (p) => (p[PARAM.spread] === 0 ? "Centre" : percent(p[PARAM.spread])) },
   },
   {
-    id: "S33", brief: "Pitch ±24 semitones, musical stops", type: "knob", index: 3, x: 358, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,
-    does: "Transpose up to two octaves either way, with stops at musical intervals.",
-    value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
-    twin: {
-      name: "Random pitch", brief: "Random pitch: up free, down octaves", short: "Rnd pitch", bipolar: true, does: "Off at the centre. Above: any pitch up to an octave either way. Below: octaves only.",
-      value: (p) => {
-        const r = p[PARAM.randPitch];
-        return r === 0 ? "Off" : r < 0 ? `Oct ${percent(-r)}` : `±${(r * RAND_PITCH).toFixed(1)} st`;
-      },
-    },
+    id: "S32", brief: "Size: 5 ms – 2 s, 100 ms at the centre", type: "knob", index: 2, x: 240, y: 350, name: "Size", initial: 0.5, bipolar: true, detent: true,
+    does: "Grain length. 5\u00a0ms to 2\u00a0s, 100\u00a0ms at the centre.",
+    value: (p) => ms(p[PARAM.grainMs]),
+    twin: { name: "Grit", brief: "Grit: random size", does: "Each grain a different length, up to about an octave either way.", value: (p) => (p[PARAM.grit] === 0 ? "Off" : percent(Math.sqrt(4 * p[PARAM.grit]))) },
   },
   {
-    id: "S34", brief: "Shape: square, decay, bell, reverse", type: "knob", index: 4, x: 476, y: 350, name: "Shape", initial: 2 / 3,
+    id: "S33", brief: "Shape: square, decay, bell, reverse", type: "knob", index: 3, x: 358, y: 350, name: "Shape", initial: 2 / 3,
     does: "Grain envelope: square, decay, bell, reverse, and everything between.",
     value: (p) => {
       // At a shape, its name. Between two, both.
@@ -135,7 +123,19 @@ export const CONTROLS: Control[] = [
       const i = Math.min(Math.floor(at + 0.04), SHAPES.length - 1);
       return Math.abs(at - i) < 0.04 ? SHAPES[i][0] : `${SHAPES[i][1]} › ${SHAPES[i + 1][1]}`;
     },
-    twin: { name: "Random shape", brief: "Random shape", short: "Rnd shape", does: "Each grain a different envelope.", value: (p) => (p[PARAM.randShape] === 0 ? "Off" : percent(p[PARAM.randShape])) },
+    twin: { name: "Flux", brief: "Flux: random shape", does: "Each grain a different envelope.", value: (p) => (p[PARAM.flux] === 0 ? "Off" : percent(p[PARAM.flux])) },
+  },
+  {
+    id: "S34", brief: "Pitch ±24 semitones, musical stops", type: "knob", index: 4, x: 476, y: 350, name: "Pitch", initial: 0.5, bipolar: true, detent: true,
+    does: "Transpose up to two octaves either way, with stops at musical intervals.",
+    value: (p) => `${signed(p[PARAM.pitch], Math.abs(p[PARAM.pitch]) < 1 && p[PARAM.pitch] !== 0 ? 1 : 0)} st`,
+    twin: {
+      name: "Shimmer", brief: "Shimmer: up free, down octaves", bipolar: true, does: "Off at the centre. Above: any pitch up to an octave either way. Below: octaves only.",
+      value: (p) => {
+        const r = p[PARAM.shimmer];
+        return r === 0 ? "Off" : r < 0 ? `Oct ${percent(-r)}` : `±${(r * SHIMMER).toFixed(1)} st`;
+      },
+    },
   },
   {
     id: "S09", brief: "Forward / freeze / reverse", type: "switch", index: 0, x: 222, y: 638, name: "Direction", initial: POSITION.up,
@@ -190,13 +190,13 @@ export const PLAY: [string, string][] = [
   ["Stretch", "Speed at ¼ or ½, Density up. S09 down to hear it backwards."],
   ["Frozen", "S09 at the centre, Density at the top, Size long, a little Spray, Reverb up. Speed scrubs the point."],
   ["One pour", "S07 down: the loop plays once and stops. Trigger pours it again."],
-  ["Shimmer", "Random pitch (P11\u00a0+\u00a0S33) below the centre: octaves."],
+  ["Shimmer", "Shimmer (P11\u00a0+\u00a0S34) below the centre: octaves."],
 ];
 
 export const LED: [string, string][] = [
   ["Glow", "Grains falling"],
   ["Flash", "Recording"],
-  ["Pulse", "At a stop: unison, speed 1×, 100 ms, filter off, random pitch off"],
+  ["Pulse", "At a stop: unison, speed 1×, 100 ms, filter off, shimmer off"],
   ["Steady", "P11 held: the last knob turned"],
 ];
 

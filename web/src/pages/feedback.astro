@@ -2,10 +2,14 @@
 import Base from "../layouts/Base.astro";
 ---
 <Base title="Feedback" description="Tell what you played, what you heard and what you would change.">
-<h1>Feedback</h1>
-<p class="lead">What you report shapes what changes next.</p>
+<div class="head">
+  <h1>Feedback</h1>
+  <p class="lead">What you report shapes what changes next.</p>
+</div>
 
-<form id="feedback" class="panel form">
+<section class="sect">
+<h2 class="label">Your notes</h2>
+<form id="feedback" class="form">
   <fieldset class="field">
     <legend class="label">Played on</legend>
     <div class="segmented" role="radiogroup">
@@ -20,6 +24,7 @@ import Base from "../layouts/Base.astro";
   </div>
   <p class="caption">Opens a GitHub issue or an email with your text.</p>
 </form>
+</section>
 </Base>
 
 <script>

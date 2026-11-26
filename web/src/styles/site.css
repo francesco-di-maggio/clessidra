@@ -1,173 +1,231 @@
-/* Clessidra: the site's own parts. The family's shared base comes from
-   francescodimaggio.nl/style/v1/. */
-:root { --unit: 8px; --well: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
-/* Pages cross-fade; none with reduced motion */
+/* Clessidra. Colours, sizes and font from tokens.ts. Two sizes: --text and
+   --title. Labels in capitals, tracked. One centred column, 672 px, as the
+   family's. */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--bg); overflow-x: clip; scrollbar-gutter: stable; -webkit-text-size-adjust: 100%; }
+body { --edge: 16px; --key: 120px;
+       display: flex; flex-direction: column; max-width: 672px; min-height: 100dvh; margin: 0 auto;
+       padding: env(safe-area-inset-top) var(--edge) env(safe-area-inset-bottom);
+       color: var(--ink); font: 500 var(--text)/var(--line-text) var(--sans);
+       -webkit-tap-highlight-color: transparent; }
+main { flex: 1; display: flex; flex-direction: column; }
+a { color: inherit; text-underline-offset: 4px; text-decoration-thickness: 1px; text-decoration-color: var(--dim); }
+a:hover { text-decoration-color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @view-transition { navigation: auto; }
 @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
-.mark svg path { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
-h2.label { scroll-margin-top: 16px; }
-/* In from the tile's edge, as the tile's own text: its padding and border */
-h2.label { padding-left: 15px; }
-/* A page's first part starts where the others' first panel does */
-.lead + h2.label { margin-top: 0; }
-/* A panel's name inside it */
-.panel > h2.label { margin: 0 0 8px; padding-left: 0; color: var(--dim); }
-/* Text in a panel at the size of its rows */
-.panel > .prose p { margin: 0; font-size: 15px; line-height: 20px; }
-.lead { text-wrap: pretty; }
 
-/* Facts: a key column and its value, as in the family's facts panel. The
-   small key on its value's baseline, raised half the difference in capital
-   height (8.1 px against 11.0 px), so it sits centred on the first line. */
-.meta { align-items: baseline; }
-.meta dt { color: var(--dim); font: 500 11px/14px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
-.meta dt, .row .label { position: relative; top: -1.5px; }
+/* The faceplate's legends. A second function's: 600, capitals, tracked. */
+.label { font: 600 var(--text)/var(--line-text) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--dim); }
+h1, h2, h3 { margin: 0; font-weight: 600; }
+/* A page's name as a control's: 700, capitals, tracked, gold */
+h1 { font: 700 var(--title)/var(--line-title) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
+/* A section's name as a second function: gold, between dots */
+.sect > h2.label { color: var(--accent); }
+.sect > h2.label::before { content: "•••"; margin-right: 0.6em; letter-spacing: 0.15em; }
+.sect > h2.label::after { content: "•"; margin-left: 0.6em; }
+.lead { margin: 0; color: var(--dim); text-wrap: pretty; max-width: 40em; }
+p { margin: 0; }
 
-/* The status tile with a clock at its right end: an hourglass for the minute,
-   as on the Play page. Where the tile is too narrow, no clock. */
-.status { position: relative; }
-/* As tall as the Play page's glass (a knob, name to value: 92 px), centred
-   on the rows: the glass draws 4.75 px inside its canvas at each end */
-.clock { position: absolute; right: 36px; top: 18px; width: 44px; height: 92px; }
-@media (max-width: 560px) { .clock { display: none; } }
+/* Header: the logo. Under it the pages, on a hairline, the current one
+   on a gold rule. On Play the logo and the page's name, no pages. */
+header { display: flex; align-items: center; gap: 12px; min-height: 56px; }
+.mark { display: flex; color: var(--accent); }
+.mark .logo { display: block; height: 21px; width: auto; }
+.crumb { display: flex; gap: 12px; color: var(--ink); }
+.crumb .slash { color: var(--dim); }
+nav { display: flex; flex-wrap: wrap; gap: 0 24px; border-bottom: 1px solid var(--line); }
+nav a { flex: none; padding: 4px 0 10px; margin-bottom: -1px; text-decoration: none; border-bottom: 2px solid transparent; }
+nav a:hover { color: var(--ink); }
+nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+@media (max-width: 480px) { nav { gap: 0 18px; } }
+footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 16px 0 24px; border-top: 1px solid var(--line); }
+footer a { text-decoration: none; }
+footer a:hover { color: var(--ink); }
+/* Links in capitals as the nav: no line, brighter when pointed at. Links in
+   sentences underlined. */
+footer .links { display: flex; align-items: center; gap: 20px; }
+footer .links a { display: flex; padding: 6px; margin: -6px; color: var(--dim); }
+footer .links a:hover { color: var(--ink); }
+/* Sized by eye: a full square looks larger than a circle */
+footer .links svg { height: 16px; width: auto; }
+footer .links a[aria-label="LinkedIn"] svg { height: 14px; }
+footer .links a[aria-label="Email"] svg { height: 13.6px; }
 
-.stack { display: grid; gap: 10px; min-width: 0; }
+/* A page's title and line */
+.head { display: grid; gap: 4px; padding: 32px 0 24px; }
+/* A section: its name over what it holds. One hairline over it. */
+.sect { display: grid; gap: 12px; padding: 20px 0 28px; border-top: 1px solid var(--line); }
 
-/* The panel: the Simple Touch 2 as a drawing, every control where it sits on the board */
+.prose p, p.prose, .row > :last-child { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
+           hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
+.prose p + p, .prose + .prose { margin-top: var(--line-text); }
+
+/* Rows: a key and a line, hairlines between */
+.rows { margin: 0; padding: 0; list-style: none; }
+.row { display: grid; grid-template-columns: var(--key) minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); align-items: baseline; }
+.row:first-child { border-top: 0; padding-top: 0; }
+
+/* Facts, as rows */
+.meta { display: grid; grid-template-columns: var(--key) minmax(0, 1fr); gap: 0 16px; margin: 0; }
+.meta dt, .meta dd { margin: 0; padding: 12px 0; border-top: 1px solid var(--line); }
+.meta dt:first-of-type, .meta dd:first-of-type { border-top: 0; padding-top: 0; }
+.meta dd { overflow-wrap: anywhere; }
+.live::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: var(--accent); vertical-align: 2px; }
+
+/* Links, one under the other: a name, a line, where it leads */
+.links-list { margin: 0; padding: 0; list-style: none; }
+.links-list a { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); text-decoration: none; }
+.links-list li:first-child a { border-top: 0; padding-top: 0; }
+.links-list b { font-weight: 600; }
+.links-list .sub { color: var(--dim); }
+.links-list .text { flex: 1; display: grid; grid-template-columns: var(--key) minmax(0, 1fr); gap: 16px; min-width: 0; }
+.links-list a:hover b { text-decoration: underline; text-decoration-color: var(--dim); }
+.arrow { flex: none; color: var(--dim); }
+a:hover .arrow { color: var(--ink); }
+
+/* Controls: a box, its name in capitals. The one filled: the page's call */
+.control { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; height: 44px; padding: 0 16px;
+           border: 1px solid var(--line); border-radius: var(--radius); background: transparent; color: var(--ink);
+           font: 600 var(--text)/1 var(--sans); letter-spacing: var(--track); text-transform: uppercase; text-decoration: none; cursor: pointer; }
+.control:hover { border-color: var(--dim); }
+.control:active { opacity: 0.8; }
+.control.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.control.primary .arrow { color: inherit; }
+.control.primary.on { background: transparent; border-color: var(--line); color: var(--ink); }
+.panel { padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+
+/* One of a few, the chosen one lit */
+.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; height: 44px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--bg); }
+.segmented button, .segmented span { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; padding: 0 8px; border: 0; background: none; color: var(--dim);
+                    font: 600 var(--text)/1 var(--sans); letter-spacing: var(--track); text-transform: uppercase; cursor: pointer; }
+.segmented button + button, .segmented label + label { border-left: 1px solid var(--line); }
+.segmented button:disabled { opacity: 0.5; cursor: default; }
+.segmented [aria-pressed="true"], .segmented [aria-checked="true"], .segmented input:checked + span { color: var(--ink); background: var(--surface); }
+.segmented [aria-pressed="true"]::before, .segmented [aria-checked="true"]::before, .segmented input:checked + span::before {
+  content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.segmented label { display: flex; }
+.segmented label span { flex: 1; }
+.segmented input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Dust: grains falling slowly behind every page */
+.dust { position: fixed; inset: 0; z-index: -1; width: 100%; height: 100%; pointer-events: none; }
+
+/* Home, on one screen: the line, the call, what it is, beside the minute
+   as sand */
+.home { display: grid; gap: 32px; align-content: center; padding: 48px 0; flex: 1; }
+@media (min-width: 560px) { .home { grid-template-columns: minmax(0, 1fr) 112px; } }
+.home .intro { display: grid; gap: 16px; align-content: center; }
+.home .intro .prose { color: var(--dim); }
+/* The line on one line beside the glass: 0.9 of a title */
+.home .intro .lead { color: var(--ink); font-size: calc(0.9 * var(--title)); line-height: var(--line-title); }
+@media (min-width: 672px) { .home .intro .lead { white-space: nowrap; } }
+.home .intro .control { width: auto; justify-self: start; margin-top: 8px; }
+/* The status over a hairline, as Synthux Academy over its rule on the plate */
+.home .intro .status { padding-bottom: 16px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+.status { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.status a { text-decoration: none; }
+.status a:hover { color: var(--ink); }
+/* As tall as the text beside it: the status on its top cap, the call on its
+   foot */
+.clock { width: 112px; height: 100%; min-height: 200px; --band: 112px; }
+@media (max-width: 559px) { .clock { display: none; } }
+
+/* Faceplate: the art, its colours, its type */
+.art { margin: 0; padding: 32px 0 40px; }
+.art svg { display: block; width: 100%; height: auto; }
+.art #mask path { fill: var(--surface); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.swatch { display: grid; gap: 4px; }
+.swatch::before { content: ""; height: 56px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--c); }
+.swatch b { font-weight: 600; }
+.swatch code { font: 500 var(--text)/var(--line-text) var(--sans); color: var(--dim); font-variant-numeric: tabular-nums; }
+.type .name { font: 700 var(--title)/var(--line-title) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
+.type .second { color: var(--accent); }
+.type .second::before { content: "•••"; margin-right: 0.6em; letter-spacing: 0.15em; }
+.type .second::after { content: "•"; margin-left: 0.6em; }
+
+/* The panel: the Simple Touch 2 drawn as the faceplate is. Gold rings on
+   wells, the names in gold capitals, the codes dim. The control pointed at
+   in light. */
 svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh - 120px); margin: 0 auto; }
-.touch .plate { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
-.touch .hole { fill: var(--surface); stroke: var(--dim); stroke-width: 2; }
+.touch .plate { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
+.touch .hole { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
 .touch .board .edge { fill: none; stroke: var(--line); stroke-width: 2; }
-.touch .board .usb { fill: var(--dim); }
-.touch .board text { font: 600 15px var(--sans); letter-spacing: 0.12em; fill: var(--dim); text-anchor: middle; }
+.touch .board .usb { fill: var(--well); }
+.touch .board text { font: 600 15px var(--sans); letter-spacing: 0.1em; fill: var(--dim); text-anchor: middle; }
 .touch .code.side { text-anchor: start; }
 .touch .ctl { cursor: pointer; outline: none; }
 .touch .ctl .hit { fill: transparent; }
-.touch .ring { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
-.touch .arc { fill: none; stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
-.touch .track { fill: none; stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
-.touch .travel { fill: none; stroke: var(--ink); stroke-width: 6; stroke-linecap: round; }
-.touch .cap { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.touch .ring, .touch circle.pad, .touch .slot, .touch .cap { fill: var(--well); stroke: var(--accent); stroke-width: 2.5; }
+.touch .arc, .touch .travel { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; }
+.touch .track { fill: none; stroke: var(--line); stroke-width: 5; stroke-linecap: round; }
 .touch .tick { stroke: var(--dim); stroke-width: 2; }
-.touch circle.pad { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
-.touch circle.pad.press { fill: var(--accent); stroke: var(--accent); }
-.touch .slot { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
-.touch .lever { fill: var(--ink); }
-.touch .code { font: 600 15px var(--mono); letter-spacing: 0.04em; fill: var(--dim); text-anchor: middle; pointer-events: none; }
-.touch .name { font: 500 16px var(--sans); fill: var(--ink); text-anchor: middle; pointer-events: none; }
-.touch .ctl:focus-visible .ring, .touch .ctl:focus-visible circle.pad, .touch .ctl:focus-visible .cap, .touch .ctl:focus-visible .slot { stroke: var(--accent); }
-.touch .ctl.active .ring, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke-width: 3; }
+.touch .lever { fill: var(--accent); }
+.touch circle.pad.press { fill: var(--accent); }
+.touch .code { font: 600 14px var(--sans); letter-spacing: 0.06em; fill: var(--dim); text-anchor: middle; pointer-events: none; }
+.touch .name { font: 700 15px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; fill: var(--accent); text-anchor: middle; pointer-events: none; }
+.touch .ctl:hover .ring, .touch .ctl:hover circle.pad, .touch .ctl:hover .slot, .touch .ctl:hover .cap,
+.touch .ctl:focus-visible .ring, .touch .ctl:focus-visible circle.pad, .touch .ctl:focus-visible .cap, .touch .ctl:focus-visible .slot,
+.touch .ctl.active .ring, .touch .ctl.active circle.pad, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke: var(--ink); }
+.touch .ctl.active .name { fill: var(--ink); }
 .touch .jack { fill: none; stroke: var(--dim); stroke-width: 2; }
-
-@media print {
-  header, nav, footer, .noprint { display: none !important; }
-  html, body { background: #fff; }
-  body { max-width: none; padding: 0; color: #111; font-size: 11pt; }
-  .panel { border: 0; padding: 0; background: none; }
-  h2.label { break-after: avoid; }
-  .panel, figure { break-inside: avoid; }
-}
-
-/* Rows: a key and a short line, as on the mqtt-max landing page */
-ol.rows { gap: 6px; padding: 14px; }
-.row { display: grid; grid-template-columns: 112px 1fr; gap: 12px; font-size: 15px; line-height: 20px; }
-.row { align-items: baseline; }
-.row .label { line-height: 14px; }
-.rows.steps .row { grid-template-columns: 32px 1fr; }
-/* A row's text justified and hyphenated as the family's prose */
-.row > :last-child { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
-                     hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
-/* Links as tiles, one under the other: a name, a line about it, where it
-   leads */
-.tiles { display: grid; gap: 10px; }
-.tiles .panel { padding: 10px 14px; color: var(--ink); }
-.tiles .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.tiles b { font-size: 15px; line-height: 20px; font-weight: 600; }
-.tiles .sub { font-size: 14px; line-height: 18px; color: var(--dim); }
-.tiles .primary b { color: var(--bg); }
-.tiles .primary .sub { color: var(--bg); opacity: 0.7; }
-/* Playing: the orange dot before its name, as what is on */
-
-
-/* A file to download: its type on a page */
-.file { width: 28px; height: 28px; flex: none; }
-.file path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
-.file text { font: 600 5.5px var(--mono); fill: currentColor; text-anchor: middle; }
+.touch .free .ring, .touch .free circle.pad, .touch .free .slot { stroke: var(--line); }
+.touch .free .name { fill: var(--dim); }
+.touch .free { cursor: default; }
 
 /* Controls: the panel beside its help, one screen on a laptop */
-.mapping { display: grid; gap: 10px; align-items: start; }
+.mapping { display: grid; gap: 24px; align-items: start; padding-bottom: 24px; }
 @media (min-width: 640px) { .mapping { grid-template-columns: auto minmax(0, 1fr); } }
-.mapping .touch-panel { padding: 8px; }
-/* As tall as the window allows, up to where the column beside it is still
-   wide enough to read */
-.mapping svg.touch { width: auto; height: clamp(360px, calc(100dvh - 310px), 600px); max-height: none; }
-.segmented.vertical { height: auto; grid-auto-flow: row; }
-.segmented.vertical button { height: 36px; justify-content: flex-start; padding: 0 12px; }
-.segmented.vertical button + button { border-left: 0; border-top: 1px solid var(--line); }
-/* Beside the board and as tall: one tile, the control and under a hairline
-   its second function, each layer as tall as its longest text */
+.mapping svg.touch { width: auto; height: clamp(360px, calc(100dvh - 300px), 640px); max-height: none; }
+/* Beside the board and as tall: the control, under a hairline its second
+   function, each layer as tall as its longest text */
+.stack { display: grid; gap: 24px; min-width: 0; }
 .mapping .stack { align-self: stretch; grid-template-rows: 1fr auto; }
-/* Under the help: four notes, each its name over one line */
-.mapping .notes { display: grid; gap: 10px; }
-.note { display: grid; gap: 2px; padding: 8px 14px; font-size: 13px; line-height: 18px; }
-.note .label { line-height: 14px; }
 .mapping.measuring .stack { align-self: start; grid-template-rows: none; }
-.help { display: grid; align-content: start; padding: 8px 14px; }
-.help .layer { display: grid; gap: 2px; align-content: start; }
-.help b { font-size: 17px; font-weight: 600; }
-/* Justified and hyphenated as the family's prose, no lone last word */
-.help p { margin: 0; color: var(--dim); font-size: 14px; line-height: 20px; text-wrap: pretty; text-align: justify; text-align-last: left;
+.help { display: grid; align-content: start; }
+.help .layer { display: grid; gap: 4px; align-content: start; }
+.help b { font: 700 var(--title)/var(--line-title) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
+/* Justified and hyphenated, no lone last word */
+.help p { margin: 0; color: var(--dim); text-wrap: pretty; text-align: justify; text-align-last: left;
           hyphens: auto; -webkit-hyphens: auto; hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
-/* The second function under a hairline, its name in orange as on the Play
-   page */
-.help hr { width: 100%; margin: 14px 0; border: 0; border-top: 1px solid var(--line); }
-.help .twin { color: var(--accent); }
+.help hr { width: 100%; margin: 24px 0; border: 0; border-top: 1px solid var(--line); }
+.help .twin { color: var(--twin); }
+.mapping .notes { display: grid; gap: 0; }
+.note { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); }
 /* One column: the help held at the foot of the screen over the board, so a
    control tapped shows what it does without a scroll */
 @media (max-width: 639px) {
   .mapping .stack { display: contents; }
-  .mapping .help { position: sticky; bottom: 8px; z-index: 1; }
+  .mapping .help { position: sticky; bottom: 8px; z-index: 1; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
   .mapping .notes { order: 1; }
+  .mapping svg.touch { width: 100%; height: auto; }
 }
 
-
-/* A segmented control: one of a few, the chosen one lit */
-.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); overflow: hidden; background: var(--bg); }
-.segmented button { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 0 6px; border: 0; background: none; color: var(--dim);
-                    font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
-.segmented button + button { border-left: 1px solid var(--line); }
-.segmented button:disabled { opacity: 0.5; cursor: default; }
-.segmented [aria-pressed="true"], .segmented [aria-checked="true"] { color: var(--ink); background: var(--surface); }
-.segmented [aria-pressed="true"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+/* Download: a file's type */
+.file { width: 28px; height: 28px; flex: none; color: var(--dim); }
+.file path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
+.file text { font: 700 6px var(--sans); fill: currentColor; text-anchor: middle; }
+a:hover .file { color: var(--ink); }
 
 /* Feedback: a form whose answers go to a GitHub issue or an email */
-.form { display: grid; gap: 16px; }
-.field { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
-/* Puts the caption on the baseline of Download's last tile text */
-.field textarea { height: 213px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); resize: vertical; }
-.field textarea:focus { outline: 1.5px solid var(--accent); outline-offset: -1px; }
-.field .segmented { height: 44px; }
-.field .segmented label { display: flex; }
-.field .segmented label + label { border-left: 1px solid var(--line); }
-.field .segmented input { position: absolute; opacity: 0; pointer-events: none; }
-.field .segmented span { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--dim); font: 500 11px/20px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
-.field .segmented input:checked + span { color: var(--ink); background: var(--surface); }
-.field .segmented input:checked + span::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-.field .segmented input:focus-visible + span { outline: 1.5px solid var(--accent); outline-offset: -2px; }
-.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form { display: grid; gap: 24px; max-width: 40em; }
+.field { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.field legend { padding: 0; margin-bottom: 8px; }
+.field textarea { height: 216px; width: 100%; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: 500 var(--text)/var(--line-text) var(--sans); resize: vertical; }
+.field textarea::placeholder { color: var(--dim); }
+.field textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .actions .control { justify-content: center; }
-.form .caption { margin: 0; color: var(--dim); font-size: 13px; }
+.caption { color: var(--dim); }
+@media (max-width: 480px) { .actions { grid-template-columns: 1fr; } }
 
-/* The one filled call to action on a screen */
-.control.primary { justify-content: center; background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.control.primary.on { background: var(--bg); border-color: var(--line); color: var(--ink); }
-.field legend { padding: 0; margin-bottom: 6px; }
-
-/* Orange for what is on: a work in progress, the control
-   pointed at */
-.live::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
-.touch .ctl.active .ring, .touch .ctl.active circle.pad, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke: var(--accent); }
-.prose p { text-wrap: pretty; }
-.touch .free .ring, .touch .free circle.pad, .touch .free .slot { stroke: var(--line); }
-.touch .free .name { fill: var(--dim); font-weight: 400; }
-.touch .free { cursor: default; }
+@media print {
+  header, nav, footer, .noprint { display: none !important; }
+  html, body { background: #fff; }
+  body { padding: 0; }
+  .head { padding: 0 0 6mm; }
+  .sect { break-inside: avoid; padding: 4mm 0 6mm; }
+}

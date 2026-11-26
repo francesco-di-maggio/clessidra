@@ -82,7 +82,7 @@ void Core::Process(const float* const* in, float** out, size_t size)
     // Slices: each newly held one from its start, a grain at once. At no
     // density, two grains at once, regular: the slice as it is.
     const bool   slicing      = p.slices_held != 0;
-    const float  slice_random = density > 0.0f ? p.rand_time : 0.0f;
+    const float  slice_random = density > 0.0f ? p.jitter : 0.0f;
     const double slice_density
         = density > 0.0f ? double(density) : 2.0 * sample_rate_ / grain_samples;
     for(size_t s = 0; s < kNumSlices; s++)
@@ -105,10 +105,9 @@ void Core::Process(const float* const* in, float** out, size_t size)
         if(!slicing)
         {
             playhead_.Advance(play_inc, p.end);
-            const bool due = !playhead_.Ended()
-                             && Due(schedule_,
-                                    density * tape_ / sample_rate_,
-                                    p.rand_time);
+            const bool due
+                = !playhead_.Ended()
+                  && Due(schedule_, density * tape_ / sample_rate_, p.jitter);
             if(due || (now && i == 0))
                 StartGrain(p,
                            {sel_start,
@@ -406,30 +405,30 @@ void Core::StartGrain(const Params& p,
     // playhead, round the selection, size between its ends, exponential,
     // pitch either way
     double phase = source.phase;
-    if(p.rand_pos > 0.0f)
+    if(p.spray > 0.0f)
     {
-        phase += 0.5 * std::min(p.rand_pos, 1.0f) * Random();
+        phase += 0.5 * std::min(p.spray, 1.0f) * Random();
         phase -= std::floor(phase);
     }
     latch.position = (source.start + phase * source.length) * to_read;
     latch.level    = source.level;
     double length  = 1.0; // of the size
-    if(p.rand_size > 0.0f && p.max_grain_ms > p.min_grain_ms)
+    if(p.grit > 0.0f && p.max_grain_ms > p.min_grain_ms)
     {
         const float octaves = std::log2(p.max_grain_ms / p.min_grain_ms);
         const float size    = std::clamp(
             std::log2(p.grain_ms / p.min_grain_ms) / octaves, 0.0f, 1.0f);
-        length = std::exp2((Randomise(size, p.rand_size) - size) * octaves);
+        length = std::exp2((Randomise(size, p.grit) - size) * octaves);
     }
-    latch.inc   = 1.0 / std::max(source.grain_samples * length, 1.0);
-    latch.shape = p.rand_shape > 0.0f ? Randomise(p.window_shape, p.rand_shape)
-                                      : p.window_shape;
-    const float pitch     = std::clamp(p.rand_pitch, -1.0f, 1.0f);
+    latch.inc = 1.0 / std::max(source.grain_samples * length, 1.0);
+    latch.shape
+        = p.flux > 0.0f ? Randomise(p.window_shape, p.flux) : p.window_shape;
+    const float pitch     = std::clamp(p.shimmer, -1.0f, 1.0f);
     const float random    = Random();
-    float       semitones = random * pitch * kRandPitchSemitones;
+    float       semitones = random * pitch * kShimmerSemitones;
     if(pitch < 0.0f)
     {
-        const bool away = std::fabs(random) < -pitch * kRandPitchOctaveOdds;
+        const bool away = std::fabs(random) < -pitch * kShimmerOctaveOdds;
         semitones       = away ? std::copysign(12.0f, random) : 0.0f;
     }
     latch.rate = p.pitch * std::exp2(semitones / 12.0f);
@@ -438,7 +437,7 @@ void Core::StartGrain(const Params& p,
     latch.pan = 0.5f + 0.5f * Random() * std::clamp(p.spread, 0.0f, 1.0f);
     // In phase with the grain before, moved at most a quarter of its length.
     // Not scattered by Spray: those are meant to differ.
-    if(p.rand_pos <= 0.0f && last && last->IsActive()
+    if(p.spray <= 0.0f && last && last->IsActive()
        && last->Source() == latch.buffer && aligns_ >= 1.0f)
     {
         aligns_ -= 1.0f;

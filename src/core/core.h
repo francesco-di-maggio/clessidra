@@ -35,11 +35,11 @@ class Core
     static constexpr size_t kNumVoices = 32;
     // Slices of the selection, each held one its own playhead
     static constexpr size_t kNumSlices = Onsets::kNumSlices;
-    // the furthest Params.rand_pitch takes a grain's pitch, either way
-    static constexpr float kRandPitchSemitones = 12.0f;
+    // the furthest Params.shimmer takes a grain's pitch, either way
+    static constexpr float kShimmerSemitones = 12.0f;
     // In octaves, at the most: the odds a grain is an octave away, up or down
     // alike. A third stay.
-    static constexpr float kRandPitchOctaveOdds = 2.0f / 3.0f;
+    static constexpr float kShimmerOctaveOdds = 2.0f / 3.0f;
     // One jack or two: -3 dB on one, +3 dB on two in phase, not -6 and 0
     static constexpr float kInputSum = 0.7071f;
     // The mix crossfades from wet to dry, and back, over these
@@ -100,7 +100,7 @@ class Core
         // At the end of the selection: stop, turn over, or round again
         End   end      = End::Loop;
         float grain_ms = 100.0f; // grain size
-        // the size's range, exponential: where rand_size takes it
+        // the size's range, exponential: where grit takes it
         float min_grain_ms = 10.0f;
         float max_grain_ms = 4000.0f;
         float pitch        = 1.0f; // grain playback rate
@@ -109,19 +109,19 @@ class Core
         // 0 square, 1/3 decay, 2/3 bell, 1 reverse
         float window_shape = 2.0f / 3.0f;
         // Randomness of each grain, 0..1: 0 none, 1 anywhere in the range.
-        // Position evenly within the amount, a share of the selection,
-        // centred on the playhead, round the selection. Size between
-        // min_grain_ms and max_grain_ms, exponential. Pitch up to
-        // kRandPitchSemitones either way. Below 0, to -1: in octaves, the odds
-        // rising to kRandPitchOctaveOdds. Shape anywhere from reverse
-        // percussive to percussive.
-        float rand_pos   = 0.0f;
-        float rand_size  = 0.0f;
-        float rand_pitch = 0.0f;
-        float rand_shape = 0.0f;
+        // Spray: the position, evenly within the amount, a share of the
+        // selection, centred on the playhead, round the selection. Grit: the
+        // size, between min_grain_ms and max_grain_ms, exponential. Shimmer:
+        // the pitch, up to kShimmerSemitones either way. Below 0, to -1: in
+        // octaves, the odds rising to kShimmerOctaveOdds. Flux: the shape,
+        // anywhere from reverse percussive to percussive.
+        float spray   = 0.0f;
+        float grit    = 0.0f;
+        float shimmer = 0.0f;
+        float flux    = 0.0f;
         // Starts from periodic, 0, to random intervals, 1: mostly short, a
         // long tail. The same mean.
-        float rand_time = 0.0f;
+        float jitter = 0.0f;
         // 0..1, each grain's pan: centred to anywhere from left to right
         float spread = 0.0f;
         float filter = 0.0f; // -1 lowpass .. 0 off .. 1 highpass, on the grains
@@ -232,7 +232,7 @@ class Core
         double length; // of the span, samples
         double phase;  // through the span
         bool   backwards;
-        double grain_samples; // its length, before Params.rand_size
+        double grain_samples; // its length, before Params.grit
         float  level = 1.0f;  // each grain's gain
         bool   slice = false; // kept inside the span
     };
