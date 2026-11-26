@@ -422,7 +422,7 @@ void Core::StartGrain(const Params& p,
     }
     latch.inc = 1.0 / std::max(source.grain_samples * length, 1.0);
     latch.shape
-        = p.warp > 0.0f ? Randomise(p.window_shape, p.warp) : p.window_shape;
+        = p.flux > 0.0f ? Randomise(p.window_shape, p.flux) : p.window_shape;
     const float pitch     = std::clamp(p.shimmer, -1.0f, 1.0f);
     const float random    = Random();
     float       semitones = random * pitch * kShimmerSemitones;

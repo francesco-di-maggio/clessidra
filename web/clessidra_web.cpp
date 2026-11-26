@@ -68,7 +68,7 @@ enum Param : size_t
     kFilter,
     kEnd,
     kStop,
-    kWarp,
+    kFlux,
     kSandLeft,
     kHeading,
     kNumParams
@@ -281,7 +281,7 @@ EXPORT const float* cl_params()
     params[kFilter]       = p.filter;
     params[kEnd]          = float(p.end);
     params[kStop]         = p.stop;
-    params[kWarp]         = p.warp;
+    params[kFlux]         = p.flux;
     params[kSandLeft]     = core.SandLeft();
     params[kHeading]      = float(core.Heading());
     return params;

@@ -65,10 +65,10 @@ namespace
 CoreUI::CoreUI()
 {
     twin_[Controls::S30] = Takeover(kFilter, true);
-    twin_[Controls::S31] = Takeover(kGrit);
-    twin_[Controls::S32] = Takeover(kSpread);
-    twin_[Controls::S33] = Takeover(kShimmer, true);
-    twin_[Controls::S34] = Takeover(kWarp);
+    twin_[Controls::S31] = Takeover(kSpread);
+    twin_[Controls::S32] = Takeover(kGrit);
+    twin_[Controls::S33] = Takeover(kFlux);
+    twin_[Controls::S34] = Takeover(kShimmer, true);
     twin_[Controls::S35] = Takeover(kReverb);
     twin_[Controls::S36] = Takeover(kMix);
     twin_[Controls::S37] = Takeover(kJitter);
@@ -113,10 +113,10 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.freeze = frozen || speed == 0.0f;
     p.end    = EndOf(c.switches[Controls::S07]);
 
-    // S31, Size: kMinGrainMs to kMaxGrainMs, exponential, 100 ms at the
+    // S32, Size: kMinGrainMs to kMaxGrainMs, exponential, 100 ms at the
     // centre, up to half the recording. Shift, Grit: its randomness.
     const float seconds = float(core.SoundSamples()) / float(kSampleRateHz);
-    const float size    = Detent(own(Controls::S31), 0.05f);
+    const float size    = Detent(own(Controls::S32), 0.05f);
     const float top_ms
         = seconds > 0.0f
               ? std::clamp(500.0f * seconds, kMinGrainMs, kMaxGrainMs)
@@ -125,7 +125,7 @@ void CoreUI::Process(const Controls& c, Core& core)
         kMinGrainMs * std::pow(kMaxGrainMs / kMinGrainMs, size), top_ms);
     p.min_grain_ms   = kMinGrainMs;
     p.max_grain_ms   = top_ms;
-    const float grit = twin(Controls::S31);
+    const float grit = twin(Controls::S32);
     p.grit           = grit * grit / 4.0f;
 
     // S37, Density: grains per second, none at the bottom, then 1, 5, 20,
@@ -133,26 +133,26 @@ void CoreUI::Process(const Controls& c, Core& core)
     p.density = Stops(0.5f + 0.5f * own(Controls::S37), kDensities);
     p.jitter  = twin(Controls::S37);
 
-    // S32, Spray: how far each grain strays from the playhead, evenly, up
+    // S31, Spray: how far each grain strays from the playhead, evenly, up
     // to the whole loop. Shift, Spread: each grain's pan, centred to the
     // whole stereo field.
-    const float spray = own(Controls::S32);
+    const float spray = own(Controls::S31);
     p.spray           = spray * spray;
-    p.spread          = twin(Controls::S32);
+    p.spread          = twin(Controls::S31);
 
-    // S33, Pitch. Shift, Shimmer: its randomness, none at the centre. Up:
+    // S34, Pitch. Shift, Shimmer: its randomness, none at the centre. Up:
     // free, to an octave either way. Down: in octaves, more grains an octave
     // away.
     const float semitones
-        = Stops(Detent(own(Controls::S33), 0.05f), kIntervals);
-    const float shimmer = 2.0f * Detent(twin(Controls::S33), 0.05f) - 1.0f;
+        = Stops(Detent(own(Controls::S34), 0.05f), kIntervals);
+    const float shimmer = 2.0f * Detent(twin(Controls::S34), 0.05f) - 1.0f;
     p.pitch             = std::exp2(semitones / 12.0f);
     p.shimmer           = shimmer < 0.0f ? shimmer : shimmer * shimmer;
 
-    // S34, Shape: the grain's window, square, decay, bell and reverse at
-    // even steps along the knob. Shift, Warp: its randomness.
-    p.window_shape = own(Controls::S34);
-    p.warp         = twin(Controls::S34);
+    // S33, Shape: the grain's window, square, decay, bell and reverse at
+    // even steps along the knob. Shift, Flux: its randomness.
+    p.window_shape = own(Controls::S33);
+    p.flux         = twin(Controls::S33);
 
     const bool trig = Transport(c, p);
     core.SetParams(p);
@@ -298,11 +298,11 @@ void CoreUI::Slices(const Controls& c, const Core& core, Core::Params& p)
 void CoreUI::Pulse(const Controls& c, const std::array<bool, kNumDetents>& at)
 {
     const std::array<float, kNumDetents> values
-        = {own_[Controls::S33].Value(),
+        = {own_[Controls::S34].Value(),
            own_[Controls::S36].Value(),
-           own_[Controls::S31].Value(),
+           own_[Controls::S32].Value(),
            twin_[Controls::S30].Value(),
-           twin_[Controls::S33].Value()};
+           twin_[Controls::S34].Value()};
     if(!detents_ready_)
     {
         // Power-up: no pulse

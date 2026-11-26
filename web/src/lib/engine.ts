@@ -25,7 +25,7 @@ export const VIEW_SIZE = 4;
 // low-pass, 0 off, 1 high-pass. end: End, 0 once, 1 turn, 2 loop. shape: 0
 // square, 1/3 decay, 2/3 bell, 1 reverse. sandLeft: of the loop, ahead of the playhead, 0..1. heading: 1, or -1
 // turned over at an end.
-export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, jitter: 6, shimmer: 7, shape: 8, start: 9, length: 10, mix: 11, spray: 12, grit: 13, spread: 14, filter: 15, end: 16, stop: 17, warp: 18, sandLeft: 19, heading: 20 } as const;
+export const PARAM = { speed: 0, freeze: 1, density: 2, grainMs: 3, pitch: 4, reverb: 5, jitter: 6, shimmer: 7, shape: 8, start: 9, length: 10, mix: 11, spray: 12, grit: 13, spread: 14, filter: 15, end: 16, stop: 17, flux: 18, sandLeft: 19, heading: 20 } as const;
 export const PARAM_SIZE = 21;
 export const SLICES = 7; // Onsets::kNumSlices
 export const KNOBS = 8; // Controls::kNumKnobs. cl_values: own, then twins

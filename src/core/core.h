@@ -113,12 +113,12 @@ class Core
         // selection, centred on the playhead, round the selection. Grit: the
         // size, between min_grain_ms and max_grain_ms, exponential. Shimmer:
         // the pitch, up to kShimmerSemitones either way. Below 0, to -1: in
-        // octaves, the odds rising to kShimmerOctaveOdds. Warp: the shape,
+        // octaves, the odds rising to kShimmerOctaveOdds. Flux: the shape,
         // anywhere from reverse percussive to percussive.
         float spray   = 0.0f;
         float grit    = 0.0f;
         float shimmer = 0.0f;
-        float warp    = 0.0f;
+        float flux    = 0.0f;
         // Starts from periodic, 0, to random intervals, 1: mostly short, a
         // long tail. The same mean.
         float jitter = 0.0f;

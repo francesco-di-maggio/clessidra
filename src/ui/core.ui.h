@@ -40,16 +40,16 @@ class CoreUI
     static constexpr float kDensities[]
         = {0.0f, 1.0f, 5.0f, 20.0f, 80.0f, 320.0f};
 
-    // S31, Size: from kMinGrainMs to kMaxGrainMs, exponential
+    // S32, Size: from kMinGrainMs to kMaxGrainMs, exponential
     static constexpr float kMinGrainMs = 5.0f;
     static constexpr float kMaxGrainMs = 2000.0f;
 
     // The first layer's values after a reset: the recording as it is. 1x and
     // 20 grains per second at the middle of their stop's flat third.
     static constexpr float kStopMiddle = 0.6333f;
-    // S30 to S37: Position, Size, Spray, Pitch, Shape, Length, Speed, Density
+    // S30 to S37: Position, Spray, Size, Shape, Pitch, Length, Speed, Density
     static constexpr std::array<float, Controls::kNumKnobs> kOwnDefaults
-        = {0.0f, 0.5f, 0.0f, 0.5f, 2.0f / 3.0f, 1.0f, kStopMiddle, kStopMiddle};
+        = {0.0f, 0.0f, 0.5f, 2.0f / 3.0f, 0.5f, 1.0f, kStopMiddle, kStopMiddle};
 
     // The second layer's values at power-up and after a reset: sizes,
     // pitches and shapes as set, centred, the filter off, no reverb, all
@@ -57,7 +57,7 @@ class CoreUI
     // recording as it is.
     static constexpr float kShimmer = 0.5f;
     static constexpr float kGrit    = 0.0f;
-    static constexpr float kWarp    = 0.0f;
+    static constexpr float kFlux    = 0.0f;
     static constexpr float kSpread  = 0.0f;
     static constexpr float kFilter  = 0.5f;
     static constexpr float kReverb  = 0.0f;
@@ -65,7 +65,7 @@ class CoreUI
     static constexpr float kJitter  = 0.0f;
     // S30 to S37
     static constexpr std::array<float, Controls::kNumKnobs> kTwinDefaults
-        = {kFilter, kGrit, kSpread, kShimmer, kWarp, kReverb, kMix, kJitter};
+        = {kFilter, kSpread, kGrit, kFlux, kShimmer, kReverb, kMix, kJitter};
 
     // Pad pressure, measured (Pads): light 0.31-0.53, medium 0.59-0.72, hard
     // 0.78-0.98. From kFirmPressure, P00 halts and the slices play full. A
@@ -116,7 +116,7 @@ class CoreUI
     static constexpr size_t kNumDetents = 5;
     // Knobs whose own value means most at the centre: Size, Pitch
     static constexpr std::array<bool, Controls::kNumKnobs> kCentred
-        = {false, true, false, true, false, false, false, false};
+        = {false, false, true, false, true, false, false, false};
 
     // The knobs' values on both layers. Frozen, S36 scrubs instead.
     void Knobs(const Controls& c, bool frozen);
