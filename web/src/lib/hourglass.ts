@@ -28,6 +28,7 @@ const FALL = 12; // px a second, the thread at 1×: at 4× still under half a gr
 const FRESH_MS = 200; // without news for this long: the thread still
 const DROP_MS = 700; // one grain from the neck to the sand, falling faster
 const REPOSE = 0.6; // the sand's slope upright: about 31°, as dry sand rests
+const FILL = 0.75; // of a bulb, all the sand: full above, the rest air
 // The grains as sand. Size: a dot from MIN_DOT px at 5 ms to MAX_DOT at 2 s,
 // exponential. Density: the thread's dots one to THREAD_GAPS grid steps apart,
 // from 320 a second down to 0.25. Spray: the thread's dots stray sideways up
@@ -204,9 +205,10 @@ export class Hourglass {
       // Upright, a funnel above and a heap below; on its side, both level
       const slope = REPOSE * (1 - (1 - SPREAD) * spray) * Math.abs(Math.cos(this.angle));
       const above = inside(ahead);
-      // Full, the sand above lies level with the top of its bulb
-      const from = pile(above, left, -slope, Math.min(...above.map((q) => q[1])));
-      const into = pile(inside(-ahead), 1 - left, slope);
+      // The sand above drains as a crater from where it lay level, full
+      const rim = pile(above, FILL, 0).level;
+      const from = pile(above, left * FILL, -slope, rim);
+      const into = pile(inside(-ahead), (1 - left) * FILL, slope);
       ctx.fillStyle = accent;
       ctx.beginPath();
       dots(above, from.surface);
@@ -220,7 +222,11 @@ export class Hourglass {
         if (t < 1) ctx.rect(cx - SIZE / 2, cy + (into.level - cy) * t * t - SIZE / 2, SIZE, SIZE);
       } else {
         const step = DOT * gaps;
-        for (let y = cy + (this.fallen % step); gaps && speed > 0 && left > 0 && y < into.level; y += step) {
+        // Falling from rest at the neck, faster as it goes: a grain s along
+        // the thread is s² / drop below the neck, so they part as they fall
+        const drop = into.level - cy;
+        for (let s = this.fallen % step; gaps && speed > 0 && left > 0 && drop > 0 && s < drop; s += step) {
+          const y = cy + (s * s) / drop;
           // Scattered by Spray, the same way for a row of the grid
           const row = Math.round((y - cy) / DOT);
           const stray = Math.round(spray * (2 * Math.abs(Math.sin(row * 12.9898) * 43758.5453 % 1) - 1)) * DOT;
