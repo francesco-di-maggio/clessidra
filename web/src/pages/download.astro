@@ -12,17 +12,17 @@ const pdf = `<svg class="file" viewBox="0 0 24 24" aria-label="PDF"><path d="M6 
 
 <section class="sect">
   <h2 class="label">Steps</h2>
-  <ol class="rows steps measure">
-    <li class="row"><span class="label">01</span><span>Download the <a href="https://github.com/francesco-di-maggio/clessidra/releases/latest/download/clessidra.bin">Firmware</a>.</span></li>
-    <li class="row"><span class="label">02</span><span>Connect the Seed over USB.</span></li>
-    <li class="row"><span class="label">03</span><span>Hold BOOT, tap RESET, then release BOOT.</span></li>
-    <li class="row"><span class="label">04</span><span>Flash the firmware on the <a href="https://flash.daisy.audio/">Daisy Web Programmer</a> (from Chrome or Edge).</span></li>
+  <ol class="rows steps">
+    <li class="row"><span class="label">1</span><span>Download the <a href="https://github.com/francesco-di-maggio/clessidra/releases/latest/download/clessidra.bin">Firmware</a>.</span></li>
+    <li class="row"><span class="label">2</span><span>Connect the Seed over USB.</span></li>
+    <li class="row"><span class="label">3</span><span>Hold BOOT, tap RESET, then release BOOT.</span></li>
+    <li class="row"><span class="label">4</span><span>Flash the firmware on the <a href="https://flash.daisy.audio/">Daisy Web Programmer</a> (from Chrome or Edge).</span></li>
   </ol>
 </section>
 
 <section class="sect">
   <h2 class="label">Resources</h2>
-  <ul class="links-list measure">
+  <ul class="links-list">
     <li><a href={url("clessidra-manual.pdf")} download><span class="text"><b>Manual</b><span class="sub">A4, 2 pages</span></span><Fragment set:html={pdf} /></a></li>
     <li><a href={url("clessidra-engine.pdf")} download><span class="text"><b>Engine</b><span class="sub">How it works, A4</span></span><Fragment set:html={pdf} /></a></li>
     <li><a href="https://github.com/francesco-di-maggio/clessidra/releases"><span class="text"><b>Releases</b><span class="sub">Changes per version</span></span><span class="arrow" aria-hidden="true">→</span></a></li>

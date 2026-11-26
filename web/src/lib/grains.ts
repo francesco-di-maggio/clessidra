@@ -2,7 +2,7 @@
 // reduced motion: drawn once where they are.
 interface Grain { x: number; y: number; r: number; speed: number; alpha: number }
 
-const AREA = 14000; // px² a grain
+const AREA = 18000; // px² a grain
 const SPEED = [4, 14]; // px/s
 
 export function fall(canvas: HTMLCanvasElement) {
@@ -19,7 +19,7 @@ export function fall(canvas: HTMLCanvasElement) {
     y,
     r: 0.6 + Math.random() * 0.9,
     speed: SPEED[0] + Math.random() * (SPEED[1] - SPEED[0]),
-    alpha: 0.2 + Math.random() * 0.5,
+    alpha: 0.15 + Math.random() * 0.35,
   });
 
   function size() {

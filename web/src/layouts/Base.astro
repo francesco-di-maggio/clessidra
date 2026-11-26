@@ -6,21 +6,21 @@ import "../styles/site.css";
 import { url } from "../lib/url";
 import { COLOUR, css, matrix } from "../lib/tokens";
 
-// Play is a part with its own structure: no footer, the page fills the
-// screen, on phones no nav row. Reading pages are light, dark on a dark system.
+// Play is a part with its own structure: the logo and its name, no nav row,
+// no footer, the page fills the screen. Reading pages are light, dark on a dark system.
 interface Props {
   title?: string;
   description?: string;
   app?: boolean;
-  reading?: boolean;
 }
 
-const { title, app = false, reading = false, description = "A real-time granular sampler inspired by the hourglass, for the Synthux Simple Touch 2." } = Astro.props;
+const { title, app = false, description = "A real-time granular sampler inspired by the hourglass, for the Synthux Simple Touch 2." } = Astro.props;
 const pageTitle = title ? `${title} · Clessidra` : "Clessidra";
 const path = Astro.url.pathname;
 const nav = [
   { path: "play/", title: "Play" },
   { path: "controls/", title: "Controls" },
+  { path: "faceplate/", title: "Faceplate" },
   { path: "engine/", title: "Engine" },
   { path: "download/", title: "Download" },
   { path: "feedback/", title: "Feedback" },
@@ -29,16 +29,11 @@ const current = (p: string) => path.startsWith(url(p));
 const logo = matrix([..."CLESSIDRA"], "currentColor", 'class="logo" aria-hidden="true"');
 ---
 <!doctype html>
-<html lang="en" class={reading ? "reading" : undefined}>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-{reading ? (
-  <>
-    <meta name="theme-color" content={COLOUR.light.bg} media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content={COLOUR.black.bg} media="(prefers-color-scheme: dark)">
-  </>
-) : <meta name="theme-color" content={COLOUR.black.bg}>}
+<meta name="theme-color" content={COLOUR.black.bg}>
 <style is:inline set:html={css()}></style>
 <title>{pageTitle}</title>
 <meta name="description" content={description}>
@@ -56,14 +51,17 @@ const logo = matrix([..."CLESSIDRA"], "currentColor", 'class="logo" aria-hidden=
 <slot name="head" />
 </head>
 <body class={app ? "app" : undefined}>
+{!app && <canvas class="dust" aria-hidden="true"></canvas>}
 <header>
   <a class="mark" href={url()} aria-label="Clessidra"><Fragment set:html={logo} /></a>
   {app && <span class="label crumb"><span class="slash" aria-hidden="true">/</span>{title}</span>}
   <slot name="end" />
 </header>
-<nav class="label" aria-label="Pages">
-  {nav.map((s) => <a href={url(s.path)} aria-current={current(s.path) ? "page" : undefined}>{s.title}</a>)}
-</nav>
+{!app && (
+  <nav class="label" aria-label="Pages">
+    {nav.map((s) => <a href={url(s.path)} aria-current={current(s.path) ? "page" : undefined}>{s.title}</a>)}
+  </nav>
+)}
 <main>
   <slot />
 </main>
@@ -76,6 +74,12 @@ const logo = matrix([..."CLESSIDRA"], "currentColor", 'class="logo" aria-hidden=
       <a href="mailto:f.di.maggio@tue.nl">Email</a>
     </span>
   </footer>
+)}
+{!app && (
+  <script>
+    import { fall } from "../lib/grains";
+    fall(document.querySelector<HTMLCanvasElement>(".dust")!);
+  </script>
 )}
 </body>
 </html>

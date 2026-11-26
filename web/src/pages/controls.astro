@@ -6,7 +6,7 @@ import { CONTROLS } from "../lib/controls";
 // What the help shows for each control, by id
 const help = Object.fromEntries(CONTROLS.filter((c) => !c.free).map((c) => [c.id, { name: c.name, does: c.does ?? "", twin: c.twin?.name ?? "", twinDoes: c.twin?.does ?? "" }]));
 ---
-<Base title="Controls" reading description="Clessidra's controls on the Synthux Simple Touch 2.">
+<Base title="Controls" description="Clessidra's controls on the Synthux Simple Touch 2.">
 <div class="head">
   <h1>Controls</h1>
   <p class="lead">What each control of the Simple Touch 2 does.</p>

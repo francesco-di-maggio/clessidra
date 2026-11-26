@@ -7,7 +7,7 @@ html { background: var(--bg); overflow-x: clip; scrollbar-gutter: stable; -webki
 body { --edge: 16px;
        display: flex; flex-direction: column; max-width: 672px; min-height: 100dvh; margin: 0 auto;
        padding: env(safe-area-inset-top) var(--edge) env(safe-area-inset-bottom);
-       background: var(--bg); color: var(--ink); font: 500 var(--text)/var(--line-text) var(--sans);
+       color: var(--ink); font: 500 var(--text)/var(--line-text) var(--sans);
        -webkit-tap-highlight-color: transparent; }
 main { flex: 1; display: flex; flex-direction: column; }
 a { color: inherit; text-underline-offset: 4px; text-decoration-thickness: 1px; text-decoration-color: var(--dim); }
@@ -16,32 +16,31 @@ a:hover { text-decoration-color: var(--ink); }
 @view-transition { navigation: auto; }
 @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
 
+/* The faceplate's legends. A second function's: 600, capitals, tracked. */
 .label { font: 600 var(--text)/var(--line-text) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--dim); }
 h1, h2, h3 { margin: 0; font-weight: 600; }
-h1 { font-size: var(--title); line-height: var(--line-title); text-wrap: balance; }
+/* A page's name as a control's: 700, capitals, tracked, gold */
+h1 { font: 700 var(--title)/var(--line-title) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
+/* A section's name as a second function: gold, between dots */
+.sect > h2.label { color: var(--accent); }
+.sect > h2.label::before { content: "•••"; margin-right: 0.6em; letter-spacing: 0.15em; }
+.sect > h2.label::after { content: "•"; margin-left: 0.6em; }
 .lead { margin: 0; color: var(--dim); text-wrap: pretty; max-width: 40em; }
 p { margin: 0; }
 
 /* Header: the logo. Under it the pages, on a hairline, the current one
-   on a gold rule. */
+   on a gold rule. On Play the logo and the page's name, no pages. */
 header { display: flex; align-items: center; gap: 12px; min-height: 64px; }
 .mark { display: flex; color: var(--accent); }
 .mark .logo { display: block; height: 21px; width: auto; }
 .crumb { display: flex; gap: 12px; color: var(--ink); }
+body.app header { border-bottom: 1px solid var(--line); }
 .crumb .slash { color: var(--dim); }
 nav { display: flex; flex-wrap: wrap; gap: 0 24px; border-bottom: 1px solid var(--line); }
 nav a { flex: none; padding: 4px 0 10px; margin-bottom: -1px; text-decoration: none; border-bottom: 2px solid transparent; }
 nav a:hover { color: var(--ink); }
 nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
 @media (max-width: 480px) { nav { gap: 0 18px; } }
-/* Play on a phone: the logo is the way back, the recording keeps the room */
-@media (max-width: 639px) {
-  body.app nav { display: none; }
-  body.app header { min-height: 48px; }
-  body.app main { padding-top: 0; }
-}
-@media (min-width: 640px) { .crumb { display: none; } }
-
 footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 24px 0 32px; border-top: 1px solid var(--line); }
 footer a { text-decoration: none; }
 footer a:hover { color: var(--ink); }
@@ -51,7 +50,6 @@ footer .links { display: flex; gap: 24px; }
 .head { display: grid; gap: 4px; padding: 48px 0 32px; }
 /* A section: its name over what it holds. One hairline over it. */
 .sect { display: grid; gap: 16px; padding: 24px 0 40px; border-top: 1px solid var(--line); }
-.measure { max-width: 40em; }
 
 .prose p { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
            hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
@@ -107,50 +105,63 @@ a:hover .arrow { color: var(--ink); }
 .segmented input { position: absolute; opacity: 0; pointer-events: none; }
 .segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
 
-/* Home: the line and the call over the faceplate, grains falling behind
-   across the whole window */
-.hero { position: relative; isolation: isolate; display: grid; gap: 32px; padding: 48px 0 40px; }
-.hero .grains { position: absolute; top: 0; left: 50%; z-index: -1; width: 100vw; height: 100%; transform: translateX(-50%); pointer-events: none; }
-.hero .intro { display: grid; gap: 16px; }
-.hero .intro .lead { color: var(--ink); font-size: var(--title); line-height: var(--line-title); }
-.hero .intro .control { width: auto; justify-self: start; margin-top: 8px; }
-.hero .plate { margin: 0; }
-/* The plate's own black lifted off the page's, so its outline shows */
-.hero .plate #mask path { fill: var(--surface); }
-.hero .plate svg { display: block; width: 100%; height: auto; }
-/* The facts beside the minute as sand */
-.facts { display: flex; gap: 48px; align-items: flex-start; }
-.facts .meta { flex: 1; }
-.clock { flex: none; width: 44px; height: 92px; }
-@media (max-width: 560px) { .clock { display: none; } }
+/* Dust: grains falling slowly behind every page but Play */
+.dust { position: fixed; inset: 0; z-index: -1; width: 100%; height: 100%; pointer-events: none; }
 
-/* The panel: the Simple Touch 2 as a drawing, every control where it sits */
+/* Home, on one screen: the line, the call, what it is, beside the minute
+   as sand */
+.home { display: grid; gap: 40px; align-items: center; padding: 48px 0; flex: 1; }
+@media (min-width: 560px) { .home { grid-template-columns: minmax(0, 1fr) 112px; } }
+.home .intro { display: grid; gap: 16px; align-content: center; }
+.home .intro .lead { color: var(--ink); font-size: var(--title); line-height: var(--line-title); }
+.home .intro .control { width: auto; justify-self: start; margin: 8px 0; }
+.status { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.status a { text-decoration: none; }
+.status a:hover { color: var(--ink); }
+.clock { width: 112px; height: 240px; --band: 112px; }
+@media (max-width: 559px) { .clock { display: none; } }
+
+/* Faceplate: the art, its colours, its type */
+.art { margin: 0; padding: 32px 0 40px; }
+.art svg { display: block; width: 100%; height: auto; }
+.art #mask path { fill: var(--surface); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.swatch { display: grid; gap: 4px; }
+.swatch::before { content: ""; height: 56px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--c); }
+.swatch b { font-weight: 600; }
+.swatch code { font: 500 var(--text)/var(--line-text) var(--sans); color: var(--dim); font-variant-numeric: tabular-nums; }
+.type .name { font: 700 var(--title)/var(--line-title) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
+.type .second { color: var(--accent); }
+.type .second::before { content: "•••"; margin-right: 0.6em; letter-spacing: 0.15em; }
+.type .second::after { content: "•"; margin-left: 0.6em; }
+
+/* The panel: the Simple Touch 2 drawn as the faceplate is. Gold rings on
+   wells, the names in gold capitals, the codes dim. The control pointed at
+   in light. */
 svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh - 120px); margin: 0 auto; }
-.touch .plate { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
-.touch .hole { fill: var(--surface); stroke: var(--dim); stroke-width: 2; }
+.touch .plate { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
+.touch .hole { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
 .touch .board .edge { fill: none; stroke: var(--line); stroke-width: 2; }
-.touch .board .usb { fill: var(--dim); }
-.touch .board text { font: 600 15px var(--sans); letter-spacing: 0.12em; fill: var(--dim); text-anchor: middle; }
+.touch .board .usb { fill: var(--well); }
+.touch .board text { font: 600 15px var(--sans); letter-spacing: 0.1em; fill: var(--dim); text-anchor: middle; }
 .touch .code.side { text-anchor: start; }
 .touch .ctl { cursor: pointer; outline: none; }
 .touch .ctl .hit { fill: transparent; }
-.touch .ring { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
-.touch .arc { fill: none; stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
-.touch .track { fill: none; stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
-.touch .travel { fill: none; stroke: var(--ink); stroke-width: 6; stroke-linecap: round; }
-.touch .cap { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.touch .ring, .touch circle.pad, .touch .slot, .touch .cap { fill: var(--well); stroke: var(--accent); stroke-width: 2.5; }
+.touch .arc, .touch .travel { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; }
+.touch .track { fill: none; stroke: var(--line); stroke-width: 5; stroke-linecap: round; }
 .touch .tick { stroke: var(--dim); stroke-width: 2; }
-.touch circle.pad { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
-.touch circle.pad.press { fill: var(--accent); stroke: var(--accent); }
-.touch .slot { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
-.touch .lever { fill: var(--ink); }
-.touch .code { font: 600 15px var(--sans); letter-spacing: 0.04em; fill: var(--dim); text-anchor: middle; pointer-events: none; }
-.touch .name { font: 600 17px var(--sans); fill: var(--ink); text-anchor: middle; pointer-events: none; }
-.touch .ctl:focus-visible .ring, .touch .ctl:focus-visible circle.pad, .touch .ctl:focus-visible .cap, .touch .ctl:focus-visible .slot { stroke: var(--accent); }
-.touch .ctl.active .ring, .touch .ctl.active circle.pad, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke: var(--accent); stroke-width: 3; }
+.touch .lever { fill: var(--accent); }
+.touch circle.pad.press { fill: var(--accent); }
+.touch .code { font: 600 14px var(--sans); letter-spacing: 0.06em; fill: var(--dim); text-anchor: middle; pointer-events: none; }
+.touch .name { font: 700 15px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; fill: var(--accent); text-anchor: middle; pointer-events: none; }
+.touch .ctl:hover .ring, .touch .ctl:hover circle.pad, .touch .ctl:hover .slot, .touch .ctl:hover .cap,
+.touch .ctl:focus-visible .ring, .touch .ctl:focus-visible circle.pad, .touch .ctl:focus-visible .cap, .touch .ctl:focus-visible .slot,
+.touch .ctl.active .ring, .touch .ctl.active circle.pad, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke: var(--ink); }
+.touch .ctl.active .name { fill: var(--ink); }
 .touch .jack { fill: none; stroke: var(--dim); stroke-width: 2; }
 .touch .free .ring, .touch .free circle.pad, .touch .free .slot { stroke: var(--line); }
-.touch .free .name { fill: var(--dim); font-weight: 500; }
+.touch .free .name { fill: var(--dim); }
 .touch .free { cursor: default; }
 
 /* Controls: the panel beside its help, one screen on a laptop */
@@ -164,7 +175,7 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 .mapping.measuring .stack { align-self: start; grid-template-rows: none; }
 .help { display: grid; align-content: start; }
 .help .layer { display: grid; gap: 4px; align-content: start; }
-.help b { font-size: var(--title); line-height: var(--line-title); font-weight: 600; }
+.help b { font: 700 var(--title)/var(--line-title) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
 /* Justified and hyphenated, no lone last word */
 .help p { margin: 0; color: var(--dim); text-wrap: pretty; text-align: justify; text-align-last: left;
           hyphens: auto; -webkit-hyphens: auto; hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }

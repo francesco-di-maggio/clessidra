@@ -1,38 +1,21 @@
 ---
 import Base from "../layouts/Base.astro";
 import { url } from "../lib/url";
-import faceplate from "../../../faceplate/clessidra-faceplate.svg?raw";
-
-const plate = faceplate.replace(/^<\?xml[^>]*>\s*/, "").replace("<svg ", '<svg role="img" aria-label="The Clessidra faceplate on the Simple Touch 2" ');
 ---
 <Base>
-<section class="hero">
-  <canvas class="grains" aria-hidden="true"></canvas>
+<section class="home">
   <div class="intro">
     <p class="label">Granular touch sampler</p>
     <p class="lead">It's the instrument where you pour grains of sound from single drops into a dense cloud.</p>
+    <p class="prose">A real-time granular sampler inspired by the hourglass. It explores the slow emptying of the glass and the fast trickle of single grains. It lets you capture and bend time through sound, slowing it down, speeding it up, reversing it or freezing it. Broken grains, like sand, are gathered and pieced back together, never quite the same and never fully still.</p>
     <a class="control primary" href={url("play/")}>Play in the browser <span class="arrow" aria-hidden="true">→</span></a>
+    <p class="label status">
+      <span class="live">In progress</span>
+      <a href="https://www.synthux.academy/residency">Synthux Residency 2026</a>
+      <a href="https://youtu.be/RqA2F2Bw7CE">How to play</a>
+    </p>
   </div>
-  <figure class="plate"><Fragment set:html={plate} /></figure>
-</section>
-
-<section class="sect">
-  <h2 class="label">About</h2>
-  <div class="prose measure"><p>A real-time granular sampler inspired by the hourglass. It explores the slow emptying of the glass and the fast trickle of single grains. It lets you capture and bend time through sound, slowing it down, speeding it up, reversing it or freezing it. Broken grains, like sand, are gathered and pieced back together, never quite the same and never fully still.</p></div>
-</section>
-
-<section class="sect">
-  <h2 class="label">Facts</h2>
-  <div class="facts measure">
-    <dl class="meta">
-      <dt class="label">Status</dt><dd class="live">In progress</dd>
-      <dt class="label">Made at</dt><dd><a href="https://www.synthux.academy/residency">Synthux Design Residency 2026</a></dd>
-      <dt class="label">Hardware</dt><dd><a href="https://www.synthux.academy/">Synthux Simple Touch 2</a>, <a href="https://daisy.audio/">Electrosmith Daisy Seed</a></dd>
-      <dt class="label">Video</dt><dd><a href="https://youtu.be/RqA2F2Bw7CE">How to play</a></dd>
-      <dt class="label">Licence</dt><dd>MIT</dd>
-    </dl>
-    <canvas id="clock" class="clock" role="img" aria-label="The minute as sand: a grain each second"></canvas>
-  </div>
+  <canvas id="clock" class="clock" role="img" aria-label="The minute as sand: a grain each second"></canvas>
 </section>
 </Base>
 
@@ -41,7 +24,6 @@ const plate = faceplate.replace(/^<\?xml[^>]*>\s*/, "").replace("<svg ", '<svg r
   // a grain falls, the bulb above holds what is left of the minute.
   import { Hourglass } from "../lib/hourglass";
   import { PARAM, PARAM_SIZE } from "../lib/engine";
-  import { fall } from "../lib/grains";
   const glass = new Hourglass(document.getElementById("clock") as HTMLCanvasElement, true);
   const params = new Float32Array(PARAM_SIZE);
   params[PARAM.speed] = 1;
@@ -53,5 +35,4 @@ const plate = faceplate.replace(/^<\?xml[^>]*>\s*/, "").replace("<svg ", '<svg r
   // On the second, as a clock ticks
   tick();
   setTimeout(() => (tick(), setInterval(tick, 1000)), 1000 - new Date().getMilliseconds());
-  fall(document.querySelector<HTMLCanvasElement>(".grains")!);
 </script>

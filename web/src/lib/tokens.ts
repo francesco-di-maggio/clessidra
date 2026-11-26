@@ -2,12 +2,11 @@
 // them as CSS variables, the canvases read those, the logo, icon and link
 // image are drawn from the glyphs.
 
-// Black: Home, Play and the short pages. Light: the reading pages, dark again
-// where the system asks for it.
+// Black on screen, every page. Light only on paper.
 const BLACK = {
   bg: "#0b0b0c",
   surface: "#111111",
-  well: "#1d1c1a",
+  well: "#2c2c31",
   line: "#2e2c28",
   ink: "#ecebe4",
   dim: "#a09d93",
@@ -26,8 +25,10 @@ const LIGHT = {
 };
 export const COLOUR = { black: BLACK, light: LIGHT };
 
-// Two sizes, 1.25 apart. Labels in capitals, tracked.
-export const SIZE = { text: 16, title: 20, line: 24, titleLine: 28, track: "0.1em", radius: 4 };
+// The faceplate's two legends, 1.2 apart: a control's name (title, 700) and
+// its second function (text, 600), both in capitals, tracked 0.1em.
+// Sentences at the text size, 500.
+export const SIZE = { text: 15, title: 18, line: 22, titleLine: 24, track: "0.1em", radius: 4 };
 export const FONT = `"Barlow Semi Condensed", system-ui, sans-serif`;
 
 // Dot matrix, 7 rows, # a dot. A dot is DOT of its pitch, one empty column
@@ -69,14 +70,11 @@ export function matrix(chars: string[], fill = "currentColor", attrs = "") {
 
 const vars = (c: typeof BLACK) => Object.entries(c).map(([k, v]) => `--${k}:${v};`).join("");
 
-// The variables: black at the root, light on .reading, dark on .reading for
-// a dark system, light whenever printed
+// The variables: black on screen, light when printed
 export function css() {
   const s = SIZE;
   return [
     `:root{${vars(BLACK)}--sans:${FONT};--text:${s.text}px;--title:${s.title}px;--line-text:${s.line}px;--line-title:${s.titleLine}px;--track:${s.track};--radius:${s.radius}px;color-scheme:dark}`,
-    `.reading{${vars(LIGHT)}color-scheme:light}`,
-    `@media (prefers-color-scheme:dark){.reading{${vars(BLACK)}color-scheme:dark}}`,
-    `@media print{:root,.reading{${vars(LIGHT)}color-scheme:light}}`,
+    `@media print{:root{${vars(LIGHT)}color-scheme:light}}`,
   ].join("\n");
 }
