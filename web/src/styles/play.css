@@ -134,8 +134,13 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) calc(30% + var(--pressure) * 70%), var(--bg)); color: var(--bg); }
 .pad.free { pointer-events: none; color: var(--dim); background: none; border-style: dashed; }
 
-/* Little height: the page scrolls rather than squeezing */
+/* A laptop's height: the recording gives up room first, the page stays on
+   one screen. Littler still: the page scrolls rather than cutting a tile. */
 @media (max-height: 800px) {
+  body.app main { padding: 8px 0 12px; }
+  .instrument { grid-template-rows: 56px minmax(120px, 1fr) auto auto; }
+}
+@media (max-height: 700px) {
   body.app { height: auto; min-height: 100dvh; overflow: visible; }
   .instrument { height: auto; grid-template-rows: 56px 296px auto auto; }
 }

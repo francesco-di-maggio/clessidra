@@ -3,7 +3,7 @@
    family's. */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { background: var(--bg); overflow-x: clip; -webkit-text-size-adjust: 100%; }
+html { background: var(--bg); overflow-x: clip; scrollbar-gutter: stable; -webkit-text-size-adjust: 100%; }
 body { --edge: 16px;
        display: flex; flex-direction: column; max-width: 672px; min-height: 100dvh; margin: 0 auto;
        padding: env(safe-area-inset-top) var(--edge) env(safe-area-inset-bottom);
@@ -35,7 +35,6 @@ nav a:hover { color: var(--ink); }
 nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
 @media (max-width: 480px) { nav { gap: 0 18px; } }
 /* Play on a phone: the logo is the way back, the recording keeps the room */
-body.app header { min-height: 48px; }
 @media (max-width: 639px) {
   body.app nav { display: none; }
   body.app header { min-height: 48px; }
