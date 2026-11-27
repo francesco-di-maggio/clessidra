@@ -6,8 +6,8 @@ import "../styles/site.css";
 import { url } from "../lib/url";
 import { COLOUR, css, matrix } from "../lib/tokens";
 
-// Play is a part with its own structure: the logo and its name, no nav row,
-// no footer, the page fills the screen. Reading pages are light, dark on a dark system.
+// Play is a part with its own structure: no footer, the page fills the
+// screen. On a phone the logo and its name in place of the pages. Reading pages are light, dark on a dark system.
 interface Props {
   title?: string;
   description?: string;
@@ -57,11 +57,9 @@ const logo = matrix([..."CLESSIDRA"], "currentColor", 'class="logo" aria-hidden=
   {app && <span class="label crumb"><span class="slash" aria-hidden="true">/</span>{title}</span>}
   <slot name="end" />
 </header>
-{!app && (
-  <nav class="label" aria-label="Pages">
-    {nav.map((s) => <a href={url(s.path)} aria-current={current(s.path) ? "page" : undefined}>{s.title}</a>)}
-  </nav>
-)}
+<nav class="label" aria-label="Pages">
+  {nav.map((s) => <a href={url(s.path)} aria-current={current(s.path) ? "page" : undefined}>{s.title}</a>)}
+</nav>
 <main>
   <slot />
 </main>
