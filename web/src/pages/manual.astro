@@ -8,11 +8,7 @@ import "@fontsource/barlow-semi-condensed/500.css";
 import "@fontsource/barlow-semi-condensed/600.css";
 import "@fontsource/barlow-semi-condensed/700.css";
 import { CONTROLS, LED, PLAY, byId } from "../lib/controls";
-import { FONT, matrix } from "../lib/tokens";
-
-// The name as the plate's wordmark, on the template's title line: its dots
-// as tall as the old title's capitals, standing on its baseline
-const wordmark = matrix([..."CLESSIDRA"], "#111", 'x="194" y="82.5" width="213" height="25.7"');
+import { FONT } from "../lib/tokens";
 
 const W = 595.276;
 const H = 841.89;
@@ -77,7 +73,7 @@ const SLICES = byId("P03");
 <head>
 <meta charset="utf-8">
 <title>Clessidra · Manual</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@200&display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400&display=block">
 <style is:inline set:html={`:root{--sans:${FONT}}`}></style>
 <style>
   @page { size: A4; margin: 0; }
@@ -85,8 +81,10 @@ const SLICES = byId("P03");
   body > svg { display: block; width: 210mm; height: 297mm; break-after: page; }
   text { font-family: var(--sans); fill: #111; }
   .name { font-size: 9.5px; font-weight: 600; }
-  /* Touch II in the template's own face, the name as the plate's wordmark */
-  .kicker { font-family: "Outfit", var(--sans); font-size: 19.6px; font-weight: 200; fill: #8a8a8a; }
+  /* Touch II and the name in the template's own face, as Synthux's manuals */
+  .kicker, .title { font-family: "Outfit", var(--sans); }
+  .kicker { font-size: 19.6px; font-weight: 200; fill: #8a8a8a; }
+  .title { font-size: 36px; font-weight: 400; letter-spacing: -0.2px; }
   .sub { font-size: 8px; }
   /* Codes and figures in Barlow, even-width figures, as on the site */
   .url, .code, .chip text, td:first-child { font-variant-numeric: tabular-nums; }
@@ -111,7 +109,7 @@ const SLICES = byId("P03");
        again with the instrument's name, on the same lines -->
   <rect x="188" y="56" width="226" height="58" fill="#fff" />
   <text class="kicker" x="192.5" y="76.8">Touch II</text>
-  <Fragment set:html={wordmark} />
+  <text class="title" x="194" y="108.2">Clessidra</text>
   <text class="sub" x={TITLE.x} y={TITLE.rules[0] - 4}>A real-time granular sampler for stretching, freezing and slicing time.</text>
   <text class="sub" x={TITLE.x} y={TITLE.rules[1] - 4}>By Francesco Di Maggio</text>
   <text class="url" x={TITLE.x} y={TITLE.rules[2] - 4}>v0.3 · francescodimaggio.nl/clessidra</text>
