@@ -69,10 +69,10 @@ html:has(.gain.dragging), html:has(.gain.dragging) * { cursor: ew-resize !import
 /* The controls row: a fader at each edge, the knobs and switches between.
    One rhythm in every tile: a name, a band for the control, a value. */
 .controls { grid-area: controls; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 4fr) minmax(0, 1fr); grid-template-areas: "speed knobs density"; }
-#speed, #density, .knobs { padding: var(--in) 0; }
+#speed, #density, .knobs { padding: 10px 0; }
 #speed { grid-area: speed; }
 #density { grid-area: density; }
-.knobs { grid-area: knobs; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 16px; padding-left: 8px; padding-right: 8px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+.knobs { grid-area: knobs; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 10px; padding-left: 8px; padding-right: 8px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 .cell { display: flex; justify-content: center; min-width: 0; }
 
 .knob { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
