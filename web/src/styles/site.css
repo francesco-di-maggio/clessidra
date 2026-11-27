@@ -76,11 +76,6 @@ footer .links a[aria-label="Email"] svg { height: 13.6px; }
 .row { display: grid; grid-template-columns: var(--key) minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); align-items: baseline; }
 .row:first-child { border-top: 0; padding-top: 0; }
 
-/* Facts, as rows */
-.meta { display: grid; grid-template-columns: var(--key) minmax(0, 1fr); gap: 0 16px; margin: 0; }
-.meta dt, .meta dd { margin: 0; padding: 12px 0; border-top: 1px solid var(--line); }
-.meta dt:first-of-type, .meta dd:first-of-type { border-top: 0; padding-top: 0; }
-.meta dd { overflow-wrap: anywhere; }
 .live::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: var(--accent); vertical-align: 2px; }
 
 /* Links, one under the other: a name, a line, where it leads */
