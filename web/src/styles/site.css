@@ -62,8 +62,13 @@ footer .links a[aria-label="Email"] svg { height: 13.6px; }
 /* A section: its name over what it holds. One hairline over it. */
 .sect { display: grid; gap: 12px; padding: 16px 0 24px; border-top: 1px solid var(--line); }
 
-.prose p, p.prose, .row > :last-child { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
+.prose p, p.prose { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
            hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
+/* Rows justified as prose where they are wide enough not to open gaps */
+.row > :last-child { text-wrap: pretty; }
+@media (min-width: 560px) { .row > :last-child { text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto; } }
+/* Phones: a narrower key column */
+@media (max-width: 559px) { body { --key: 72px; } }
 .prose p + p, .prose + .prose { margin-top: var(--line-text); }
 
 /* Rows: a key and a line, hairlines between */
