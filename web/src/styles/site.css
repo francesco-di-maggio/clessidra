@@ -192,7 +192,7 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 .help hr { width: 100%; margin: 24px 0; border: 0; border-top: 1px solid var(--line); }
 .help .twin { color: var(--tan); }
 .mapping .notes { display: grid; gap: 0; }
-.note { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.note { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); white-space: nowrap; }
 /* One column: the help held at the foot of the screen over the board, so a
    control tapped shows what it does without a scroll */
 @media (max-width: 639px) {
