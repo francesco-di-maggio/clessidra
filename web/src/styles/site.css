@@ -56,7 +56,7 @@ footer .links a[aria-label="Email"] svg { height: 13.6px; }
 /* A page's title and line */
 .head { display: grid; gap: 4px; padding: 32px 0 24px; }
 /* A section: its name over what it holds. One hairline over it. */
-.sect { display: grid; gap: 12px; padding: 20px 0 28px; border-top: 1px solid var(--line); }
+.sect { display: grid; gap: 12px; padding: 16px 0 24px; border-top: 1px solid var(--line); }
 
 .prose p, p.prose, .row > :last-child { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
            hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
@@ -82,6 +82,10 @@ footer .links a[aria-label="Email"] svg { height: 13.6px; }
 .links-list .sub { color: var(--dim); }
 .links-list .text { flex: 1; display: grid; grid-template-columns: var(--key) minmax(0, 1fr); gap: 16px; min-width: 0; }
 .links-list a:hover b { text-decoration: underline; text-decoration-color: var(--dim); }
+/* Tight: rows closer, so a page of them fits one screen */
+.rows.tight .row, .links-list.tight a { padding: 8px 0; }
+.rows.tight .row:first-child, .links-list.tight li:first-child a { padding-top: 0; }
+.links-list.tight .file { width: 22px; height: 22px; }
 .arrow { flex: none; color: var(--dim); }
 a:hover .arrow { color: var(--ink); }
 
@@ -132,20 +136,6 @@ a:hover .arrow { color: var(--ink); }
    foot */
 .clock { width: 112px; height: 100%; min-height: 200px; --band: 112px; }
 @media (max-width: 559px) { .clock { display: none; } }
-
-/* Faceplate: the art, its colours, its type */
-.art { margin: 0; padding: 32px 0 40px; }
-.art svg { display: block; width: 100%; height: auto; }
-.art #mask path { fill: var(--surface); }
-.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
-.swatch { display: grid; gap: 4px; }
-.swatch::before { content: ""; height: 56px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--c); }
-.swatch b { font-weight: 600; }
-.swatch code { font: 500 var(--text)/var(--line-text) var(--sans); color: var(--dim); font-variant-numeric: tabular-nums; }
-.type .name { font: 700 var(--title)/var(--line-title) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
-.type .second { color: var(--accent); }
-.type .second::before { content: "•••"; margin-right: 0.6em; letter-spacing: 0.15em; }
-.type .second::after { content: "•"; margin-left: 0.6em; }
 
 /* The panel: the Simple Touch 2 drawn as the faceplate is. Gold rings on
    wells, the names in gold capitals, the codes dim. The control pointed at
@@ -229,8 +219,18 @@ main:has(.fill) { min-height: 0; }
 .fill .field:has(textarea) { min-height: 0; }
 .fill .field textarea { height: 100%; min-height: 96px; resize: none; }
 
+/* A page in parts: their names in a row under its title, one part shown */
+nav.parts { gap: 4px 12px; margin-bottom: 8px; }
+nav.parts a { padding: 4px 0 8px; }
+.one-part .part:not(.shown) { display: none; }
+.one-part .part > h2 { display: none; }
+.one-part .part { border-top: 0; }
+
 @media print {
   header, nav, footer, .noprint { display: none !important; }
+  .one-part .part:not(.shown) { display: grid !important; }
+  .one-part .part > h2 { display: block !important; }
+  .one-part .part { border-top: 1px solid var(--line); }
   html, body { background: #fff; }
   body { padding: 0; }
   .head { padding: 0 0 6mm; }
