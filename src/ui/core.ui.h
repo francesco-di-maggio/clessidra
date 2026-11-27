@@ -78,8 +78,6 @@ class CoreUI
     static constexpr float kScrubStep = 0.002f;
 
     // LED
-    // brightness while grains play, below the pulse
-    static constexpr float kGlow = 0.6f;
     // Shift held: at least this, else the value last turned
     static constexpr float kShiftFloor = 0.15f;
     // on when a control reaches its centre and while turned there
@@ -99,7 +97,7 @@ class CoreUI
     // to where the knob is, outright
     void Default(Controls::Knob k, bool twin, float knob);
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
-    float Led(uint32_t now_ms, const Core& core) const;
+    float Led(uint32_t now_ms) const;
     // A knob's value, 0..1, on its own layer or its twin's
     float Value(Controls::Knob k, bool twin) const
     {

@@ -189,11 +189,6 @@ class Core
         return recordings_.load(std::memory_order_acquire);
     }
     size_t SoundSamples() const { return Sound().Length(); }
-    // Grain windows summed, mean over the last block: 1 = one grain at its peak
-    float GrainLevel() const
-    {
-        return grain_level_.load(std::memory_order_relaxed);
-    }
 
     // The recording playing
     const Buffer& Sound() const
@@ -312,7 +307,6 @@ class Core
     std::atomic<float> jump_{-1.0f}; // none below 0
     uint32_t           seed_     = 1;
     float              grain_ms_ = 0.0f;
-    std::atomic<float> grain_level_{0.0f};
 
     // Level. Mean powers, smoothed: grains taken separately, their stereo sum,
     // their windows.

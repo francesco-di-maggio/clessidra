@@ -167,7 +167,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
         power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
 
     const float n = float(size);
-    grain_level_.store(sums.window / n, std::memory_order_relaxed);
     Normalise(sums.power / n, power_sum / n, sums.window_power / n, size);
 
     // ReverbSc, measured with a 10 kHz lowpass: T60 = 3 * kLoop /

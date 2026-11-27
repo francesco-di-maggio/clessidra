@@ -92,7 +92,6 @@ void Grain::Render(double speed,
     const float gain_l        = gain_l_;
     const float gain_r        = gain_r_;
     float       power         = 0.0f;
-    float       window_sum    = 0.0f;
     float       window_power  = 0.0f;
     size_t      rendered      = 0;
     for(size_t n = offset_; n < size; n++)
@@ -115,7 +114,6 @@ void Grain::Render(double speed,
         left[n] += s * gain_l;
         right[n] += s * gain_r;
         power += s * s;
-        window_sum += window;
         window_power += window * window;
 
         fraction += step_part;
@@ -139,7 +137,6 @@ void Grain::Render(double speed,
     phase_  = phase;
     read_ += step * double(rendered);
     sums.power += power;
-    sums.window += window_sum;
     sums.window_power += window_power;
 }
 
