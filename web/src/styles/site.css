@@ -210,20 +210,13 @@ a:hover .file { color: var(--ink); }
 /* Feedback: a form whose answers go to a GitHub issue or an email */
 .form { display: grid; gap: 24px; }
 .field { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
-.field textarea { height: 216px; width: 100%; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: 500 var(--text)/var(--line-text) var(--sans); resize: vertical; }
+.field textarea { height: 192px; width: 100%; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: 500 var(--text)/var(--line-text) var(--sans); resize: vertical; }
 .field textarea::placeholder { color: var(--dim); }
 .field textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .actions .control { justify-content: center; }
 .caption { color: var(--dim); }
 @media (max-width: 480px) { .actions { grid-template-columns: 1fr; } }
-/* On one screen: the text box takes the room the page has, 96 px at least */
-body:has(.fill) { height: 100dvh; }
-main:has(.fill) { min-height: 0; }
-.sect.fill { flex: 1; min-height: 0; grid-template-rows: auto minmax(0, 1fr); }
-.fill .form { grid-template-rows: auto minmax(0, 1fr) auto auto; min-height: 0; }
-.fill .field:has(textarea) { min-height: 0; }
-.fill .field textarea { height: 100%; min-height: 96px; resize: none; }
 
 /* Touch: every link at least 44 px to tap, the layout as it is */
 @media (pointer: coarse) {
