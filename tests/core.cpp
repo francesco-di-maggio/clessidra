@@ -853,6 +853,36 @@ void SliceOverrun()
     Check(started && back <= 2.0,
           "slice in reverse: inside it (samples out)",
           back);
+
+    // Each grain its size, at most the slice's at its rate: none cut short at
+    // the edge
+    const auto shortest = [](float pitch, float grain_ms) {
+        Rig r(1.0);
+        r.Fill(Sine);
+        Core::Params p;
+        p.density         = 200.0f;
+        p.grain_ms        = grain_ms;
+        p.pitch           = pitch;
+        p.slice_start[0]  = 0.25f;
+        p.slice_length[0] = 0.25f;
+        p.slices_held     = 1;
+        r.core.SetParams(p);
+        const double fit
+            = std::min(grain_ms * 0.001 * kRate, 0.25 * kRate / double(pitch));
+        double low = 1e9;
+        r.Run(1.0, Silence, [&](size_t) {
+            for(const auto& g : r.core.Grains())
+                if(g.IsActive())
+                    low = std::min(low, 1.0 / g.Settings().inc / fit);
+        });
+        return low;
+    };
+    const double kept = shortest(1.0f, 100.0f);
+    Check(kept > 0.99, "slice, 100 ms grains: all 100 ms (shortest)", kept);
+    const double capped = shortest(4.0f, 2000.0f);
+    Check(capped > 0.99,
+          "slice, 2 s grains at +24: the slice at its rate (shortest)",
+          capped);
 }
 
 // A jump: a grain at once, whatever the density, the starts counted from it

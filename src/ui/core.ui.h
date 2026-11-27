@@ -11,11 +11,11 @@
 
 namespace clessidra
 {
-// Maps the Simple Touch 2's controls to the core's parameters and recording, and
-// drives the LED. Two layers: each control's own, and P11 held (Shift) for
-// each knob's twin. A knob moves a value from where it is after a layer change,
-// scaled so both reach the end stops together. No hardware code: the board and
-// the host tests run the same mapping.
+// Maps the Simple Touch 2's controls to the core's parameters and recording,
+// and drives the LED. Two layers: each control's own, and P11 held (Shift) for
+// each knob's twin. A knob moves a value from where it is after a layer
+// change, scaled so both reach the end stops together. No hardware code: the
+// board and the host tests run the same mapping.
 class CoreUI
 {
   public:
