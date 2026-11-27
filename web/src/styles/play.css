@@ -106,7 +106,9 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 /* Between Position and Length, the hourglass: a knob's room, the glass in
    it as wide as a dial's arc and as tall as a knob, name to value */
 .knobs .glass { grid-column: span 2; justify-content: flex-start; }
-.knobs .glass canvas { width: calc(100% - 16px); height: calc(2 * var(--name) + 9px + var(--band)); }
+/* Its caps on the middle of a knob's name and of its value: the glass
+   draws 4.75 px inside its canvas at each end */
+.knobs .glass canvas { width: calc(100% - 16px); height: calc(var(--name) + 12px + var(--band) + 9.5px); margin-top: calc(var(--name) / 2 - 4.75px); }
 
 /* The pads in the board's order: the five others over the seven slices */
 .pads { grid-area: pads; display: grid; }
@@ -163,7 +165,7 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
   #speed, #density, .knobs { padding: 10px 0; }
   .knobs { row-gap: 10px; padding-left: 2px; padding-right: 2px; }
   .knob { gap: 4px; }
-  .knobs .glass canvas { height: calc(2 * var(--name) + 5px + var(--band)); }
+  .knobs .glass canvas { height: calc(var(--name) + 8px + var(--band) + 9.5px); }
   .knob .label { font-size: 9px; letter-spacing: 0.04em; }
   .knob.fader .mark-at { display: none; }
   .knob.fader svg { transform: none; }
