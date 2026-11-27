@@ -62,8 +62,10 @@ footer .links a[aria-label="Email"] svg { height: 13.6px; }
 /* A section: its name over what it holds. One hairline over it. */
 .sect { display: grid; gap: 12px; padding: 16px 0 24px; border-top: 1px solid var(--line); }
 
-.prose p, p.prose { text-wrap: pretty; text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto;
-           hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
+.prose p, p.prose { text-wrap: pretty; hyphens: auto; -webkit-hyphens: auto;
+                    hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
+/* Justified where the column is wide enough not to open gaps */
+@media (min-width: 560px) { .prose p, p.prose { text-align: justify; text-align-last: left; } }
 /* Rows justified as prose where they are wide enough not to open gaps */
 .row > :last-child { text-wrap: pretty; }
 @media (min-width: 560px) { .row > :last-child { text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto; } }
@@ -135,8 +137,6 @@ a:hover .arrow { color: var(--ink); }
 .home .intro .status { padding-bottom: 16px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
 .status { display: flex; flex-wrap: wrap; gap: 4px 20px; }
 .status a:hover { color: var(--ink); }
-/* Phones: the status on one line, its links alone */
-@media (max-width: 480px) { .status .live { display: none; } }
 /* As tall as the text beside it: the status on its top cap, the call on its
    foot */
 .clock { width: 112px; height: 100%; min-height: 200px; --band: 112px; }
@@ -224,6 +224,14 @@ main:has(.fill) { min-height: 0; }
 .fill .form { grid-template-rows: auto minmax(0, 1fr) auto auto; min-height: 0; }
 .fill .field:has(textarea) { min-height: 0; }
 .fill .field textarea { height: 100%; min-height: 96px; resize: none; }
+
+/* Touch: every link at least 44 px to tap, the layout as it is */
+@media (pointer: coarse) {
+  nav a { padding: 10px 0 12px; }
+  .status a { padding: 10px 0; margin: -10px 0; }
+  footer .links a { padding: 14px; margin: -14px; }
+  footer .links { gap: 20px; }
+}
 
 @media print {
   header, nav, footer, .noprint { display: none !important; }
