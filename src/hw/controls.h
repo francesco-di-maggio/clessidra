@@ -6,8 +6,8 @@
 
 namespace clessidra
 {
-// The Simple Touch 2 panel as plain values, as the board reads them. No hardware
-// code: the host tests fill it too.
+// The Simple Touch 2 panel as plain values, as the board reads them. No
+// hardware code: the host tests fill it too.
 struct Controls
 {
     enum Knob : size_t

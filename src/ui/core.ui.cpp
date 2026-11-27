@@ -270,7 +270,8 @@ void CoreUI::Record(const Controls& c, Core& core, Core::Params& p)
 }
 
 // P03-P09: the loop in slices, left to right, each from an onset of the
-// recording. Each held one plays its slice, louder the firmer the touch. A new recording ends those held.
+// recording. Each held one plays its slice, louder the firmer the touch. A
+// new recording ends those held.
 void CoreUI::Slices(const Controls& c, const Core& core, Core::Params& p)
 {
     const bool fresh = core.Recordings() != analysed_;

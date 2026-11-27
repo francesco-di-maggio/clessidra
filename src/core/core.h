@@ -132,8 +132,8 @@ class Core
         float mix  = 1.0f; // 0 dry .. 1 wet, equal power
         // Slices of the selection, 0..1 of it. Each held one plays its own
         // span from its start, to its end as End sets, at speed and density,
-        // a grain at once. At no density: two grains at once, regular, the slice as it
-        // is. While any is held the selection's playhead waits.
+        // a grain at once. At no density: two grains at once, regular, the
+        // slice as it is. While any is held the selection's playhead waits.
         std::array<float, kNumSlices> slice_start{};
         std::array<float, kNumSlices> slice_length{};
         std::array<float, kNumSlices> slice_level{1, 1, 1, 1, 1, 1, 1};
