@@ -4,7 +4,15 @@
 // notes. Page 2: what each control does, ways to play, the LED. In the
 // template's points, A4, transparent: web/manual.mjs prints it and lays it
 // over the template, into clessidra-manual.pdf.
+import "@fontsource/barlow-semi-condensed/500.css";
+import "@fontsource/barlow-semi-condensed/600.css";
+import "@fontsource/barlow-semi-condensed/700.css";
 import { CONTROLS, LED, PLAY, byId } from "../lib/controls";
+import { FONT, matrix } from "../lib/tokens";
+
+// The name as the plate's wordmark, on the template's title line: its dots
+// as tall as the old title's capitals, standing on its baseline
+const wordmark = matrix([..."CLESSIDRA"], "#111", 'x="194" y="82.5" width="213" height="25.7"');
 
 const W = 595.276;
 const H = 841.89;
@@ -69,19 +77,19 @@ const SLICES = byId("P03");
 <head>
 <meta charset="utf-8">
 <title>Clessidra · Manual</title>
-<link rel="stylesheet" href="https://francescodimaggio.nl/style/v1/tokens.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400&display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@200&display=block">
+<style is:inline set:html={`:root{--sans:${FONT}}`}></style>
 <style>
   @page { size: A4; margin: 0; }
   html, body { margin: 0; background: transparent; }
-  svg { display: block; width: 210mm; height: 297mm; break-after: page; }
+  body > svg { display: block; width: 210mm; height: 297mm; break-after: page; }
   text { font-family: var(--sans); fill: #111; }
   .name { font-size: 9.5px; font-weight: 600; }
-  .kicker, .title { font-family: "Outfit", var(--sans); }
-  .kicker { font-size: 19.6px; font-weight: 200; fill: #8a8a8a; }
-  .title { font-size: 36px; font-weight: 400; letter-spacing: -0.2px; }
+  /* Touch II in the template's own face, the name as the plate's wordmark */
+  .kicker { font-family: "Outfit", var(--sans); font-size: 19.6px; font-weight: 200; fill: #8a8a8a; }
   .sub { font-size: 8px; }
-  .url, .code, .chip text { font-family: var(--mono); }
+  /* Codes and figures in Barlow, even-width figures, as on the site */
+  .url, .code, .chip text, td:first-child { font-variant-numeric: tabular-nums; }
   .url { font-size: 6.5px; fill: #777; }
   .code { font-size: 6px; font-weight: 600; }
   .does { font-size: 6.5px; }
@@ -89,11 +97,11 @@ const SLICES = byId("P03");
   .leader { stroke: #111; stroke-width: 0.5; }
   .chip rect { fill: #111; }
   .chip text { font-size: 4.6px; font-weight: 600; fill: #fff; text-anchor: middle; }
-  .page { box-sizing: border-box; width: 210mm; height: 297mm; padding: 60pt 56pt; font: 7pt/1.35 var(--sans); color: #111; text-wrap: pretty; }
-  h2 { margin: 0 0 3pt; font: 600 6pt var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: #888; }
+  .page { box-sizing: border-box; width: 210mm; height: 297mm; padding: 60pt 56pt; font: 500 7pt/1.35 var(--sans); color: #111; text-wrap: pretty; }
+  h2 { margin: 0 0 3pt; font: 600 6pt var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: #888; }
   table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 14pt; }
   td { padding: 3pt 6pt 3pt 0; border-bottom: 0.5pt solid #111; vertical-align: top; }
-  td:first-child { width: 58pt; font: 600 6pt/1.6 var(--mono); }
+  td:first-child { width: 58pt; font: 600 6pt/1.6 var(--sans); letter-spacing: 0.04em; }
   .second { color: #888; }
 </style>
 </head>
@@ -103,8 +111,8 @@ const SLICES = byId("P03");
        again with the instrument's name, on the same lines -->
   <rect x="188" y="56" width="226" height="58" fill="#fff" />
   <text class="kicker" x="192.5" y="76.8">Touch II</text>
-  <text class="title" x="194" y="108.2">Clessidra</text>
-  <text class="sub" x={TITLE.x} y={TITLE.rules[0] - 4}>A real-time granular sampler inspired by the hourglass.</text>
+  <Fragment set:html={wordmark} />
+  <text class="sub" x={TITLE.x} y={TITLE.rules[0] - 4}>A real-time granular sampler for stretching, freezing and slicing time.</text>
   <text class="sub" x={TITLE.x} y={TITLE.rules[1] - 4}>By Francesco Di Maggio</text>
   <text class="url" x={TITLE.x} y={TITLE.rules[2] - 4}>v0.3 · francescodimaggio.nl/clessidra</text>
 
