@@ -135,6 +135,8 @@ a:hover .arrow { color: var(--ink); }
 .home .intro .status { padding-bottom: 16px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
 .status { display: flex; flex-wrap: wrap; gap: 4px 20px; }
 .status a:hover { color: var(--ink); }
+/* Phones: the status on one line, its links alone */
+@media (max-width: 480px) { .status .live { display: none; } }
 /* As tall as the text beside it: the status on its top cap, the call on its
    foot */
 .clock { width: 112px; height: 100%; min-height: 200px; --band: 112px; }
@@ -192,8 +194,8 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 }
 
 /* Files to take away, as cards: set apart from the steps above */
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
-.card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-decoration: none; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-decoration: none; }
 .card:hover { border-color: var(--dim); }
 .card .text { display: grid; gap: 2px; min-width: 0; }
 .card b { font-weight: 600; }

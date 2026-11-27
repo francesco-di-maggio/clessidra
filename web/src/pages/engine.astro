@@ -2,9 +2,9 @@
 // How the engine works: the signal path, a recording, a grain, how grains
 // start, their level, the transport, the effects, the runtime. Facts from
 // src/core and src/ui, each with its constant. Printed to
-// clessidra-engine.pdf by web/manual.mjs.
+// clessidra-engine.pdf by web/manual.mjs. Not in the nav: the PDF is on
+// Download.
 import Base from "../layouts/Base.astro";
-import { url } from "../lib/url";
 
 // A deterministic wobble for the drawings
 function* noise(seed: number) {
@@ -197,9 +197,10 @@ const runtime: [string, string][] = [
 ];
 ---
 <Base title="Engine" description="How Clessidra turns a recording into grains: signal path, grains, starts, level, transport, effects.">
+<meta slot="head" name="robots" content="noindex">
 <div class="head">
   <h1>Engine</h1>
-  <p class="lead">How a recording becomes grains, and how they fall.<span class="noprint"> Also as a <a href={url("clessidra-engine.pdf")} download>PDF</a>.</span></p>
+  <p class="lead">How a recording becomes grains, and how they fall.</p>
 </div>
 
 <section class="sect">
