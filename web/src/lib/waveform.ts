@@ -31,6 +31,7 @@ interface Colours {
   dim: string;
   line: string;
   accent: string;
+  tan: string;
   sans: string;
 }
 
@@ -61,7 +62,7 @@ export class Waveform {
   private colours() {
     const css = getComputedStyle(document.documentElement);
     const get = (name: string) => css.getPropertyValue(name).trim();
-    this.c = { surface: get("--surface"), ink: get("--ink"), dim: get("--dim"), line: get("--line"), accent: get("--accent"), sans: get("--sans") };
+    this.c = { surface: get("--surface"), ink: get("--ink"), dim: get("--dim"), line: get("--line"), accent: get("--accent"), tan: get("--tan"), sans: get("--sans") };
     this.dotsKey = "";
     this.draw();
   }
@@ -204,7 +205,8 @@ export class Waveform {
       ctx.beginPath();
       ctx.arc(gx, gy, r + 2.5, 0, 2 * Math.PI);
       ctx.fill();
-      ctx.fillStyle = withAlpha(c.ink, 0.35 + 0.65 * level);
+      // A grain in tan, as the sand
+      ctx.fillStyle = withAlpha(c.tan, 0.35 + 0.65 * level);
       ctx.beginPath();
       ctx.arc(gx, gy, r, 0, 2 * Math.PI);
       ctx.fill();
