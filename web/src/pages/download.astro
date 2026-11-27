@@ -2,14 +2,13 @@
 import Base from "../layouts/Base.astro";
 import { url } from "../lib/url";
 import print from "../../../faceplate/clessidra-faceplate-print.pdf?url";
-import preview from "../../../faceplate/clessidra-faceplate.pdf?url";
 
-const pdf = `<svg class="file" viewBox="0 0 24 24" aria-label="PDF"><path d="M6 2.5h8l4.5 4.5v14.5h-12.5z M14 2.5v4.5h4.5" /><text x="12" y="17.5">PDF</text></svg>`;
+// A file's icon: a page with its type on it
+const icon = (type: string) => `<svg class="file" viewBox="0 0 24 24" aria-label="${type}"><path d="M6 2.5h8l4.5 4.5v14.5h-12.5z M14 2.5v4.5h4.5" /><text x="12" y="17.5">${type}</text></svg>`;
 const files = [
-  { href: url("clessidra-manual.pdf"), name: "Manual", sub: "A4, 2 pages", file: "clessidra-manual.pdf" },
-  { href: url("clessidra-engine.pdf"), name: "Engine", sub: "How it works, A4", file: "clessidra-engine.pdf" },
-  { href: print, name: "Faceplate", sub: "A4 at 100%, saves ink", file: "clessidra-faceplate-print.pdf" },
-  { href: preview, name: "Preview", sub: "The faceplate, gold on black", file: "clessidra-faceplate.pdf" },
+  { href: "https://github.com/francesco-di-maggio/clessidra/releases/latest/download/clessidra.bin", name: "Firmware", sub: "The latest release", type: "BIN", file: "clessidra.bin" },
+  { href: url("clessidra-manual.pdf"), name: "Manual", sub: "A4, 2 pages", type: "PDF", file: "clessidra-manual.pdf" },
+  { href: print, name: "Faceplate", sub: "A4 at 100%", type: "PDF", file: "clessidra-faceplate.pdf" },
 ];
 ---
 <Base title="Download" description="Clessidra's firmware for the Synthux Simple Touch 2, how to flash it, its manual and faceplate.">
@@ -31,7 +30,7 @@ const files = [
 <section class="sect">
   <h2 class="label">Files</h2>
   <ul class="cards">
-    {files.map((f) => <li><a class="card" href={f.href} download={f.file}><span class="text"><b>{f.name}</b><span class="sub">{f.sub}</span></span><Fragment set:html={pdf} /></a></li>)}
+    {files.map((f) => <li><a class="card" href={f.href} download={f.file}><span class="text"><b>{f.name}</b><span class="sub">{f.sub}</span></span><Fragment set:html={icon(f.type)} /></a></li>)}
   </ul>
 </section>
 </Base>

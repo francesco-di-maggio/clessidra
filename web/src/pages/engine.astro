@@ -4,6 +4,7 @@
 // src/core and src/ui, each with its constant. Printed to
 // clessidra-engine.pdf by web/manual.mjs.
 import Base from "../layouts/Base.astro";
+import { url } from "../lib/url";
 
 // A deterministic wobble for the drawings
 function* noise(seed: number) {
@@ -198,7 +199,7 @@ const runtime: [string, string][] = [
 <Base title="Engine" description="How Clessidra turns a recording into grains: signal path, grains, starts, level, transport, effects.">
 <div class="head">
   <h1>Engine</h1>
-  <p class="lead">How a recording becomes grains, and how they fall.</p>
+  <p class="lead">How a recording becomes grains, and how they fall.<span class="noprint"> Also as a <a href={url("clessidra-engine.pdf")} download>PDF</a>.</span></p>
 </div>
 
 <section class="sect">

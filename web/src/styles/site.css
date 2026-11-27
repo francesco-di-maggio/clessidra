@@ -22,7 +22,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 /* A page's name as a control's: 700, capitals, tracked, gold */
 h1 { font: 700 var(--title)/var(--line-title) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
 /* A section's name as a second function: gold, between dots */
-.sect > h2.label { color: var(--accent); }
+.sect > h2.label { color: var(--accent); margin-bottom: 4px; }
 .sect > h2.label::before { content: "•••"; margin-right: 0.6em; letter-spacing: 0.15em; }
 .sect > h2.label::after { content: "•"; margin-left: 0.6em; }
 .lead { margin: 0; color: var(--dim); text-wrap: pretty; max-width: 40em; }
@@ -43,10 +43,10 @@ nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accen
 footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 16px 0 24px; border-top: 1px solid var(--line); }
 footer a { text-decoration: none; }
 footer a:hover { color: var(--ink); }
-/* Links out underlined, in capitals as in sentences. The nav and icons
-   need none. */
-footer > span:first-child a, .status a { text-decoration: underline; text-decoration-color: var(--dim); text-underline-offset: 5px; }
-footer > span:first-child a:hover, .status a:hover { text-decoration-color: var(--ink); }
+/* Links out underlined, in capitals as in sentences. The nav, the footer
+   and icons need none. */
+.status a { text-decoration: underline; text-decoration-color: var(--dim); text-underline-offset: 5px; }
+.status a:hover { text-decoration-color: var(--ink); }
 footer .links { display: flex; align-items: center; gap: 20px; }
 footer .links a { display: flex; padding: 6px; margin: -6px; color: var(--dim); }
 footer .links a:hover { color: var(--ink); }
@@ -196,7 +196,7 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 }
 
 /* Files to take away, as cards: set apart from the steps above */
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
 .card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-decoration: none; }
 .card:hover { border-color: var(--dim); }
 .card .text { display: grid; gap: 2px; min-width: 0; }
