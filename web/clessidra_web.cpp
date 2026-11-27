@@ -181,7 +181,7 @@ EXPORT void cl_capture(int length)
 
 EXPORT float cl_led(uint32_t now_ms)
 {
-    return ui.Led(now_ms, core);
+    return ui.Led(now_ms);
 }
 
 EXPORT const float* cl_peaks()

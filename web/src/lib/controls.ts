@@ -193,9 +193,9 @@ export const PLAY: [string, string][] = [
 ];
 
 export const LED: [string, string][] = [
-  ["Glow", "Grains falling"],
+  ["Off", "Playing"],
   ["Flash", "Recording"],
-  ["Pulse", "At a stop: unison, speed 1×, 100 ms, filter off, shimmer off"],
+  ["Pulse", "At a stop: unison, speed 1×, 100 ms, filter off, shimmer off. Reset"],
   ["Steady", "P11 held: the last knob turned"],
 ];
 

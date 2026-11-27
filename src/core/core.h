@@ -132,8 +132,8 @@ class Core
         float mix  = 1.0f; // 0 dry .. 1 wet, equal power
         // Slices of the selection, 0..1 of it. Each held one plays its own
         // span from its start, to its end as End sets, at speed and density,
-        // a grain at once. At no density: two grains at once, regular, the slice as it
-        // is. While any is held the selection's playhead waits.
+        // a grain at once. At no density: two grains at once, regular, the
+        // slice as it is. While any is held the selection's playhead waits.
         std::array<float, kNumSlices> slice_start{};
         std::array<float, kNumSlices> slice_length{};
         std::array<float, kNumSlices> slice_level{1, 1, 1, 1, 1, 1, 1};
@@ -189,11 +189,6 @@ class Core
         return recordings_.load(std::memory_order_acquire);
     }
     size_t SoundSamples() const { return Sound().Length(); }
-    // Grain windows summed, mean over the last block: 1 = one grain at its peak
-    float GrainLevel() const
-    {
-        return grain_level_.load(std::memory_order_relaxed);
-    }
 
     // The recording playing
     const Buffer& Sound() const
@@ -312,7 +307,6 @@ class Core
     std::atomic<float> jump_{-1.0f}; // none below 0
     uint32_t           seed_     = 1;
     float              grain_ms_ = 0.0f;
-    std::atomic<float> grain_level_{0.0f};
 
     // Level. Mean powers, smoothed: grains taken separately, their stereo sum,
     // their windows.

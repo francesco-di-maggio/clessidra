@@ -167,7 +167,6 @@ void Core::Process(const float* const* in, float** out, size_t size)
         power_sum += out[0][i] * out[0][i] + out[1][i] * out[1][i];
 
     const float n = float(size);
-    grain_level_.store(sums.window / n, std::memory_order_relaxed);
     Normalise(sums.power / n, power_sum / n, sums.window_power / n, size);
 
     // ReverbSc, measured with a 10 kHz lowpass: T60 = 3 * kLoop /
@@ -448,25 +447,18 @@ void Core::StartGrain(const Params& p,
                                         latch.rate,
                                         size_t(0.25 / latch.inc));
     }
-    // A slice's grains inside it: shortened to the room before the edge they
-    // read towards, at least min_grain_ms, ending at the edge
+    // A slice's grains inside it: each its size, at most the slice's, started
+    // far enough from the edge it reads towards to end there at the latest
     if(source.slice)
     {
-        const double lo      = source.start * to_read;
-        const double hi      = (source.start + source.length) * to_read;
-        const bool   forward = latch.rate > 0.0f;
-        const double rate    = std::fabs(double(latch.rate));
-        const double fit
-            = std::min(rate * p.min_grain_ms * 0.001 * sample_rate_, hi - lo);
-        if(fit <= 0.0)
-            return;
-        double room = forward ? hi - latch.position : latch.position - lo;
-        if(room < fit)
-        {
-            latch.position = forward ? hi - fit : lo + fit;
-            room           = fit;
-        }
-        latch.inc = std::max(latch.inc, rate / room);
+        const double lo    = source.start * to_read;
+        const double hi    = (source.start + source.length) * to_read;
+        const double rate  = std::fabs(double(latch.rate));
+        const double reads = std::min(rate / latch.inc, hi - lo);
+        latch.inc          = rate / reads;
+        latch.position     = latch.rate > 0.0f
+                             ? std::min(latch.position, hi - reads)
+                             : std::max(latch.position, lo + reads);
     }
     grain->Start(latch, offset);
     last = grain;

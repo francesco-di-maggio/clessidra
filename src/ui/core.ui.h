@@ -11,11 +11,11 @@
 
 namespace clessidra
 {
-// Maps the Simple Touch 2's controls to the core's parameters and recording, and
-// drives the LED. Two layers: each control's own, and P11 held (Shift) for
-// each knob's twin. A knob moves a value from where it is after a layer change,
-// scaled so both reach the end stops together. No hardware code: the board and
-// the host tests run the same mapping.
+// Maps the Simple Touch 2's controls to the core's parameters and recording,
+// and drives the LED. Two layers: each control's own, and P11 held (Shift) for
+// each knob's twin. A knob moves a value from where it is after a layer
+// change, scaled so both reach the end stops together. No hardware code: the
+// board and the host tests run the same mapping.
 class CoreUI
 {
   public:
@@ -78,8 +78,6 @@ class CoreUI
     static constexpr float kScrubStep = 0.002f;
 
     // LED
-    // brightness while grains play, below the pulse
-    static constexpr float kGlow = 0.6f;
     // Shift held: at least this, else the value last turned
     static constexpr float kShiftFloor = 0.15f;
     // on when a control reaches its centre and while turned there
@@ -99,7 +97,7 @@ class CoreUI
     // to where the knob is, outright
     void Default(Controls::Knob k, bool twin, float knob);
     // The LED's light output, 0..1: brightness cubed, even steps to the eye
-    float Led(uint32_t now_ms, const Core& core) const;
+    float Led(uint32_t now_ms) const;
     // A knob's value, 0..1, on its own layer or its twin's
     float Value(Controls::Knob k, bool twin) const
     {
