@@ -127,8 +127,8 @@ a:hover .arrow { color: var(--ink); }
 @media (min-width: 560px) { .home { grid-template-columns: minmax(0, 1fr) 112px; } }
 .home .intro { display: grid; gap: 16px; align-content: center; }
 .home .intro .prose { color: var(--dim); }
-/* The line on one line beside the glass: 0.9 of a title */
-.home .intro .lead { color: var(--ink); font-size: calc(0.9 * var(--title)); line-height: var(--line-title); }
+/* The line on one line beside the glass, at a title's size */
+.home .intro .lead { color: var(--ink); font-size: var(--title); line-height: var(--line-title); }
 @media (min-width: 672px) { .home .intro .lead { white-space: nowrap; } }
 .home .intro .control { width: auto; justify-self: start; margin-top: 8px; }
 /* The status over a hairline, as Synthux Academy over its rule on the plate */
