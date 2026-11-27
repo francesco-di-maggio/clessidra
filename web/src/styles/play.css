@@ -14,7 +14,7 @@ body.app main { flex: 1; min-height: 0; padding: 12px 0 16px; }
 .instrument { user-select: none; -webkit-user-select: none; }
 
 
-.instrument { --text: 11px; --in: 14px; --name: 16px; --band: 48px; 
+.instrument { --text: 11px; --in: 14px; --name: 16px; --band: 44px; 
               height: 100%; display: grid; gap: 8px; grid-template-columns: repeat(12, minmax(0, 1fr));
               grid-template-rows: 56px minmax(200px, 1fr) auto auto;
               grid-template-areas:
@@ -75,7 +75,7 @@ html:has(.gain.dragging), html:has(.gain.dragging) * { cursor: ew-resize !import
 .knobs { grid-area: knobs; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 10px; padding-left: 8px; padding-right: 8px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 .cell { display: flex; justify-content: center; min-width: 0; }
 
-.knob { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
+.knob { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
 .knob .label { font-size: var(--text); letter-spacing: var(--track); white-space: nowrap; }
 .knob .value { font: 500 12px/16px var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
 .knob svg { width: var(--band); height: var(--band); }
@@ -108,7 +108,7 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 .knobs .glass { grid-column: span 2; justify-content: flex-start; }
 /* Its caps on the middle of a knob's name and of its value: the glass
    draws 4.75 px inside its canvas at each end */
-.knobs .glass canvas { width: calc(100% - 16px); height: calc(var(--name) + 12px + var(--band) + 9.5px); margin-top: calc(var(--name) / 2 - 4.75px); }
+.knobs .glass canvas { width: calc(100% - 16px); height: calc(var(--name) + 8px + var(--band) + 9.5px); margin-top: calc(var(--name) / 2 - 4.75px); }
 
 /* The pads in the board's order: the five others over the seven slices */
 .pads { grid-area: pads; display: grid; }
