@@ -4,6 +4,7 @@
 // src/core and src/ui, each with its constant. Printed to
 // clessidra-engine.pdf by web/manual.mjs.
 import Base from "../layouts/Base.astro";
+import { url } from "../lib/url";
 
 // A deterministic wobble for the drawings
 function* noise(seed: number) {
@@ -55,7 +56,7 @@ function signal() {
   o.push(`<path class="ln dash" d="M${x(0)},${y0 + h / 2}H-5V${y1 + h + 12}H${xl}"/>`);
   o.push(arrow(xl, y1 + h + 12, xl, y1 + h + 0.6, "ln dash"));
   o.push(`<text class="sub l" x="${xl + 6}" y="${y1 + h + 14}">The input: Mix P11 + S36, Listen P11 + P10</text>`);
-  return `<svg class="dia" viewBox="-7 0 305 116" role="img" aria-label="Signal path">${o.join("")}</svg>`;
+  return `<svg class="dia" viewBox="-7 4 305 110" role="img" aria-label="Signal path">${o.join("")}</svg>`;
 }
 
 // A recording: a wave, deterministic
@@ -95,7 +96,7 @@ function recording() {
   o.push(`<text class="sub l" x="${ph + 30}" y="${cy + 21}">Spray, S31</text>`);
   o.push(`<text class="sub l" x="${x0}" y="${cy - 31}">recording</text>`);
   o.push(`<text class="sub l" x="${x0}" y="${cy + 38}">slices, P03–P09</text>`);
-  return `<svg class="dia" viewBox="0 0 300 84" role="img" aria-label="A recording, its loop, playhead and slices">${o.join("")}</svg>`;
+  return `<svg class="dia" viewBox="0 3 300 76" role="img" aria-label="A recording, its loop, playhead and slices">${o.join("")}</svg>`;
 }
 
 // 3. The window along Shape, as Grain::Start and Grain::Render shape it, a
@@ -124,7 +125,7 @@ function shapes() {
     o.push(`<path class="env" d="M${x},${base}L${pts.join("L")}L${x + w},${base}Z"/>`);
     o.push(`<text class="sub" x="${x + w / 2}" y="${base + 9}">${name}</text>`);
   });
-  return `<svg class="dia" viewBox="0 0 285 42" role="img" aria-label="The window: square, decay, bell, reverse">${o.join("")}</svg>`;
+  return `<svg class="dia" viewBox="0 6 285 35" role="img" aria-label="The window: square, decay, bell, reverse">${o.join("")}</svg>`;
 }
 
 // 4. Grains a second, 100 ms each, over a second: one sounds, two, all 32
@@ -147,7 +148,7 @@ function starts() {
       o.push(`<path class="g${n > 20 ? " thin" : ""}" d="${bump(gx, w, base, 14)}"/>`);
     }
   });
-  return `<svg class="dia" viewBox="0 0 300 70" role="img" aria-label="Grains a second at 100 ms: 2, 20, 320">${o.join("")}</svg>`;
+  return `<svg class="dia" viewBox="0 4 300 58" role="img" aria-label="Grains a second at 100 ms: 2, 20, 320">${o.join("")}</svg>`;
 }
 
 // 5. In phase, out of phase
@@ -162,16 +163,16 @@ function level() {
     o.push(`<path class="g" d="${bump(170 + 100 * (r.next().value as number), w, base, 10 + 26 * (r.next().value as number))}"/>`);
   }
   o.push(`<text class="name" x="225" y="${base + 10}">scattered</text><text class="sub" x="225" y="${base + 18}">powers add</text>`);
-  return `<svg class="dia" viewBox="0 0 300 66" role="img" aria-label="Grains in phase and scattered">${o.join("")}</svg>`;
+  return `<svg class="dia" viewBox="0 9 300 55" role="img" aria-label="Grains in phase and scattered">${o.join("")}</svg>`;
 }
 
 const grain: [string, string][] = [
   ["Position", "The playhead. With Spray, evenly round it, up to the loop."],
-  ["Start", "Moved up to 5.3 ms or a quarter of its length to continue the grain before in phase, the signs of 512 samples compared, as Clouds' WSOLA player. Not with Spray up."],
+  ["Start", "Up to 5.3 ms or ¼ its length, in phase with the grain before (WSOLA). Off with Spray."],
   ["Read", "Four-point Hermite, as Beads. Rate 2^(n/12), ±24 semitones."],
   ["Shimmer", "Up: free, to ±12 semitones. Down: octaves, up to 2 grains in 3."],
   ["Size", "5 ms to 2 s, 100 ms at the centre. Grit: part way to any."],
-  ["Window", "Beads' envelope along Shape. At least 0.5 ms up, 10 ms down."],
+  ["Window", "Beads' envelope along Shape. Flux: part way to any. At least 0.5 ms up, 10 ms down."],
   ["Pan", "Spread places each grain, from the centre to anywhere across. Equal power."],
   ["Direction", "The playhead's."],
 ];
@@ -198,7 +199,7 @@ const runtime: [string, string][] = [
 <Base title="Engine" description="How Clessidra turns a recording into grains: signal path, grains, starts, level, transport, effects.">
 <div class="head">
   <h1>Engine</h1>
-  <p class="lead">How a recording becomes grains, and how they fall.</p>
+  <p class="lead">How a recording becomes grains, and how they fall.<span class="noprint"> Also as a <a href={url("clessidra-engine.pdf")} download>PDF</a>.</span></p>
 </div>
 
 <section class="sect">
@@ -218,7 +219,7 @@ const runtime: [string, string][] = [
     <li class="row"><span class="label">Hold</span><span>From 50 ms before the touch to the release, up to 30 s.</span></li>
     <li class="row"><span class="label">Trim</span><span>Silence under −60 dBFS cut from both ends.</span></li>
     <li class="row"><span class="label">Land</span><span>Copied at 8×. Over 2 s new grains read it with rising odds.</span></li>
-    <li class="row"><span class="label">Slices</span><span>Attacks found once in 5 ms frames, the strongest 64 kept. Seven slices: the loop's start, then its strongest attacks. Too few: even parts.</span></li>
+    <li class="row"><span class="label">Slices</span><span>The loop's start and its 6 strongest attacks, in 5 ms frames. Too few: even parts.</span></li>
   </ol>
 </div>
 </section>

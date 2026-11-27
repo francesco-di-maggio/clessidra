@@ -1988,15 +1988,16 @@ void Mapping()
           "then S34 takes its own over",
           p.pitch);
 
-    // P11 + P01: the twins reset. P11 + P10: listen, nothing recorded.
-    press(CoreUI::kShiftPad, true);
+    // P01 without P11: the twins reset too. P11 + P10: listen, nothing
+    // recorded.
     press(CoreUI::kResetPad, true);
     press(CoreUI::kResetPad, false);
     Check(p.shimmer == 0.0f && p.reverb == CoreUI::kReverb && p.filter == 0.0f
               && p.grit == 0.0f && p.jitter == CoreUI::kJitter && p.flux == 0.0f
               && p.spread == 0.0f && p.mix == 1.0f,
-          "P11 + P01: the twins back to their defaults",
+          "P01: the twins back to their defaults too",
           p.shimmer);
+    press(CoreUI::kShiftPad, true);
     const uint32_t recordings = r.core.Recordings();
     press(CoreUI::kRecordPad, true);
     r.Run(0.5, Sine);
@@ -2021,7 +2022,7 @@ void Mapping()
               && Near(p.window_shape, 2.0 / 3.0, 1e-6) && p.speed == 1.0f
               && p.density == 20.0f
               && ui.Led(5000 + CoreUI::kPulseMs - 1, r.core) == 1.0f,
-          "P01: the first layer back to its defaults, a pulse",
+          "P01: both layers back to their defaults, a pulse",
           p.grain_ms);
     c.knobs = knobs;
     for(size_t k = 0; k < Controls::kNumKnobs; k++)
