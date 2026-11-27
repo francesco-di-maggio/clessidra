@@ -6,8 +6,8 @@ import "../styles/site.css";
 import { url } from "../lib/url";
 import { COLOUR, css, matrix } from "../lib/tokens";
 
-// Play is a part with its own structure: no footer, the page fills the
-// screen. On a phone the logo and its name in place of the pages. Reading pages are light, dark on a dark system.
+// Play is a part with its own structure: the logo and its name, no pages,
+// no footer, the page fills the screen. Reading pages are light, dark on a dark system.
 interface Props {
   title?: string;
   description?: string;
@@ -18,14 +18,13 @@ const { title, app = false, description = "A real-time granular sampler inspired
 const pageTitle = title ? `${title} · Clessidra` : "Clessidra";
 const path = Astro.url.pathname;
 const nav = [
-  { path: "", title: "About" },
   { path: "play/", title: "Play" },
   { path: "controls/", title: "Controls" },
   { path: "engine/", title: "Engine" },
   { path: "download/", title: "Download" },
   { path: "feedback/", title: "Feedback" },
 ];
-const current = (p: string) => (p ? path.startsWith(url(p)) : path === url());
+const current = (p: string) => path.startsWith(url(p));
 const logo = matrix([..."CLESSIDRA"], "currentColor", 'class="logo" aria-hidden="true"');
 ---
 <!doctype html>
@@ -57,9 +56,11 @@ const logo = matrix([..."CLESSIDRA"], "currentColor", 'class="logo" aria-hidden=
   {app && <span class="label crumb"><span class="slash" aria-hidden="true">/</span>{title}</span>}
   <slot name="end" />
 </header>
-<nav class="label" aria-label="Pages">
-  {nav.map((s) => <a href={url(s.path)} aria-current={current(s.path) ? "page" : undefined}>{s.title}</a>)}
-</nav>
+{!app && (
+  <nav class="label" aria-label="Pages">
+    {nav.map((s) => <a href={url(s.path)} aria-current={current(s.path) ? "page" : undefined}>{s.title}</a>)}
+  </nav>
+)}
 <main>
   <slot />
 </main>
