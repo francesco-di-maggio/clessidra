@@ -100,7 +100,7 @@ namespace
             touch.ProcessPads();
             const Controls c = touch.Read();
             ui.Process(c, core);
-            touch.SetLed(ui.Led(c.now_ms, core));
+            touch.SetLed(ui.Led(c.now_ms));
 
 #if DEBUG
             if(c.now_ms - last_log >= kLogMs)

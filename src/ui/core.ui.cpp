@@ -323,9 +323,8 @@ void CoreUI::Pulse(const Controls& c, const std::array<bool, kNumDetents>& at)
     }
 }
 
-// Flashing while recording, the detent pulse, Shift's value, or a glow that
-// follows the grains
-float CoreUI::Led(uint32_t now, const Core& core) const
+// Flashing while recording, the pulse, or Shift's value. Off otherwise.
+float CoreUI::Led(uint32_t now) const
 {
     if(record_)
         return (now / kFlashMs) % 2 == 0 ? 1.0f : 0.0f;
@@ -335,7 +334,7 @@ float CoreUI::Led(uint32_t now, const Core& core) const
     else if(shift_)
         brightness = std::max(shown_, kShiftFloor);
     else
-        brightness = kGlow * std::min(1.0f, core.GrainLevel());
+        brightness = 0.0f;
     // Cubed: even steps to the eye
     return brightness * brightness * brightness;
 }

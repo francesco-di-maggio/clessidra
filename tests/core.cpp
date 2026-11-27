@@ -354,8 +354,8 @@ void Record()
     Panel led;
     led.c.touched[CoreUI::kRecordPad] = true;
     led.Run(0.5, Sine);
-    const float on  = led.ui.Led(0, led.rig.core);
-    const float off = led.ui.Led(CoreUI::kFlashMs, led.rig.core);
+    const float on  = led.ui.Led(0);
+    const float off = led.ui.Led(CoreUI::kFlashMs);
     Check(on == 1.0f && off == 0.0f, "recording: the LED flashes", off);
 
     // Recording again while the last one plays: no jump at the swap
@@ -1481,13 +1481,13 @@ void Voices()
         for(const auto& grain : r.core.Grains())
             n += grain.IsActive();
         most = std::max(most, n);
-        sum += r.core.GrainLevel();
+        sum += double(n);
     });
     Check(most == Core::kNumVoices && r.core.Dropped() > 0,
           "the most density, long grains: all voices, the rest dropped (count)",
           double(r.core.Dropped()));
-    Check(sum / (3.0 * kRate / kBlock) > 10.0,
-          "the most density, long grains: whole windows (mean of the windows)",
+    Check(sum / (3.0 * kRate / kBlock) > 30.0,
+          "the most density, long grains: the voices kept full (mean sounding)",
           sum / (3.0 * kRate / kBlock));
     bool         whole = true;
     const double inc   = r.core.Grains()[0].Settings().inc;
@@ -2051,7 +2051,7 @@ void Mapping()
               && p.spray == 0.0f && p.pitch == 1.0f
               && Near(p.window_shape, 2.0 / 3.0, 1e-6) && p.speed == 1.0f
               && p.density == 20.0f
-              && ui.Led(5000 + CoreUI::kPulseMs - 1, r.core) == 1.0f,
+              && ui.Led(5000 + CoreUI::kPulseMs - 1) == 1.0f,
           "P01: both layers back to their defaults, a pulse",
           p.grain_ms);
     c.knobs = knobs;
@@ -2064,16 +2064,16 @@ void Mapping()
     c.knobs[Controls::S36] = 0.63f;
     ui.Process(c, r.core);
 
-    // The LED glows with the grains
+    // The LED off while grains play
     c.knobs[Controls::S37] = 1.0f;
     ui.Process(c, r.core);
-    float glow = 0.0f;
+    float lit = 0.0f;
     for(int i = 0; i < 30; i++)
     {
         r.Run(0.01, Silence);
-        glow = std::max(glow, ui.Led(100000, r.core));
+        lit = std::max(lit, ui.Led(100000));
     }
-    Check(glow > 0.0f, "LED: glows with the grains", glow);
+    Check(lit == 0.0f, "LED: off while grains play", lit);
 
     // P03-P09, the slices, left to right. Each held one plays its own slice,
     // the loop's playhead waiting. No density: the slice as it is, two grains
@@ -2185,12 +2185,12 @@ void Mapping()
     ui.Process(c, r.core);
     c.knobs[Controls::S34] = 0.49f;
     ui.Process(c, r.core);
-    const float reached    = ui.Led(10000 + CoreUI::kPulseMs - 1, r.core);
+    const float reached    = ui.Led(10000 + CoreUI::kPulseMs - 1);
     c.now_ms               = 10200;
     c.knobs[Controls::S34] = 0.51f;
     ui.Process(c, r.core);
-    const float renewed = ui.Led(10200 + CoreUI::kPulseMs - 1, r.core);
-    const float ended   = ui.Led(10200 + CoreUI::kPulseMs, r.core);
+    const float renewed = ui.Led(10200 + CoreUI::kPulseMs - 1);
+    const float ended   = ui.Led(10200 + CoreUI::kPulseMs);
     Check(reached == 1.0f && renewed == 1.0f && ended < 1.0f,
           "LED: pulse at pitch unison, renewed while turned",
           renewed);
