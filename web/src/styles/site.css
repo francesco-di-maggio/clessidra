@@ -186,8 +186,9 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 .help { display: grid; align-content: start; }
 .help .layer { display: grid; gap: 4px; align-content: start; }
 .help b { font: 700 var(--title)/var(--line-title) var(--sans); letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
-/* Justified and hyphenated, no lone last word */
-.help p { margin: 0; color: var(--dim); text-wrap: pretty; text-align: justify; text-align-last: left;
+/* Hyphenated, ragged: too narrow to justify without gaps. No lone last
+   word. */
+.help p { margin: 0; color: var(--dim); text-wrap: pretty;
           hyphens: auto; -webkit-hyphens: auto; hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
 .help hr { width: 100%; margin: 24px 0; border: 0; border-top: 1px solid var(--line); }
 .help .twin { color: var(--tan); }
