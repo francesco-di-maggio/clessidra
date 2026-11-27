@@ -77,7 +77,7 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "S37", brief: "Density 0–320/s, stops at 1 5 20 80", type: "fader", index: 7, x: 564, y: 0, name: "Density", initial: speedAt(3), scale: DENSITY_SCALE,
-    does: "Grains per second, 0 to 320, with stops at 1, 5, 20 and 80. At 20 with Size at its centre: the recording as it is. At the top: all 32 voices.",
+    does: "Grains a second, 0 to 320, stops at 1, 5, 20 and 80. At 20 with Size centred: the recording as it is.",
     value: (p) => {
       const d = p[PARAM.density];
       return d === 0 ? "None" : `${d.toFixed(d < 10 ? 1 : 0)}/s`;
@@ -149,8 +149,8 @@ export const CONTROLS: Control[] = [
   },
   {
     id: "P10", brief: "Tap: the last 8 s. Hold: up to 30 s", type: "pad", index: RECORD_PAD, ...padAt(RECORD_PAD), name: "Record",
-    does: "Tap: keeps the last 8\u00a0s. Hold: records up to 30\u00a0s. The first recording fades in over 2\u00a0s, later ones blend in grain by grain.",
-    twin: { name: "Listen", brief: "Listen: the input alone. Let go of P11: record", does: "Hear the input alone, faded over 1 s. Nothing is recorded until P11 is let go, then P10 records with the input still alone. Let go of P10: the grains fade back in over 0.5 s.", value: () => "Listen" },
+    does: "Tap: the last 8\u00a0s. Hold: up to 30\u00a0s. The first fades in over 2\u00a0s, later ones blend in grain by grain.",
+    twin: { name: "Listen", brief: "Listen: the input alone. Let go of P11: record", does: "The input alone, faded over 1\u00a0s. Let go of P11: P10 records it. Let go of P10: grains back over 0.5\u00a0s.", value: () => "Listen" },
     value: (_, v) => (v.recording ? `● ${v.recording.toFixed(1)} s` : v.sound ? `${seconds(v.sound)} held` : "Empty"),
   },
   {
@@ -158,13 +158,12 @@ export const CONTROLS: Control[] = [
     does: "Hold for each knob's second function.",
   },
   {
-    id: "P01", brief: "Reset: first layer, with P11 the second", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
-    does: "The knobs' values back to their defaults: the recording as it is. Each knob takes over from where it is.",
-    twin: { name: "Reset", does: "Second functions back to their defaults.", value: () => "Reset" },
+    id: "P01", brief: "Reset: both layers to their defaults", type: "pad", index: RESET_PAD, ...padAt(RESET_PAD), name: "Reset",
+    does: "Both layers back to their defaults: the recording as it is. Each knob takes over from where it is.",
   },
   {
     id: "P00", brief: "Stop: light slows, firm halts", type: "pad", index: STOP_PAD, ...padAt(STOP_PAD), name: "Stop",
-    does: "Held: slows as a tape machine, the pitch with it. A light touch slows it, a firm press halts it. Released: back to speed.",
+    does: "Held: slows as tape, the pitch with it. Light slows, firm halts. Released: back to speed.",
     value: (p) => (p[PARAM.stop] >= 1 ? "Stopped" : p[PARAM.stop] > 0 ? "Slowing" : ""),
   },
   {
@@ -174,7 +173,7 @@ export const CONTROLS: Control[] = [
   ...SLICE_PADS.map((index, i): Control => ({
     id: `P${String(index).padStart(2, "0")}`, type: "pad", index, ...padAt(index), name: `Slice ${i + 1}`,
     brief: "Slices: hold, firmer is louder",
-    does: "Hold to play a slice, cut at the recording's attacks. A light touch plays it 12\u00a0dB softer, a firm one full. Several at once.",
+    does: "Hold to play a slice, cut at the attacks. Light: 12\u00a0dB softer, firm: full. Several at once.",
   })),
 ];
 

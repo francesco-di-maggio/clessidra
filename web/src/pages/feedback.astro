@@ -7,12 +7,11 @@ import Base from "../layouts/Base.astro";
   <p class="lead">What you report shapes what changes next.</p>
 </div>
 
-<section class="sect">
-<h2 class="label">Your notes</h2>
+<section class="sect fill">
+<h2 class="label" id="played-on">Played on</h2>
 <form id="feedback" class="form">
   <fieldset class="field">
-    <legend class="label">Played on</legend>
-    <div class="segmented" role="radiogroup">
+    <div class="segmented" role="radiogroup" aria-labelledby="played-on">
       <label><input type="radio" name="where" value="Browser" checked><span>Browser</span></label>
       <label><input type="radio" name="where" value="Simple Touch 2"><span>Simple Touch 2</span></label>
     </div>
