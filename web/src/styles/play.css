@@ -6,9 +6,7 @@
    rest. Every tile 14 px in, names on one line, values on one
    line. Gold only for what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
-/* Ending where the other pages' footer begins, so moving between them the
-   page keeps its frame */
-body.app main { flex: 1; min-height: 0; padding: 12px 0 63px; }
+body.app main { flex: 1; min-height: 0; padding: 12px 0 16px; }
 /* An instrument: the arrow over every control, as on a desktop app. Dragging,
    the cursor shows the way the control moves, wherever it goes */
 .instrument button, .instrument .pad { cursor: default; }
@@ -129,7 +127,7 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 .pad-rows { display: grid; gap: 6px; padding: 12px; }
 .pad-row { display: grid; gap: 6px; }
 .functions { grid-template-columns: repeat(5, minmax(0, 1fr)); height: 32px; }
-.slices { grid-template-columns: repeat(7, minmax(0, 1fr)); height: 52px; }
+.slices { grid-template-columns: repeat(7, minmax(0, 1fr)); height: 32px; }
 .pad { display: grid; place-content: center; width: 100%; height: 100%; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink);
        font: 600 var(--text) var(--sans); letter-spacing: var(--track); text-transform: uppercase; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pad .sub { display: none; }
@@ -143,7 +141,7 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 /* A laptop's height: the recording gives up room first, the page stays on
    one screen. Littler still: the page scrolls rather than cutting a tile. */
 @media (max-height: 800px) {
-  body.app main { padding: 8px 0 12px; }
+  body.app main { padding-top: 8px; }
   .instrument { grid-template-rows: 56px minmax(120px, 1fr) auto auto; }
 }
 @media (max-height: 700px) {
@@ -156,6 +154,7 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
 @media (max-width: 600px) {
   body.app { height: 100dvh; min-height: 0; overflow: hidden; }
   body.app main { padding-bottom: 12px; }
+  body.app footer { display: none; }
   .instrument { --in: 10px; --band: 40px; height: 100%; gap: 6px; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto;
                 grid-template-areas: "transport" "sound" "controls" "pads"; }
   /* Start and the sources, then Out under them */
