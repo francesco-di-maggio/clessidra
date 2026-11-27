@@ -30,8 +30,8 @@ const files = [
 
 <section class="sect">
   <h2 class="label">Files</h2>
-  <ul class="links-list tight">
-    {files.map((f) => <li><a href={f.href} download={f.file}><span class="text"><b>{f.name}</b><span class="sub">{f.sub}</span></span><Fragment set:html={pdf} /></a></li>)}
+  <ul class="cards">
+    {files.map((f) => <li><a class="card" href={f.href} download={f.file}><span class="text"><b>{f.name}</b><span class="sub">{f.sub}</span></span><Fragment set:html={pdf} /></a></li>)}
   </ul>
 </section>
 </Base>

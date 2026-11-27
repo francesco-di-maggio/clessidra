@@ -43,8 +43,10 @@ nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accen
 footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 16px 0 24px; border-top: 1px solid var(--line); }
 footer a { text-decoration: none; }
 footer a:hover { color: var(--ink); }
-/* Links in capitals as the nav: no line, brighter when pointed at. Links in
-   sentences underlined. */
+/* Links out underlined, in capitals as in sentences. The nav and icons
+   need none. */
+footer > span:first-child a, .status a { text-decoration: underline; text-decoration-color: var(--dim); text-underline-offset: 5px; }
+footer > span:first-child a:hover, .status a:hover { text-decoration-color: var(--ink); }
 footer .links { display: flex; align-items: center; gap: 20px; }
 footer .links a { display: flex; padding: 6px; margin: -6px; color: var(--dim); }
 footer .links a:hover { color: var(--ink); }
@@ -130,7 +132,6 @@ a:hover .arrow { color: var(--ink); }
 /* The status over a hairline, as Synthux Academy over its rule on the plate */
 .home .intro .status { padding-bottom: 16px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
 .status { display: flex; flex-wrap: wrap; gap: 4px 20px; }
-.status a { text-decoration: none; }
 .status a:hover { color: var(--ink); }
 /* As tall as the text beside it: the status on its top cap, the call on its
    foot */
@@ -194,6 +195,14 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
   .mapping svg.touch { width: 100%; height: auto; }
 }
 
+/* Files to take away, as cards: set apart from the steps above */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-decoration: none; }
+.card:hover { border-color: var(--dim); }
+.card .text { display: grid; gap: 2px; min-width: 0; }
+.card b { font-weight: 600; }
+.card .sub { color: var(--dim); }
+
 /* Download: a file's type */
 .file { width: 28px; height: 28px; flex: none; color: var(--dim); }
 .file path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
@@ -201,9 +210,8 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 a:hover .file { color: var(--ink); }
 
 /* Feedback: a form whose answers go to a GitHub issue or an email */
-.form { display: grid; gap: 24px; max-width: 40em; }
+.form { display: grid; gap: 24px; }
 .field { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
-.field legend { padding: 0; margin-bottom: 8px; }
 .field textarea { height: 216px; width: 100%; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: 500 var(--text)/var(--line-text) var(--sans); resize: vertical; }
 .field textarea::placeholder { color: var(--dim); }
 .field textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
@@ -219,18 +227,8 @@ main:has(.fill) { min-height: 0; }
 .fill .field:has(textarea) { min-height: 0; }
 .fill .field textarea { height: 100%; min-height: 96px; resize: none; }
 
-/* A page in parts: their names in a row under its title, one part shown */
-nav.parts { gap: 4px 12px; margin-bottom: 8px; }
-nav.parts a { padding: 4px 0 8px; }
-.one-part .part:not(.shown) { display: none; }
-.one-part .part > h2 { display: none; }
-.one-part .part { border-top: 0; }
-
 @media print {
   header, nav, footer, .noprint { display: none !important; }
-  .one-part .part:not(.shown) { display: grid !important; }
-  .one-part .part > h2 { display: block !important; }
-  .one-part .part { border-top: 1px solid var(--line); }
   html, body { background: #fff; }
   body { padding: 0; }
   .head { padding: 0 0 6mm; }

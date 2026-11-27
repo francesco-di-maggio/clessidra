@@ -200,18 +200,8 @@ const runtime: [string, string][] = [
   <h1>Engine</h1>
   <p class="lead">How a recording becomes grains, and how they fall.</p>
 </div>
-<nav class="label parts noprint" aria-label="Parts">
-  <a href="#signal-path">Signal path</a>
-  <a href="#recording">Recording</a>
-  <a href="#grain">Grain</a>
-  <a href="#starts">Starts</a>
-  <a href="#level">Level</a>
-  <a href="#transport">Transport</a>
-  <a href="#effects">Effects</a>
-  <a href="#runtime">Runtime</a>
-</nav>
 
-<section class="sect part" id="signal-path">
+<section class="sect">
 <h2 class="label">Signal path</h2>
 <div class="figure prose">
   <Fragment set:html={signal()} />
@@ -219,11 +209,11 @@ const runtime: [string, string][] = [
 </div>
 </section>
 
-<section class="sect part" id="recording">
+<section class="sect">
 <h2 class="label">Recording</h2>
 <div class="figure">
   <Fragment set:html={recording()} />
-  <ol class="rows tight">
+  <ol class="rows">
     <li class="row"><span class="label">Tap</span><span>Under 0.3 s: the 8 s before it.</span></li>
     <li class="row"><span class="label">Hold</span><span>From 50 ms before the touch to the release, up to 30 s.</span></li>
     <li class="row"><span class="label">Trim</span><span>Silence under −60 dBFS cut from both ends.</span></li>
@@ -233,14 +223,15 @@ const runtime: [string, string][] = [
 </div>
 </section>
 
-<section class="sect part" id="grain">
-<h2 class="label">Grain</h2>
+<section class="sect">
+<h2 class="label">A grain</h2>
 <div class="figure">
-  <ol class="rows tight">{grain.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}{k === "Window" && <Fragment set:html={shapes()} />}</span></li>)}</ol>
+  <ol class="rows">{grain.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+  <Fragment set:html={shapes()} />
 </div>
 </section>
 
-<section class="sect part" id="starts">
+<section class="sect">
 <h2 class="label">Starts</h2>
 <div class="figure prose">
   <Fragment set:html={starts()} />
@@ -248,7 +239,7 @@ const runtime: [string, string][] = [
 </div>
 </section>
 
-<section class="sect part" id="level">
+<section class="sect">
 <h2 class="label">Level</h2>
 <div class="figure prose">
   <Fragment set:html={level()} />
@@ -256,45 +247,26 @@ const runtime: [string, string][] = [
 </div>
 </section>
 
-<section class="sect part" id="transport">
+<section class="sect">
 <h2 class="label">Transport</h2>
-<ol class="rows tight">{transport.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+<ol class="rows">{transport.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
 </section>
 
-<section class="sect part" id="effects">
+<section class="sect">
 <h2 class="label">Effects</h2>
-<ol class="rows tight">{effects.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+<ol class="rows">{effects.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
 </section>
 
-<section class="sect part" id="runtime">
+<section class="sect">
 <h2 class="label">Runtime</h2>
-<ol class="rows tight">{runtime.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
+<ol class="rows">{runtime.map(([k, v]) => <li class="row"><span class="label">{k}</span><span>{v}</span></li>)}</ol>
 </section>
 </Base>
-
-<script>
-  // One part at a time, chosen above, so the page needs no scroll. Without
-  // the script, and on paper, every part.
-  const parts = [...document.querySelectorAll<HTMLElement>(".part")];
-  const tabs = [...document.querySelectorAll<HTMLAnchorElement>(".parts a")];
-  function show(id: string) {
-    const at = parts.some((p) => p.id === id) ? id : parts[0].id;
-    for (const p of parts) p.classList.toggle("shown", p.id === at);
-    for (const t of tabs) {
-      if (t.hash === `#${at}`) t.setAttribute("aria-current", "page");
-      else t.removeAttribute("aria-current");
-    }
-  }
-  document.documentElement.classList.add("one-part");
-  show(location.hash.slice(1));
-  addEventListener("hashchange", () => show(location.hash.slice(1)));
-</script>
 
 <style is:global>
   .figure { display: grid; gap: 24px; }
   .figure ol.rows { padding: 0; }
-  .row .dia { max-width: 300px; margin-top: 8px; }
-  .dia { width: 100%; max-width: 520px; height: auto; display: block; overflow: visible; }
+  .dia { width: 100%; height: auto; display: block; overflow: visible; }
   .dia text { font: 500 7px var(--sans); fill: var(--ink); text-anchor: middle; }
   .dia .sub { font-size: 5.6px; fill: var(--dim); }
   .dia .code { font: 600 5.6px var(--sans); fill: var(--dim); }

@@ -18,13 +18,14 @@ const { title, app = false, description = "A real-time granular sampler inspired
 const pageTitle = title ? `${title} · Clessidra` : "Clessidra";
 const path = Astro.url.pathname;
 const nav = [
+  { path: "", title: "About" },
   { path: "play/", title: "Play" },
   { path: "controls/", title: "Controls" },
   { path: "engine/", title: "Engine" },
   { path: "download/", title: "Download" },
   { path: "feedback/", title: "Feedback" },
 ];
-const current = (p: string) => path.startsWith(url(p));
+const current = (p: string) => (p ? path.startsWith(url(p)) : path === url());
 const logo = matrix([..."CLESSIDRA"], "currentColor", 'class="logo" aria-hidden="true"');
 ---
 <!doctype html>
