@@ -177,7 +177,7 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 /* Controls: the panel beside its help, one screen on a laptop */
 .mapping { display: grid; gap: 24px; align-items: start; padding-bottom: 24px; }
 @media (min-width: 640px) { .mapping { grid-template-columns: auto minmax(0, 1fr); } }
-.mapping svg.touch { width: auto; height: clamp(360px, calc(100dvh - 300px), 640px); max-height: none; }
+.mapping svg.touch { width: auto; height: clamp(360px, calc(100dvh - 306px), 640px); max-height: none; }
 /* Beside the board and as tall: the control, under a hairline its second
    function, each layer as tall as its longest text */
 .stack { display: grid; gap: 24px; min-width: 0; }
@@ -190,10 +190,10 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
    word. */
 .help p { margin: 0; color: var(--dim); text-wrap: pretty;
           hyphens: auto; -webkit-hyphens: auto; hyphenate-limit-chars: 6 3 2; -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 2; }
-.help hr { width: 100%; margin: 24px 0; border: 0; border-top: 1px solid var(--line); }
+.help hr { width: 100%; margin: 16px 0; border: 0; border-top: 1px solid var(--line); }
 .help .twin { color: var(--tan); }
 .mapping .notes { display: grid; gap: 0; }
-.note { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); white-space: nowrap; }
+.note { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); white-space: nowrap; }
 /* One column: the help held at the foot of the screen over the board, so a
    control tapped shows what it does without a scroll */
 @media (max-width: 639px) {
