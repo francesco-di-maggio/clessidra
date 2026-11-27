@@ -145,39 +145,28 @@ a:hover .arrow { color: var(--ink); }
 .clock { width: 112px; height: 100%; min-height: 200px; --band: 112px; }
 @media (max-width: 559px) { .clock { display: none; } }
 
-/* The panel: the Simple Touch 2 drawn as the faceplate is. Gold rings on
-   wells, the names in gold capitals, the codes dim. The control pointed at
-   in light. */
+/* The panel: Synthux's drawing in the faceplate's colours, each control's
+   name in gold capitals and its code dim over it. Pointed at, a control
+   rings in light. */
 svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh - 120px); margin: 0 auto; }
-.touch .plate { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
-.touch .hole { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
-.touch .board .edge { fill: none; stroke: var(--line); stroke-width: 2; }
-.touch .board .usb { fill: var(--well); }
-.touch .board text { font: 600 15px var(--sans); letter-spacing: 0.1em; fill: var(--dim); text-anchor: middle; }
-.touch .code.side { text-anchor: start; }
 .touch .ctl { cursor: pointer; outline: none; }
-.touch .ctl .hit { fill: transparent; }
-.touch .ring, .touch circle.pad, .touch .slot, .touch .cap { fill: var(--well); stroke: var(--accent); stroke-width: 2.5; }
-.touch .arc, .touch .travel { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; }
-.touch .track { fill: none; stroke: var(--line); stroke-width: 5; stroke-linecap: round; }
-.touch .tick { stroke: var(--dim); stroke-width: 2; }
-.touch .lever { fill: var(--accent); }
-.touch circle.pad.press { fill: var(--accent); }
-.touch .code { font: 600 14px var(--sans); letter-spacing: 0.06em; fill: var(--dim); text-anchor: middle; pointer-events: none; }
-.touch .name { font: 700 15px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; fill: var(--accent); text-anchor: middle; pointer-events: none; }
-.touch .ctl:hover .ring, .touch .ctl:hover circle.pad, .touch .ctl:hover .slot, .touch .ctl:hover .cap,
-.touch .ctl:focus-visible .ring, .touch .ctl:focus-visible circle.pad, .touch .ctl:focus-visible .cap, .touch .ctl:focus-visible .slot,
-.touch .ctl.active .ring, .touch .ctl.active circle.pad, .touch .ctl.active .cap, .touch .ctl.active .slot { stroke: var(--ink); }
-.touch .ctl.active .name { fill: var(--ink); }
-.touch .jack { fill: none; stroke: var(--dim); stroke-width: 2; }
-.touch .free .ring, .touch .free circle.pad, .touch .free .slot { stroke: var(--line); }
+.touch .hit { fill: transparent; }
+.touch .ring { fill: none; stroke: transparent; stroke-width: 4; }
+.touch .code { font: 600 22px var(--sans); letter-spacing: 0.06em; fill: var(--dim); text-anchor: middle; pointer-events: none; }
+.touch .code.side { text-anchor: start; }
+.touch .name { font: 700 26px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; fill: var(--accent); text-anchor: middle; pointer-events: none;
+               paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
+.touch .pad .code, .touch .pad .name { stroke: var(--surface); stroke-width: 6px; paint-order: stroke; }
+.touch .ctl:hover .ring, .touch .ctl:focus-visible .ring, .touch .ctl.active .ring { stroke: var(--ink); }
+.touch .ctl.active .name, .touch .switch:hover .name, .touch .switch:focus-visible .name { fill: var(--ink); }
 .touch .free .name { fill: var(--dim); }
 .touch .free { cursor: default; }
 
 /* Controls: the panel beside its help, one screen on a laptop */
 .mapping { display: grid; gap: 24px; align-items: start; padding-bottom: 24px; }
 @media (min-width: 640px) { .mapping { grid-template-columns: auto minmax(0, 1fr); } }
-.mapping svg.touch { width: auto; height: clamp(360px, calc(100dvh - 306px), 640px); max-height: none; }
+.mapping svg.touch { width: auto; height: clamp(340px, calc(100dvh - 332px), 616px); max-height: none; }
+.credit { margin: 4px 0 0; font-size: 12px; line-height: 22px; color: var(--dim); }
 /* Beside the board and as tall: the control, under a hairline its second
    function, each layer as tall as its longest text */
 .stack { display: grid; gap: 24px; min-width: 0; }

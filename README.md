@@ -51,3 +51,5 @@ make program-dfu
 ## License
 
 MIT
+
+The Simple Touch panel drawing on the website's Controls page is by Roey Tsemah, Synthux Academy, adapted by Fabio Bartali, used with permission and not under MIT. Its control positions follow Jon Waterschoot's [simple-touch-labels](https://github.com/jonwaterschoot/simple-touch-labels) (MIT).
