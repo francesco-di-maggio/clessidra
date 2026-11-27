@@ -284,9 +284,10 @@ const runtime: [string, string][] = [
   .dia .sel { fill: var(--well); }
   .dia .playhead { stroke: var(--ink); stroke-width: 1.4; }
   .dia .spray { fill: var(--ink); opacity: 0.25; }
-  .dia .env { fill: var(--ink); }
-  .dia .g { fill: color-mix(in srgb, var(--ink) 8%, transparent); stroke: var(--ink); stroke-width: 0.5; }
-  .dia .g.thin { fill: color-mix(in srgb, var(--ink) 3%, transparent); stroke-width: 0.25; }
+  .dia .env { fill: var(--tan); }
+  /* Grains in tan, as the sand everywhere */
+  .dia .g { fill: color-mix(in srgb, var(--tan) 12%, transparent); stroke: var(--tan); stroke-width: 0.5; }
+  .dia .g.thin { fill: color-mix(in srgb, var(--tan) 4%, transparent); stroke-width: 0.25; }
   @media print {
     @page { size: A4; margin: 14mm 15mm; }
     :root { --text: 9pt; --line-text: 12pt; --title: 11.25pt; --line-title: 15pt; }
