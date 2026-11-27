@@ -1,11 +1,12 @@
 ---
 // The Simple Touch panel: Synthux's drawing (Roey Tsemah, adapted by Fabio
-// Bartali), in the faceplate's colours, with each control's code and name
-// over it. Positions on the drawing after Jon Waterschoot's
-// simple-touch-labels (MIT). Pointed at, a control rings in light; a switch,
-// its lever drawn at an angle, lights its name.
+// Bartali) in the faceplate's colours, Clessidra's faceplate on its top plate.
+// The pads keep their code and name over the drawing. Pointed at, a pad or a
+// switch lights its own shape, a knob or fader rings in light. Positions on
+// the drawing after Jon Waterschoot's simple-touch-labels (MIT).
 import { CONTROLS } from "../lib/controls";
 import { url } from "../lib/url";
+import faceplate from "../../../faceplate/clessidra-faceplate.svg?raw";
 
 // Where each control sits on the drawing, in its units
 const AT: Record<string, [number, number]> = {
@@ -18,17 +19,25 @@ const AT: Record<string, [number, number]> = {
   P07: [916.8, 1328.2], P08: [384.6, 1447.9], P09: [700.7, 1452.3],
   S09: [433.2, 1044.0], S07: [590.7, 1117.0],
 };
-const JACKS: [string, number, number][] = [["IN", 152.8, 283.8], ["OUT", 152.8, 454.8]];
+// The top plate on the drawing, the faceplate laid over it
+const PLATE = { x: 94.91, y: 205.82, width: 891.93, height: 749.75 };
 const KNOB_R = 34;
 const PAD_R = 62;
 const TOP_PAD_R = 52;
 const FADER = { half: 140, w: 34 };
-const SWITCH = { w: 70, h: 96 }; // the hit area round a lever, its name below
+const SWITCH = { w: 70, h: 96 };
+
+const panel = url("simple-touch-panel.svg");
+const plate = faceplate
+  .replace(/^<\?xml[^>]*>\s*/, "")
+  .replace(/<svg [^>]*>/, (tag) => {
+    const box = tag.match(/viewBox="([^"]*)"/)![1];
+    return `<svg class="faceplate" x="${PLATE.x}" y="${PLATE.y}" width="${PLATE.width}" height="${PLATE.height}" viewBox="${box}">`;
+  });
 ---
-<svg class="touch" viewBox="70 75 940 1475" role="img" aria-label="The Simple Touch panel with each control's name">
-  <title>Simple Touch panel drawing: Roey Tsemah, Synthux Academy</title>
-  <image href={url("simple-touch-panel.svg")} x="70" y="75" width="940" height="1475" />
-  {JACKS.map(([label, x, y]) => <text class="code side" x={x + 48} y={y + 9}>{label}</text>)}
+<svg class="touch" viewBox="70 75 940 1475" role="img" aria-label="The Simple Touch panel with Clessidra's faceplate and each control's name">
+  <image href={panel} x="70" y="75" width="940" height="1475" />
+  <Fragment set:html={plate} />
   {CONTROLS.filter((c) => AT[c.id]).map((c) => {
     const [x, y] = AT[c.id];
     const cls = `ctl ${c.type}${c.free ? " free" : ""}`;
@@ -38,8 +47,6 @@ const SWITCH = { w: 70, h: 96 }; // the hit area round a lever, its name below
         <g class={cls} data-id={c.id} tabindex={tab}>
           <circle class="hit" cx={x} cy={y} r={KNOB_R + 18} />
           <circle class="ring" cx={x} cy={y} r={KNOB_R + 10} />
-          <text class="code" x={x} y={y - KNOB_R - 22}>{c.id}</text>
-          <text class="name" x={x} y={y + KNOB_R + 44}>{c.name}</text>
         </g>
       );
     }
@@ -48,8 +55,6 @@ const SWITCH = { w: 70, h: 96 }; // the hit area round a lever, its name below
         <g class={cls} data-id={c.id} tabindex={tab}>
           <rect class="hit" x={x - FADER.w} y={y - FADER.half - 20} width={2 * FADER.w} height={2 * FADER.half + 40} />
           <rect class="ring" x={x - FADER.w / 2 - 8} y={y - FADER.half - 8} width={FADER.w + 16} height={2 * FADER.half + 16} rx={FADER.w / 2 + 8} />
-          <text class="code" x={x} y={y - FADER.half - 30}>{c.id}</text>
-          <text class="name" x={x} y={y + FADER.half + 56}>{c.name}</text>
         </g>
       );
     }
@@ -57,6 +62,7 @@ const SWITCH = { w: 70, h: 96 }; // the hit area round a lever, its name below
       return (
         <g class={cls} data-id={c.id} tabindex={tab}>
           <rect class="hit" x={x - SWITCH.w} y={y - SWITCH.h / 2 - 10} width={2 * SWITCH.w} height={SWITCH.h + 20} />
+          <use class="shape" href={`${panel}#shape-${c.id}`} />
           <text class="code" x={x} y={y + SWITCH.h / 2 + 34}>{c.id}</text>
           <text class="name" x={x} y={y + SWITCH.h / 2 + 66}>{c.name}</text>
         </g>
@@ -66,7 +72,7 @@ const SWITCH = { w: 70, h: 96 }; // the hit area round a lever, its name below
     return (
       <g class={cls} data-id={c.id} tabindex={tab}>
         <circle class="hit" cx={x} cy={y} r={r} />
-        <circle class="ring" cx={x} cy={y} r={r} />
+        <use class="shape" href={`${panel}#shape-${c.id}`} />
         <text class="code" x={x} y={y - 6}>{c.id}</text>
         <text class="name" x={x} y={y + 26}>{c.name}</text>
       </g>

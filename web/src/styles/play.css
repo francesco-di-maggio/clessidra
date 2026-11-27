@@ -6,7 +6,9 @@
    rest. Every tile 14 px in, names on one line, values on one
    line. Gold only for what is on. */
 body.app { height: 100dvh; min-height: 0; overflow: hidden; }
-body.app main { flex: 1; min-height: 0; padding: 12px 0 16px; }
+/* Ending where the other pages' footer begins, so moving between them the
+   page keeps its frame */
+body.app main { flex: 1; min-height: 0; padding: 12px 0 63px; }
 /* An instrument: the arrow over every control, as on a desktop app. Dragging,
    the cursor shows the way the control moves, wherever it goes */
 .instrument button, .instrument .pad { cursor: default; }
@@ -153,6 +155,7 @@ html:has(.knob.dragging), html:has(.knob.dragging) * { cursor: ns-resize !import
    The board's order, the recording the rest. */
 @media (max-width: 600px) {
   body.app { height: 100dvh; min-height: 0; overflow: hidden; }
+  body.app main { padding-bottom: 12px; }
   .instrument { --in: 10px; --band: 40px; height: 100%; gap: 6px; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto;
                 grid-template-areas: "transport" "sound" "controls" "pads"; }
   /* Start and the sources, then Out under them */

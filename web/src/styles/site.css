@@ -145,13 +145,18 @@ a:hover .arrow { color: var(--ink); }
 .clock { width: 112px; height: 100%; min-height: 200px; --band: 112px; }
 @media (max-width: 559px) { .clock { display: none; } }
 
-/* The panel: Synthux's drawing in the faceplate's colours, each control's
-   name in gold capitals and its code dim over it. Pointed at, a control
-   rings in light. */
+/* The panel: Synthux's drawing in the faceplate's colours, Clessidra's
+   faceplate on its top plate, each pad's name in gold capitals and its code
+   dim. Pointed at, a pad or switch lights its shape, a knob or fader rings. */
 svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh - 120px); margin: 0 auto; }
 .touch .ctl { cursor: pointer; outline: none; }
 .touch .hit { fill: transparent; }
 .touch .ring { fill: none; stroke: transparent; stroke-width: 4; }
+/* A pad's or switch's own shape from the drawing, unseen until pointed at */
+.touch .shape { --pline: transparent; --psw: transparent; --pbg: transparent; opacity: 0.6; pointer-events: none; }
+.touch .ctl:hover .shape, .touch .ctl:focus-visible .shape, .touch .ctl.active .shape { --pline: var(--ink); --psw: var(--ink); --pswop: 1; }
+.touch .faceplate { pointer-events: none; }
+.touch .faceplate #mask path { fill: var(--surface); }
 .touch .code { font: 600 22px var(--sans); letter-spacing: 0.06em; fill: var(--dim); text-anchor: middle; pointer-events: none; }
 .touch .code.side { text-anchor: start; }
 .touch .name { font: 700 26px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; fill: var(--accent); text-anchor: middle; pointer-events: none;
@@ -165,8 +170,7 @@ svg.touch { display: block; width: 100%; height: auto; max-height: calc(100dvh -
 /* Controls: the panel beside its help, one screen on a laptop */
 .mapping { display: grid; gap: 24px; align-items: start; padding-bottom: 24px; }
 @media (min-width: 640px) { .mapping { grid-template-columns: auto minmax(0, 1fr); } }
-.mapping svg.touch { width: auto; height: clamp(340px, calc(100dvh - 332px), 616px); max-height: none; }
-.credit { margin: 4px 0 0; font-size: 12px; line-height: 22px; color: var(--dim); }
+.mapping svg.touch { width: auto; height: clamp(360px, calc(100dvh - 306px), 640px); max-height: none; }
 /* Beside the board and as tall: the control, under a hairline its second
    function, each layer as tall as its longest text */
 .stack { display: grid; gap: 24px; min-width: 0; }
